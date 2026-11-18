@@ -3,6 +3,21 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Pack screen with verdicts, reasons and questions.** `PackScreen` shows one `ItemCard` per
+  item, then the box's lithium line, its notes and the footer that disclaims the Postal Service.
+  Each card shows the item's name, the engine's own headline and first reason, where the read
+  ran (`Copy.source`: on this phone, in the cloud from this phone, on the laptop, in the cloud
+  from the laptop, typed by you, or route not reported), and the engine's question with its
+  answers as chips. The card writes no verdict words. With no engine result the screen shows
+  only the line that says nothing is checked yet. Adds Compose ui-test (and espresso-core
+  3.7.0, since the version Compose pulls in calls an InputManager API removed in Android 37) for
+  device tests. Source: Android plan Task 9. Verified: `PackScreenTest` (4 tests, which failed
+  to compile first) passes on the emulator against the real bundled engine, with the shared
+  vector's three phones: item a's card shows the engine's headline, first reason, question,
+  every answer and its source; tapping an answer stores it and re-checks the box exactly once;
+  the footer shows; with an engine error only the rules-not-loaded line shows; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The app's words, in one place.** `Copy` holds the consent sentence (the web app's, with
   "laptop" changed to "phone" and nothing else), its two choices, the footer that disclaims the
   Postal Service, the action labels, and one plain line for each blocked or failed read (no

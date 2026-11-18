@@ -17,6 +17,17 @@ object Copy {
     const val RETAKE = "Take the photo again"
     const val FIX_READING = "Fix this reading"
     const val RULES_NOT_LOADED = "The rules could not be loaded, so nothing is checked yet."
+    const val NO_ITEMS = "Nothing in the box yet."
+
+    /** Where an item's read ran. Web values are the laptop's own reads, seen from this phone. */
+    fun source(readSource: String): String = when (readSource) {
+        "phone_on_device" -> "Read on this phone"
+        "phone_cloud" -> "Read in the cloud, from this phone"
+        "on_device" -> "Read on the laptop"
+        "in_cloud" -> "Read in the cloud, from the laptop"
+        "manual" -> "Typed by you"
+        else -> "Route not reported"
+    }
 
     fun blocked(r: BlockReason): String = when (r) {
         BlockReason.NO_MODEL_NO_CONSENT -> "This phone can't read labels on its own, and nothing leaves it without your OK."
@@ -33,6 +44,7 @@ object Copy {
         FailReason.CLOUD_ERROR -> "The check did not go through."
     }
 
-    val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED) +
-        BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed)
+    val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
+        NO_ITEMS) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
+        listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
 }

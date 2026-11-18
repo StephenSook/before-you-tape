@@ -16,6 +16,8 @@ androidxTestRunner = "1.7.0"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 junit = "4.13.2"
+# Compose ui-test pulls espresso-core 3.5.0, which calls an InputManager API removed in Android 37.
+espresso = "3.7.0"
 serializationJson = "1.8.1"
 # Tests run the rules bundle in QuickJS on the JVM through Zipline (its JVM artifact carries macOS arm64 and Linux x64 hosts).
 zipline = "1.28.0"
@@ -36,6 +38,9 @@ androidx-test-runner = { module = "androidx.test:runner", version.ref = "android
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 junit = { module = "junit:junit", version.ref = "junit" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
