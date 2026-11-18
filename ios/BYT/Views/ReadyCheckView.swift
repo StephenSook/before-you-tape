@@ -6,6 +6,8 @@ struct ReadyCheckView: View {
 
     var body: some View {
         List {
+            if let line = model.updateLine { Label(line, systemImage: "arrow.down.app").accessibilityIdentifier("update-line") }
+            if let notice = model.editionNotice { Label(notice, systemImage: "exclamationmark.triangle").accessibilityIdentifier("edition-notice") }
             Label(model.signedIn ? "Signed in" : "Not signed in yet. Check the network.", systemImage: "person.badge.key")
             Label(ReadyCheck.modelLine(model.onDevice), systemImage: "iphone")
             Section {

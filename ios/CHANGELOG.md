@@ -97,6 +97,47 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 - Verified: a router test and two reader tests (a pause before the cloud fallback stops it; a
   pause between a cloud call and its retry stops the retry) failed to compile, then passed; 31
   core and 82 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+### feat(ios): read model names, the kill switch and the rule edition from Remote Config
+- What: `RemoteConfigLoader` fetches Remote Config at start and listens for real-time updates;
+  `AppModel.applyConfig` applies each update at once. The next read uses the new cloud model
+  names and the kill switch with no restart; a new rule edition pin is checked through
+  `EditionSource` and, only when it checks out, loaded, and the box's verdicts are derived again.
+  A refused edition shows its notice on the Ready check, and a build below
+  `minimum_version_ios` shows "This version is out of date. Update the app to keep checking
+  items." A published edition is read from Firestore `ruleEditions/{id}` (field `json`), as on
+  the web.
+- Source: iPhone client plan, task I-10.
+- Verified: four tests (a new `cloud_model_item` is used by the next read and recorded; the kill
+  switch stops cloud reads at once; the update line appears below the minimum and goes away at
+  it; a new edition pin is followed only when it checks out, else the notice) failed to compile,
+  then passed; 92 unit tests and the UI test pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+  The live console change on the iPhone is still to do.
+
+### feat(ios): choose the rule edition the way the web app does
+- What: `EditionSource.choose` keeps the built-in edition unless Remote Config names a newer one
+  by id and SHA-256; it is used only when the fetched edition has exactly that id and hash and
+  loads. Otherwise the built-in edition stays and the web app's notice says why ("could not be
+  loaded", "failed its integrity check", "could not be read"). The hash is the SHA-256 of the
+  engine's canonical JSON, which equals the web app's hash of the document. One difference,
+  both keeping the built-in edition: a document the engine refuses but that carries the right id
+  says "could not be read", where the web app would say "failed its integrity check".
+- Source: iPhone client plan, task I-10 (the web app's editionSource).
+- Verified: three tests (no pin keeps the built-in edition and fetches nothing; a remote edition is
+  used only when its hash matches; a wrong id, a missing document, text that is not JSON, and an
+  unreadable edition each keep the built-in one with the right notice) failed to compile, then
+  passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### feat(ios): read Remote Config the way the web app does
+- What: `RemoteConfigValues.parse` reads model names only from the web app's allow-list (an empty
+  fallback turns the fallback off), `kill_cloud` with Remote Config's words for true, the
+  second-look policy only when it names all five reasons with true or false, a newer rule edition
+  only with a safe id and a 64-hex SHA-256, and the minimum iPhone version. Anything else keeps
+  the default. `isBelowMinimum` compares versions by number (0.10.0 is above 0.9.0), and a version
+  it cannot read never locks the app. The defaults still equal `remoteconfig.template.json`.
+- Source: iPhone client plan, task I-10 (the web app's remoteConfig and models).
+- Verified: five tests (bad values keep defaults, good values are read, the boolean words, the
+  model allow-list read from the web app's file, versions by number) failed to compile, then
+  passed, with the template test; `bash ios/scripts/ci-local-ios.sh` exit 0.
 
 ### test(ios): run the box loop on screen: a read, its verdict, and a country flip
 - What: a UI test target (`BYTUITests`) with `LoopUITests`. With the launch argument
