@@ -39,6 +39,11 @@ export function routePaths(dev: boolean): string[] {
 // Routes with a built page; the others show their title until their page lands.
 const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/blind/:token": <BlindRoute /> };
 
+// The public pages that are built, for lists that must never point at a stub.
+export function builtPagePaths(): string[] {
+  return Object.keys(PAGES).filter((p) => !p.includes(":"));
+}
+
 export function AppRoutes() {
   return (
     <Routes>
