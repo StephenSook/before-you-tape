@@ -1,4 +1,5 @@
 [
+  {"name": "r2_h2_saved_no_battery_cannot_cancel_printed_lithium_grams", "source": "Codex round 2 H2", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "cam", "read": {"category": "other_electronics", "labelText": "LITHIUM METAL 1.2 G", "lithiumGrams": 1.2, "batteryWords": true}, "answers": {"battery_installed": "none", "device_condition": "used", "cell_count": "one"}}], "expect": {"cam": "take_out"}},
   {
     "name": "a_not_lithium_answer_cannot_beat_a_lithium_label", "source": "found while fixing the loose non-lithium rule", "code": "CA", "today": "2026-11-20",
     "items": [
