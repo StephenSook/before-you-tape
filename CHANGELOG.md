@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Fixed
 
+- `public/robots.txt` and `public/llms.txt`: the single-page rewrite had answered both with the app's `index.html`, which cost the SEO and Agentic Browsing scores. `robots.txt` allows all crawlers; `llms.txt` says in plain words what the site is for, that it is in development, and links the sample box, Measured and Rules pages. Source: orchestrator Lighthouse run (SEO 91, Agentic Browsing 50). Verified: the smoke test that requires both to be served as `text/plain` with their own first line failed first (`text/html`) and passes; local CI mirror exit 0.
 - `firebase.json`: Hosting names its site (`before-you-tape-2026`, the project's default site). Without it the deploy tool failed with "resolving hosting target of a site with no site name or target name". Source: first live deploy from main. Verified: the deploy from a clean checkout of main succeeds and the live `version.json` reports the main SHA with `dirty` false; local CI mirror exit 0.
 
 ### Added
