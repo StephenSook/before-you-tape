@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import bundledRaw from "../../rules/edition.json";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
-import { chooseEdition } from "./editionSource";
+import { CONFIG_DEFAULTS } from "../config/defaults";
+import type { AppConfig, ConfigSource } from "../config/remoteConfig";
+import { chooseEdition, followEditionPin } from "./editionSource";
 
 const bundled = parseEdition(bundledRaw);
 const shaOf = (v: unknown) => sha256Hex(canonicalJson(v));
@@ -42,5 +44,42 @@ describe("chooseEdition", async () => {
     const fetchRemote = vi.fn(async () => remote);
     await chooseEdition({ ...base, wantId: "byt-newer000001", wantSha: await shaOf(remote), fetchRemote });
     expect(fetchRemote).toHaveBeenCalledWith("byt-newer000001");
+  });
+});
+
+describe("followEditionPin", async () => {
+  const bundledSha = await shaOf(bundledRaw);
+  const remoteSha = await shaOf(remote);
+  const source = (start: Partial<AppConfig>) => {
+    let current: AppConfig = { ...CONFIG_DEFAULTS, ...start };
+    const listeners = new Set<(c: AppConfig) => void>();
+    const s: ConfigSource = { get: () => current, subscribe: (l) => { listeners.add(l); return () => listeners.delete(l); }, ready: Promise.resolve() };
+    return { s, push: (c: Partial<AppConfig>) => { current = { ...current, ...c }; for (const l of listeners) l(current); } };
+  };
+
+  it("switches the store to a verified edition once config is ready, and to each new pin after", async () => {
+    const cfg = source({ rulesEditionId: "byt-newer000001", rulesEditionSha256: remoteSha });
+    const setEdition = vi.fn();
+    const fetchRemote = vi.fn(async () => remote);
+    const onNotice = vi.fn();
+    const stop = followEditionPin({ source: cfg.s, store: { setEdition }, bundled, bundledSha, fetchRemote, onNotice });
+    await vi.waitFor(() => expect(setEdition).toHaveBeenCalledTimes(1));
+    expect(setEdition.mock.calls[0]?.[0].editionId).toBe("byt-newer000001");
+    expect(onNotice).toHaveBeenLastCalledWith(null);
+    cfg.push({ killCloud: true });
+    cfg.push({ rulesEditionId: "", rulesEditionSha256: "" });
+    await vi.waitFor(() => expect(setEdition).toHaveBeenCalledTimes(2));
+    expect(setEdition.mock.calls[1]?.[0]).toBe(bundled);
+    expect(fetchRemote).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("keeps the built-in edition and passes on the notice when the pin fails", async () => {
+    const cfg = source({ rulesEditionId: "byt-newer000001", rulesEditionSha256: "0".repeat(64) });
+    const setEdition = vi.fn();
+    const onNotice = vi.fn();
+    followEditionPin({ source: cfg.s, store: { setEdition }, bundled, bundledSha, fetchRemote: async () => remote, onNotice });
+    await vi.waitFor(() => expect(onNotice).toHaveBeenCalledWith("A newer rule edition failed its integrity check. Using the built-in edition."));
+    expect(setEdition).not.toHaveBeenCalled();
   });
 });

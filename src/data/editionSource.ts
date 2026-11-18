@@ -3,7 +3,9 @@
 // and parses. Anything else keeps the built-in edition and says so.
 import { doc, getDoc, type Firestore } from "firebase/firestore";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
+import type { AppConfig, ConfigSource } from "../config/remoteConfig";
 import type { RuleEdition } from "../engine/types";
+import type { BoxStore } from "./boxStore";
 
 export interface EditionChoice { edition: RuleEdition; from: "bundled" | "remote"; notice: string | null }
 
@@ -52,5 +54,39 @@ export function firestoreEditionFetcher(db: Firestore): (id: string) => Promise<
     } catch {
       return null;
     }
+  };
+}
+
+// Follows the Remote Config edition pin: once config is ready, and whenever the pin changes, choose the
+// edition and switch the store only when the choice changes. Returns a function that stops following.
+export function followEditionPin(o: {
+  source: ConfigSource;
+  store: Pick<BoxStore, "setEdition">;
+  bundled: RuleEdition;
+  bundledSha: string;
+  fetchRemote: (id: string) => Promise<unknown | null>;
+  onNotice: (notice: string | null) => void;
+}): () => void {
+  let lastPin: string | null = null;
+  let current = o.bundled;
+  let alive = true;
+  const apply = async (c: AppConfig) => {
+    const pin = `${c.rulesEditionId}|${c.rulesEditionSha256}`;
+    if (pin === lastPin) return;
+    lastPin = pin;
+    const choice = await chooseEdition({ bundled: o.bundled, bundledSha: o.bundledSha, wantId: c.rulesEditionId, wantSha: c.rulesEditionSha256, fetchRemote: o.fetchRemote });
+    // A newer pin may have arrived while this one was being checked; only the latest counts.
+    if (!alive || pin !== lastPin) return;
+    if (choice.edition !== current) {
+      current = choice.edition;
+      o.store.setEdition(choice.edition);
+    }
+    o.onNotice(choice.notice);
+  };
+  void o.source.ready.then(() => apply(o.source.get()));
+  const off = o.source.subscribe((c) => { void apply(c); });
+  return () => {
+    alive = false;
+    off();
   };
 }
