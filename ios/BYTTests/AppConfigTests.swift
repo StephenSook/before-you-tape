@@ -96,6 +96,51 @@ import Testing
         #expect(m.box?.result?.editionId == "byt-current" && m.editionNotice == nil)
     }
 
+    /// Fails the first fetch (the document was briefly unavailable), then serves the edition.
+    final class FlakyFetch: @unchecked Sendable {
+        let text: String
+        private(set) var calls = 0
+        init(_ text: String) { self.text = text }
+        func fetch() -> String? {
+            calls += 1
+            return calls == 1 ? nil : text
+        }
+    }
+
+    func failedOnce() async throws -> (AppModel, FlakyFetch, RemoteConfigValues) {
+        let newer = try EditionSourceTests.newer()
+        let flaky = FlakyFetch(newer.text)
+        let m = model(Models(), fetchEdition: { _ in flaky.fetch() })
+        let pin = RemoteConfigValues.parse(["rules_edition_id": "byt-newer-test", "rules_edition_sha256": newer.sha])
+        await m.applyConfig(pin)
+        #expect(m.box?.result?.editionId != "byt-newer-test" && m.editionNotice == EditionSource.notLoaded)
+        return (m, flaky, pin)
+    }
+
+    @Test func aFailedEditionFetchIsTriedAgainWhenTheSamePinArrivesAgain() async throws {
+        let (m, flaky, pin) = try await failedOnce()
+        await m.applyConfig(pin)
+        #expect(flaky.calls == 2 && m.box?.result?.editionId == "byt-newer-test" && m.editionNotice == nil)
+        // Installed now: the same pin again fetches nothing.
+        await m.applyConfig(pin)
+        #expect(flaky.calls == 2)
+    }
+
+    @Test func aFailedEditionFetchIsTriedAgainBackInTheForeground() async throws {
+        let (m, flaky, _) = try await failedOnce()
+        m.becameActive()
+        await m.editionRetry?.value
+        #expect(flaky.calls == 2 && m.box?.result?.editionId == "byt-newer-test" && m.editionNotice == nil)
+    }
+
+    @Test func aFailedEditionFetchIsTriedAgainWhenTheNetworkReturns() async throws {
+        let (m, flaky, _) = try await failedOnce()
+        m.network.pathChanged(satisfied: false)
+        m.network.pathChanged(satisfied: true)
+        await m.editionRetry?.value
+        #expect(flaky.calls == 2 && m.box?.result?.editionId == "byt-newer-test")
+    }
+
     final class Holder: @unchecked Sendable { var model: AppModel? }
 
     /// Pauses the cloud while the on-device read runs, then fails it so the read would fall to the cloud.

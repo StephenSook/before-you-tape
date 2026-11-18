@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): try a pinned rule edition again after a failed fetch
+- What: the app followed an edition pin only when the pin changed, so a fetch that failed once
+  (the document briefly unavailable) left the built-in edition in force until the pin changed or
+  the app restarted. The app now remembers the pin it actually installed, and tries a pin that is
+  not installed again when the same pin arrives again, when the app comes back to the
+  foreground, and when the network returns. A pin that is installed is not fetched again.
+- Source: review.
+- Verified: three tests (same pin delivered again; back in the foreground; network back) failed
+  on behavior with the old code, then passed; 109 app unit tests pass; the CI mirror exit 0, with
+  the secret scan limited to this branch's history (another branch's test vectors trip the full
+  scan; that is being fixed on that branch).
+
 ### fix(ios): install a rule edition only from the latest request
 - What: choosing an edition loaded it into the shared engine before the app checked that the
   request was still the latest, so a late answer (or a late failed fetch, which loaded the built-in

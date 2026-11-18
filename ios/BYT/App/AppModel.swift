@@ -41,6 +41,12 @@ final class AppModel {
     @ObservationIgnored private let pause: PauseSwitch
     /// Counts edition requests; only the latest one installs its answer.
     @ObservationIgnored private var editionRequest = 0
+    /// The pin whose edition is installed (empty means the built-in edition). A pin that could not
+    /// be installed is tried again when it arrives again, back in the foreground, and when the
+    /// network returns.
+    @ObservationIgnored private var installedPin = AppModel.pinKey(RemoteConfigValues.defaults)
+    /// The retry started by the foreground or the network, for anyone who must wait for it.
+    @ObservationIgnored private(set) var editionRetry: Task<Void, Never>?
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
@@ -73,6 +79,7 @@ final class AppModel {
         }
         // The saved box comes back before anything is added.
         box?.load()
+        network.onReconnect = { [weak self] in self?.retryEdition() }
     }
 
     /// The iPhone's own calendar date, YYYY-MM-DD, which the rule layers' freshness is checked against.
@@ -108,6 +115,13 @@ final class AppModel {
     func becameActive() {
         onDevice = onDeviceStatus()
         box?.reevaluate()
+        retryEdition()
+    }
+
+    /// Starts one more try for a pinned edition that is not installed yet.
+    private func retryEdition() {
+        guard Self.pinKey(config) != installedPin else { return }
+        editionRetry = Task { await followEditionPin() }
     }
 
     /// The local date changed while the app was open: rule freshness is checked against the day.
@@ -183,17 +197,23 @@ final class AppModel {
         return "That item could not be read. Try another photo."
     }
 
-    /// Applies new Remote Config values. A changed rule edition pin is checked and, only when it
-    /// checks out, loaded; the box's verdicts are then derived again.
+    /// Applies new Remote Config values. A rule edition pin that is not installed yet is checked
+    /// and, only when it checks out, loaded; the box's verdicts are then derived again.
     func applyConfig(_ values: RemoteConfigValues) async {
-        let pinChanged = values.rulesEditionId != config.rulesEditionId || values.rulesEditionSha256 != config.rulesEditionSha256
         config = values
         pause.paused = values.killCloud
-        guard pinChanged, let engine, let bundledEditionText else { return }
+        await followEditionPin()
+    }
+
+    nonisolated static func pinKey(_ c: RemoteConfigValues) -> String { c.rulesEditionId + "@" + c.rulesEditionSha256 }
+
+    private func followEditionPin() async {
+        let want = Self.pinKey(config)
+        guard want != installedPin, let engine, let bundledEditionText else { return }
         editionRequest += 1
         let request = editionRequest
-        let choice = await EditionSource.choose(bundledText: bundledEditionText, wantId: values.rulesEditionId,
-                                                wantSha: values.rulesEditionSha256, fetchRemote: fetchEdition)
+        let choice = await EditionSource.choose(bundledText: bundledEditionText, wantId: config.rulesEditionId,
+                                                wantSha: config.rulesEditionSha256, fetchRemote: fetchEdition)
         // A newer request may have started while this one was checked: only the latest installs anything.
         guard request == editionRequest else { return }
         if (try? engine.setEdition(choice.text)) != nil {
@@ -202,6 +222,8 @@ final class AppModel {
             _ = try? engine.setEdition(bundledEditionText)
             editionNotice = EditionSource.notRead
         }
+        // Only a pin that was met counts as installed; the built-in fallback is tried again later.
+        installedPin = editionNotice == nil ? want : ""
         box?.reevaluate()
     }
 
