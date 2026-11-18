@@ -45,6 +45,15 @@ export interface PackPageProps {
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
+
+// Why a photo cannot be read right now, in the sender's situation.
+function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }): string {
+  if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
+  if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
+  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
+  return BLOCKED;
+}
+const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
 const FAILURE: Record<ReadFailureKind, string> = {
   blocked: BLOCKED,
   device_failed: "This laptop couldn't read that one. Try again, or type the item.",
@@ -84,6 +93,8 @@ export function PackPage(p: PackPageProps) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [crops, setCrops] = useState<Record<string, ImagePart>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  // Why the last photo could not be read, shown only while that situation still holds.
+  const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
@@ -134,8 +145,9 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     const route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
-    if (route === "blocked") { setNotice(BLOCKED); return; }
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs()), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
+    setBlocked(null);
     try {
       const outcome = await readItem(models, part, route, now);
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
@@ -156,6 +168,7 @@ export function PackPage(p: PackPageProps) {
     }
   };
 
+  const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const reviewed = index.filter((d) => resolveDestination(edition, d.code).reviewState === "reviewed").map((d) => d.code);
   const dest = state.result.destination;
   // The suspension list decides whether anything can go at all, so its check date is always in view.
@@ -172,6 +185,7 @@ export function PackPage(p: PackPageProps) {
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
+      {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}

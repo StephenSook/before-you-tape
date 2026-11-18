@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -102,6 +102,33 @@ describe("PackPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);
+  });
+
+  it("shows no alert before the sender has done anything", async () => {
+    setup({}, null);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("asks for the cloud choice when nothing can read the photo yet, and clears that once the sender allows", async () => {
+    const { models } = setup({}, null);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("This laptop can't read photos on its own. Allow cloud checks above, or type the item.");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says why nothing can read the photo while offline, and clears it once back online", async () => {
+    const store = newStore();
+    store.setConsent(true);
+    const models = spyModels();
+    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {} };
+    const { rerender } = render(<PackPage {...props} online={false} />);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
+    rerender(<PackPage {...props} online />);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("says what to do when nothing can read the photo", async () => {
