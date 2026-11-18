@@ -3,6 +3,26 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Box and item documents that match the web app's.** `BoxDocs` turns a box item into the web
+  app's item document and back, and the box header likewise, as Firestore values. The shapes
+  come from `tests/contracts/box-docs.json`, the fixture the web app and the Firestore rules are
+  checked against.
+  - An item document never carries label text: the read's `labelText` is empty and a typed label
+    is dropped from the overrides; the tags travel instead.
+  - `quantity` and `readMs` are written as whole numbers, since the rules require an integer
+    quantity.
+  - The web app's item fields this phone does not use (`secondLook`, `readFallback`, `cropKey`,
+    `customs`) are kept on the item (`BoxItem.extras`), so syncing never drops them.
+  - A phone-made item carries the web app's defaults for them (no second look, no crop key,
+    empty customs).
+  - An unknown read source from the web is kept as it is.
+
+  Source: Android plan Task 10. Verified: `BoxDocsContractTest` (5 tests, which failed to
+  compile first) passes. The fixture item and box decode and encode back to the same documents,
+  with quantity as a whole number. A local item with read and typed label text gives a document
+  with neither. `cloud_unreported` and the web's extra fields survive a round trip. A phone item
+  carries the default fields. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Unit tests re-run when a web file they read changes.** The engine and app unit tests read
   web repo files that were not declared inputs of their Gradle tasks: the built bundle, the
   shared vectors and the rule edition (engine), and the consent sentence, form labels, prompt,

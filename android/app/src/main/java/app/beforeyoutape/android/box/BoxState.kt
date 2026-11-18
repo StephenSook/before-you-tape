@@ -3,8 +3,18 @@ package app.beforeyoutape.android.box
 import app.beforeyoutape.engine.BoxItemInput
 import app.beforeyoutape.engine.BoxResult
 
-/** One item in the box. [readSource] is "phone_on_device", "phone_cloud", "manual" or a value the web app wrote. */
-data class BoxItem(val input: BoxItemInput, val readSource: String, val readMs: Long, val cropFile: String?)
+/**
+ * One item in the box. [readSource] is "phone_on_device", "phone_cloud", "manual" or a value the web
+ * app wrote. [extras] keeps the web app's item fields this phone does not use (secondLook,
+ * readFallback, cropKey, customs), so syncing an item never drops them.
+ */
+data class BoxItem(
+    val input: BoxItemInput,
+    val readSource: String,
+    val readMs: Long,
+    val cropFile: String?,
+    val extras: Map<String, Any?> = emptyMap(),
+)
 
 /**
  * The box on this phone. [result] is always recomputed from the items, the destination and the
