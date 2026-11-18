@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `.github/workflows/deploy-live.yml`: the deploy's "Install the test browser" step gets its own 6-minute limit, like CI's. On 2026-11-18 a hung system package install held the deploy of e55014a on that step until the job was cancelled, so nothing deployed; a rerun was needed. Now such a hang fails fast. Source: deploy run 44406936185. Verified: the workflow parses with the step limit; local CI mirror exit 0.
 - `.github/workflows/ci.yml`: the "Install the test browser" step now has its own 6-minute limit. On 2026-11-18 a hung system package install held a PR run on that step for over 12 minutes, while other runs finished it in about a minute. Now such a run fails fast and can be rerun, instead of using the whole 20-minute job limit. Source: CI run 44401058553. Verified: the workflow parses with the step limit; local CI mirror exit 0.
 - `src/pages/PackPage.tsx`: when nothing can read a photo, the alert now names the real reason:
 - consent not yet given: "Allow cloud checks above, or type the item";

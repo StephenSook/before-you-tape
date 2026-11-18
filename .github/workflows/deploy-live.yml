@@ -69,8 +69,10 @@ jobs:
           sys.exit(0 if v["sha"] == os.environ["SHA"] and v["dirty"] is False else 1)
           EOF
 
+      # A hung system package install held a deploy here until the job was cancelled; fail fast and rerun.
       - name: Install the test browser
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 6
         run: npx playwright install --with-deps chromium
 
       # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
