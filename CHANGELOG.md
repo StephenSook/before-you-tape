@@ -6,6 +6,15 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/pages/PackPage.tsx` and `src/ui/ItemCard.tsx`: the pack page routes each image by how it arrived (`chooseImageRoute`).
+- An item the camera read by itself is read on the built-in model, and the camera may do that only when one exists (`autoRead`). Without one, it reads nothing by itself.
+- A cloud second look for such a read no longer runs by itself: the card offers "Check it in the cloud", and only that press sends it.
+- Check now and an added photo work as before.
+Source: a judge-style review found three room frames sent to Gemini after Allow with no click. Verified by `src/pages/PackSteady.test.tsx`, which mocks a detector that fires steady:
+- After Allow, the device model is called once and the hybrid and cloud models never are, until the button is pressed.
+- With no device model, there are no calls and no alert.
+- Two mutants each turn it red: steady given the normal route, and the second look run by itself.
+- Local CI mirror exit 0.
 - `src/ui/CameraStage.tsx`: the camera stays off until the sender presses "Start camera", and "Turn off camera" stops it again.
 - Before that, the stage says "The camera stays off until you start it." and offers "Add a photo".
 - An item that sits still is read by itself only when the parent passes `autoRead`, which it may do only when that read stays on this device. Otherwise the line says "Hold the label close to the camera, then press Check now."

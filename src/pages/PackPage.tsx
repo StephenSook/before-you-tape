@@ -5,13 +5,13 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
 import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
-import type { GateState, ImagePart, ItemModels } from "../ai/port";
+import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
 import type { ItemRead } from "../shared/itemRead";
-import { chooseReadRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
+import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
@@ -85,6 +85,8 @@ export function PackPage(p: PackPageProps) {
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
   const [checking, setChecking] = useState<Record<string, boolean>>({});
+  // Items the camera read by itself on this device whose cloud look waits for the sender's press.
+  const [offered, setOffered] = useState<Record<string, boolean>>({});
   // What each item needs to be looked at again; kept in memory only, like its crop.
   const looks = useRef(new Map<string, PendingLook>());
   const waitingForOnline = useRef(new Set<string>());
@@ -99,6 +101,7 @@ export function PackPage(p: PackPageProps) {
       else store.setError(itemId, SECOND_LOOK_FAILURE.blocked);
       return;
     }
+    setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     try {
       const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct);
@@ -123,8 +126,10 @@ export function PackPage(p: PackPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.online]);
 
-  const onImage = async (part: ImagePart) => {
-    const route = chooseReadRoute({ gate, cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
+  // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
+  const onImage = async (part: ImagePart, how: ImageHow) => {
+    const route = chooseImageRoute(how, { gate, ...cloudInputs() });
+    if (route === "skip") return;
     if (route === "blocked") { setNotice(BLOCKED); return; }
     setNotice(null);
     try {
@@ -136,7 +141,8 @@ export function PackPage(p: PackPageProps) {
       const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, config.secondLook ?? SECOND_LOOK_DEFAULT) : null;
       if (reason && shouldRunSecondLook(reason, cloudInputs())) {
         looks.current.set(itemId, { reason, read: outcome.read, part });
-        void secondLook(itemId);
+        if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
+        else void secondLook(itemId);
       }
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
@@ -163,7 +169,7 @@ export function PackPage(p: PackPageProps) {
       {notice && <p className="banner" role="alert">{notice}</p>}
       <div className="pack">
         <div>
-          <CameraStage openCamera={p.openCamera} onImage={(part) => void onImage(part)} phoneReady={p.phoneReady} onError={setNotice}
+          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
             onTypeIt={() => setTyping(true)} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
@@ -179,7 +185,8 @@ export function PackPage(p: PackPageProps) {
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
-                onRetry={(id) => void secondLook(id)} />
+                onRetry={(id) => void secondLook(id)}
+                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined} />
             ) : null;
           })}
         </div>
