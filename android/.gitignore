@@ -1,0 +1,11 @@
+# Gradle and build output
+.gradle/
+.kotlin/
+build/
+captures/
+
+# Local config and secrets: never committed
+local.properties
+app/google-services.json
+*.jks
+*.keystore
