@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### docs(ios): add simulator screenshots of the main iPhone screens
+- What: six screenshots from the iPhone 17 Pro simulator in `ios/docs/evidence/screens/`, for the
+  design review: the Ready check, Check an item (no camera on the simulator, the label words
+  field), Type it filled for a body lotion, the box for Canada ("OK to pack", typed by the sender),
+  "What we checked" open, and the box after switching to the Philippines ("Take it out" and
+  "Re-checked 1 items for Philippines in 8 ms. 0 model calls."). Every item in them was typed by
+  hand; no model read and no test image appears.
+- Source: design review request.
+- Verified: each screen was opened and looked at before saving; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### fix(ios): make the live pause switch stop a read's next cloud call
 - What: each read now gives the reader a pause check that reads the app's live Remote Config, so a
   `kill_cloud` that turns on while a read is in progress stops that read before its next cloud
