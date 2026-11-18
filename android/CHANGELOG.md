@@ -3,6 +3,19 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A release build cannot ship without the Firebase configuration.** The build applies the
+  Google Services plugin only when `app/google-services.json` exists (CI has none), so a release
+  build from a checkout without the file used to succeed with no Firebase app, and so no AI
+  client. Any release assemble, bundle or package task now fails without it, naming the file.
+  `release.sh` also checks the exact signed APK for the `google_app_id` resource. The resource
+  dump goes to a file first: `grep -q` stops at its first match, and under `pipefail` the dump's
+  SIGPIPE read as a failure. Source: review (second model) of the Android pull request, finding
+  1. Verified: the new `android/release-config.test.sh` (local only) failed first (the release
+  build passed without the file), then passes. Without the file the release build fails with the
+  message; with it, the build passes. `bash android/release.sh` exit 0 with "Firebase
+  configuration: present", 0 scan hits and 16 KB alignment exit 0. `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
+
 - **Box and item documents that match the web app's.** `BoxDocs` turns a box item into the web
   app's item document and back, and the box header likewise, as Firestore values. The shapes
   come from `tests/contracts/box-docs.json`, the fixture the web app and the Firestore rules are

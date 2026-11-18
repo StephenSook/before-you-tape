@@ -17,6 +17,14 @@ tools="${ANDROID_HOME:-$HOME/Library/Android/sdk}/build-tools/37.0.0"
 # The public APK is this release build, never a debug build, which carries its App Check debug
 # token in its resources. Scan the exact signed file.
 ./scan-apk.sh "$apk"
+# The exact signed file must carry the Firebase app configuration, or it has no AI client.
+# (Dumped to a file first: grep -q stops reading at its first match, and under pipefail the dump's
+# SIGPIPE would read as a failure.)
+res="$(mktemp)"
+trap 'python3 -I -c "import os,sys; os.remove(sys.argv[1])" "$res"' EXIT
+"$tools/aapt2" dump resources "$apk" > "$res"
+grep -q "string/google_app_id" "$res" || { echo "release: the APK has no Firebase configuration (google_app_id)" >&2; exit 1; }
+echo "Firebase configuration: present"
 # The QuickJS native libraries must be aligned for 16 KB memory pages.
 set +e
 "$tools/zipalign" -c -P 16 -v 4 "$apk" > /dev/null
