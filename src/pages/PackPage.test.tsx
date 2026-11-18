@@ -149,6 +149,23 @@ describe("PackPage", () => {
     }
   });
 
+  it("aborts a cloud read in flight when the sender leaves the page, and adds nothing once the page is gone", async () => {
+    let signal: AbortSignal | undefined;
+    let finish!: (r: { text: string; source: "in_cloud" }) => void;
+    const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<{ text: string; source: "in_cloud" }>((r) => { finish = r; }); }) };
+    const store = newStore();
+    store.setConsent(true);
+    const saveCrop = vi.fn(async () => {});
+    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} online />);
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => { finish({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }); for (let i = 0; i < 10; i++) await Promise.resolve(); });
+    expect(store.getState().items).toHaveLength(0);
+    expect(saveCrop).not.toHaveBeenCalled();
+  });
+
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));

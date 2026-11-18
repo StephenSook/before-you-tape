@@ -125,12 +125,20 @@ export function PackPage(p: PackPageProps) {
   // Reads and second looks that can reach the cloud. Taking back consent or pausing cloud checks aborts
   // them when the change is announced, before the page re-renders; the SDK checks the signal before it
   // gets its tokens and before the request, so it sends nothing it had not already sent.
+  // Leaving the page aborts them too, since nothing here hears a later pause; a read that still finishes
+  // afterwards adds nothing.
   const inflight = useRef(new Set<AbortController>());
+  const gone = useRef(false);
   useEffect(() => {
-    const withdraw = () => { for (const ac of inflight.current) ac.abort(); inflight.current.clear(); };
+    gone.current = false;
+    return () => { gone.current = true; };
+  }, []);
+  useEffect(() => {
+    const work = inflight.current;
+    const withdraw = () => { for (const ac of work) ac.abort(); work.clear(); };
     const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== true) withdraw(); });
     const offPause = liveConfig?.subscribe((c) => { if (c.killCloud) withdraw(); });
-    return () => { offConsent(); offPause?.(); };
+    return () => { offConsent(); offPause?.(); withdraw(); };
   }, [store, liveConfig]);
   const cloudWork = () => {
     const ac = new AbortController();
@@ -151,6 +159,7 @@ export function PackPage(p: PackPageProps) {
     const work = cloudWork();
     try {
       const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
+      if (gone.current) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
     } catch (e) {
@@ -183,6 +192,7 @@ export function PackPage(p: PackPageProps) {
     const work = cloudWork();
     try {
       const outcome = await readItem(models, part, route, now, stillAllowed, work.signal);
+      if (gone.current) return;
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
