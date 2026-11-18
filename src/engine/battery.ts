@@ -30,9 +30,11 @@ export function crossCheckWh(
 }
 
 function presenceOf(read: ItemRead, answers: ItemAnswers, hasEvidence: boolean): BatteryFacts["presence"] {
+  // A power bank or a loose battery is never installed in a device, whatever an answer saved
+  // under an earlier reading says, so the category is checked before the answer.
+  if (LOOSE_CATEGORIES.has(read.category)) return "loose";
   const answer = answers.battery_installed;
   if (answer === "installed" || answer === "loose" || answer === "packed_beside") return answer;
-  if (LOOSE_CATEGORIES.has(read.category)) return "loose";
   if (BATTERY_DEVICES.has(read.category)) return "installed";
   if (MAYBE_BATTERY_DEVICES.has(read.category)) return hasEvidence ? "installed" : "unknown";
   return hasEvidence ? "unknown" : "none";

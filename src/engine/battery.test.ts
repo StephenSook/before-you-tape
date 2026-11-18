@@ -77,4 +77,10 @@ describe("deriveBattery", () => {
     expect(bat({ category: "other_electronics", batteryWords: true }).presence).toBe("installed");
     expect(bat({ category: "toy", batteryWords: true }).presence).toBe("unknown");
   });
+
+  it("keeps a power bank or loose battery loose whatever a saved answer says", () => {
+    const pb = { category: "power_bank" as const, volts: 3.7, milliampHours: 2600, wattHours: 9.62, batteryWords: true };
+    expect(bat(pb, { battery_installed: "installed", device_condition: "new_sealed" }).presence).toBe("loose");
+    expect(bat({ category: "loose_battery" }, { battery_installed: "installed" }).presence).toBe("loose");
+  });
 });
