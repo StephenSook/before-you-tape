@@ -1,0 +1,255 @@
+{
+  "setId": "eval-v1",
+  "destinations": [
+    {
+      "code": "CA",
+      "name": "Canada"
+    },
+    {
+      "code": "PH",
+      "name": "Philippines"
+    }
+  ],
+  "items": [
+    {
+      "itemId": "i21",
+      "photo": "/eval/items/i21.jpg",
+      "alt": "Composition notebook (Norcom, wide ruled)",
+      "credit": "Photo: Jamie, CC BY 2.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i10",
+      "photo": "/eval/items/i10.jpg",
+      "alt": "Disposable lighter (BIC)",
+      "credit": "Photo: Dmitry G, Public domain, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i17",
+      "photo": "/eval/items/i17.jpg",
+      "alt": "Paperback book (AIP Style Manual, 3rd edition, 1978) standing on a table",
+      "credit": "Photo: Blue.painting, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-01",
+      "photo": "/eval/items/own-01.jpg",
+      "alt": "Power bank, back label with its capacity and rating",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "own-32",
+      "photo": "/eval/items/own-32.jpg",
+      "alt": "Malibu Strawberry rum liqueur, back label",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "own-25",
+      "photo": "/eval/items/own-25.jpg",
+      "alt": "Perfume, Bellavita Honey Oud eau de parfum, 100 mL",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i24",
+      "photo": "/eval/items/i24.jpg",
+      "alt": "Wired white in-ear earphones (no battery)",
+      "credit": "Photo: Alejandro SG97, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-18",
+      "photo": "/eval/items/own-18.jpg",
+      "alt": "Body lotion, eos shea better, 473 mL",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i23",
+      "photo": "/eval/items/i23.jpg",
+      "alt": "Empty clear plastic phone case (Motorola G62 cover case), no phone inside",
+      "credit": "Photo: Gpkp, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-30",
+      "photo": "/eval/items/own-30.jpg",
+      "alt": "Wine cocktail, Rancho La Gloria Strawberry Margarita, back label",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i25",
+      "photo": "/eval/items/i25.jpg",
+      "alt": "Packaged dark chocolate bar (Lindt Excellence 85% Cacao)",
+      "credit": "Photo: pixelized (an Open Food Facts contributor), CC BY-SA 3.0, world.openfoodfacts.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-23",
+      "photo": "/eval/items/own-23.jpg",
+      "alt": "Perfume, Shams Al Emarat Khususi Pink Blush",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "own-20",
+      "photo": "/eval/items/own-20.jpg",
+      "alt": "Body lotion, Palmer's Cocoa Butter Formula, 250 mL",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i05",
+      "photo": "/eval/items/i05.jpg",
+      "alt": "Loose 18650 lithium-ion cell standing next to a small flashlight",
+      "credit": "Photo: N2e, CC0 1.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-16",
+      "photo": "/eval/items/own-16.jpg",
+      "alt": "Nail polish remover, Walgreens non-acetone",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i04",
+      "photo": "/eval/items/i04.jpg",
+      "alt": "Single loose lithium camera battery, CR123A (Varta)",
+      "credit": "Photo: Raimond Spekking, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i22",
+      "photo": "/eval/items/i22.jpg",
+      "alt": "Wool scarf (Polo Ralph Lauren) with fringe and sewn-in label",
+      "credit": "Photo: Amin, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i14",
+      "photo": "/eval/items/i14.jpg",
+      "alt": "Hand-knitted striped pullover sweater on a hanger",
+      "credit": "Photo: Akkbula, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i19",
+      "photo": "/eval/items/i19.jpg",
+      "alt": "Plastic toy car (yellow sports-car model) on a concrete surface outdoors",
+      "credit": "Photo: Gausanchennai, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i02",
+      "photo": "/eval/items/i02.jpg",
+      "alt": "Power bank (Voltcraft PB-16), side with printed rating label",
+      "credit": "Photo: Raimond Spekking, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i15",
+      "photo": "/eval/items/i15.jpg",
+      "alt": "Pair of black cotton socks (Bjorn Borg)",
+      "credit": "Photo: W.carter, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i08",
+      "photo": "/eval/items/i08.jpg",
+      "alt": "Aerosol spray can (Hardcast Edge Sealer, aerosol spray insulation sealant, 14 oz)",
+      "credit": "Photo: Hardcast from Wylie, TX, United States, CC BY 2.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i13",
+      "photo": "/eval/items/i13.jpg",
+      "alt": "Plain white T-shirt (Hanes Beefy-T) lying on a wooden table",
+      "credit": "Photo: Quercus acuta, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i27",
+      "photo": "/eval/items/i27.jpg",
+      "alt": "Packaged dried mango snack (Forest Feast, Preda Fair Trade Mango)",
+      "credit": "Photo: hungergames (an Open Food Facts contributor), CC BY-SA 3.0, world.openfoodfacts.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i18",
+      "photo": "/eval/items/i18.jpg",
+      "alt": "Stuffed teddy bear (handmade, white with a red bow)",
+      "credit": "Photo: Clément Bucco-Lechat, CC BY-SA 3.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-14",
+      "photo": "/eval/items/own-14.jpg",
+      "alt": "Nail polish, OPI nail lacquer",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i01",
+      "photo": "/eval/items/i01.jpg",
+      "alt": "Power bank (Pineng PN-963), back with printed rating label",
+      "credit": "Photo: Bindydad123, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i11",
+      "photo": "/eval/items/i11.jpg",
+      "alt": "Box of safety matches, drawer half open with match heads visible",
+      "credit": "Photo: RenseNBM, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i16",
+      "photo": "/eval/items/i16.jpg",
+      "alt": "Pair of white canvas sneakers (Converse Jack Purcell)",
+      "credit": "Photo: Mizael Contreras, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-33",
+      "photo": "/eval/items/own-33.jpg",
+      "alt": "818 tequila, back label",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "own-03",
+      "photo": "/eval/items/own-03.jpg",
+      "alt": "Power bank, front, no specs visible",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "own-27",
+      "photo": "/eval/items/own-27.jpg",
+      "alt": "Perfume, Burberry for Women",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i09",
+      "photo": "/eval/items/i09.jpg",
+      "alt": "Aerosol deodorant body spray can (Axe Excite)",
+      "credit": "Photo: oke0003 (an Open Beauty Facts contributor), CC BY-SA 3.0, world.openbeautyfacts.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i03",
+      "photo": "/eval/items/i03.jpg",
+      "alt": "Power bank (JETech 10000mAh), end with printed rating label",
+      "credit": "Photo: Raimond Spekking, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "own-04",
+      "photo": "/eval/items/own-04.jpg",
+      "alt": "Nail polish, Sally Hansen Insta-Dri top coat",
+      "credit": "Photo by the project owner"
+    },
+    {
+      "itemId": "i07",
+      "photo": "/eval/items/i07.jpg",
+      "alt": "Vape pod device (Lost Vape Ursa Nano Pod), e-cigarette",
+      "credit": "Photo: Jacek Halicki, CC BY-SA 4.0, commons.wikimedia.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i26",
+      "photo": "/eval/items/i26.jpg",
+      "alt": "Bag of whole-bean coffee (Bellarom Ethiopia, 100% Arabica)",
+      "credit": "Photo: joepie91 (an Open Food Facts contributor), CC BY-SA 3.0, world.openfoodfacts.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i06",
+      "photo": "/eval/items/i06.jpg",
+      "alt": "Smartphone (Blackview A60), back view",
+      "credit": "Photo: Acabashi, CC BY-SA 4.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i12",
+      "photo": "/eval/items/i12.jpg",
+      "alt": "Alcohol-based hand sanitizer bottle (Dr. Bronner's Peppermint Organic Hand Sanitizer, 59 mL)",
+      "credit": "Photo: maddoxschmidlkofer (an Open Beauty Facts contributor), CC BY-SA 3.0, world.openbeautyfacts.org (resized to 1600 px on the long side, re-encoded)"
+    },
+    {
+      "itemId": "i20",
+      "photo": "/eval/items/i20.jpg",
+      "alt": "Handmade glazed ceramic mug with a sculpted moustache face",
+      "credit": "Photo: Stephen B Calvert Clariosophic, CC BY-SA 3.0, commons.wikimedia.org (metadata removed, resized to 1600 px on the long side, re-encoded)"
+    }
+  ]
+}

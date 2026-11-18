@@ -25,4 +25,9 @@ describe("blindSetOf", () => {
     expect(blindSetOf(manifest).items.map((i) => i.itemId)).toEqual(blind.items.map((i) => i.itemId));
     expect(blind.items.map((i) => i.itemId)).not.toEqual(manifest.items.map((i) => i.itemId));
   });
+
+  it("matches the published file the blind page loads", () => {
+    const published = JSON.parse(readFileSync(`public/eval/sets/${manifest.setId}.json`, "utf8")) as unknown;
+    expect(published).toEqual(blind);
+  });
 });
