@@ -246,6 +246,9 @@ final class BoxStore {
         commit(fresh)
     }
 
+    /// Derives every verdict again, after the rules engine loaded a different edition.
+    func reevaluate() { commit() }
+
     func setConsent(_ value: Bool?) {
         cloudConsent = value
         commit(result)

@@ -1,4 +1,5 @@
 import BYTCore
+import FirebaseFirestore
 import Foundation
 import Observation
 
@@ -25,16 +26,29 @@ final class AppModel {
     /// True while the one-time cloud question is on screen; the read waits for the answer.
     private(set) var askingConsent = false
     @ObservationIgnored private var pending: ItemInput?
+    /// Remote Config as last applied; reads use it at once, with no restart.
+    private(set) var config = RemoteConfigValues.defaults
+    /// Why a newer rule edition was not used, when one was named and refused.
+    private(set) var editionNotice: String?
+    let appVersion: String
+    @ObservationIgnored private let remoteConfig = RemoteConfigLoader()
+    @ObservationIgnored private let fetchEdition: @Sendable (String) async -> String?
+    @ObservationIgnored private let bundledEditionText: String?
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
-         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard) {
+         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
+         appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
+         fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition) {
+        self.appVersion = appVersion
+        self.fetchEdition = fetchEdition
         self.signIn = signIn
         self.onDevice = onDevice
         let engine = try? RulesEngine()
         let editionText = Bundle.main.url(forResource: "edition", withExtension: "json").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
         if let engine, let editionText { _ = try? engine.setEdition(editionText) }
+        self.bundledEditionText = editionText
         self.destinations = editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
@@ -69,6 +83,8 @@ final class AppModel {
 
     func start() async {
         network.start()
+        remoteConfig.onChange = { [weak self] values in Task { await self?.applyConfig(values) } }
+        remoteConfig.start()
         signedIn = await signIn.ensure()
         #if DEBUG
         if !UITestSupport.active { onDevice = ModelSessionFactory.onDeviceStatus() }
@@ -90,7 +106,7 @@ final class AppModel {
 
     private func read(_ input: ItemInput) async {
         guard let reader, let box else { return }
-        let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: .defaults)
+        let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
         // Asked once, before the first cloud call: nothing goes to the cloud until the sender picks.
         if box.cloudConsent == nil, ItemReader.needsCloud(input.kind, situation) {
             pending = input
@@ -133,6 +149,31 @@ final class AppModel {
         }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         return "That item could not be read. Try another photo."
+    }
+
+    /// Applies new Remote Config values. A changed rule edition pin is checked and, only when it
+    /// checks out, loaded; the box's verdicts are then derived again.
+    func applyConfig(_ values: RemoteConfigValues) async {
+        let pinChanged = values.rulesEditionId != config.rulesEditionId || values.rulesEditionSha256 != config.rulesEditionSha256
+        config = values
+        guard pinChanged, let engine, let bundledEditionText else { return }
+        let choice = await EditionSource.choose(engine: engine, bundledText: bundledEditionText, wantId: values.rulesEditionId,
+                                                wantSha: values.rulesEditionSha256, fetchRemote: fetchEdition)
+        // A newer pin may have arrived while this one was checked; only the latest counts.
+        guard values.rulesEditionId == config.rulesEditionId, values.rulesEditionSha256 == config.rulesEditionSha256 else { return }
+        editionNotice = choice.notice
+        box?.reevaluate()
+    }
+
+    var updateLine: String? {
+        RemoteConfigValues.isBelowMinimum(current: appVersion, minimum: config.minimumVersionIOS)
+            ? "This version is out of date. Update the app to keep checking items." : nil
+    }
+
+    /// A published edition lives at ruleEditions/{id} as { json, sha256 }; missing or malformed gives nil.
+    nonisolated static let firestoreEdition: @Sendable (String) async -> String? = { id in
+        guard let snapshot = try? await Firestore.firestore().collection("ruleEditions").document(id).getDocument() else { return nil }
+        return snapshot.data()?["json"] as? String
     }
 
     nonisolated static let boxIdKey = "currentBoxId"
