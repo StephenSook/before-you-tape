@@ -3,6 +3,20 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Remote Config values with safe defaults.** `RcValues.parse` reads the in-app defaults
+  (`res/xml/remote_config_defaults.xml`) with any fetched values on top: `cloud_model_item`,
+  `kill_cloud`, `use_limited_use_tokens`, `minimum_version_android` (a version string, as in
+  the web template, compared part by part), `ondevice_model_option_android` (stable, preview
+  or preview_fast; anything else reads as stable), and the rules edition and second-look keys
+  for later tasks. The model name lives only in Remote Config or that XML file; a missing one
+  reads as empty and makes no cloud call. Firebase itself is not wired yet: the Android app is
+  not registered in the project. Source: Android plan Task 4 (the parts that need no
+  registration); the plan's numeric minimum version was changed to the template's string.
+  Verified: `RcValuesTest` (5) and `RcDefaultsTest` (2) failed to compile before `RcValues`
+  existed, then pass, including every parsed key having an XML default (both ways) and the
+  shared keys keeping the web template's defaults; `bash android/ci-local.sh` and the root CI
+  mirror exit 0.
+
 - **Every shared vector runs against the bundle on the JVM (gate G-A0).** `SharedVectorsTest`
   runs all 20 box, 64 review guard and 21 destination vectors through `EngineHost` in QuickJS,
   with the TypeScript engine tests' own assertions and the shared defaults file, checks the
