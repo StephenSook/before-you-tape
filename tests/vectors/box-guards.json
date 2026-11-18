@@ -1,5 +1,25 @@
 [
   {
+    "name": "face_cream_with_alcohol_is_not_an_alcoholic_drink", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "cream", "read": { "category": "lotion_cream", "labelText": "FACE CREAM ALCOHOL DENAT", "alcoholOnLabel": true } }],
+    "expect": {}, "notRules": { "cream": ["CA-P-01"] }
+  },
+  {
+    "name": "nail_polish_is_not_a_lighter", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "polish", "read": { "category": "nail_polish", "labelText": "NAIL POLISH FLAMMABLE", "liquid": true } }],
+    "expect": { "polish": "take_out" }, "notRules": { "polish": ["CA-P-02"] }
+  },
+  {
+    "name": "wine_read_as_food_is_still_an_alcoholic_drink", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "wine", "read": { "category": "food_packaged", "labelText": "RED WINE 13.5% ALC/VOL 750 ML", "liquid": true } }],
+    "expect": { "wine": "take_out" }, "expectRules": { "wine": ["USPS-INTL-ALCOHOL-DRINK", "CA-P-01"] }
+  },
+  {
+    "name": "a_lighter_still_hits_the_canada_lighter_line", "source": "Fable I4 control", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lighter", "read": { "category": "lighter_matches", "labelText": "BUTANE LIGHTER" } }],
+    "expect": { "lighter": "take_out" }, "expectRules": { "lighter": ["CA-P-02"] }
+  },
+  {
     "name": "alcohol_flag_alone_on_a_cetearyl_lotion_asks", "source": "Fable I3", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "CETEARYL ALCOHOL GLYCERIN 8 FL OZ", "liquid": true,
       "alcoholOnLabel": true } }],

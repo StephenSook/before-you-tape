@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-6ab76f873050",
+  "editionId": "byt-502256ab1f5a",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -73,7 +73,8 @@
     ],
     "alcohol_drink": [
       "liquid",
-      "alcohol"
+      "alcohol",
+      "alcoholic_drink"
     ],
     "food_packaged": [
       "food"
@@ -127,7 +128,8 @@
       "electronics"
     ],
     "lighter_matches": [
-      "flammable"
+      "flammable",
+      "lighter"
     ],
     "e_cigarette": [
       "electronics",
@@ -196,6 +198,18 @@
     {
       "pattern": "inflammable",
       "tag": "flammable"
+    },
+    {
+      "pattern": "[0-9]+(?:\\.[0-9]+)? ?% ?(?:alc|abv)",
+      "tag": "alcoholic_drink"
+    },
+    {
+      "pattern": "abv",
+      "tag": "alcoholic_drink"
+    },
+    {
+      "pattern": "lighters?",
+      "tag": "lighter"
     },
     {
       "pattern": "combustible",
@@ -640,9 +654,9 @@
       "basis": "summarized",
       "ourWording": "Alcoholic drinks can't be mailed.",
       "when": {
-        "fact": "category",
-        "op": "eq",
-        "value": "alcohol_drink"
+        "fact": "tags",
+        "op": "has",
+        "value": "alcoholic_drink"
       },
       "outcome": "take_out"
     },
@@ -655,9 +669,9 @@
       "basis": "summarized",
       "ourWording": "Matches and lighters can't go by international mail.",
       "when": {
-        "fact": "category",
-        "op": "eq",
-        "value": "lighter_matches"
+        "fact": "tags",
+        "op": "has",
+        "value": "lighter"
       },
       "outcome": "take_out"
     },
@@ -1268,7 +1282,7 @@
           "ourWording": "No alcoholic drinks, wine included.",
           "matches": [
             {
-              "tag": "alcohol",
+              "tag": "alcoholic_drink",
               "effect": "take_out"
             }
           ]
@@ -1280,7 +1294,7 @@
           "ourWording": "No lighters with fuel in them. An empty new lighter is allowed.",
           "matches": [
             {
-              "tag": "flammable",
+              "tag": "lighter",
               "effect": "take_out"
             }
           ]

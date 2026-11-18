@@ -50,8 +50,8 @@ describe("USPS export rule data", () => {
   });
 
   it("takes out the other prohibited goods", () => {
-    expect(hit(f({ category: "alcohol_drink", tags: ["alcohol", "liquid"], alcohol: "yes" }))).toContain("USPS-INTL-ALCOHOL-DRINK:take_out");
-    expect(hit(f({ category: "lighter_matches", tags: ["flammable"] }))).toContain("USPS-INTL-MATCHES-LIGHTERS:take_out");
+    expect(hit(f({ category: "alcohol_drink", tags: ["alcohol", "alcoholic_drink", "liquid"], alcohol: "yes" }))).toContain("USPS-INTL-ALCOHOL-DRINK:take_out");
+    expect(hit(f({ category: "lighter_matches", tags: ["flammable", "lighter"] }))).toContain("USPS-INTL-MATCHES-LIGHTERS:take_out");
     expect(hit(f({ category: "e_cigarette" }))).toContain("USPS-INTL-ENDS:take_out");
     expect(hit(f({ tags: ["mercury"] }))).toContain("USPS-INTL-MERCURY:take_out");
     expect(hit(f({ tags: ["hemp"] }))).toContain("USPS-INTL-HEMP:take_out");

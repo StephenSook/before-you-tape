@@ -16,7 +16,7 @@
       "ourWording": "No alcoholic drinks, wine included.",
       "matches": [
         {
-          "tag": "alcohol",
+          "tag": "alcoholic_drink",
           "effect": "take_out"
         }
       ]
@@ -28,7 +28,7 @@
       "ourWording": "No lighters with fuel in them. An empty new lighter is allowed.",
       "matches": [
         {
-          "tag": "flammable",
+          "tag": "lighter",
           "effect": "take_out"
         }
       ]

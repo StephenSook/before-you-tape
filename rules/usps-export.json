@@ -52,7 +52,7 @@
     "url": "https://pe.usps.com/text/pub52/pub52c4_008.htm",
     "basis": "summarized",
     "ourWording": "Alcoholic drinks can't be mailed.",
-    "when": { "fact": "category", "op": "eq", "value": "alcohol_drink" },
+    "when": { "fact": "tags", "op": "has", "value": "alcoholic_drink" },
     "outcome": "take_out"
   },
   {
@@ -63,7 +63,7 @@
     "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
     "basis": "summarized",
     "ourWording": "Matches and lighters can't go by international mail.",
-    "when": { "fact": "category", "op": "eq", "value": "lighter_matches" },
+    "when": { "fact": "tags", "op": "has", "value": "lighter" },
     "outcome": "take_out"
   },
   {
