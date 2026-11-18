@@ -6,6 +6,7 @@ import type { ModelPort } from "../ai/port";
 import { ITEM_READ_PROMPT } from "../ai/prompts";
 import { SECOND_LOOK_TEXT } from "../ai/secondLook";
 import { createBoxStore } from "../data/boxStore";
+import type { SecondLookPolicy } from "../routing/policy";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
 
@@ -24,13 +25,13 @@ const answers = (read: ItemRead, source: "on_device" | "in_cloud"): Spy => ({ ge
 const failing = (msg: string): Spy => ({ generate: vi.fn(async () => { throw new Error(msg); }) });
 
 let n = 0;
-function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean; online?: boolean } = {}) {
+function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean; online?: boolean; secondLook?: SecondLookPolicy } = {}) {
   const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
   store.setConsent(o.consent ?? true);
   const read = o.device ?? phoneDevice;
   const models = { device: answers(read, "on_device"), hybrid: answers(read, "on_device"), cloud: o.cloud ?? answers(phoneCloud, "in_cloud"), fallback: answers(phoneCloud, "in_cloud") };
   const props = (online: boolean): PackPageProps => ({
-    store, models, gate: "available", config: { killCloud: o.killCloud ?? false }, index: [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }],
+    store, models, gate: "available", config: { killCloud: o.killCloud ?? false, ...(o.secondLook ? { secondLook: o.secondLook } : {}) }, index: [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }],
     openCamera: async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} }), saveCrop: async () => {}, online,
   });
   const view = render(<PackPage {...props(o.online ?? true)} />);
@@ -68,6 +69,13 @@ describe("Pack page second look", () => {
       expect(screen.queryByText("Checking again in the cloud.")).toBeNull();
       cleanup();
     }
+  });
+
+  it("follows a policy that turns the reason off", async () => {
+    const { models, store } = setup({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: true, hazardNoLabel: true, identity: true } });
+    await upload();
+    await waitFor(() => expect(store.getState().items).toHaveLength(1));
+    expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
   it("asks for no second look when the device read needs none", async () => {

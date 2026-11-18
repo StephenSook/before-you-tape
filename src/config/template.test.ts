@@ -26,7 +26,7 @@ describe("remoteconfig.template.json", () => {
     for (const [key, p] of web) {
       const app = RC_DEFAULTS[key];
       expect(p.defaultValue.value, key).toBe(String(app));
-      expect(p.valueType, key).toBe(typeof app === "boolean" ? "BOOLEAN" : "STRING");
+      expect(p.valueType, key).toBe(typeof app === "boolean" ? "BOOLEAN" : key.endsWith("_json") ? "JSON" : "STRING");
     }
   });
 

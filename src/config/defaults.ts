@@ -1,3 +1,5 @@
+import { SECOND_LOOK_DEFAULT } from "../routing/policy";
+
 // In-app defaults for the Remote Config keys (spec 5.10). Remote Config overrides them once it loads;
 // until then, and offline, these are the values the app runs with.
 export const CONFIG_DEFAULTS = {
@@ -10,4 +12,6 @@ export const CONFIG_DEFAULTS = {
   cloudModelText: "gemini-3.5-flash-lite",
   // kill_cloud: pause every cloud call; checks on the device still work.
   killCloud: false,
+  // second_look_policy_json: which on-device reads get a cloud second look.
+  secondLook: SECOND_LOOK_DEFAULT,
 };
