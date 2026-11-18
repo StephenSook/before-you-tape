@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The app's words, in one place.** `Copy` holds the consent sentence (the web app's, with
+  "laptop" changed to "phone" and nothing else), its two choices, the footer that disclaims the
+  Postal Service, the action labels, and one plain line for each blocked or failed read (no
+  model and no consent, offline, cloud paused, refusals paused; unreadable, refused, a device
+  read that came from the cloud, a device or cloud error). Verdict words are not here: they come
+  from the rules engine. Source: Android plan Task 9. Verified: `CopyTest` (3 tests, which
+  failed to compile first) passes: the consent sentence and both choices are checked against
+  `src/ui/ConsentNotice.tsx` itself, the footer is exact, and no line uses a dash or a curly
+  quote (the test writes those characters as escapes so its own source stays ASCII);
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Box logic that re-checks by rules alone.** `BoxState` holds the box on the phone;
   `BoxLogic` changes it without calling a model (add a read with where it ran, answer a
   question, set the destination, take a result or an engine error, and the synced form of an
