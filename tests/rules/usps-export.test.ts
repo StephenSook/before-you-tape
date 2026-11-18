@@ -92,7 +92,11 @@ describe("USPS export rule data", () => {
   });
 
   it("emits no box or destination rule from one item", () => {
-    for (const h of evaluateItemRules(sealedLaptopFacts, ed.rules)) expect(h.ruleId).not.toMatch(/BOX|DEST|LAYER/);
+    // A used laptop matches the box rules' own conditions (installed lithium), so this list is not empty
+    // and a box, note or destination rule leaking into the item rules would show up here.
+    const usedLaptop = device("laptop", { whStatus: "printed_matches", wh: 50.6, countAs: "battery" }, "used");
+    expect(hit(usedLaptop)).toEqual(["USPS-INTL-LI-USED-DEVICE:take_out"]);
+    expect(hit(sealedLaptopFacts)).toEqual([]);
   });
 
   it("gives every rule a section, an https url and wording", () => {
