@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.box.BoxItem
 import app.beforeyoutape.android.box.BoxLogic
 import app.beforeyoutape.android.capture.BitmapCrop
@@ -42,7 +43,7 @@ class HomeScreenTest {
     private val result = BoxResult(mapOf("a" to verdict), LithiumBox("none", emptyList(), emptyList(), ""), emptyList(), BoxCounts(0, 1, 0), "byt-x")
     private val places = listOf(DestinationName("CA", "Canada"), DestinationName("PH", "Philippines"))
     private val base = HomeUi(
-        loading = false, destinations = places, box = BoxLogic.empty("CA"), consent = true, deviceModelReady = false,
+        loading = false, destinations = places, box = BoxLogic.empty("CA"), consent = true, deviceModel = DeviceModelStatus.UNAVAILABLE,
         busy = false, message = null, view = HomeView.CAMERA, fixRead = null,
     )
 
@@ -58,7 +59,8 @@ class HomeScreenTest {
         override fun fixed(itemId: String, draft: ReadDraft) { calls += "fixed:$itemId" }
         override fun answer(itemId: String, questionId: String, answerId: String) { calls += "answer" }
         override fun remove(itemId: String) { calls += "remove:$itemId" }
-        override fun quantity(itemId: String, n: Double) { calls += "quantity:$itemId:$n" }
+        override fun quantity(itemId: String, step: Int) { calls += "quantity:$itemId:$step" }
+        override fun getModel() { calls += "getModel" }
     }
 
     private fun show(ui: HomeUi, a: Recorded = Recorded()): Recorded {
@@ -92,7 +94,7 @@ class HomeScreenTest {
     }
 
     @Test fun declinedWithNoModelOnThePhoneOffersTyping() {
-        val a = show(base.copy(consent = false, deviceModelReady = false))
+        val a = show(base.copy(consent = false, deviceModel = DeviceModelStatus.UNAVAILABLE))
         rule.onNodeWithText(Copy.blocked(app.beforeyoutape.android.ai.BlockReason.NO_MODEL_NO_CONSENT)).assertExists()
         rule.onNodeWithText(Copy.TYPE_IT).performClick()
         assertEquals(listOf("show:TYPE"), a.calls)
@@ -120,7 +122,9 @@ class HomeScreenTest {
         rule.onNodeWithContentDescription(Copy.ONE_FEWER).performScrollTo().assertIsNotEnabled()
         rule.onNodeWithText(Copy.howMany(1)).assertExists()
         rule.onNodeWithContentDescription(Copy.ONE_MORE).performScrollTo().performClick()
-        assertEquals(listOf("quantity:a:2.0"), a.calls)
+        rule.onNodeWithContentDescription(Copy.ONE_MORE).performScrollTo().performClick()
+        // Each tap sends a step, never an absolute number, so fast taps cannot overwrite each other.
+        assertEquals(listOf("quantity:a:1", "quantity:a:1"), a.calls)
     }
 
     @Test fun aFixStartsFromTheCurrentReading() {

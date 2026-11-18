@@ -11,6 +11,9 @@ import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * Every Firebase AI Logic call in the app goes through this file, on the Gemini Developer API
@@ -54,6 +57,11 @@ class AiClient(private val rc: () -> RcValues) : LabelModel {
         val obj = runCatching { r.getObject() }.getOrNull()
         return ModelReply(AiMapping.read(obj), AiMapping.source(r.response.inferenceSource), (System.nanoTime() - t0) / 1_000_000)
     }
+
+    /** Downloads the on-device model (when its status is DOWNLOADABLE), reporting each step. */
+    fun downloadModel(): Flow<ModelDownload> =
+        model(rc(), InferenceMode.PREFER_ON_DEVICE).onDeviceExtension?.download()?.map(AiMapping::download)
+            ?: flowOf(ModelDownload.Failed("this phone has no on-device model"))
 
     /** checkStatus() for the route guard and "About this phone". */
     suspend fun deviceStatus(): DeviceModelStatus = try {

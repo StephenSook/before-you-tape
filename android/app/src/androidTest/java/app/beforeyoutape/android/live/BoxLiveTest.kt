@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.beforeyoutape.android.ai.Source
 import app.beforeyoutape.android.box.BoxLogic
+import app.beforeyoutape.android.data.FirebaseSignIn
 import app.beforeyoutape.android.data.FirestoreBoxRepository
 import app.beforeyoutape.engine.EvidenceWire
 import app.beforeyoutape.engine.ItemCategoryWire
@@ -38,12 +39,8 @@ class BoxLiveTest {
     }
 
     @Test fun aBoxMadeOnThePhoneCanBeReadBackAndAStrangerIsRefused(): Unit = runBlocking {
-        // The app starts its own anonymous sign-in at launch: wait for it rather than racing it.
-        val owner = withTimeout(30_000) {
-            var u = Firebase.auth.currentUser
-            while (u == null) { kotlinx.coroutines.delay(200); u = Firebase.auth.currentUser }
-            u.uid
-        }
+        // The app's one shared sign-in (app start uses it too), so no second anonymous user can race it.
+        val owner = withTimeout(30_000) { FirebaseSignIn.ensureSignedIn() }
         val repo = FirestoreBoxRepository()
         log("step: create box")
         val boxId = repo.createBox(owner, "CA", "byt-live-test", true)

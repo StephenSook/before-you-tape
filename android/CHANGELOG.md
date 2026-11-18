@@ -3,6 +3,116 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A written release gate: a real read on the judge path.** `android/RELEASE.md` says how to
+  build the release APK and what `release.sh` checks. An APK ships only after the release probe
+  passes on a real phone with the signed APK sideloaded, the way a judge installs it: a token
+  from the release App Check provider, a sign-in, and a cloud read of a known label through the
+  app's own reader. It also names what that depends on outside the repo: App Check's Play
+  Integrity settings must accept an app Google Play does not recognize, and emulators or phones
+  without the Play Store cannot pass. Source: review (second model) of the Android pull request,
+  finding 2. The provider choice itself waits for that run on a real phone. Verified: the command
+  in the file is the one run on the emulator today (it failed there at the App Check step, as the
+  file says it must); `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A phone that can download its own model is offered it, and readiness is checked again on
+  return.** The app checked the on-device model once, at start, and treated anything but
+  AVAILABLE as "no model". A phone that reported DOWNLOADABLE, where the person kept everything
+  on the phone, could only type, even after the model arrived.
+  - Now, with consent declined, DOWNLOADABLE offers "Get the model on this phone" (the SDK's
+    `OnDeviceExtension.download()`), and DOWNLOADING says the model is on its way and offers
+    typing.
+  - Each download step is mapped to the app's own `ModelDownload`. A finished or failed download
+    re-checks the status; a failed one also says so.
+  - `MainActivity.onResume` re-checks the model's status, and `HomeUi` carries that status
+    instead of a yes or no.
+
+  Source: review (second model) of the Android pull request, finding 4. Verified:
+  `AiMappingTest.everySdkDownloadEventMapsToOurs` and two new `ConsentScreenTest` cases (the
+  offer and its button; typing while it downloads) failed to compile first, then pass. The UI
+  device tests pass 20 of 20 on the emulator (whose model status is UNAVAILABLE, so the
+  download itself waits for a supported phone). `bash android/ci-local.sh` and the root CI
+  mirror exit 0.
+
+- **The release probe now proves a real read, not just a reply.** The probe passed whenever the
+  App Check call and the model call returned, even when the reply could not be decoded (no read)
+  and even when sign-in failed (only logged). It now runs the app's production read path: the
+  app's `ItemReader` with the web app's parser from the bundled engine, the shared sign-in, and
+  the cloud route. It requires an App Check token, a successful sign-in, and a read that came back
+  from the cloud and parsed as the drawn power bank. Source: review (second model) of the Android
+  pull request, finding 9. Verified: on the Play-image emulator with the release build (Play
+  Integrity, which this device cannot pass until App Check allows a sideloaded APK), the probe
+  failed at the right step: "no App Check token from the release provider on this device" (403
+  App attestation failed), with sign-in ok and the read outcome Failed. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
+- **The box survives Android stopping the app.** The box lived only in memory, so when Android
+  reclaimed the process, reopening the app kept the destination but dropped every item, fix,
+  quantity and answer. `BoxPersistence` now saves the active box in app-private storage after
+  every change: the items (label text included, which stays on the phone), the destination, the
+  consent answer and the read counts. On start the view model restores it, and
+  `BoxController.restore` re-checks it by the rules, so verdicts are recomputed, never restored.
+  Nothing is saved until the restore has run, so an early change cannot overwrite the saved box.
+  A damaged save starts an empty box. Source: review (second model) of the Android pull request,
+  finding 6. Verified: `BoxPersistenceTest` (3) and `BoxLogicTest.aRestoredBoxIsRecheckedAtOnce`
+  failed to compile first, then pass; the whole box with answers, a fix, quantity 3, a
+  destination change and the web's extra fields comes back equal. On the emulator: a typed lotion
+  to Canada ("OK to pack"), then `am force-stop` (the process ended), then a cold start in a new
+  process showed "See the box (1)" and the lotion with "OK to pack" and "Typed by you". `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
+- **Going back to the camera lifts a refusal pause.** Three refusals in a row pause photo reads
+  for the run, but nothing ever started a new run, so after three refusals no photo could be read
+  again until the app was killed. `BoxSession.startNewScan` now resets the reader's run. The view
+  model calls it, on the box's worker thread, whenever the person goes back to the camera ("Add
+  another item"). Source: review (second model) of the Android pull request, finding 8. Verified:
+  `BoxSessionTest.aNewScanSessionLiftsTheRefusalPause` failed to compile first, then passes:
+  paused before, one reset, then a read is added. `bash android/ci-local.sh` and the root CI
+  mirror exit 0.
+
+- **A slow read no longer closes a form the person is filling in.** When a read finished, the
+  screen always switched to the box, even if the person had meanwhile opened "Type it" and was
+  entering another item, which threw that draft away. `HomeNav.afterCheck` now shows the box only
+  if the person is still on the camera; otherwise they stay where they are. A failed read also
+  keeps them in place and says why. Source: review (second model) of the Android pull request,
+  finding 7. Verified: `HomeNavTest` (3 tests, which failed to compile first) passes: a read on
+  the camera shows the box; a read while typing leaves the form open; a failed read stays put
+  with its message. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **Fast quantity taps add up instead of overwriting each other.** Each card sent an absolute
+  quantity (the shown number plus or minus one). Two fast taps on "One more" before the card
+  redrew both sent 2, so the engine judged two phones when the sender meant three. A tap now
+  sends a step (1 or -1), applied to the current quantity on the box's worker thread, in order,
+  and kept between 1 and 99. Source: review (second model) of the Android pull request, finding
+  5. Verified: `OverridesTest.quantityStepsAddUpAndStayBetweenOneAndNinetyNine` failed to
+  compile first, then passes (two steps from 1 give 3; one fewer stops at 1; one more stops at
+  99). `HomeScreenTest.theQuantityStepsUpAndCannotGoBelowOne` now taps twice and records two
+  steps; it passes on the emulator (8 of 8). `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
+- **One shared sign-in, so two anonymous users can never race.** App start launched its own
+  anonymous sign-in without waiting, and a cloud read (or a box write) could start a second one
+  through `FirebaseSignIn` at the same time. Whichever finished last became the user, so a
+  request could go out as a different uid from the one the app held: the box rules refused a box
+  created that way. `SignIn` now serializes every call behind one lock, so callers that arrive
+  together share a single sign-in. App start, cloud reads and box writes all use the same
+  `FirebaseSignIn`. Source: a live box test against the deployed rules (a box create was refused
+  while the app's own start-up sign-in was still running). Verified: `SignInTest` (2 tests, which
+  failed to compile first) passes: three concurrent callers share one sign-in and the same uid,
+  and a signed-in user is returned with no new sign-in. `bash android/ci-local.sh` and the root
+  CI mirror exit 0.
+
+- **A release build cannot ship without the Firebase configuration.** The build applies the
+  Google Services plugin only when `app/google-services.json` exists (CI has none), so a release
+  build from a checkout without the file used to succeed with no Firebase app, and so no AI
+  client. Any release assemble, bundle or package task now fails without it, naming the file.
+  `release.sh` also checks the exact signed APK for the `google_app_id` resource. The resource
+  dump goes to a file first: `grep -q` stops at its first match, and under `pipefail` the dump's
+  SIGPIPE read as a failure. Source: review (second model) of the Android pull request, finding
+  1. Verified: the new `android/release-config.test.sh` (local only) failed first (the release
+  build passed without the file), then passes. Without the file the release build fails with the
+  message; with it, the build passes. `bash android/release.sh` exit 0 with "Firebase
+  configuration: present", 0 scan hits and 16 KB alignment exit 0. `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
 - **A Firestore box repository, local first.** `FirestoreBoxRepository` creates a box (its owner
   as the only member, no join key, zero counts; awaited, because items need the box to exist).
   It writes and removes items, sets the destination with the time of the rules-only re-check,

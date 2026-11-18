@@ -24,7 +24,7 @@ fun PackScreen(
     modifier: Modifier = Modifier,
     onFix: ((itemId: String) -> Unit)? = null,
     onRemove: ((itemId: String) -> Unit)? = null,
-    onQuantity: ((itemId: String, n: Double) -> Unit)? = null,
+    onQuantity: ((itemId: String, step: Int) -> Unit)? = null,
     bottom: @Composable () -> Unit = {},
 ) {
     val result = state.result

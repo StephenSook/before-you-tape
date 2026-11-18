@@ -13,6 +13,11 @@ plugins {
 if (file("google-services.json").exists()) {
     pluginManager.apply("com.google.gms.google-services")
     pluginManager.apply("com.google.firebase.crashlytics")
+} else {
+    // Without it the app has no Firebase app, so no AI client: a release build must never ship like that.
+    tasks.matching { it.name.matches(Regex("(assemble|bundle|package)Release")) }.configureEach {
+        doFirst { throw GradleException("A release build needs app/google-services.json (the Firebase app configuration).") }
+    }
 }
 
 val localProps = Properties().apply {

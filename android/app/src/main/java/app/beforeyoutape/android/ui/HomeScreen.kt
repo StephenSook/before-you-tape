@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.box.BoxState
 import app.beforeyoutape.android.capture.BitmapCrop
 import app.beforeyoutape.engine.DestinationName
@@ -34,13 +35,24 @@ data class HomeUi(
     val destinations: List<DestinationName>,
     val box: BoxState,
     val consent: Boolean?,
-    val deviceModelReady: Boolean,
+    val deviceModel: DeviceModelStatus,
     val busy: Boolean,
     val message: String?,
     val view: HomeView,
     val fixRead: ItemReadWire?,
     val fixItemId: String? = null,
 )
+
+/** Where the screen goes when a read finishes. */
+object HomeNav {
+    /**
+     * A read that lands while the person is still on the camera shows the box. If they have moved
+     * on (typing an item, fixing one, looking at the box), they stay where they are, so a slow read
+     * never closes a form they are filling in. A failed read keeps them where they are and says why.
+     */
+    fun afterCheck(ui: HomeUi, message: String?): HomeUi =
+        ui.copy(busy = false, message = message, view = if (message == null && ui.view == HomeView.CAMERA) HomeView.BOX else ui.view)
+}
 
 interface HomeActions {
     fun destination(code: String)
@@ -53,7 +65,11 @@ interface HomeActions {
     fun fixed(itemId: String, draft: ReadDraft)
     fun answer(itemId: String, questionId: String, answerId: String)
     fun remove(itemId: String)
-    fun quantity(itemId: String, n: Double)
+    /** One tap: 1 for one more, -1 for one fewer. */
+    fun quantity(itemId: String, step: Int)
+
+    /** Download the on-device model. */
+    fun getModel()
 }
 
 /**
@@ -71,7 +87,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 ui.loading -> Text(Copy.LOADING, style = MaterialTheme.typography.bodyLarge)
-                ui.consent == null -> ConsentScreen(null, ui.deviceModelReady, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
+                ui.consent == null -> ConsentScreen(null, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
                 ui.view == HomeView.TYPE -> ReadForm(null, ReadCopy.NAME_OPTIONAL, ReadCopy.ADD, actions::typed)
                 ui.view == HomeView.FIX && ui.fixItemId != null ->
                     ReadForm(ui.fixRead, ReadCopy.NAME, ReadCopy.SAVE, { actions.fixed(ui.fixItemId, it) })
@@ -80,8 +96,8 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
                 chosen == null -> Text(Copy.CHOOSE_DESTINATION_FIRST, style = MaterialTheme.typography.bodyLarge)
-                ui.consent == false && !ui.deviceModelReady ->
-                    ConsentScreen(false, false, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
+                ui.consent == false && ui.deviceModel != DeviceModelStatus.AVAILABLE ->
+                    ConsentScreen(false, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) }, onGetModel = actions::getModel)
                 else -> camera()
             }
         }

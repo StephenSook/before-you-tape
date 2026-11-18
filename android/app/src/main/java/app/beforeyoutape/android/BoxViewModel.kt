@@ -10,6 +10,7 @@ import app.beforeyoutape.android.ai.CloudState
 import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.ai.FailReason
 import app.beforeyoutape.android.ai.ItemReader
+import app.beforeyoutape.android.ai.ModelDownload
 import app.beforeyoutape.android.ai.Prompts
 import app.beforeyoutape.android.ai.ReadOutcome
 import app.beforeyoutape.android.box.BoxController
@@ -20,11 +21,13 @@ import app.beforeyoutape.android.capture.BitmapCrop
 import app.beforeyoutape.android.config.FirebaseRcSource
 import app.beforeyoutape.android.config.RcStore
 import app.beforeyoutape.android.data.FirebaseSignIn
+import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
 import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeActions
+import app.beforeyoutape.android.ui.HomeNav
 import app.beforeyoutape.android.ui.HomeUi
 import app.beforeyoutape.android.ui.HomeView
 import app.beforeyoutape.android.ui.ReadDraft
@@ -53,6 +56,10 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val store = LocalStore(SharedPrefs(app))
+    private val persistence = BoxPersistence(SharedPrefs(app))
+
+    // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
+    @Volatile private var restored = false
     private val rc: RcStore? = if (FirebaseApp.getApps(app).isNotEmpty()) RcStore(FirebaseRcSource(Firebase.remoteConfig)).also { it.start() } else null
     private val ai: AiClient? = rc?.let { r -> AiClient { r.current() } }
     private val worker = Dispatchers.Default.limitedParallelism(1)
@@ -78,11 +85,12 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         reader = { crop -> reader?.read(crop) ?: ReadOutcome.Failed(FailReason.CLOUD_ERROR, retryable = false) },
         tags = { text -> host?.labelTags(text) ?: emptyList() },
         newId = { UUID.randomUUID().toString() },
+        resetRun = { reader?.resetRun() },
     )
 
     private val state = MutableStateFlow(
         HomeUi(
-            loading = true, destinations = emptyList(), box = box.state, consent = store.cloudConsent(), deviceModelReady = false,
+            loading = true, destinations = emptyList(), box = box.state, consent = store.cloudConsent(), deviceModel = DeviceModelStatus.UNKNOWN,
             busy = false, message = null, view = HomeView.CAMERA, fixRead = null,
         ),
     )
@@ -93,14 +101,14 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             // The bundled rules: the host checks the bundle's hash, and setEdition lists the destinations.
             val loaded = runCatching { EngineAssets.load(app).let { h -> h to h.setEdition(EngineAssets.edition(app)).destinations } }.getOrNull()
             host = loaded?.first
+            // The box from before Android stopped the process, re-checked by the rules.
+            persistence.load()?.let { box.restore(it) }
+            restored = true
             state.update {
                 it.copy(loading = false, destinations = loaded?.second.orEmpty(), box = box.state, message = if (loaded == null) Copy.RULES_NOT_LOADED else null)
             }
         }
-        viewModelScope.launch {
-            val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
-            state.update { it.copy(deviceModelReady = status == DeviceModelStatus.AVAILABLE) }
-        }
+        refreshModel()
     }
 
     private fun online(): Boolean {
@@ -112,7 +120,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         viewModelScope.launch(worker) { work() }
     }
 
-    private fun publish(change: (HomeUi) -> HomeUi = { it }) = state.update { change(it).copy(box = box.state) }
+    private fun publish(change: (HomeUi) -> HomeUi = { it }) {
+        state.update { change(it).copy(box = box.state) }
+        if (restored) persistence.save(box.state)
+    }
 
     override fun destination(code: String) {
         store.setDestination(code)
@@ -132,13 +143,18 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish { it.copy(busy = true, message = null) }
         onWorker {
             val message = session.check(crop)
-            publish { it.copy(busy = false, message = message, view = if (message == null) HomeView.BOX else it.view) }
+            publish { HomeNav.afterCheck(it, message) }
         }
     }
 
     override fun photoFailed() = publish { it.copy(message = Copy.PHOTO_FAILED) }
 
-    override fun show(view: HomeView) = publish { it.copy(view = view, message = null) }
+    override fun show(view: HomeView) {
+        // Going back to the camera starts a new scan session (lifts a refusal pause).
+        // On the worker, where reads count refusals.
+        if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) onWorker { session.startNewScan() }
+        publish { it.copy(view = view, message = null) }
+    }
 
     override fun typed(draft: ReadDraft) {
         val read = ReadDrafts.read(draft) ?: return
@@ -171,9 +187,34 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish()
     }
 
-    override fun quantity(itemId: String, n: Double) = onWorker {
-        box.setQuantity(itemId, n)
+    override fun quantity(itemId: String, step: Int) = onWorker {
+        box.stepQuantity(itemId, step)
         publish()
+    }
+
+    /** Re-checks the on-device model: at start and whenever the app comes back to the front. */
+    fun refreshModel() {
+        viewModelScope.launch {
+            val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
+            state.update { it.copy(deviceModel = status) }
+        }
+    }
+
+    override fun getModel() {
+        val client = ai ?: return
+        if (state.value.deviceModel == DeviceModelStatus.DOWNLOADING) return
+        viewModelScope.launch {
+            client.downloadModel().collect { step ->
+                when (step) {
+                    is ModelDownload.Started, is ModelDownload.Progress -> state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
+                    ModelDownload.Done -> refreshModel()
+                    is ModelDownload.Failed -> {
+                        state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
+                        refreshModel()
+                    }
+                }
+            }
+        }
     }
 
     override fun remove(itemId: String) = onWorker {

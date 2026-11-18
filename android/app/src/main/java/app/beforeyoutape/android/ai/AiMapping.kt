@@ -1,6 +1,7 @@
 package app.beforeyoutape.android.ai
 
 import app.beforeyoutape.engine.ItemReadWire
+import com.google.firebase.ai.DownloadStatus
 import com.google.firebase.ai.InferenceMode
 import com.google.firebase.ai.InferenceSource
 import com.google.firebase.ai.OnDeviceModelOption
@@ -20,6 +21,14 @@ import java.io.IOException
 /** Pure translations between the SDK's types and the app's. */
 @OptIn(PublicPreviewAPI::class)
 object AiMapping {
+    fun download(d: DownloadStatus): ModelDownload = when (d) {
+        is DownloadStatus.DownloadStarted -> ModelDownload.Started(d.bytesToDownload)
+        is DownloadStatus.DownloadInProgress -> ModelDownload.Progress(d.totalBytesDownloaded)
+        is DownloadStatus.DownloadCompleted -> ModelDownload.Done
+        is DownloadStatus.DownloadFailed -> ModelDownload.Failed(d.exception.message)
+        else -> ModelDownload.Failed("unknown download status")
+    }
+
     fun status(s: OnDeviceModelStatus?): DeviceModelStatus = when (s) {
         OnDeviceModelStatus.AVAILABLE -> DeviceModelStatus.AVAILABLE
         OnDeviceModelStatus.DOWNLOADABLE -> DeviceModelStatus.DOWNLOADABLE

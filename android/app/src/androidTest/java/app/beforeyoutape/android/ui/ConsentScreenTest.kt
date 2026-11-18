@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.beforeyoutape.android.ai.BlockReason
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
@@ -20,7 +21,7 @@ class ConsentScreenTest {
 
     @Test fun bothChoicesAreShown() {
         var chosen: Boolean? = null
-        rule.setContent { ConsentScreen(consent = null, deviceModelReady = true, onChoice = { chosen = it }, onTypeIt = {}) }
+        rule.setContent { ConsentScreen(consent = null, deviceModel = DeviceModelStatus.AVAILABLE, onChoice = { chosen = it }, onTypeIt = {}) }
         rule.onNodeWithText(Copy.CONSENT).assertExists()
         rule.onNodeWithText(Copy.KEEP_ON_PHONE).assertExists()
         rule.onNodeWithText(Copy.ALLOW).performClick()
@@ -30,7 +31,7 @@ class ConsentScreenTest {
     @Test fun withNoModelAndConsentDeclinedTypingIsOffered() {
         var consent by mutableStateOf<Boolean?>(null)
         var typed = false
-        rule.setContent { ConsentScreen(consent = consent, deviceModelReady = false, onChoice = { consent = it }, onTypeIt = { typed = true }) }
+        rule.setContent { ConsentScreen(consent = consent, deviceModel = DeviceModelStatus.UNAVAILABLE, onChoice = { consent = it }, onTypeIt = { typed = true }) }
         rule.onNodeWithText(Copy.KEEP_ON_PHONE).performClick()
         rule.waitForIdle()
         assertEquals(false, consent)
@@ -40,9 +41,26 @@ class ConsentScreenTest {
         rule.onNodeWithText(Copy.ALLOW).assertDoesNotExist()
     }
 
+    /** A phone that can download its own model is offered it, so keeping everything on the phone still reads labels. */
+    @Test fun aPhoneThatCanGetItsModelIsOfferedTheDownload() {
+        var asked = 0
+        rule.setContent { ConsentScreen(consent = false, deviceModel = DeviceModelStatus.DOWNLOADABLE, onChoice = {}, onTypeIt = {}, onGetModel = { asked++ }) }
+        rule.onNodeWithText(Copy.MODEL_CAN_DOWNLOAD).assertExists()
+        rule.onNodeWithText(Copy.TYPE_IT).assertExists()
+        rule.onNodeWithText(Copy.GET_MODEL).performClick()
+        assertEquals(1, asked)
+    }
+
+    @Test fun whileTheModelDownloadsTypingIsOffered() {
+        rule.setContent { ConsentScreen(consent = false, deviceModel = DeviceModelStatus.DOWNLOADING, onChoice = {}, onTypeIt = {}) }
+        rule.onNodeWithText(Copy.MODEL_DOWNLOADING).assertExists()
+        rule.onNodeWithText(Copy.TYPE_IT).assertExists()
+        rule.onNodeWithText(Copy.GET_MODEL).assertDoesNotExist()
+    }
+
     @Test fun withAModelOnThePhoneDecliningKeepsReadsOnThePhone() {
         var consent by mutableStateOf<Boolean?>(null)
-        rule.setContent { ConsentScreen(consent = consent, deviceModelReady = true, onChoice = { consent = it }, onTypeIt = {}) }
+        rule.setContent { ConsentScreen(consent = consent, deviceModel = DeviceModelStatus.AVAILABLE, onChoice = { consent = it }, onTypeIt = {}) }
         rule.onNodeWithText(Copy.KEEP_ON_PHONE).performClick()
         rule.waitForIdle()
         assertFalse(consent!!)
