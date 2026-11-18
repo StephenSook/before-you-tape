@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### build(ios): sign device builds with the team App Attest is registered for
+- What: `DEVELOPMENT_TEAM` is set in `ios/project.yml`. The Firebase iOS app now carries the same
+  team id, and its App Attest provider is registered, so device builds can get App Check tokens.
+- Source: App Check setup for the iPhone app (Firebase app and App Attest registered in the
+  console, read back).
+- Verified: the project generates; app tests pass on the simulator; unsigned device build
+  succeeds; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### build(ios): add the XcodeGen app shell with App Check, anonymous sign-in and the Ready check
 - What: `ios/project.yml` (app `BYT`, bundle id `app.beforeyoutape.reader`, iOS 27.0, Swift 6,
   firebase-ios-sdk exactly 13.2.0 with seven products, camera usage text, the App Attest
