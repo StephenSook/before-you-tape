@@ -36,4 +36,22 @@ import Testing
         #expect(second.box?.items.map(\.itemId) == [id])
         #expect(second.box?.result?.items[id]?.headline == "OK to pack")
     }
+
+    /// A verdict never outlives the day it was made for: coming back to the app, or the date
+    /// changing while it is open, derives every verdict again.
+    @Test func aStaleRuleCheckIsCaughtOnReturnAndAtMidnight() throws {
+        final class Day: @unchecked Sendable { var now = "2026-12-08" }
+        let day = Day()
+        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), persistence: MemoryBoxPersistence(), today: { day.now })
+        let box = try #require(model.box)
+        let id = box.addManual(BoxStoreTests.lotion)
+        #expect(box.result?.items[id]?.level == "ok")
+        day.now = "2026-12-09"
+        #expect(box.result?.items[id]?.level == "ok")
+        model.becameActive()
+        #expect(box.result?.items[id]?.level == "check")
+        day.now = "2026-12-08"
+        model.dayChanged()
+        #expect(box.result?.items[id]?.level == "ok")
+    }
 }

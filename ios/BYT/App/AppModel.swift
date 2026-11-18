@@ -32,7 +32,8 @@ final class AppModel {
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
 
     init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
-         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard) {
+         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
+         today: @escaping () -> String = { AppModel.localDate(Date()) }) {
         self.signIn = signIn
         self.onDeviceStatus = onDeviceStatus
         self.onDevice = onDeviceStatus()
@@ -44,7 +45,7 @@ final class AppModel {
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
         let boxId = Self.currentBoxId(defaults)
         self.box = engine.map {
-            BoxStore(engine: $0, persistence: persistence, today: { AppModel.localDate(Date()) }, newId: { UUID().uuidString },
+            BoxStore(engine: $0, persistence: persistence, today: today, newId: { UUID().uuidString },
                      now: { Date().timeIntervalSince1970 * 1000 }, boxId: boxId)
         }
         // The saved box comes back before anything is added.
@@ -77,9 +78,16 @@ final class AppModel {
         onDevice = onDeviceStatus()
     }
 
-    /// Back in the foreground: a model that finished downloading meanwhile counts at once.
+    /// Back in the foreground: a model that finished downloading meanwhile counts at once, and every
+    /// verdict is derived again, because a rule layer may have gone out of date while it was away.
     func becameActive() {
         onDevice = onDeviceStatus()
+        box?.reevaluate()
+    }
+
+    /// The local date changed while the app was open: rule freshness is checked against the day.
+    func dayChanged() {
+        box?.reevaluate()
     }
 
     /// Reads one cropped photo on the router's path and adds what it read to the box. The cloud is

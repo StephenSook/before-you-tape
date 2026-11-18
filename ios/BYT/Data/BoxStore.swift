@@ -246,6 +246,9 @@ final class BoxStore {
         commit(fresh)
     }
 
+    /// Derives every verdict again with nothing changed in the box: the day or the edition moved.
+    func reevaluate() { commit() }
+
     func setConsent(_ value: Bool?) {
         cloudConsent = value
         commit(result)

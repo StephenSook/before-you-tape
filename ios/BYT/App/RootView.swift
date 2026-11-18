@@ -17,5 +17,6 @@ struct RootView: View {
         NavigationStack { ReadyCheckView(model: model) }
             .task { await model.start() }
             .onChange(of: scenePhase) { _, phase in if phase == .active { model.becameActive() } }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in model.dayChanged() }
     }
 }

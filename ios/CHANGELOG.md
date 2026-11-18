@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): derive every verdict again when the app comes back or the day changes
+- What: a verdict was derived only when the box changed, so an "OK to pack" made on one day could
+  stay on screen after a rule layer went out of date. The box's verdicts are now derived again
+  when the app becomes active and when the local date changes while it is open
+  (`NSCalendarDayChanged`); `BoxStore.reevaluate` does it with nothing in the box changed.
+- Source: review of the iPhone pull request (finding 3).
+- Verified: a test adds a body lotion for Canada on 2026-12-08 ("OK to pack"), moves the day to
+  2026-12-09 and sees "Check this" after the app becomes active, then back after a day change; it
+  failed to compile without the change, then passed; 85 app tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): read Apple's model status before each read and when the app comes back
 - What: the on-device model's status was read only at start, so a model that finished
   downloading while the app stayed open kept being treated as not ready until a relaunch.
