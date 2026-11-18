@@ -12,6 +12,8 @@ import { CROP_LIMITS } from "../shared/cropLimits";
 import { PhotoCrop, type CropSource } from "./PhotoCrop";
 
 export const HOLD_ZONE: Box = { x: 0.25, y: 0.15, w: 0.5, h: 0.7 };
+// Where the box starts on an added photo: the middle, leaving out the edges, where an address would sit.
+export const PHOTO_BOX: Box = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
 // Starting values; Task 17 Step 4 tunes them on the packing clip.
 export const STEADY_CONFIG: SteadyConfig = { threshold: 24, steadyFrames: 8, minChangedFraction: 0.08, cooldownMs: 1500, minSharpness: 200, zone: HOLD_ZONE };
 const FRAME_W = 64;
@@ -147,7 +149,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   if (picked) {
     return (
       <section data-testid="stage" className="stage" aria-label="Camera">
-        <PhotoCrop source={picked} initialBox={HOLD_ZONE} cropPart={cropPart ?? cropWithLimits} onError={onError}
+        <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={onError}
           onSend={(part) => { closePicked(); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
     );

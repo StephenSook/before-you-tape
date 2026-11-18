@@ -102,7 +102,7 @@ describe("CameraStage", () => {
     expect(await screen.findByRole("img", { name: "The part that will be checked" })).toBeInTheDocument();
     expect(decodeFile).toHaveBeenCalledWith(photo);
     expect(stop).toHaveBeenCalled();
-    expect(cropPart).toHaveBeenCalledWith(source, { x: 0.25, y: 0.15, w: 0.5, h: 0.7 });
+    expect(cropPart).toHaveBeenCalledWith(source, { x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
     expect(onImage).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onImage).toHaveBeenCalledWith(part, "upload");

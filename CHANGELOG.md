@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/ui/CameraStage.tsx`: the crop box on an added photo now starts at the middle 80% (`PHOTO_BOX`), not the camera's narrower hold zone. It keeps most of an item's label in view and still leaves out the edges, where an address would sit. Source: a screenshot of the crop step on the built app showed the hold zone cutting into the label. Verified: the CameraStage test expects the new starting box; local CI mirror exit 0.
 - An added photo is never sent whole any more. `CameraStage` decodes it with `decodePhoto` (`src/capture/crop.ts`), turns the camera off, and opens the `PhotoCrop` step at the hold-zone area. Only "Check this part" sends, and it sends the exact part the step shows; "Cancel" sends nothing. `fileToJpeg`, which cropped the full frame, is removed. `PhotoCrop` keeps its callbacks in refs, so a parent's inline functions cannot restart the preview. Source: a review found that "Add a photo" sent the whole photo, so an address at its edge went with it (`fileToJpeg` cropped { x: 0, y: 0, w: 1, h: 1 }). Verified:
 - `src/capture/crop.test.ts` decodes the real JPEG of a centre crop from a red frame around a blue item and finds no red pixel; a whole-frame mutant turns it red.
 - CameraStage tests: the crop opens and the camera stops, nothing is sent before the press, the press sends the shown part, and Cancel sends nothing.
