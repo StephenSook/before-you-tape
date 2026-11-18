@@ -29,6 +29,39 @@ val debugToken: String = localProps.getProperty(
     "",
 )
 
+// The rules bundle built from the web repo (android/build/embed, made by :engine:buildEmbed) and
+// the bundled rules edition ship as app assets under engine/.
+abstract class CopyEngineAssets : DefaultTask() {
+    @get:InputDirectory
+    abstract val embedDir: DirectoryProperty
+
+    @get:InputFile
+    abstract val edition: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = File(outputDir.get().asFile, "engine")
+        out.mkdirs()
+        for (name in listOf("byt-engine.js", "manifest.json")) File(embedDir.get().asFile, name).copyTo(File(out, name), overwrite = true)
+        edition.get().asFile.copyTo(File(out, "edition.json"), overwrite = true)
+    }
+}
+
+val copyEngineAssets = tasks.register<CopyEngineAssets>("copyEngineAssets") {
+    dependsOn(":engine:buildEmbed")
+    embedDir.set(rootProject.layout.buildDirectory.dir("embed"))
+    edition.set(rootProject.layout.projectDirectory.file("../rules/edition.json"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyEngineAssets, CopyEngineAssets::outputDir)
+    }
+}
+
 android {
     namespace = "app.beforeyoutape.android"
     compileSdk = 37
@@ -76,6 +109,7 @@ kotlin {
 
 dependencies {
     implementation(project(":engine"))
+    implementation(libs.zipline)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.ai)
     implementation(libs.firebase.ai.ondevice)

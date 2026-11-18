@@ -3,6 +3,19 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The rules bundle runs in QuickJS inside the app.** `QuickJsRuntime` runs Zipline's
+  QuickJS on one dedicated thread (a QuickJS context must stay on the thread that made it), and
+  `EngineAssets` loads `assets/engine/byt-engine.js` with its build manifest and the bundled
+  rules edition into an `EngineHost`, which refuses a bundle whose SHA-256 differs from the
+  manifest. A Gradle task (`copyEngineAssets`, after `:engine:buildEmbed`) puts the bundle, the
+  manifest and `rules/edition.json` into the app's generated assets. Adds Zipline 1.28.0 to the
+  app (QuickJS for arm64-v8a, armeabi-v7a, x86 and x86_64). Source: Android plan Task 9.
+  Verified: `EngineOnDeviceTest` (2 tests, which failed to compile first) passes on the
+  emulator: the asset bundle loads, gives the edition id from `edition.json` and tags a battery
+  label, and a wrong expected hash is refused as `BundleMismatch`; the debug APK holds the three
+  assets and the four QuickJS libraries; `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
 - **Crop math that keeps only the hold zone.** `Crop.zoneRect` turns the hold zone (fractions
   of the upright frame) into pixels clipped to the frame; `scaleToMaxSide` brings the longest
   side down to the shared limit and never enlarges; `centerToAspect` cuts a picked photo to the
