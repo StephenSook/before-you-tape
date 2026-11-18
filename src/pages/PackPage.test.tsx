@@ -104,6 +104,20 @@ describe("PackPage", () => {
     expect(store.getState().items).toHaveLength(0);
   });
 
+  it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
+    const { store, models } = setup({}, null);
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are on.");
+    await userEvent.click(screen.getByRole("button", { name: "Turn off cloud checks" }));
+    expect(store.getState().cloudConsent).toBe(false);
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off. Photos and label words stay on this laptop.");
+    await addPhoto();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Turn on cloud checks" }));
+    expect(store.getState().cloudConsent).toBeNull();
+    expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
+  });
+
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);
     await act(async () => { await Promise.resolve(); });
