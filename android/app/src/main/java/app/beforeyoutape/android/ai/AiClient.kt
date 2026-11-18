@@ -36,13 +36,20 @@ class AiClient(private val rc: () -> RcValues) : LabelModel {
         val v = rc()
         if (mode != SdkMode.ONLY_ON_DEVICE && (v.killCloud || v.cloudModelItem.isEmpty())) throw CloudPausedException()
         val t0 = System.nanoTime()
-        val r = model(v, AiMapping.mode(mode)).generateObject(
-            LabelRead.firebaseAISchema(),
-            content {
-                image(bitmap)
-                text(prompt)
-            },
-        )
+        val r = try {
+            model(v, AiMapping.mode(mode)).generateObject(
+                LabelRead.firebaseAISchema(),
+                content {
+                    image(bitmap)
+                    text(prompt)
+                },
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The reader decides on retries from the app's own failure kinds, not from SDK classes.
+            throw ModelCallException(AiMapping.failure(e), e)
+        }
         val obj = runCatching { r.getObject() }.getOrNull()
         return ModelReply(AiMapping.read(obj), AiMapping.source(r.response.inferenceSource), (System.nanoTime() - t0) / 1_000_000)
     }

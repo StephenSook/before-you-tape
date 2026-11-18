@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Firebase AI Logic failures are classified for the read rules.** `AiClient` wraps every
+  failed call in a `ModelCallException` with the app's own kind (`AiMapping.failure`): a server
+  error, quota (429), timeout or network error is transient and retried once; a blocked prompt,
+  blocked content or a stopped response is a refusal and never retried; the three on-device
+  exceptions are device failures; anything else (for example App Check refused or a bad key) is
+  not retried. Cancellation passes through. Source: Android plan Task 7, design section 5.4.
+  Verified: `AiMappingTest.everyFailureKindMaps` failed to compile first, then passes for the
+  server, quota, timeout, unknown-host and I/O errors, blocked content, a missing permission, a
+  bad key and an unrelated exception (the SDK's exceptions are built by reflection: their
+  constructors are internal to Kotlin); `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
 - **Item reader with the device guard and one cloud retry.** `ItemReader.read` checks the
   on-device model's status immediately before every read and picks the route from it and the
   cloud state. A blocked read says why (no model and no consent, offline, or cloud paused) and

@@ -38,4 +38,26 @@ class AiMappingTest {
         assertEquals(Source.ON_DEVICE, AiMapping.source(InferenceSource.ON_DEVICE))
         assertEquals(Source.IN_CLOUD, AiMapping.source(InferenceSource.IN_CLOUD))
     }
+
+    /** The SDK's exception constructors are Kotlin-internal but public on the JVM; build them by reflection. */
+    private fun sdk(name: String, vararg args: Any?): Throwable {
+        val c = Class.forName("com.google.firebase.ai.type.$name")
+        val types = when (args.size) {
+            2 -> arrayOf(String::class.java, Throwable::class.java)
+            else -> arrayOf(String::class.java, Throwable::class.java, List::class.java)
+        }
+        return c.getConstructor(*types).newInstance(*args) as Throwable
+    }
+
+    @Test fun everyFailureKindMaps() {
+        assertEquals(CallFailure.TRANSIENT, AiMapping.failure(sdk("ServerException", "503", null)))
+        assertEquals(CallFailure.TRANSIENT, AiMapping.failure(sdk("QuotaExceededException", "429", null)))
+        assertEquals(CallFailure.TRANSIENT, AiMapping.failure(sdk("RequestTimeoutException", "timeout", null, emptyList<Any>())))
+        assertEquals(CallFailure.TRANSIENT, AiMapping.failure(java.net.UnknownHostException("no network")))
+        assertEquals(CallFailure.TRANSIENT, AiMapping.failure(java.io.IOException("reset")))
+        assertEquals(CallFailure.REFUSED, AiMapping.failure(sdk("ContentBlockedException", "blocked", null)))
+        assertEquals(CallFailure.OTHER, AiMapping.failure(sdk("PermissionMissingException", "App Check", null)))
+        assertEquals(CallFailure.OTHER, AiMapping.failure(sdk("InvalidAPIKeyException", "key", null)))
+        assertEquals(CallFailure.OTHER, AiMapping.failure(IllegalStateException("anything else")))
+    }
 }
