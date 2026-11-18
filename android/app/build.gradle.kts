@@ -161,6 +161,7 @@ dependencies {
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.firestore)
     debugImplementation(libs.firebase.appcheck.debug)
     ksp(libs.firebase.ai.ksp.processor)
     implementation(libs.serialization.json)

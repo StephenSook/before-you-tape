@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A Firestore box repository, local first.** `FirestoreBoxRepository` creates a box (its owner
+  as the only member, no join key, zero counts; awaited, because items need the box to exist).
+  It writes and removes items, sets the destination with the time of the rules-only re-check,
+  adds to the read counts, and watches the box and its items as one stream. Every write except
+  the creation is sent without waiting, and the Firestore cache holds it while the phone is
+  offline. Adds `firebase-firestore` (Firebase BoM). Source: Android plan Task 10. Verified:
+  `BoxLiveTest` (live, on request) passed on the emulator against the deployed rules. A box made
+  on the phone was read back with its owner as the only member. An item written with the network
+  off reached the server once the network returned, with empty label text and quantity 1. A
+  destination change was accepted. A stranger (a new anonymous user) was refused the box
+  (PERMISSION_DENIED). `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Box and item documents that match the web app's.** `BoxDocs` turns a box item into the web
   app's item document and back, and the box header likewise, as Firestore values. The shapes
   come from `tests/contracts/box-docs.json`, the fixture the web app and the Firestore rules are
