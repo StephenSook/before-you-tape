@@ -18,9 +18,10 @@ sealed interface ReadOutcome {
 /**
  * One label read, with the guard. The on-device model's status is checked immediately before every
  * read; the cloud is used only when it is allowed (consent, online, kill_cloud off); a device-only
- * reply that came from the cloud is discarded; a hybrid failure is retried once in the cloud, and a
- * network error, 429 or 5xx once; three refusals in a row pause the run. Every reply goes through
- * the web app's own parser before it can be added to the box.
+ * reply that came from the cloud is discarded; a route that can reach the cloud signs in first;
+ * a hybrid failure is retried once in the cloud, and a network error, 429 or 5xx once; three
+ * refusals in a row pause the run. Every reply goes through the web app's own parser before it
+ * can be added to the box.
  */
 class ItemReader(
     private val model: LabelModel,
@@ -28,6 +29,8 @@ class ItemReader(
     private val gate: suspend () -> DeviceModelStatus,
     private val cloud: () -> CloudState,
     private val prompt: () -> String,
+    /** A signed-in Firebase user (cloud requests carry its ID token); throws when sign-in fails. */
+    private val signIn: suspend () -> Unit,
 ) {
     private val json = Json
     private var refusalsInARow = 0
@@ -40,7 +43,13 @@ class ItemReader(
     suspend fun read(crop: CropImage): ReadOutcome {
         if (refusalsInARow >= 3) return ReadOutcome.Blocked(BlockReason.REFUSALS_PAUSED)
         val c = cloud()
-        val route = ReadRoutes.choose(gate(), ReadRoutes.cloudAllowed(c))
+        val status = gate()
+        val chosen = ReadRoutes.choose(status, ReadRoutes.cloudAllowed(c))
+        // A route that can reach the cloud signs in first. If sign-in fails, a ready model on the
+        // phone reads alone, and with none nothing is sent.
+        val route = if (chosen != ReadRoute.HYBRID && chosen != ReadRoute.CLOUD_ONLY || signedIn()) chosen
+        else if (status == DeviceModelStatus.AVAILABLE) ReadRoute.DEVICE_ONLY
+        else return ReadOutcome.Failed(FailReason.CLOUD_ERROR, retryable = true)
         val t0 = System.nanoTime()
         val reply = try {
             when (route) {
@@ -81,6 +90,15 @@ class ItemReader(
         }
         refusalsInARow = 0
         return ReadOutcome.Read(parsed, reply.source, route, (System.nanoTime() - t0) / 1_000_000)
+    }
+
+    private suspend fun signedIn(): Boolean = try {
+        signIn()
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        false
     }
 
     private fun failed(f: CallFailure, route: ReadRoute): ReadOutcome = when (f) {

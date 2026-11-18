@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A read that can reach the cloud signs in first.** Cloud AI Logic requests can be required
+  to carry a Firebase Auth ID token, and the app's start-up sign-in is not awaited, so a read
+  could reach the cloud before it finished. `ItemReader` now takes a `signIn` step (no default,
+  so the app must pass a real one) and awaits it before a hybrid or cloud-only read. If sign-in
+  fails, a ready model on the phone reads alone, and with none nothing is sent (a retryable
+  "check did not go through"). The device-only route never waits for it. Source: review of
+  the AI Logic authenticated-users setting. Verified: `aCloudOnlyReadSignsInBeforeTheModelCall`
+  (order: sign-in, then the cloud call), `aFailedSignInWithNoModelOnThePhoneSendsNothing`,
+  `aFailedSignInWithAModelOnThePhoneReadsOnThePhoneOnly` and `theDeviceOnlyRouteNeverSignsIn`
+  failed to compile first, then pass; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Every read sends the web app's system lines and read prompt.** `Prompts` holds the web
   app's item-read system lines and prompt (`src/ai/prompts.ts`) word for word, and `AiClient`
   now builds its model with the system lines as `systemInstruction`, as the web app does. The
