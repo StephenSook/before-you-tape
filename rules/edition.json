@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-8cca86c2ac3b",
+  "editionId": "byt-efc2c47807eb",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -435,7 +435,627 @@
       ]
     }
   ],
-  "rules": [],
+  "rules": [
+    {
+      "id": "USPS-INTL-FLAMMABLE-LIQUID",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 623 (Class 3); IMM 136",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+      "basis": "summarized",
+      "ourWording": "Flammable liquids can't go by international mail. That includes nail polish, hand sanitizer, and perfume or other liquids with alcohol.",
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "fact": "tags",
+                "op": "has",
+                "value": "flammable"
+              },
+              {
+                "fact": "tags",
+                "op": "has",
+                "value": "liquid"
+              }
+            ]
+          },
+          {
+            "fact": "category",
+            "op": "in",
+            "value": [
+              "nail_polish",
+              "hand_sanitizer"
+            ]
+          },
+          {
+            "all": [
+              {
+                "fact": "alcohol",
+                "op": "eq",
+                "value": "yes"
+              },
+              {
+                "fact": "tags",
+                "op": "has",
+                "value": "liquid"
+              }
+            ]
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-FLAMMABLE-OTHER",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 623 (Classes 2 to 4)",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+      "basis": "summarized",
+      "ourWording": "The label says it is flammable. Flammable goods can't go by international mail.",
+      "when": {
+        "all": [
+          {
+            "fact": "tags",
+            "op": "has",
+            "value": "flammable"
+          },
+          {
+            "not": {
+              "fact": "tags",
+              "op": "has",
+              "value": "liquid"
+            }
+          },
+          {
+            "not": {
+              "fact": "category",
+              "op": "in",
+              "value": [
+                "lighter_matches",
+                "nail_polish",
+                "hand_sanitizer"
+              ]
+            }
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-AEROSOL",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 623 (Class 2); Packaging Instruction 2A",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+      "basis": "summarized",
+      "ourWording": "Aerosols and other items under pressure can't go by international mail.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "pressurized"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-ALCOHOL-DRINK",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 424",
+      "url": "https://pe.usps.com/text/pub52/pub52c4_008.htm",
+      "basis": "summarized",
+      "ourWording": "Alcoholic drinks can't be mailed.",
+      "when": {
+        "fact": "category",
+        "op": "eq",
+        "value": "alcohol_drink"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-MATCHES-LIGHTERS",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 623 (Class 4); Packaging Instruction 3C",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+      "basis": "summarized",
+      "ourWording": "Matches and lighters can't go by international mail.",
+      "when": {
+        "fact": "category",
+        "op": "eq",
+        "value": "lighter_matches"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-ENDS",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "IMM 136.4",
+      "url": "https://pe.usps.com/text/imm/immc1_015.htm",
+      "basis": "summarized",
+      "ourWording": "E-cigarettes, vapes and e-liquids can't go by international mail.",
+      "when": {
+        "fact": "category",
+        "op": "eq",
+        "value": "e_cigarette"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-TOBACCO",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "IMM 136.4",
+      "url": "https://pe.usps.com/text/imm/immc1_015.htm",
+      "basis": "summarized",
+      "ourWording": "Cigarettes and other tobacco can't go by international mail.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "tobacco"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-CIGAR",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "USPS international shipping restrictions",
+      "url": "https://www.usps.com/international/shipping-restrictions.htm",
+      "basis": "summarized",
+      "ourWording": "Cigars can go only to countries that accept them. Check that the country allows them.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "cigar"
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-MERCURY",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "USPS international shipping restrictions",
+      "url": "https://www.usps.com/international/shipping-restrictions.htm",
+      "basis": "summarized",
+      "ourWording": "Anything with mercury, such as an old thermometer or a CFL bulb, can't go by international mail.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "mercury"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-HEMP",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "USPS international shipping restrictions",
+      "url": "https://www.usps.com/international/shipping-restrictions.htm",
+      "basis": "summarized",
+      "ourWording": "Hemp and CBD products can't go by international mail.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "hemp"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-DRY-ICE",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 623; IMM 136",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+      "basis": "summarized",
+      "ourWording": "Dry ice can't go by international mail.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "dry_ice"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-MAGNET",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 349.4; IMM 136",
+      "url": "https://pe.usps.com/text/pub52/pub52c3_028.htm",
+      "basis": "summarized",
+      "ourWording": "Only very weak magnets can go by international mail. Check how strong this one is.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "magnet"
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-GLUE-PAINT",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "USPS international shipping restrictions",
+      "url": "https://www.usps.com/international/shipping-restrictions.htm",
+      "basis": "summarized",
+      "ourWording": "Most glues and many paints are flammable and can't go. Check the label for a flammable warning.",
+      "when": {
+        "fact": "category",
+        "op": "eq",
+        "value": "glue_paint"
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-LOOSE",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.5",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "inference",
+      "ourWording": "Lithium batteries must be inside the device they power. Spare batteries, batteries packed beside a device and power banks can't go.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "in",
+        "value": [
+          "loose",
+          "packed_beside"
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-USED-DEVICE",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.5; 623",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "Used devices with lithium batteries can't go by international mail. Only new or maker-refurbished ones can.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "condition",
+            "op": "eq",
+            "value": "used"
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-NEW-OPENED",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.5; 349.2",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "inference",
+      "ourWording": "New devices are allowed in their original packaging. Pack this one back in its own box.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "condition",
+            "op": "eq",
+            "value": "new_opened"
+          }
+        ]
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-NO-WH",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.52",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "We can't see the battery rating through the box. Type the Wh from the box or the maker's page.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "not": {
+              "fact": "battery.chemistry",
+              "op": "eq",
+              "value": "li_metal"
+            }
+          },
+          {
+            "fact": "battery.whStatus",
+            "op": "in",
+            "value": [
+              "none",
+              "computed_only"
+            ]
+          }
+        ]
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-WH-MISMATCH",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.52",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "The battery numbers we read don't agree with each other. Check the label and type the numbers.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.whStatus",
+            "op": "in",
+            "value": [
+              "printed_mismatch",
+              "implausible"
+            ]
+          }
+        ]
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-CELL-OVER",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.52",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "A lithium-ion cell above 20 Wh can't go by international mail.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.countAs",
+            "op": "eq",
+            "value": "cell"
+          },
+          {
+            "fact": "battery.wh",
+            "op": "gt",
+            "value": 20
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-BATTERY-OVER",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.52",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "A lithium-ion battery above 100 Wh can't go by international mail.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.wh",
+            "op": "gt",
+            "value": 100
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-METAL-UNKNOWN",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.51",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "This has a lithium metal cell, such as a coin cell. We can't confirm how much lithium it holds, so check the maker's page.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.chemistry",
+            "op": "eq",
+            "value": "li_metal"
+          }
+        ]
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-BOX-COUNT",
+      "layer": "usps_export",
+      "scope": "box",
+      "section": "Pub 52 622.5",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "Too many lithium batteries for one box. A box can hold 4 cells or 2 batteries, not both.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "eq",
+        "value": "installed"
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-BOX-MIXED",
+      "layer": "usps_export",
+      "scope": "box",
+      "section": "Pub 52 622.5",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "A box can hold 4 cells or 2 batteries, not both. This box may have both.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "eq",
+        "value": "installed"
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-NO-MARKING",
+      "layer": "usps_export",
+      "scope": "note",
+      "section": "Pub 52 622.5",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "Don't put lithium battery marks or labels on the outside of the box.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "eq",
+        "value": "installed"
+      },
+      "outcome": "note"
+    },
+    {
+      "id": "USPS-INTL-LI-TWO-BOXES",
+      "layer": "usps_export",
+      "scope": "note",
+      "section": "Pub 52 622.5; 349.2",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "No more than 2 boxes with lithium batteries can go to one address in one mailing.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "eq",
+        "value": "installed"
+      },
+      "outcome": "note"
+    },
+    {
+      "id": "DATA-UNSURE",
+      "layer": "data",
+      "scope": "item",
+      "section": "Before You Tape: reading check",
+      "url": "https://before-you-tape-2026.web.app/rules",
+      "basis": "inference",
+      "ourWording": "We're not sure what this is. Fix the reading or type what it is.",
+      "when": {
+        "any": [
+          {
+            "fact": "evidence",
+            "op": "eq",
+            "value": "not_sure"
+          },
+          {
+            "fact": "category",
+            "op": "eq",
+            "value": "other"
+          }
+        ]
+      },
+      "outcome": "check"
+    },
+    {
+      "id": "DATA-NEEDS-ANSWER",
+      "layer": "data",
+      "scope": "item",
+      "section": "Before You Tape: questions",
+      "url": "https://before-you-tape-2026.web.app/rules",
+      "basis": "inference",
+      "ourWording": "Does the label list alcohol? Answer to finish this check.",
+      "when": {
+        "all": [
+          {
+            "fact": "alcohol",
+            "op": "eq",
+            "value": "unknown"
+          },
+          {
+            "any": [
+              {
+                "fact": "category",
+                "op": "in",
+                "value": [
+                  "perfume_fragrance",
+                  "liquid_toiletry",
+                  "medicine"
+                ]
+              },
+              {
+                "fact": "tags",
+                "op": "has",
+                "value": "fragrance"
+              }
+            ]
+          }
+        ]
+      },
+      "outcome": "check",
+      "askId": "label_alcohol"
+    },
+    {
+      "id": "DATA-NEEDS-ANSWER",
+      "layer": "data",
+      "scope": "item",
+      "section": "Before You Tape: questions",
+      "url": "https://before-you-tape-2026.web.app/rules",
+      "basis": "inference",
+      "ourWording": "Is it new? Answer to finish this check.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "condition",
+            "op": "eq",
+            "value": "unknown"
+          }
+        ]
+      },
+      "outcome": "check",
+      "askId": "device_condition"
+    },
+    {
+      "id": "DATA-NEEDS-ANSWER",
+      "layer": "data",
+      "scope": "item",
+      "section": "Before You Tape: questions",
+      "url": "https://before-you-tape-2026.web.app/rules",
+      "basis": "inference",
+      "ourWording": "Where is the battery? Answer to finish this check.",
+      "when": {
+        "fact": "battery.presence",
+        "op": "eq",
+        "value": "unknown"
+      },
+      "outcome": "check",
+      "askId": "battery_installed"
+    }
+  ],
   "destinations": {},
   "suspensions": {
     "updated": "2026-11-06",
