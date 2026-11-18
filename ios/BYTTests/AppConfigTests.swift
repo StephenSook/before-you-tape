@@ -58,4 +58,33 @@ import Testing
         #expect(m.box?.result?.editionId != "byt-newer-test")
         #expect(m.editionNotice == "A newer rule edition failed its integrity check. Using the built-in edition.")
     }
+
+    final class Holder: @unchecked Sendable { var model: AppModel? }
+
+    /// Pauses the cloud while the on-device read runs, then fails it so the read would fall to the cloud.
+    struct PausingDevice: ItemModelRunner {
+        let holder: Holder
+        func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+            await holder.model?.applyConfig(RemoteConfigValues.parse(["kill_cloud": "true"]))
+            return .failure(ReadError(.unavailable))
+        }
+    }
+
+    /// The pause switch flipped during a read stops that read's cloud call: it is read live.
+    @Test func aPauseDuringAReadStopsItsCloudCall() async {
+        let holder = Holder(), names = Models()
+        let j = FakeItemRunner.Journal()
+        let reader = ItemReader(device: PausingDevice(holder: holder), makeCloud: { name in
+            names.names.append(name)
+            return FakeItemRunner("cloud", journal: j, results: [])
+        }, parse: { $0 })
+        let ready = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "t", vision: false)
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { ready },
+                         persistence: MemoryBoxPersistence(), reader: reader)
+        holder.model = m
+        m.network.pathChanged(satisfied: true)
+        m.box?.setConsent(true)
+        await m.readWords("EAU DE PARFUM 50 ML")
+        #expect(names.names.isEmpty && m.lastRead?.failure == .cloudPaused)
+    }
 }

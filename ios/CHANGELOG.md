@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): make the live pause switch stop a read's next cloud call
+- What: each read now gives the reader a pause check that reads the app's live Remote Config, so a
+  `kill_cloud` that turns on while a read is in progress stops that read before its next cloud
+  call (`cloud_paused`), not only the reads after it.
+- Source: review of the iPhone pull request (finding 2, with the Remote Config wiring now merged in).
+- Verified: a test turns the pause on during an on-device read that then fails, and sees no cloud
+  model built and the read end as `cloud_paused`; it failed before the wiring and passes after;
+  103 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### test(ios): count model calls where the reader is called in the box loop UI test
 - What: the UI test's "0 model calls" check read the screen's own words, so a country change that
   made a model call would still pass. The debug-only fixed reader now counts every call it takes,

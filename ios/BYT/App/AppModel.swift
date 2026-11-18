@@ -131,7 +131,10 @@ final class AppModel {
             askingConsent = true
             return
         }
-        let outcome = await reader.read(input, situation: situation)
+        // The pause switch is read again, live, before every cloud call of this read.
+        var live = reader
+        live.cloudOpen = { [weak self] in !(self?.config.killCloud ?? true) }
+        let outcome = await live.read(input, situation: situation)
         if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
