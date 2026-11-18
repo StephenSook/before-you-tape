@@ -50,6 +50,22 @@ describe("firestorePersistence", () => {
     expect(loaded?.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
   });
 
+  it("never writes consent in an ordinary save of an existing box, only when the sender chose it", async () => {
+    const first = firestorePersistence(db("alice"), "alice", "byt-test");
+    await first.load("b1");
+    first.save(state([], { cloudConsent: true }));
+    await first.idle();
+    first.saveConsent("b1", false);
+    await first.idle();
+    // Another tab, still holding the old answer, saves its box.
+    const stale = firestorePersistence(db("alice"), "alice", "byt-test");
+    await stale.load("b1");
+    stale.save(state([item("i1")], { cloudConsent: true }));
+    await stale.idle();
+    const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
+    expect(box?.cloudConsent).toBe(false);
+  });
+
   it("creates the box even when the first save comes before the load has answered, as the store does", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
     const loading = p.load("b1");

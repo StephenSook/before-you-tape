@@ -3,7 +3,7 @@ import type { ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
-import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState } from "./boxStore";
+import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState, type ConsentChannel, type ConsentMessage } from "./boxStore";
 
 const base: ItemRead = {
   itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -228,6 +228,43 @@ describe("createBoxStore", () => {
     untouched.arrive({ cloudConsent: true });
     await untouched.s.ready;
     expect(untouched.s.getState().cloudConsent).toBe(true);
+  });
+
+  it("shares a consent change with the other tabs on the same box, and only the tab that chose saves it", async () => {
+    // Every tab's channel reaches every other tab's, as BroadcastChannel does; never its own.
+    const tabs = new Set<Set<(m: ConsentMessage) => void>>();
+    const channel = (): ConsentChannel => {
+      const mine = new Set<(m: ConsentMessage) => void>();
+      tabs.add(mine);
+      return {
+        post: (m) => { for (const t of tabs) if (t !== mine) for (const f of t) f(m); },
+        listen: (f) => { mine.add(f); return () => { mine.delete(f); }; },
+      };
+    };
+    const saving = () => ({ ...spyPersistence(), saveConsent: vi.fn<(boxId: string, v: boolean | null) => void>() });
+    const make = (boxId: string, persistence: BoxPersistence) =>
+      createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId, consentChannel: channel() });
+    const pa = saving();
+    const pb = saving();
+    const a = make("shared", pa);
+    const b = make("shared", pb);
+    const elsewhere = make("another-box", saving());
+    const seenByB = vi.fn();
+    b.subscribe(seenByB);
+    a.setConsent(true);
+    expect(b.getState().cloudConsent).toBe(true);
+    a.setConsent(false);
+    expect(b.getState().cloudConsent).toBe(false);
+    expect(seenByB).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
+    expect(elsewhere.getState().cloudConsent).toBeNull();
+    expect(pa.saveConsent.mock.calls).toEqual([["shared", true], ["shared", false]]);
+    expect(pb.saveConsent).not.toHaveBeenCalled();
+    // A saved answer that loads after another tab's choice does not undo it.
+    const late = (() => { let arrive!: (s: Partial<BoxState>) => void; const persistence = { save: () => {}, load: () => new Promise<Partial<BoxState> | null>((r) => { arrive = r; }) }; return { s: make("shared", persistence), arrive: (s: Partial<BoxState>) => arrive(s) }; })();
+    a.setConsent(false);
+    late.arrive({ cloudConsent: true });
+    await late.s.ready;
+    expect(late.s.getState().cloudConsent).toBe(false);
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

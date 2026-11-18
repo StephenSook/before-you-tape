@@ -10,6 +10,7 @@ export interface FirestorePersistence extends BoxPersistence {
   idle(): Promise<void>;
   // The last refused or failed write, or null.
   lastError(): string | null;
+  saveConsent(boxId: string, consent: boolean | null): void;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -32,9 +33,11 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       const snap = await getDoc(box).catch(() => null);
       if (snap) exists = snap.exists();
     }
-    const content = { destinationCode: s.destinationCode, editionId: edition(), cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs };
+    // Consent is written only on create (the rules require it) and by saveConsent, never by a merge: another
+    // tab still holding an old answer would write it back.
+    const content = { destinationCode: s.destinationCode, editionId: edition(), sources: s.sources, lastRecheckMs: s.lastRecheckMs };
     if (exists === false) {
-      await setDoc(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
+      await setDoc(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", cloudConsent: s.cloudConsent, ...content });
       exists = true;
     } else {
       await setDoc(box, content, { merge: true });
@@ -50,6 +53,12 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
   return {
     save(state) {
       queue = queue.then(() => write(state)).then(() => { error = null; }, (e: unknown) => { error = message(e); });
+    },
+    saveConsent(boxId, consent) {
+      queue = queue.then(async () => {
+        if (loading) await loading;
+        await setDoc(doc(db, "boxes", boxId), { cloudConsent: consent }, { merge: true });
+      }).then(() => { error = null; }, (e: unknown) => { error = message(e); });
     },
     load(boxId) {
       const run = loadBox(boxId);
@@ -87,6 +96,9 @@ export function persistenceAfterSignIn(
   return {
     save(state) {
       queue = queue.then(() => target).then((p) => p.save(state));
+    },
+    saveConsent(boxId, consent) {
+      queue = queue.then(() => target).then((p) => p.saveConsent?.(boxId, consent));
     },
     load: (boxId) => target.then((p) => p.load(boxId)),
     idle: () => queue.then(() => target).then((p) => ("idle" in p && typeof p.idle === "function" ? (p.idle as () => Promise<void>)() : undefined)),

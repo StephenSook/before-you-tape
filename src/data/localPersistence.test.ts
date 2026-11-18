@@ -27,6 +27,15 @@ describe("localPersistence", () => {
     expect(b.getState().result.items[b.getState().items[0]!.itemId]?.level).toBe("take_out");
   });
 
+  it("keeps consent apart from the box, so a save from a tab with an old answer cannot restore it", async () => {
+    const p = localPersistence(localStorage);
+    p.saveConsent?.("box-c", false);
+    const stale = make("box-c");
+    await stale.ready;
+    p.save({ ...stale.getState(), cloudConsent: true });
+    expect((await p.load("box-c"))?.cloudConsent).toBe(false);
+  });
+
   it("returns nothing for a box it never saved, and ignores a damaged record", async () => {
     expect(await localPersistence(localStorage).load("none")).toBeNull();
     localStorage.setItem("byt.box.bad", "{not json");

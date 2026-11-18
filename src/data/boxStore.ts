@@ -50,8 +50,19 @@ export interface BoxState {
 }
 
 export interface BoxPersistence {
+  // Saves the box. Consent is not part of an ordinary save: a tab still holding an old answer must never
+  // write it back.
   save(state: BoxState): void;
   load(boxId: string): Promise<Partial<BoxState> | null>;
+  // Saves the sender's consent answer, from the page where they pressed the button.
+  saveConsent?(boxId: string, consent: boolean | null): void;
+}
+
+// A consent change for one box, sent to this browser's other tabs.
+export interface ConsentMessage { boxId: string; consent: boolean | null }
+export interface ConsentChannel {
+  post(m: ConsentMessage): void;
+  listen(f: (m: ConsentMessage) => void): () => void;
 }
 
 export interface BoxStore {
@@ -88,6 +99,8 @@ export interface BoxStoreDeps {
   boxId?: string;
   // Wall-clock time for addedAt; now() is only for measuring how long things take.
   clock?: () => number;
+  // Reaches this browser's other tabs, so a consent change made in one holds in all of them at once.
+  consentChannel?: ConsentChannel;
 }
 
 const DEFAULT_DESTINATION = "CA";
@@ -144,6 +157,15 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     commit();
   };
   const tagsOf = (labelText: string) => labelTagsOf(labelText, currentEdition());
+
+  // The sender changed consent in another tab on this box: it holds here too, a saved answer that loads
+  // later cannot undo it, and listeners hear of it (the Pack page aborts cloud work on a withdrawal).
+  deps.consentChannel?.listen((m) => {
+    if (m.boxId !== boxId) return;
+    consentChosenHere = true;
+    cloudConsent = m.consent;
+    commit(state.result);
+  });
 
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
@@ -255,6 +277,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       consentChosenHere = true;
       cloudConsent = v;
       commit(state.result);
+      // Only the page where the sender pressed the button saves consent, and it tells the other tabs.
+      deps.persistence.saveConsent?.(boxId, v);
+      deps.consentChannel?.post({ boxId, consent: v });
     },
   };
 }
