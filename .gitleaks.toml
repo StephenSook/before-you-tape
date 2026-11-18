@@ -1,0 +1,9 @@
+# gitleaks with all of its default rules, plus one exact allowance: the made-up join key used in the join-link
+# tests and shared vectors, ABCDEFGHJKMNPQRSTVWXYZ2345 (the Crockford base32 alphabet in order), in either case.
+# It is a test value, not a secret.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "The made-up test join key ABCDEFGHJKMNPQRSTVWXYZ2345"
+regexes = ['''(?i)ABCDEFGHJKMNPQRSTVWXYZ2345''']
