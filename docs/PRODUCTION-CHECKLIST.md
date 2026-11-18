@@ -1,0 +1,24 @@
+# Production checklist
+
+What to do, in order, when the live site needs protecting or checking.
+
+## If something is calling the cloud model that should not be
+
+Use the smallest switch that stops it, and say what you did.
+
+1. **`kill_cloud` in Remote Config.** Set it to `true` and publish. Every cloud read, second look and description stops; reads on the device keep working, and the page says "Cloud checks are paused. Checks on this laptop still work." Not live yet: the app reads Remote Config from the next release.
+2. **The per-user quota.** Lower "Generate content requests per minute per project per user" on the Firebase AI Logic API from 20 toward 0 (a consumer override; the API asks for the narrow safety-check bypass `LIMIT_DECREASE_PERCENTAGE_TOO_HIGH` for a cut of more than 10 percent). It can be raised again at once.
+3. **Turn off the Firebase AI Logic API** (`firebasevertexai.googleapis.com`) on the project. This stops every cloud read at once and also breaks the App Check control test. Ask before doing this.
+
+The $25 Gemini spend cap stays in place under all three; its enforcement is not instant.
+
+## After every deploy
+
+- The live `version.json` reports the main commit with `dirty` false.
+- `BYT_LIVE=1 npx playwright test --project=live` passes (the served commit, the home page, `robots.txt` and `llms.txt` as plain text, and axe at 1440 and 390 px).
+- `npm run appcheck:control` gives 401 without a token, then 200.
+
+## Before the repository goes public
+
+- `npm run release:gate` passes: every listing checked by a person, and every rule layer still fresh on the last judging day.
+- The deployed bundle holds no prompt text beyond what the app sends, no key beyond the public Firebase config, and takes model names from Remote Config.

@@ -1,6 +1,6 @@
-// Builds the Pack page's real parts once: Firebase with App Check, the three item-read models, the box in
-// this browser's storage, the bundled rule edition and the destination index. A build without its
-// Firebase settings says so plainly instead of breaking.
+// Builds the Pack page's real parts once: Firebase with App Check, Remote Config, the item-read models for
+// the model it names, the box in this browser's storage, the bundled rule edition and the destination
+// index. A build without its Firebase settings says so plainly instead of breaking.
 import { useEffect, useState } from "react";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
@@ -9,16 +9,16 @@ import { createItemModels } from "../ai/firebaseModels";
 import { checkGate } from "../ai/gate";
 import type { GateState, ItemModels } from "../ai/port";
 import { openCamera } from "../capture/camera";
-import { CONFIG_DEFAULTS } from "../config/defaults";
+import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { saveCrop } from "../data/crops";
 import { currentBoxId, localPersistence } from "../data/localPersistence";
 import { parseEdition } from "../engine/edition";
 import { FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
 import type { AI } from "firebase/ai";
-import { PackPage } from "./PackPage";
+import { LivePack } from "./LivePack";
 
-interface PackDeps { ai: AI; models: ItemModels; store: BoxStore; lm: unknown }
+interface PackDeps { ai: AI; makeModels: (cloudModelItem: string) => ItemModels; source: ConfigSource; store: BoxStore; lm: unknown }
 
 let built: PackDeps | Error | null = null;
 
@@ -39,7 +39,14 @@ function buildDeps(): PackDeps | Error {
       newId,
       boxId: currentBoxId(localStorage, newId),
     });
-    built = { ai, models: createItemModels(ai, CONFIG_DEFAULTS.cloudModelItem, lm), store, lm };
+    // One set of models per model name, so a Remote Config change builds them once.
+    const byName = new Map<string, ItemModels>();
+    const makeModels = (name: string) => {
+      let m = byName.get(name);
+      if (!m) { m = createItemModels(ai, name, lm); byName.set(name, m); }
+      return m;
+    };
+    built = { ai, makeModels, source: remoteConfigSource(fb.app), store, lm };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
   }
@@ -83,7 +90,7 @@ export function PackRoute() {
   };
 
   return (
-    <PackPage store={deps.store} models={deps.models} gate={gate} config={{ killCloud: CONFIG_DEFAULTS.killCloud }} openCamera={openCamera}
+    <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera}
       index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} />
   );
 }

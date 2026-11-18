@@ -64,11 +64,24 @@ describe("ItemCard", () => {
 
   it("offers to type the rating when no Wh is printed", async () => {
     expect(noWh.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH")).toBe(true);
-    const onTypeRating = vi.fn();
-    render(<ItemCard item={phoneNoWh} verdict={noWh} crop={null} onTypeRating={onTypeRating} />);
+    const onFix = vi.fn();
+    render(<ItemCard item={phoneNoWh} verdict={noWh} crop={null} onFix={onFix} />);
     await userEvent.click(screen.getByRole("button", { name: "Type the rating" }));
-    expect(onTypeRating).toHaveBeenCalledWith("ph");
+    const fix = screen.getByTestId("fix-reading").closest("details");
+    expect(fix?.open).toBe(true);
+    expect(screen.getByLabelText("Watt-hours (Wh)")).toHaveFocus();
+    await userEvent.type(screen.getByLabelText("Watt-hours (Wh)"), "15.4");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onFix).toHaveBeenCalledWith("ph", { wattHours: 15.4 });
     expect(screen.queryByTestId("crop-image")).toBeNull();
+  });
+
+  it("keeps the fix form in a closed Fix this reading disclosure, on what the sender sees now", () => {
+    render(<ItemCard item={{ ...perfume, overrides: { itemName: "Eau de parfum" } }} verdict={takeOut} crop={jpeg} onFix={() => {}} />);
+    const fix = screen.getByTestId("fix-reading").closest("details");
+    expect(fix?.open).toBe(false);
+    expect(within(fix as HTMLElement).getByText("Fix this reading")).toBeInTheDocument();
+    expect(within(fix as HTMLElement).getByLabelText("Name")).toHaveValue("Eau de parfum");
   });
 
   it("asks the verdict's question and sends the answer back for this item", async () => {

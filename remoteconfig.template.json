@@ -1,0 +1,29 @@
+{
+  "parameters": {
+    "cloud_model_item": {
+      "defaultValue": { "value": "gemini-3.5-flash-lite" },
+      "valueType": "STRING",
+      "description": "The cloud model for item reads (Firebase AI Logic, Gemini Developer API)."
+    },
+    "cloud_model_text": {
+      "defaultValue": { "value": "gemini-3.5-flash-lite" },
+      "valueType": "STRING",
+      "description": "The cloud model for customs descriptions and listing reads."
+    },
+    "kill_cloud": {
+      "defaultValue": { "value": "false" },
+      "valueType": "BOOLEAN",
+      "description": "true pauses every cloud call (reads, second looks, descriptions); checks on the device keep working."
+    },
+    "minimum_version_ios": {
+      "defaultValue": { "value": "0.0.0" },
+      "valueType": "STRING",
+      "description": "The lowest iPhone app version that may run; 0.0.0 asks no one to update."
+    },
+    "minimum_version_android": {
+      "defaultValue": { "value": "0.0.0" },
+      "valueType": "STRING",
+      "description": "The lowest Android app version that may run; 0.0.0 asks no one to update."
+    }
+  }
+}

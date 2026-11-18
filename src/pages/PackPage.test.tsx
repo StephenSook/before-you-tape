@@ -82,4 +82,33 @@ describe("PackPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
+
+  it("adds a typed item with no model call, and judges it", async () => {
+    const { models } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    const form = screen.getByTestId("add-by-hand");
+    await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
+    await userEvent.click(within(form).getByLabelText("It is a liquid"));
+    await userEvent.click(within(form).getByRole("button", { name: "Add" }));
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Typed by you");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+  });
+
+  it("applies a fixed reading to the verdict", async () => {
+    const { store } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    const form = screen.getByTestId("add-by-hand");
+    await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
+    await userEvent.click(within(form).getByRole("button", { name: "Add" }));
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    const fix = within(card).getByTestId("fix-reading");
+    await userEvent.click(within(fix).getByLabelText("The label says flammable"));
+    await userEvent.click(within(fix).getByRole("button", { name: "Save" }));
+    expect(store.getState().items[0]?.overrides).toEqual({ flammableOnLabel: true });
+    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+  });
 });
