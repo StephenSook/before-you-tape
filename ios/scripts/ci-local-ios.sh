@@ -26,4 +26,13 @@ echo "== iOS: model guard and its tests"
 python3 -I ios/scripts/test_ios_guard.py
 python3 -I ios/scripts/ios_guard.py .
 
+echo "== iOS: generate the project, app tests on the simulator, unsigned device build"
+xcodegen generate --spec ios/project.yml --quiet
+DD="${TMPDIR:-/tmp}/byt-ci-dd"
+xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2' \
+  -derivedDataPath "$DD" test
+xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'generic/platform=iOS' -derivedDataPath "$DD" \
+  CODE_SIGNING_ALLOWED=NO build
+xcrun simctl shutdown all || true
+
 echo "ci-local-ios: all checks passed"

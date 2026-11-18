@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### build(ios): add the XcodeGen app shell with App Check, anonymous sign-in and the Ready check
+- What: `ios/project.yml` (app `BYT`, bundle id `app.beforeyoutape.reader`, iOS 27.0, Swift 6,
+  firebase-ios-sdk exactly 13.2.0 with seven products, camera usage text, the App Attest
+  entitlement, portrait only, an app test target). `BYTApp` sets App Attest in release and the
+  debug provider only in debug builds before configuring Firebase, with a persistent Firestore
+  cache. `SignIn` signs in anonymously once when needed. `ModelSessionFactory` (the only file
+  naming Apple's session API) reads the on-device status, including whether Apple reports image
+  understanding. The Ready check says "This iPhone can check items with no network." or why
+  not. `RemoteConfigValues` holds the iPhone's keys with defaults equal to
+  `remoteconfig.template.json`. The local gate now generates the project, runs the app tests on
+  the simulator and builds unsigned for a device.
+- Source: iPhone client plan, task I-2.
+- Verified: six app tests (sign-in twice, the Ready check lines, defaults equal the template
+  file) failed to compile without the types, then passed; unsigned device build succeeds;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### chore(ios): add the iPhone client's files, its model guard and its local gate
 - What: `ios/.gitignore` (build output, the Firebase app config, App Check debug tokens and the
   XcodeGen output stay out of git); `ios/scripts/ios_guard.py`, which fails on any import of
