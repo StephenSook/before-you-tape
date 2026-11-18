@@ -83,6 +83,20 @@ class BoxDocsContractTest {
         assertEquals(norm(d["customs"]), norm(back["customs"]))
     }
 
+    /** The web app stamps addedAt (ms since 1970) on new items; the phone keeps it on every write. */
+    @Test fun anAddedAtFromTheWebIsKept() {
+        val d = doc("item").toMutableMap().apply { put("addedAt", 1_763_500_000_000L) }
+        assertEquals(1_763_500_000_000L, BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", d))["addedAt"])
+    }
+
+    /** Listed oldest first by addedAt; undated items last, in the order the server gave them. */
+    @Test fun aListedBoxIsSortedByAddedAtWithUndatedItemsLast() {
+        val base = doc("item")
+        fun item(id: String, at: Long?) = BoxDocs.itemFromDoc(id, base.toMutableMap().apply { put("itemId", id); if (at != null) put("addedAt", at) })
+        val server = listOf(item("u1", null), item("late", 300L), item("u2", null), item("early", 100L))
+        assertEquals(listOf("early", "late", "u1", "u2"), BoxDocs.sortedForListing(server).map { it.input.itemId })
+    }
+
     @Test fun aPhoneItemCarriesTheWebAppsDefaultsForTheFieldsItDoesNotUse() {
         val read = ItemReadWire("Phone", ItemCategoryWire.phone, "", 3.85, 4000.0, 15.4, 0.0,
             true, false, false, false, false, false, false, RetailBoxWire.sealed, EvidenceWire.item_seen)

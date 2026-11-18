@@ -72,7 +72,9 @@ class FirestoreBoxRepository : BoxRepository {
         }
         regs += box(boxId).collection("items").addSnapshotListener { snap, err ->
             if (err != null) { close(err); return@addSnapshotListener }
-            items = snap?.documents.orEmpty().mapNotNull { d -> d.data?.let { runCatching { BoxDocs.itemFromDoc(d.id, it) }.getOrNull() } }
+            items = BoxDocs.sortedForListing(
+                snap?.documents.orEmpty().mapNotNull { d -> d.data?.let { runCatching { BoxDocs.itemFromDoc(d.id, it) }.getOrNull() } },
+            )
             emit()
         }
         awaitClose { regs.forEach { it.remove() } }

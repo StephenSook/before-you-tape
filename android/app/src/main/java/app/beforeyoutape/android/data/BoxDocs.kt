@@ -36,7 +36,7 @@ data class BoxHeader(
  * or typed; its tags travel instead.
  */
 object BoxDocs {
-    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs")
+    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs", "addedAt")
     private val EMPTY_CUSTOMS: Map<String, Any?> =
         linkedMapOf("description" to "", "lintOk" to false, "weightOz" to null, "valueUsd" to null, "countryOfOrigin" to null, "upc" to null)
 
@@ -79,6 +79,8 @@ object BoxDocs {
         if ("readFallback" in item.extras) doc["readFallback"] = item.extras["readFallback"]
         doc["cropKey"] = item.extras["cropKey"]
         doc["customs"] = item.extras["customs"] ?: EMPTY_CUSTOMS
+        // The web app stamps addedAt (ms since 1970) on new items; kept as it came.
+        if ("addedAt" in item.extras) doc["addedAt"] = item.extras["addedAt"]
         return doc
     }
 
@@ -95,6 +97,16 @@ object BoxDocs {
         )
         val extras = EXTRA_KEYS.filter { it in doc }.associateWith { doc[it] }
         return BoxItem(input, doc["readSource"] as String, (doc["readMs"] as? Number)?.toLong() ?: 0L, null, extras)
+    }
+
+    /**
+     * A box's items in the order to show them: oldest first by addedAt, then the items with no
+     * addedAt in the order the server gave them (the server returns items by their random ids).
+     */
+    fun sortedForListing(items: List<BoxItem>): List<BoxItem> {
+        fun at(i: BoxItem) = (i.extras["addedAt"] as? Number)?.toLong()?.takeIf { it > 0 }
+        val (dated, undated) = items.partition { at(it) != null }
+        return dated.sortedBy { at(it) } + undated
     }
 
     fun boxToDoc(h: BoxHeader): Map<String, Any?> = linkedMapOf(

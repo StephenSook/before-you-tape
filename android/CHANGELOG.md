@@ -113,6 +113,17 @@ source (plan task or finding) and how it was verified.
   message; with it, the build passes. `bash android/release.sh` exit 0 with "Firebase
   configuration: present", 0 scan hits and 16 KB alignment exit 0. `bash android/ci-local.sh`
   and the root CI mirror exit 0.
+- **A box lists its items in the order they were added.** The web app is adding an optional
+  `addedAt` to item documents (ms since 1970), because the server returns items by their random
+  ids and cards reshuffled after a reload. The phone now keeps an `addedAt` it reads on every
+  write back, and lists a box oldest first by `addedAt`, with undated items last in the order the
+  server gave them (`BoxDocs.sortedForListing`, used by the repository's watch). The phone does
+  not stamp `addedAt` on its own items yet: the deployed rules refuse item fields they do not
+  list, so stamping waits until the web change and its rules are deployed. Source: the web
+  builder's contract change for item order. Verified: `BoxDocsContractTest.anAddedAtFromTheWebIsKept`
+  and `aListedBoxIsSortedByAddedAtWithUndatedItemsLast` failed first, then pass (7 contract
+  tests); `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A Firestore box repository, local first.** `FirestoreBoxRepository` creates a box (its owner
   as the only member, no join key, zero counts; awaited, because items need the box to exist).
   It writes and removes items, sets the destination with the time of the rules-only re-check,
