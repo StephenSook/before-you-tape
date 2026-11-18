@@ -22,6 +22,8 @@ npm run typecheck
 npm run build      # writes dist/, including dist/version.json with the commit SHA
 npm run tone       # fails on long dashes and curly quotes in user-facing text
 npm run guard      # fails on any model call outside Firebase AI Logic
+npm run edition:check   # fails when rules/edition.json is out of date with its part files
+npm run release:gate    # run before a release: fails while a country listing has not been checked by a person
 ```
 
 Copy `.env.example` to `.env.local` and fill in your own Firebase web config. Never commit `.env.local`.

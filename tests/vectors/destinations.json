@@ -1,0 +1,23 @@
+[
+  { "name": "lotion_ca", "code": "CA", "tags": ["cosmetic", "easily_liquefiable", "label_text", "liquid"], "expect": [] },
+  { "name": "lotion_ph", "code": "PH", "tags": ["cosmetic", "easily_liquefiable", "label_text", "liquid"], "expect": [{ "ruleId": "PH-P-01", "level": "take_out" }] },
+  { "name": "cream_ph", "code": "PH", "tags": ["cosmetic", "easily_liquefiable"], "expect": [{ "ruleId": "PH-P-01", "level": "check" }] },
+  { "name": "glass_candle_ph", "code": "PH", "tags": ["glass_fragile"], "expect": [{ "ruleId": "PH-P-01", "level": "take_out" }] },
+  { "name": "coffee_ph", "code": "PH", "tags": ["coffee", "food"], "expect": [{ "ruleId": "PH-R-01", "level": "check" }] },
+  { "name": "jewelry_ph", "code": "PH", "tags": ["jewelry_valuables"], "expect": [{ "ruleId": "PH-P-02", "level": "take_out" }] },
+  { "name": "jewelry_ca", "code": "CA", "tags": ["jewelry_valuables"], "expect": [{ "ruleId": "CA-R-01", "level": "check" }] },
+  { "name": "toy_gun_ph", "code": "PH", "tags": ["toy", "toy_gun"], "expect": [{ "ruleId": "PH-P-03", "level": "take_out" }] },
+  { "name": "toy_gun_ca", "code": "CA", "tags": ["toy", "toy_gun"], "expect": [{ "ruleId": "CA-P-05", "level": "check" }] },
+  { "name": "wine_ca", "code": "CA", "tags": ["alcohol", "alcoholic_drink", "liquid"], "expect": [{ "ruleId": "CA-P-01", "level": "take_out" }] },
+  { "name": "medicine_ca", "code": "CA", "tags": ["pharmaceutical"], "expect": [{ "ruleId": "CA-R-02", "level": "check" }] },
+  { "name": "shirt_ca", "code": "CA", "tags": ["clothing"], "expect": [] },
+  { "name": "shirt_ph", "code": "PH", "tags": ["clothing"], "expect": [] },
+  { "name": "margarine_ca", "code": "CA", "tags": ["food", "margarine"], "expect": [{ "ruleId": "CA-P-08", "level": "take_out" }] },
+  { "name": "pet_treats_ca", "code": "CA", "tags": ["food", "pet_food"], "expect": [{ "ruleId": "CA-R-08", "level": "check" }] },
+  { "name": "gold_bar_ca", "code": "CA", "tags": ["bullion"], "expect": [{ "ruleId": "CA-P-07", "level": "take_out" }] },
+  { "name": "gold_bar_ph", "code": "PH", "tags": ["bullion"], "expect": [{ "ruleId": "PH-P-02", "level": "take_out" }] },
+  { "name": "vape_ca", "code": "CA", "tags": ["electronics", "vaping"], "expect": [{ "ruleId": "CA-P-06", "level": "take_out" }] },
+  { "name": "flower_seeds_ph", "code": "PH", "tags": ["plant"], "expect": [{ "ruleId": "PH-R-02", "level": "check" }] },
+  { "name": "shirt_unreviewed_country", "code": "ZZ", "tags": ["clothing"], "expect": [{ "ruleId": "DATA-DEST-UNREVIEWED", "level": "check" }] },
+  { "name": "shirt_suspended_country", "code": "HT", "tags": ["clothing"], "expect": [{ "ruleId": "DEST-SUSPENDED", "level": "check" }, { "ruleId": "DATA-DEST-UNREVIEWED", "level": "check" }] }
+]

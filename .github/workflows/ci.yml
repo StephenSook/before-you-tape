@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
-# Branch runs supersede each other. Every main commit gets its own group, so a
-# queued main run is never cancelled and each main SHA carries its own verdict.
+# A newer push to a pull request cancels that pull request's older run, to save
+# Actions minutes. Every main commit gets its own group, so a main run is never
+# cancelled and each main SHA carries its own verdict.
 concurrency:
   group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || '' }}
   cancel-in-progress: true
@@ -30,6 +32,9 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Rule edition is up to date
+        run: npm run edition:check
 
       - name: Lint
         run: npm run lint

@@ -1,0 +1,118 @@
+[
+  {
+    "name": "perfume_alcohol", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "perfume", "read": { "category": "perfume_fragrance", "labelText": "EAU DE PARFUM ALCOHOL DENAT. 50 ML", "liquid": true, "alcoholOnLabel": true, "glassContainer": true } }],
+    "expect": { "perfume": "take_out" }, "expectRules": { "perfume": ["USPS-INTL-FLAMMABLE-LIQUID"] }
+  },
+  {
+    "name": "aerosol", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "spray", "read": { "category": "aerosol_spray", "labelText": "BODY SPRAY CONTENTS UNDER PRESSURE", "pressurized": true } }],
+    "expect": { "spray": "take_out" }, "expectRules": { "spray": ["USPS-INTL-AEROSOL"] }
+  },
+  {
+    "name": "power_bank", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "pb", "read": { "category": "power_bank", "labelText": "POWER BANK 3.7V 10000mAh 37Wh", "volts": 3.7, "milliampHours": 10000, "wattHours": 37, "batteryWords": true } }],
+    "expect": { "pb": "take_out" }, "expectRules": { "pb": ["USPS-INTL-LI-LOOSE"] }
+  },
+  {
+    "name": "lotion_ca", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "SHEA BODY LOTION 8 FL OZ", "liquid": true } }],
+    "expect": { "lotion": "ok" }
+  },
+  {
+    "name": "lotion_ph", "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "SHEA BODY LOTION 8 FL OZ", "liquid": true } }],
+    "expect": { "lotion": "take_out" }, "expectRules": { "lotion": ["PH-P-01"] }
+  },
+  {
+    "name": "phone_ok", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "ok" }, "expectLithium": "ok"
+  },
+  {
+    "name": "laptop_plus_phone", "code": "CA", "today": "2026-11-20",
+    "items": [
+      { "itemId": "laptop", "read": { "category": "laptop", "labelText": "11.55V 4380mAh 50.6Wh", "volts": 11.55, "milliampHours": 4380, "wattHours": 50.6, "batteryWords": true, "retailBox": "sealed" },
+        "answers": { "device_condition": "new_sealed" } },
+      { "itemId": "phone", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+        "answers": { "device_condition": "new_sealed", "cell_count": "one" } }
+    ],
+    "expect": { "laptop": "check", "phone": "check" }, "expectLithium": "mixed", "expectRules": { "laptop": ["USPS-INTL-LI-BOX-MIXED"], "phone": ["USPS-INTL-LI-BOX-MIXED"] }
+  },
+  {
+    "name": "three_unknown_phones", "code": "CA", "today": "2026-11-20",
+    "items": [
+      { "itemId": "a", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } },
+      { "itemId": "b", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } },
+      { "itemId": "c", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }
+    ],
+    "expect": { "a": "check", "b": "check", "c": "check" }, "expectLithium": "depends", "expectQuestion": { "a": "cell_count" }
+  },
+  {
+    "name": "five_cells", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phones", "quantity": 5, "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phones": "take_out" }, "expectLithium": "over", "expectRules": { "phones": ["USPS-INTL-LI-BOX-COUNT"] }
+  },
+  {
+    "name": "three_laptops", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "laptops", "quantity": 3, "read": { "category": "laptop", "labelText": "11.55V 4380mAh 50.6Wh", "volts": 11.55, "milliampHours": 4380, "wattHours": 50.6, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "laptops": "take_out" }, "expectLithium": "over"
+  },
+  {
+    "name": "used_phone", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
+      "answers": { "device_condition": "used", "cell_count": "one" } }],
+    "expect": { "phone": "take_out" }, "expectRules": { "phone": ["USPS-INTL-LI-USED-DEVICE"] }
+  },
+  {
+    "name": "wh_mismatch_exact", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3.7V 2500mAh 9.62Wh", "volts": 3.7, "milliampHours": 2500, "wattHours": 9.62, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-WH-MISMATCH"] }
+  },
+  {
+    "name": "coin_cell_toy", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "BATTERY CR2032 3V LITHIUM INCLUDED", "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "toy": "check" }, "expectRules": { "toy": ["USPS-INTL-LI-METAL-UNKNOWN"] }
+  },
+  {
+    "name": "unsure", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "thing", "read": { "category": "other", "evidence": "not_sure" } }],
+    "expect": { "thing": "check" }, "expectRules": { "thing": ["DATA-UNSURE"] }
+  },
+  {
+    "name": "identity_unconfirmed", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "shirt", "read": { "category": "clothing", "evidence": "item_seen" } }],
+    "expect": { "shirt": "check" }, "expectRules": { "shirt": ["DATA-IDENTITY"] }
+  },
+  {
+    "name": "unreviewed_country", "code": "ZZ", "today": "2026-11-20",
+    "items": [{ "itemId": "shirt", "read": { "category": "clothing", "evidence": "item_seen" }, "identityConfirmedBy": "sender" }],
+    "expect": { "shirt": "check" }, "expectRules": { "shirt": ["DATA-DEST-UNREVIEWED", "DATA-LAYER-STALE"] }
+  },
+  {
+    "name": "suspended_country", "code": "HT", "today": "2026-11-20",
+    "items": [{ "itemId": "shirt", "read": { "category": "clothing", "evidence": "item_seen" }, "identityConfirmedBy": "sender" }],
+    "expect": { "shirt": "check" }, "expectRules": { "shirt": ["DEST-SUSPENDED"] }
+  },
+  {
+    "name": "stale_layer", "code": "CA", "today": "2026-12-20",
+    "items": [{ "itemId": "shirt", "read": { "category": "clothing", "evidence": "item_seen" }, "identityConfirmedBy": "sender" }],
+    "expect": { "shirt": "check" }, "expectRules": { "shirt": ["DATA-LAYER-STALE"] }
+  },
+  {
+    "name": "quantity_three", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phones", "quantity": 3, "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phones": "ok" }, "expectLithium": "ok"
+  },
+  {
+    "name": "millivolt_misread", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3850mV 4000mAh 15.4Wh", "volts": 3850, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-WH-MISMATCH"] }
+  }
+]
