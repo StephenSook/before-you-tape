@@ -21,8 +21,9 @@ Only through `ACCESS_TOKEN="$(gcloud auth print-access-token)" npm run rc:publis
 A matching `version.json` does not mean the app works: on 2026-11-18 it matched for almost an hour while every visitor saw "The checker could not start." Only a check of the started screen shows that the app works.
 
 - The app starts: the page shows "Type an item" and no error banner (`BYT_LIVE=1 npx playwright test --project=live tests/e2e/starts.spec.ts`; deploy-live and the daily probe run it too).
+- A saved box comes back from the server: a typed item shows in a second browser that has only the first one's sign-in, with no Firestore cache or local copy (`BYT_LIVE=1 npx playwright test --project=live tests/e2e/roundtrip.live.spec.ts`; deploy-live runs it, and each run leaves one box with one item named "Round-trip check <time>").
 - The live `version.json` reports the main commit with `dirty` false.
-- `BYT_LIVE=1 npx playwright test --project=live` passes (the served commit, the started app, the home page, `robots.txt` and `llms.txt` as plain text, and axe at 1440 and 390 px).
+- `BYT_LIVE=1 npx playwright test --project=live` passes (the served commit, the started app, a saved box read back from the server, the home page, `robots.txt` and `llms.txt` as plain text, and axe at 1440 and 390 px).
 - `npm run appcheck:control` gives 401 without a token, then 200 with a limited-use token.
 
 ## Before the repository goes public
