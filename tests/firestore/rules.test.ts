@@ -45,6 +45,11 @@ describe("boxes", () => {
     await assertFails(updateDoc(doc(bob, "boxes/b1"), { destinationCode: "PH" }));
   });
 
+  it("lets a signed-in user learn only that a box id is free", async () => {
+    await assertSucceeds(getDoc(doc(alice, "boxes/free")));
+    await assertFails(getDoc(doc(nobody, "boxes/free")));
+  });
+
   it("starts a box only as its sole owner with no join key", async () => {
     await assertFails(setDoc(doc(alice, "boxes/b2"), { ...boxFor("alice"), ownerUid: "bob" }));
     await assertFails(setDoc(doc(alice, "boxes/b2"), { ...boxFor("alice"), memberUids: ["alice", "bob"] }));

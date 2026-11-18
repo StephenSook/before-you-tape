@@ -211,7 +211,8 @@ service cloud.firestore {
     // ---------------------------------------------------------------
 
     match /boxes/{boxId} {
-      allow read: if isMemberOf(resource);
+      // Members read the box. Reading an id with no box only says the id is free, so a new box can start.
+      allow read: if isMemberOf(resource) || (isAuthenticated() && resource == null);
       // A new box has one member, its owner, and no join key yet.
       allow create: if isAuthenticated()
         && isValidBox(request.resource.data)
