@@ -81,3 +81,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 @media (max-width: 700px) { .pack-page > .banner, .pack-page > p { margin-left: var(--space-4); margin-right: var(--space-4); } }
 /* The verdict word is the answer, so it reads at display size. */
 .card .chip { font-family: var(--font-display); font-size: 1.15rem; padding: var(--space-2) var(--space-4); }
+/* On a phone the newest verdict sits in a sheet at the bottom of the screen; the full card stays in the list. */
+.newest-sheet { display: none; }
+@media (max-width: 700px) {
+  .newest-sheet { display: flex; align-items: center; gap: var(--space-3); position: fixed; left: var(--space-2); right: var(--space-2); bottom: var(--space-2); z-index: 2;
+    background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); }
+  .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
+  .pack-page { padding-bottom: 96px; }
+}

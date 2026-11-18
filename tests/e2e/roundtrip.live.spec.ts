@@ -52,7 +52,7 @@ test("a typed item comes back from the server in a browser with no copy of the b
   await form.getByLabel("What is it?").selectOption("clothing");
   await form.getByLabel("Name (optional)").fill(name);
   await form.getByRole("button", { name: "Add" }).click();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(page.getByTestId("item-card").getByText(name)).toBeVisible();
 
   // Anonymous sign-in can finish after the item is added; copy the state only once the user is stored.
   await expect.poll(() => storedUid(page), { timeout: 30_000, message: "the first browser signs in" }).not.toBeNull();
@@ -70,7 +70,7 @@ test("a typed item comes back from the server in a browser with no copy of the b
       await second.goto("/");
       await expect(second.getByRole("button", { name: "Type an item" })).toBeVisible({ timeout: 20_000 });
       expect(await storedUid(second), "the second browser is the same user").toBe(uid);
-      await expect(second.getByText(name)).toBeVisible({ timeout: 15_000 });
+      await expect(second.getByTestId("item-card").getByText(name)).toBeVisible({ timeout: 15_000 });
     } finally {
       await fresh.close();
     }

@@ -136,6 +136,21 @@ describe("PackPage", () => {
     expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
   });
 
+  it("puts the newest item's verdict in a sheet, linked to its card, and announces it", async () => {
+    setup();
+    expect(screen.queryByTestId("newest-sheet")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+    await userEvent.type(screen.getByLabelText("Name (optional)"), "Wool scarf");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    const sheet = await screen.findByTestId("newest-sheet");
+    expect(sheet).toHaveAttribute("role", "status");
+    expect(within(sheet).getByText("Wool scarf")).toBeInTheDocument();
+    expect(within(sheet).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    const card = screen.getAllByTestId("item-card").at(-1)!;
+    expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
+  });
+
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);
     await act(async () => { await Promise.resolve(); });
