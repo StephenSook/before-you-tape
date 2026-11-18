@@ -12,6 +12,7 @@ import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
+import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
 
@@ -60,6 +61,7 @@ export function PackPage(p: PackPageProps) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [crops, setCrops] = useState<Record<string, ImagePart>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
@@ -93,7 +95,13 @@ export function PackPage(p: PackPageProps) {
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       <div className="pack">
-        <CameraStage openCamera={p.openCamera} onImage={(part) => void onImage(part)} phoneReady={p.phoneReady} onError={setNotice} />
+        <div>
+          <CameraStage openCamera={p.openCamera} onImage={(part) => void onImage(part)} phoneReady={p.phoneReady} onError={setNotice}
+            onTypeIt={() => setTyping(true)} />
+          <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
+          {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
+          {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
+        </div>
         <div>
           <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
@@ -101,7 +109,8 @@ export function PackPage(p: PackPageProps) {
             const verdict = state.result.items[item.itemId];
             return verdict ? (
               <ItemCard key={item.itemId} item={item} verdict={verdict} crop={crops[item.itemId] ?? null}
-                onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)} />
+                onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
+                onFix={(id, patch) => store.override(id, patch)} />
             ) : null;
           })}
         </div>
