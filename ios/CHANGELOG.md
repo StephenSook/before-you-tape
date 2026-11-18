@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): crop a frame to the hold zone and encode it with no metadata
+- What: `HoldZone.standard` and `CropLimits` (768 px long side, quality 0.85, 500,000-byte cap)
+  are the web app's values. `Crop.plan` copies the web app's rounding and clamping;
+  `Crop.holdZone` applies the photo's orientation first, then cuts the zone; `Crop.jpeg` scales
+  to the long side and steps the quality down to 0.4 until it fits the cap, else refuses. A
+  picked photo (`PhotoPick.jpeg(fromFile:)`) is used whole, upright, at the same size; decoding
+  and re-encoding drops all metadata, so its location never leaves the phone.
+- Source: iPhone client plan, task I-8.
+- Verified: seven tests (web values read from the web source, the plan, the zone of a
+  1000 by 2000 frame, a portrait photo stored sideways, the JPEG size, the byte cap, a picked
+  photo with GPS coming out upright with none) failed to compile without the code, then passed;
+  a mutant that ignores orientation fails two of them; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): give a gone model and only a 500 or 503 the fallback try, as on the web
 - What: a cloud failure now carries whether it earns one try on the fallback model, and the
   reader reports why it moved (`fallbackAfter` "500", "503" or "404"). A 404 counts only when the
