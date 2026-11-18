@@ -16,21 +16,29 @@ class BoxSession(
     private val newId: () -> String,
     private val resetRun: () -> Unit,
 ) {
-    @Volatile private var resetPending = false
+    /** The current scan session; a new one starts each time the person goes back to the camera. */
+    @Volatile private var scan = 0L
+
+    /** The newest session whose reset has run (only the worker reads and writes it). */
+    private var resetFor = 0L
 
     /**
      * A new scan session (the person went back to the camera): three refusals in a row pause photo
-     * reads for the session, and this lifts the pause. The reset is applied just before the next read
-     * starts, so a read still running from the old session counts in the old session.
+     * reads for the session, and the session's first read lifts the pause. A crop belongs to the
+     * session that was current when it was accepted, so a read still running or still queued from
+     * the old session counts in the old session.
      */
     fun startNewScan() {
-        resetPending = true
+        scan++
     }
 
+    /** The scan session a crop belongs to: read it when the crop is accepted. */
+    fun currentScan(): Long = scan
+
     /** null when the item was added, otherwise the line to show. */
-    suspend fun check(crop: CropImage): String? {
-        if (resetPending) {
-            resetPending = false
+    suspend fun check(crop: CropImage, scanOfCrop: Long = currentScan()): String? {
+        if (scanOfCrop > resetFor) {
+            resetFor = scanOfCrop
             resetRun()
         }
         return outcome(reader(crop))
