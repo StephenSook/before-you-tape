@@ -230,11 +230,12 @@
       "section": "prohibitions",
       "lineSha256": "7e60db4bb2e7893fbd2e32658a17616c8ce64c8234baaca9e7ad6ec36fd007cf",
       "ourWording": "No reprints of works under Canadian copyright.",
-      "matches": [],
-      "noMatch": {
-        "decision": "cannot_judge_from_photo",
-        "reason": "Whether a book is an unlicensed reprint cannot be judged from a photo."
-      }
+      "matches": [
+        {
+          "tag": "reprint",
+          "effect": "check"
+        }
+      ]
     },
     {
       "lineId": "CA-P-21",

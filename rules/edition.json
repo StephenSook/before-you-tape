@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-67c656f64aa2",
+  "editionId": "byt-6a212c49f1d1",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -406,6 +406,18 @@
     {
       "pattern": "cigars?",
       "tag": "cigar"
+    },
+    {
+      "pattern": "unlicensed reprints?",
+      "tag": "reprint"
+    },
+    {
+      "pattern": "unauthori[sz]ed (?:reprints?|copy|copies|editions?)",
+      "tag": "reprint"
+    },
+    {
+      "pattern": "pirated (?:copy|copies|editions?)",
+      "tag": "reprint"
     },
     {
       "pattern": "mercury",
@@ -1631,11 +1643,12 @@
           "section": "prohibitions",
           "lineSha256": "7e60db4bb2e7893fbd2e32658a17616c8ce64c8234baaca9e7ad6ec36fd007cf",
           "ourWording": "No reprints of works under Canadian copyright.",
-          "matches": [],
-          "noMatch": {
-            "decision": "cannot_judge_from_photo",
-            "reason": "Whether a book is an unlicensed reprint cannot be judged from a photo."
-          }
+          "matches": [
+            {
+              "tag": "reprint",
+              "effect": "check"
+            }
+          ]
         },
         {
           "lineId": "CA-P-21",
