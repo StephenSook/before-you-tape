@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): capture a label photo with the hold zone drawn on the camera
+- What: `CameraSession` runs the back camera, preferring Apple's virtual multi-lens camera so
+  the iPhone switches to its close-focus lens by itself; it reports ready, denied or no camera,
+  and `capture()` returns one photo with the orientation it was taken in. `CaptureView` shows the
+  whole photo frame with the hold zone drawn on it, one line ("Hold the label inside the
+  frame."), a "Check now" shutter, and "Add a photo" through the system photo picker (which needs
+  no library permission). A denied or missing camera shows the web app's lines. The crop work
+  runs off the main thread. Not yet reached from a screen: the next change wires it in.
+- Source: iPhone client plan, task I-8.
+- Verified: the camera-line test (both lines equal the web app's, read from its source) failed
+  to compile without the view, then passed; 38 app tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0. The camera itself runs only on the iPhone.
+
 ### feat(ios): crop a frame to the hold zone and encode it with no metadata
 - What: `HoldZone.standard` and `CropLimits` (768 px long side, quality 0.85, 500,000-byte cap)
   are the web app's values. `Crop.plan` copies the web app's rounding and clamping;
