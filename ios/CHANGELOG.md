@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): read a photo from the camera or the library into the box
+- What: "Check an item" on the Ready check opens the camera screen. A crop (or a picked photo)
+  goes to `AppModel.readPhoto`, which reads it on the router's path with the phone's network
+  state (`NetworkStatus`) and the sender's cloud answer, adds what was read to the box, and
+  shows one line: the item, its verdict, and "Read on this iPhone." or "Read in the cloud."
+  Until the sender allows the cloud (the consent question comes next), a photo is not read and
+  the line says why: "Checking a photo needs the cloud, and the cloud is not allowed yet."
+- Source: iPhone client plan, tasks I-8 and I-9.
+- Verified: three tests (a photo blocked until the cloud is allowed adds nothing; a cloud read
+  lands in the box as `phone_cloud` with its line; the line's wording) failed to compile, then
+  passed; 60 app tests pass; on the simulator the screen opens from the Ready check and shows
+  the web app's "Camera is off. Add a photo instead." after the camera is refused;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): run the app's box on the rule edition bundled with it
 - What: the app bundles the repo's own `rules/edition.json` as is, loads it into the rules
   engine at start, and `AppModel` owns a `BoxStore` saved through `BoxFiles`. The box's "today"

@@ -15,9 +15,14 @@ final class AppModel {
     let reader: ItemReader?
     /// The box, with verdicts from the rule edition bundled with the app.
     let box: BoxStore?
+    let network = NetworkStatus()
+    let camera = CameraSession()
+    /// The last read and the box item it made, for the line under the camera.
+    private(set) var lastRead: ReadOutcome?
+    private(set) var lastItemId: String?
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
-         persistence: BoxPersistence = BoxFiles()) {
+         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil) {
         self.signIn = signIn
         self.onDevice = onDevice
         let engine = try? RulesEngine()
@@ -26,7 +31,7 @@ final class AppModel {
             _ = try? engine.setEdition(text)
         }
         self.engine = engine
-        self.reader = engine.map { Self.makeReader(engine: $0, signIn: signIn) }
+        self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
         self.box = engine.map {
             BoxStore(engine: $0, persistence: persistence, today: { AppModel.localDate(Date()) }, newId: { UUID().uuidString },
                      now: { Date().timeIntervalSince1970 * 1000 })
@@ -54,7 +59,32 @@ final class AppModel {
     }
 
     func start() async {
+        network.start()
+        box?.load()
         signedIn = await signIn.ensure()
         onDevice = ModelSessionFactory.onDeviceStatus()
+    }
+
+    /// Reads one cropped photo on the router's path and adds what it read to the box. The cloud is
+    /// used only when the sender allowed it and the phone is online (and every cloud call signs in first).
+    func readPhoto(_ jpeg: Data) async {
+        guard let reader, let box else { return }
+        let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: .defaults)
+        let outcome = await reader.read(.photo(cropJPEG: jpeg), situation: situation)
+        lastRead = outcome
+        lastItemId = box.addRead(outcome, cropFile: nil)
+    }
+
+    var readLine: String? { Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }) }
+
+    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?) -> String? {
+        guard let outcome else { return nil }
+        if let read = outcome.read, let source = outcome.source, let verdict {
+            let name: String = if case let .string(n)? = read["itemName"], !n.isEmpty { n } else { "This item" }
+            return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
+        }
+        if outcome.route == .blocked { return "Checking a photo needs the cloud, and the cloud is not allowed yet." }
+        if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
+        return "That item could not be read. Try another photo."
     }
 }
