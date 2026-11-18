@@ -68,6 +68,7 @@ describe("destination editions", () => {
       { tag: "liquid", effect: "take_out" },
       { tag: "glass_fragile", effect: "take_out" },
       { tag: "easily_liquefiable", effect: "check" },
+      { tag: "ceramic", effect: "check" },
     ]));
 
   it("has no Canada line that matches liquids", () => {
