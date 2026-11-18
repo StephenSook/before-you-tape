@@ -29,6 +29,9 @@ targets:
     platform: iOS
     sources:
       - path: BYT
+      # The rule edition the box's verdicts come from: the repo's own file, bundled as is.
+      - path: ../rules/edition.json
+        buildPhase: resources
     info:
       path: BYT/Info.plist
       properties:

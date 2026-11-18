@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): run the app's box on the rule edition bundled with it
+- What: the app bundles the repo's own `rules/edition.json` as is, loads it into the rules
+  engine at start, and `AppModel` owns a `BoxStore` saved through `BoxFiles`. The box's "today"
+  is the iPhone's own calendar date, which the rule layers' freshness is checked against.
+- Source: iPhone client plan, task I-9 (the edition's live source comes in task I-10).
+- Verified: two tests (the app's box reports the edition id of the repo's file and finds a lotion
+  OK for Canada; the local date at 02:30 UTC is the day before in New York) failed to compile,
+  then passed; 57 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): save the box to a file this iPhone can read only when unlocked
 - What: `BoxFiles` keeps one JSON file per box in Application Support, written atomically with
   complete file protection, and reports a failed save or load in words (`problem`) instead of
