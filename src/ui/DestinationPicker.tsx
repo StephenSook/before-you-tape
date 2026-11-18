@@ -1,15 +1,20 @@
-// Where the box is going. Reviewed countries say so; any other country tells the sender to read its listing.
+// Where the box is going. Each country with rules says who read them (from rulesReadBy, the same source as
+// the card's rules line); any other country tells the sender to read its listing.
+import type { RulesReadBy } from "../engine/layers";
+
 export interface DestinationIndexEntry { code: string; name: string; immUrl: string }
 
-export function DestinationPicker({ index, reviewed, value, onChange }: { index: readonly DestinationIndexEntry[]; reviewed: readonly string[]; value: string; onChange: (code: string) => void }) {
+const READ_BY: Record<RulesReadBy["by"], string> = { person: "rules checked by a person", usps_page: "rules read from the USPS page" };
+
+export function DestinationPicker({ index, readBy, value, onChange }: { index: readonly DestinationIndexEntry[]; readBy: Readonly<Record<string, RulesReadBy["by"]>>; value: string; onChange: (code: string) => void }) {
   const chosen = index.find((d) => d.code === value);
-  const isReviewed = reviewed.includes(value);
+  const isReviewed = value in readBy;
   return (
     <div>
       <label htmlFor="destination">To</label>{" "}
       <select id="destination" data-testid="destination-picker" value={value} onChange={(e) => onChange(e.target.value)}>
         {index.map((d) => (
-          <option key={d.code} value={d.code}>{reviewed.includes(d.code) ? `${d.name} (rules reviewed)` : d.name}</option>
+          <option key={d.code} value={d.code}>{readBy[d.code] ? `${d.name} (${READ_BY[readBy[d.code]!]})` : d.name}</option>
         ))}
       </select>
       {!isReviewed && chosen && (

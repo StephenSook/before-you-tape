@@ -4,7 +4,9 @@ import type { ItemRead } from "../shared/itemRead";
 
 export type Level = "ok" | "check" | "take_out";
 
-export interface Provenance { sourcePage: string; author: string; license: string; licenseUrl: string }
+// changes: how the published copy differs from the original (an attribution license asks for this).
+// fileUrl: the exact file the original was downloaded from, when it came from a public page.
+export interface Provenance { sourcePage: string; author: string; license: string; licenseUrl: string; changes: string; fileUrl?: string }
 
 export interface EvalItem {
   itemId: string;

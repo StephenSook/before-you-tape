@@ -5,9 +5,9 @@ import type { EvalItem, EvalSet } from "./types";
 const open = (itemId: string, license: string, licenseUrl: string): EvalItem => ({
   itemId, photo: `/eval/items/${itemId}.jpg`, photoSha256: "a".repeat(64), hazard: true, printed: null,
   truth: { CA: { expected: "ok", section: "IMM Canada" }, PH: { expected: "take_out", section: "IMM Philippines PH-P-01" } },
-  provenance: { sourcePage: "https://commons.wikimedia.org/wiki/File:X.jpg", author: "Jane Roe", license, licenseUrl },
+  provenance: { sourcePage: "https://commons.wikimedia.org/wiki/File:X.jpg", author: "Jane Roe", license, licenseUrl, changes: "resized, metadata removed" },
 });
-const own = (itemId: string): EvalItem => ({ ...open(itemId, OWN_PHOTO_LICENSE, ""), provenance: { sourcePage: "", author: "Stephen Sookra (project owner)", license: OWN_PHOTO_LICENSE, licenseUrl: "" } });
+const own = (itemId: string): EvalItem => ({ ...open(itemId, OWN_PHOTO_LICENSE, ""), provenance: { sourcePage: "", author: "Stephen Sookra (project owner)", license: OWN_PHOTO_LICENSE, licenseUrl: "", changes: "resized" } });
 const setOf = (items: EvalItem[], n = items.length): EvalSet => ({ setId: "s", manifestSha256: "", protocolSha256: "", destinations: ["CA", "PH"], items: items.slice(0, n) });
 
 describe("setProblems", () => {
@@ -20,8 +20,8 @@ describe("setProblems", () => {
   it("refuses a license outside the set, a missing provenance field, and an owner's photo labelled CC0", () => {
     const problems = setProblems(setOf([
       open("a", "CC BY-NC 4.0", "https://creativecommons.org/licenses/by-nc/4.0/"),
-      { ...open("b", "CC0 1.0", "https://creativecommons.org/publicdomain/zero/1.0/"), provenance: { sourcePage: "", author: "", license: "CC0 1.0", licenseUrl: "x" } },
-      { ...own("c"), provenance: { sourcePage: "", author: "Stephen Sookra (project owner)", license: "CC0 1.0", licenseUrl: "" } },
+      { ...open("b", "CC0 1.0", "https://creativecommons.org/publicdomain/zero/1.0/"), provenance: { sourcePage: "", author: "", license: "CC0 1.0", licenseUrl: "x", changes: "resized" } },
+      { ...own("c"), provenance: { sourcePage: "", author: "Stephen Sookra (project owner)", license: "CC0 1.0", licenseUrl: "", changes: "resized" } },
     ]), 3);
     expect(problems.join("\n")).toMatch(/a: license "CC BY-NC 4.0" is not allowed/);
     expect(problems.join("\n")).toMatch(/b: provenance needs sourcePage, author and an https licenseUrl/);
@@ -39,6 +39,13 @@ describe("setProblems", () => {
   });
 });
 
+describe("setProblems on changes", () => {
+  it("requires every photo to say how the published copy was changed", () => {
+    const a = open("a", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/");
+    expect(setProblems(setOf([{ ...a, provenance: { ...a.provenance, changes: " " } }]), 1).join("\n")).toMatch(/a: provenance needs changes/);
+  });
+});
+
 describe("setProblems on the hazard flag", () => {
   it("requires hazard exactly when some destination's label is not OK to pack", () => {
     const lotion = open("lotion", "CC0 1.0", "https://creativecommons.org/publicdomain/zero/1.0/");
@@ -52,7 +59,7 @@ describe("setProblems on the hazard flag", () => {
 
 describe("creditLine", () => {
   it("credits open photos by author, license and source, and the owner's in plain words", () => {
-    expect(creditLine(open("a", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"))).toBe("Photo: Jane Roe, CC BY 4.0, commons.wikimedia.org");
+    expect(creditLine(open("a", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"))).toBe("Photo: Jane Roe, CC BY 4.0, commons.wikimedia.org (resized, metadata removed)");
     expect(creditLine(own("e"))).toBe("Photo by the project owner");
   });
 });
