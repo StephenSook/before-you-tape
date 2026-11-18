@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): pin what a cloud read may carry and map its errors
+- What: `CloudOutbound` is the only shape a cloud read sends: the hold-zone crop and the fixed
+  prompt, or the label words and their prompt, and nothing else. `CloudFailure.classify` maps
+  Firebase AI Logic's errors: HTTP 401 and 403 to `app_check_refused`, 429 to `rate_limited`,
+  5xx and a service outage to `server`, a network failure to `network`, an invalid response to
+  `parse_failed`, anything else to `other`.
+- Source: iPhone client plan, task I-7.
+- Verified: four tests (the photo outbound holds exactly the crop and the prompt, its fields are
+  only prompt, image and words; the words outbound; every status and kind) failed to compile
+  without the types, then passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### chore(ios): raise the iOS guard's file floor to the files it walks today
 - What: the guard's floor goes from 4 to 29, the number of files under `ios/` it walks now
   (besides itself), so a broken file list fails instead of passing as clean.
