@@ -160,4 +160,17 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         s.setConsent(true)
         #expect(s.cloudConsent == true)
     }
+
+    /// The verdict after a relaunch must equal the verdict now: what is saved keeps every tag the
+    /// engine used, including a remote item's label text.
+    @Test func aRemoteItemKeepsTheTagsOfItsLabelTextAfterARelaunch() throws {
+        let p = MemoryBoxPersistence()
+        let s = try store(p)
+        let remote = BoxItem(itemId: "r1", read: Self.perfume, labelTags: [], readSource: "phone_cloud", readMs: 900)
+        s.mergeRemote(remote)
+        #expect(s.items.first?.labelTags.contains("alcohol") == true)
+        let after = try store(MemoryBoxPersistence(stored: p.saved.last))
+        after.load()
+        #expect(after.result?.items["r1"] == s.result?.items["r1"])
+    }
 }

@@ -195,7 +195,13 @@ final class BoxStore {
         return itemId
     }
 
+    /// A remote item keeps the tags of any label text it carries, so the saved copy (which drops the
+    /// text) gives the same verdict after a relaunch.
     func mergeRemote(_ item: BoxItem) {
+        var item = item
+        for tag in tags(item.read["labelText"]) + tags(item.overrides["labelText"]) where !item.labelTags.contains(tag) {
+            item.labelTags.append(tag)
+        }
         if let i = items.firstIndex(where: { $0.itemId == item.itemId }) { items[i] = item } else { items.append(item) }
         commit()
     }

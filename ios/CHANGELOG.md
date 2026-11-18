@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): keep a remote item's label tags so its verdict survives a relaunch
+- What: `mergeRemote` stored a remote item's tags as given. The engine reads tags from the label
+  text in memory, but the saved copy drops that text, so an item with label text and no tags could
+  read "Take it out" now and "OK to pack" after a relaunch. A merged item now gains the tags of its
+  read and corrected label text.
+- Source: security review of the box store change.
+- Verified: a test (a remote perfume with no tags gains "alcohol", and a box loaded from what was
+  saved gives the same verdict) passes; 64 app tests pass; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### feat(ios): ask once before the first cloud call, then read the waiting photo
 - What: when a read can run only in the cloud and the sender has not answered, the photo waits
   and `ConsentSheet` asks the web app's sentence for this iPhone: "To check items when this
