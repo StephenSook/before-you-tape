@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A cancelled sign-in waiter can no longer start a second anonymous user.** The shared sign-in
+  serialized callers with a lock, but the Firebase sign-in ran inside the caller. If that caller
+  was cancelled while waiting (its screen closed), the lock was released while the Firebase
+  sign-in kept running, and the next caller started a second one: the same uid race as before.
+  The one anonymous sign-in now runs in an app-wide scope; every caller waits on that same
+  sign-in, a cancelled waiter leaves it running, and a failed sign-in is not kept, so the next
+  caller tries again. Source: review (second model) of the Android pull request, round 2, finding
+  3. Verified: `SignInTest.aCancelledWaiterDoesNotStartASecondSignIn` first failed on the old
+  lock (the second caller got `uid-2`), then passes; the other two sign-in tests still pass.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The release probe takes the cloud route on any phone.** The probe asked the phone for its
   on-device model status. On a phone with a ready model the reader chose hybrid inference, the
   phone answered on its own, and the probe (which requires a cloud read) failed though App Check
