@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Gate G-A0 re-run on the reviewed bridge.** The bridge's review fixes (every box item
+  checked before the engine judges it, an exact `structuredClone` stand-in, stricter bundle
+  checks) were merged into this branch; the bundle is now 48,234 bytes with SHA-256
+  `84fd82ae...`. All 20 box, 64 guard and 21 destination vectors still pass in QuickJS, and
+  `docs/evidence/android/G-A0.md` records the new bundle. Source: review of the bridge pull
+  request. Verified: `bash android/ci-local.sh` (27 tests) and the root CI mirror exit 0.
+
 - **One client for every Firebase AI Logic call.** `AiClient` is the only file that calls
   `Firebase.ai(` and `generativeModel(` (the lane guard enforces it): Gemini Developer API
   backend, limited-use App Check tokens behind Remote Config, the model name and on-device
