@@ -61,15 +61,27 @@ describe("rule edition", () => {
     expect(() => parseEdition({ ...bundled, limits: { ...bundled.limits, whTolerancePct: 3.8 } })).toThrow(EditionError);
   });
 
-  it("rejects a quote field on a destination line", () => {
-    const dest = {
-      code: "XX", name: "Testland", immUrl: "https://pe.usps.com/text/imm/xx.htm", immEdition: "2026-11-02",
-      pageSha256: "0".repeat(64), reviewed: true, checkedOn: "2026-11-17", noListFurnished: false,
-      lines: [{ lineId: "XX-P-01", section: "prohibitions", lineSha256: "1".repeat(64), ourWording: "Our words here.",
-        matches: [{ tag: "liquid", effect: "take_out" }], verbatim: "copied text" }],
-      customsChecked: true, customsNotes: [],
-    };
-    expect(() => parseEdition({ ...bundled, destinations: { XX: dest } })).toThrow(EditionError);
+  const testDest = (patch: Record<string, unknown> = {}, line: Record<string, unknown> = {}) => ({
+    code: "XX", name: "Testland", immUrl: "https://pe.usps.com/text/imm/xx.htm", immEdition: "2026-11-02",
+    pageSha256: "0".repeat(64), reviewed: true, checkedOn: "2026-11-17", personReviewedOn: null, noListFurnished: false,
+    lines: [{ lineId: "XX-P-01", section: "prohibitions", lineSha256: "1".repeat(64), ourWording: "Our words here.",
+      matches: [{ tag: "liquid", effect: "take_out" }], ...line }],
+    customsChecked: true, customsNotes: [], ...patch,
+  });
+
+  it("accepts a valid destination edition", () =>
+    expect(parseEdition({ ...bundled, destinations: { XX: testDest() } }).destinations.XX?.name).toBe("Testland"));
+
+  it("rejects a quote field on a destination line", () =>
+    expect(() => parseEdition({ ...bundled, destinations: { XX: testDest({}, { verbatim: "copied text" }) } })).toThrow(EditionError));
+
+  it("records the person's review apart from the builder's read", () => {
+    expect(parseEdition({ ...bundled, destinations: { XX: testDest({ personReviewedOn: "2026-11-19" }) } }).destinations.XX?.personReviewedOn)
+      .toBe("2026-11-19");
+    expect(() => parseEdition({ ...bundled, destinations: { XX: testDest({ personReviewedOn: "soon" }) } })).toThrow(EditionError);
+    const { personReviewedOn: _gone, ...without } = testDest();
+    void _gone;
+    expect(() => parseEdition({ ...bundled, destinations: { XX: without } })).toThrow(EditionError);
   });
 
   it("hashes the same content the same whatever the key order", async () =>

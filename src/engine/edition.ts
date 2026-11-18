@@ -89,8 +89,8 @@ function checkPredicate(v: unknown, where: string): void {
 function checkDestination(code: string, v: unknown, questionIds: Set<string>): void {
   const where = `destinations.${code}`;
   const d = obj(v, where);
-  keys(d, ["code", "name", "immUrl", "immEdition", "pageSha256", "reviewed", "checkedOn", "noListFurnished",
-    "lines", "customsChecked", "customsNotes"], [], where);
+  keys(d, ["code", "name", "immUrl", "immEdition", "pageSha256", "reviewed", "checkedOn", "personReviewedOn",
+    "noListFurnished", "lines", "customsChecked", "customsNotes"], [], where);
   if (d.code !== code) fail(`${where}.code`, "must equal its key");
   str(d.name, `${where}.name`);
   https(d.immUrl, `${where}.immUrl`);
@@ -98,6 +98,7 @@ function checkDestination(code: string, v: unknown, questionIds: Set<string>): v
   sha(d.pageSha256, `${where}.pageSha256`);
   bool(d.reviewed, `${where}.reviewed`);
   if (d.checkedOn !== null) isoDate(d.checkedOn, `${where}.checkedOn`);
+  if (d.personReviewedOn !== null) isoDate(d.personReviewedOn, `${where}.personReviewedOn`);
   bool(d.noListFurnished, `${where}.noListFurnished`);
   bool(d.customsChecked, `${where}.customsChecked`);
   list(d.customsNotes, `${where}.customsNotes`).forEach((n, i) => str(n, `${where}.customsNotes[${i}]`));

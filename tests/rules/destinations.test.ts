@@ -19,6 +19,13 @@ describe("destination editions", () => {
     }
   });
 
+  it("keeps the person's desk pass separate: no date until a person re-reads each line", () => {
+    for (const code of ["CA", "PH"]) {
+      const on = ed.destinations[code]?.personReviewedOn;
+      expect(on === null || /^2026-\d{2}-\d{2}$/.test(on ?? ""), code).toBe(true);
+    }
+  });
+
   it("stores a hash, an id and our wording for every line, never the source text", () => {
     expect(Object.keys(ed.destinations).length).toBeGreaterThanOrEqual(2);
     for (const d of Object.values(ed.destinations)) {

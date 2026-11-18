@@ -69,8 +69,9 @@ export interface DestinationEdition {
   immUrl: string;
   immEdition: string;
   pageSha256: string;
-  reviewed: boolean;
-  checkedOn: string | null;
+  reviewed: boolean; // the builder read every line on the live page and wrote our wording
+  checkedOn: string | null; // date of that read
+  personReviewedOn: string | null; // date a person re-read every line against our wording; null until then
   noListFurnished: boolean;
   lines: DestinationLine[];
   customsChecked: boolean;
