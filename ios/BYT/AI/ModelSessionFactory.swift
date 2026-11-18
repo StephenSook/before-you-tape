@@ -67,13 +67,31 @@ enum ModelSessionFactory {
         }
     }
 
+    /// Whether a cloud error gets one try on the fallback model, by the web app's rule.
+    static func fallbackAfter(from error: any Error) -> FallbackAfter? {
+        guard let e = error as? GeminiLanguageModel.Error else { return nil }
+        switch e {
+        case let .serviceUnavailable(x): return CloudFailure.fallbackAfter(statusCode: 503, message: x.debugDescription)
+        case let .modelNotFound(x): return CloudFailure.fallbackAfter(statusCode: 404, message: x.debugDescription)
+        case let .apiError(api): return CloudFailure.fallbackAfter(statusCode: api.statusCode, message: api.message)
+        case let .networkFailure(x):
+            return CloudFailure.fallbackAfter(statusCode: CloudFailure.httpStatus(inNetworkFailure: x.debugDescription), message: x.debugDescription)
+        case .invalidResponse: return nil
+        @unknown default: return nil
+        }
+    }
+
+    static func readError(from error: any Error) -> ReadError {
+        ReadError(failure(from: error), fallbackAfter: fallbackAfter(from: error))
+    }
+
     /// One new session per read, so history never grows. The photo goes in as an attachment.
-    fileprivate static func respond(_ session: LanguageModelSession, photo: Data?, prompt: String) async -> Result<ItemReply, ReadFailure> {
+    fileprivate static func respond(_ session: LanguageModelSession, photo: Data?, prompt: String) async -> Result<ItemReply, ReadError> {
         do {
             let response: LanguageModelSession.Response<ItemReadG>
             if let photo {
                 guard let source = CGImageSourceCreateWithData(photo as CFData, nil),
-                      let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return .failure(.other) }
+                      let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return .failure(ReadError(.other)) }
                 response = try await session.respond(generating: ItemReadG.self) {
                     prompt
                     Attachment(image)
@@ -84,14 +102,14 @@ enum ModelSessionFactory {
             let tokens = TokenUse(input: response.usage.input.totalTokenCount, output: response.usage.output.totalTokenCount)
             return .success(ItemReply(read: response.content.read, tokens: tokens))
         } catch {
-            return .failure(failure(from: error))
+            return .failure(readError(from: error))
         }
     }
 }
 
 /// Apple's on-device model. It holds nothing, so it can never reach the cloud.
 struct DeviceRunner: ItemModelRunner {
-    func read(_ input: ItemInput) async -> Result<ItemReply, ReadFailure> {
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
         switch input {
         case let .photo(crop):
             let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: Prompts.itemReadSystem)
@@ -108,7 +126,7 @@ struct CloudRunner: ItemModelRunner, @unchecked Sendable {
     let ai: FirebaseAI
     let model: String
 
-    func read(_ input: ItemInput) async -> Result<ItemReply, ReadFailure> {
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
         let outbound: CloudOutbound
         let instructions: String
         switch input {

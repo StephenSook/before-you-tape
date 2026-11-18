@@ -8,7 +8,7 @@ import UIKit
 /// A scripted runner that records each call's start and end.
 final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     let name: String
-    var results: [Result<ItemReply, ReadFailure>]
+    var results: [Result<ItemReply, ReadError>]
     var delaySeconds: Double = 0
     let journal: Journal
     final class Journal: @unchecked Sendable {
@@ -17,17 +17,17 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         func add(_ e: String) { lock.lock(); events.append(e); lock.unlock() }
     }
 
-    init(_ name: String, journal: Journal, results: [Result<ItemReply, ReadFailure>]) {
+    init(_ name: String, journal: Journal, results: [Result<ItemReply, ReadError>]) {
         self.name = name
         self.journal = journal
         self.results = results
     }
 
-    func read(_ input: ItemInput) async -> Result<ItemReply, ReadFailure> {
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
         journal.add("\(name) start")
         if delaySeconds > 0 { try? await Task.sleep(for: .seconds(delaySeconds)) }
         journal.add("\(name) end")
-        return results.isEmpty ? .failure(.other) : results.removeFirst()
+        return results.isEmpty ? .failure(ReadError(.other)) : results.removeFirst()
     }
 }
 
@@ -70,7 +70,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
 
     @Test func fallsToTheCloudOnceWhenTheDeviceIsUnavailableOnTheHybridRoute() async {
         let j = FakeItemRunner.Journal(), built = Built()
-        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.failure(.unavailable)]),
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.failure(ReadError(.unavailable))]),
                              cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 20, output: 1)))]), built: built).read(words, situation: situation())
         #expect(o.read == read && o.source == .cloud)
         #expect(o.records.map(\.path) == [.onDevice, .cloud])
@@ -79,7 +79,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
 
     @Test func stopsAtTypedEntryAfterAGuardrailBlock() async {
         let j = FakeItemRunner.Journal(), built = Built()
-        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.failure(.guardrailBlock)]),
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.failure(ReadError(.guardrailBlock))]),
                              cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 1, output: 1)))]), built: built).read(words, situation: situation())
         #expect(o.read == nil && o.failure == .guardrailBlock)
         #expect(built.models.isEmpty)
@@ -130,9 +130,11 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     @Test func aServerErrorRetriesOnceThenTriesTheFallbackModelOnce() async {
         let j = FakeItemRunner.Journal(), built = Built()
         let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
-                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(.server), .failure(.server), .success(ItemReply(read: read, tokens: nil))]),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.server, fallbackAfter: .status500)),
+                                                                                   .failure(ReadError(.server, fallbackAfter: .status500)),
+                                                                                   .success(ItemReply(read: read, tokens: nil))]),
                              built: built).read(words, situation: situation(available: false))
-        #expect(o.read == read && o.source == .cloud && o.route == .cloudOnly)
+        #expect(o.read == read && o.source == .cloud && o.route == .cloudOnly && o.fallbackAfter == .status500)
         #expect(built.models == [RemoteConfigValues.defaults.cloudModelItem, RemoteConfigValues.defaults.cloudModelItemFallback])
         #expect(o.records.map(\.model) == [RemoteConfigValues.defaults.cloudModelItem, RemoteConfigValues.defaults.cloudModelItem,
                                            RemoteConfigValues.defaults.cloudModelItemFallback])
@@ -141,7 +143,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     @Test func anAppCheckRefusalNeverRetries() async {
         let j = FakeItemRunner.Journal(), built = Built()
         let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
-                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(.appCheckRefused), .success(ItemReply(read: read, tokens: nil))]),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.appCheckRefused)), .success(ItemReply(read: read, tokens: nil))]),
                              built: built).read(words, situation: situation(available: false))
         #expect(o.read == nil && o.failure == .appCheckRefused)
         #expect(o.records.count == 1 && built.models.count == 1)
@@ -155,6 +157,46 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         #expect(rec.inputTokens == 700 && rec.outputTokens == 90 && rec.model == ItemReader.deviceModelName && rec.kind == .labelWords)
         let text = String(decoding: try JSONEncoder().encode(o.records), as: UTF8.self)
         #expect(!text.contains("PARFUM"))
+    }
+
+    @Test func aGoneModelGetsNoRetryAndOneTryOnTheFallback() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.other, fallbackAfter: .status404)),
+                                                                                   .success(ItemReply(read: read, tokens: nil))]),
+                             built: built).read(words, situation: situation(available: false))
+        #expect(o.read == read && o.fallbackAfter == .status404)
+        #expect(o.records.count == 2)
+        #expect(built.models == [RemoteConfigValues.defaults.cloudModelItem, RemoteConfigValues.defaults.cloudModelItemFallback])
+    }
+
+    @Test func aPlainFourOhFourFails() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.other)), .success(ItemReply(read: read, tokens: nil))]),
+                             built: built).read(words, situation: situation(available: false))
+        #expect(o.read == nil && o.failure == .other && o.fallbackAfter == nil)
+        #expect(o.records.count == 1 && built.models.count == 1)
+    }
+
+    @Test func aServerErrorWithNoFallbackStatusRetriesOnceAndStops() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.server)), .failure(ReadError(.server)),
+                                                                                   .success(ItemReply(read: read, tokens: nil))]),
+                             built: built).read(words, situation: situation(available: false))
+        #expect(o.read == nil && o.failure == .server)
+        #expect(o.records.count == 2 && built.models.count == 1)
+    }
+
+    @Test func theFallbackModelGetsNoRetryOfItsOwn() async {
+        let j = FakeItemRunner.Journal()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.other, fallbackAfter: .status404)),
+                                                                                   .failure(ReadError(.network)), .success(ItemReply(read: read, tokens: nil))]))
+            .read(words, situation: situation(available: false))
+        #expect(o.read == nil && o.failure == .network && o.fallbackAfter == .status404)
+        #expect(o.records.count == 2)
     }
 
     @Test func theDeviceRunnerHoldsNoFirebaseAI() {

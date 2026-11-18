@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): give a gone model and only a 500 or 503 the fallback try, as on the web
+- What: a cloud failure now carries whether it earns one try on the fallback model, and the
+  reader reports why it moved (`fallbackAfter` "500", "503" or "404"). A 404 counts only when the
+  message says the model is gone; a plain 404 fails, and the gone model is never retried. A 502
+  or 504 retries once and then fails, with no fallback. The fallback model gets no retry of its
+  own. The SDK's error kinds map in `ModelSessionFactory.fallbackAfter(from:)`, including a 5xx
+  that arrives with no JSON body.
+- Source: review (web parity with the web app's item read).
+- Verified: four reader tests (gone model, plain 404, 502, no retry on the fallback) failed to
+  compile without the change, then passed with the rest (30 app tests);
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios-core): classify which cloud failures get the fallback model
 - What: `CloudFailure.fallbackAfter(statusCode:message:)` gives 500, 503, or 404 when the message
   holds one of the web app's "model gone" phrases (`modelGonePhrases`, case-insensitive), and

@@ -25,9 +25,20 @@ struct ItemReply: Equatable, Sendable {
     var tokens: TokenUse?
 }
 
+/// A failed read, and whether the web app's rule gives it one try on the fallback model.
+struct ReadError: Error, Equatable, Sendable {
+    var failure: ReadFailure
+    var fallbackAfter: FallbackAfter?
+
+    init(_ failure: ReadFailure, fallbackAfter: FallbackAfter? = nil) {
+        self.failure = failure
+        self.fallbackAfter = fallbackAfter
+    }
+}
+
 /// Runs one read on one path. The on-device and cloud runners live in `ModelSessionFactory`.
 protocol ItemModelRunner: Sendable {
-    func read(_ input: ItemInput) async -> Result<ItemReply, ReadFailure>
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError>
 }
 
 /// Which reads Apple's on-device model takes in this build. Set from the measured iPhone result,
@@ -51,6 +62,8 @@ struct ReadOutcome: Equatable, Sendable {
     var route: ReadRoute
     var failure: ReadFailure?
     var records: [RouteRecord]
+    /// Set when the read moved to the fallback model, and why ("500", "503" or "404").
+    var fallbackAfter: FallbackAfter?
 }
 
 /// Reads one item by the router's plan. Code picks the path; a model never does. Never throws,
@@ -94,6 +107,7 @@ struct ItemReader: Sendable {
         var cloudModel = s.config.cloudModelItem
         var cloud: (any ItemModelRunner)?
         let fallback = s.config.cloudModelItemFallback
+        var fallbackAfter: FallbackAfter?
 
         while true {
             let runner: any ItemModelRunner
@@ -108,9 +122,9 @@ struct ItemReader: Sendable {
                 (runner, model, seconds) = (made, cloudModel, cloudSeconds)
             }
             let start = ContinuousClock.now
-            var result = await Timeout.run(seconds: seconds) { await runner.read(input) } ?? .failure(.timeout)
+            var result = await Timeout.run(seconds: seconds) { await runner.read(input) } ?? .failure(ReadError(.timeout))
             if case let .success(reply) = result {
-                if let checked = parse(reply.read) { result = .success(ItemReply(read: checked, tokens: reply.tokens)) } else { result = .failure(.parseFailed) }
+                if let checked = parse(reply.read) { result = .success(ItemReply(read: checked, tokens: reply.tokens)) } else { result = .failure(ReadError(.parseFailed)) }
             }
             let elapsed = ContinuousClock.now - start
             let ms = Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15
@@ -119,8 +133,10 @@ struct ItemReader: Sendable {
             case let .success(reply):
                 records.append(RouteRecord(kind: input.kind, path: path, model: model, reason: decision.reason, latencyMs: ms,
                                            blocked: nil, inputTokens: reply.tokens?.input, outputTokens: reply.tokens?.output))
-                return ReadOutcome(read: reply.read, source: path, route: decision.route, failure: nil, records: records)
-            case let .failure(failure):
+                return ReadOutcome(read: reply.read, source: path, route: decision.route, failure: nil, records: records,
+                                   fallbackAfter: fallbackAfter)
+            case let .failure(error):
+                let failure = error.failure
                 let blocked: BlockKind? = failure == .guardrailBlock ? .guardrail : failure == .refusal ? .refusal : nil
                 records.append(RouteRecord(kind: input.kind, path: path, model: model, reason: decision.reason, latencyMs: ms, blocked: blocked))
                 switch ReadRoutePolicy.afterFailure(failure, route: decision.route, ran: path, cloudRetries: cloudRetries) {
@@ -129,13 +145,17 @@ struct ItemReader: Sendable {
                 case .retryCloudOnce:
                     cloudRetries += 1
                 case .typedEntry:
-                    // As on the web: after the retry, a server error gets one try on the fallback model.
-                    if path == .cloud, failure == .server, !fallback.isEmpty, fallback != cloudModel {
+                    // As on the web: after the retry, a 500 or 503, or a model the API says is gone,
+                    // gets one try on the fallback model, with no retry of its own.
+                    if path == .cloud, fallbackAfter == nil, let after = error.fallbackAfter, !fallback.isEmpty, fallback != cloudModel {
+                        fallbackAfter = after
                         cloudModel = fallback
                         cloud = nil
+                        cloudRetries = 1
                         continue
                     }
-                    return ReadOutcome(read: nil, source: nil, route: decision.route, failure: failure, records: records)
+                    return ReadOutcome(read: nil, source: nil, route: decision.route, failure: failure, records: records,
+                                       fallbackAfter: fallbackAfter)
                 }
             }
         }
