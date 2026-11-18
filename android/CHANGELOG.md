@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Ledger: the emulator's App Check debug token.** One debug token for the debug build on
+  this Mac's emulator is registered for the Android app; its value is only in the macOS Keychain
+  (`byt-appcheck-debug-android-emulator`) and the gitignored `local.properties`, never printed,
+  and never in CI, a release APK or the A16. Source: Android plan Task 4. Verified: the Firebase
+  CLI registration exited 0 and the live App Check test on the emulator passes; the root CI
+  mirror exit 0.
+
 - **Gate G-A0 recorded for the merged bridge.** After the bridge pull request merged (three
   review rounds, ten fixes), the bundle is 48,417 bytes, SHA-256 `9887f1fa...`, rebuilt on a
   clean tree (`dirty: false`); all 20 box, 64 guard and 21 destination vectors still pass in
