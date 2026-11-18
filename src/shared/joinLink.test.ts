@@ -4,9 +4,9 @@ import { JOIN_ORIGINS, makeJoinLink, parseJoinLink } from "./joinLink";
 
 describe("join links", () => {
   it("round-trips a join link", () => {
-    const link = makeJoinLink("https://before-you-tape-2026.web.app", "box1", "ABCDEFGHJKMNPQRSTVWXYZ2345");
-    expect(link).toBe("https://before-you-tape-2026.web.app/?join=box1.ABCDEFGHJKMNPQRSTVWXYZ2345");
-    expect(parseJoinLink(link)).toEqual({ boxId: "box1", key: "ABCDEFGHJKMNPQRSTVWXYZ2345" });
+    const link = makeJoinLink("https://before-you-tape-2026.web.app", "box1", "AAAAAAAAAAAAAAAAAAAAAAAAAA");
+    expect(link).toBe("https://before-you-tape-2026.web.app/join/box1.AAAAAAAAAAAAAAAAAAAAAAAAAA");
+    expect(parseJoinLink(link)).toEqual({ boxId: "box1", key: "AAAAAAAAAAAAAAAAAAAAAAAAAA" });
   });
 
   it("reads every shared vector the way the phone apps must", () => {

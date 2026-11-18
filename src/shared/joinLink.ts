@@ -1,4 +1,4 @@
-// The link a laptop shows as a QR code so a phone can join its box: <origin>/?join=<boxId>.<key>. The key is
+// The link a laptop shows as a QR code so a phone can join its box: <origin>/join/<boxId>.<key>. The key is
 // 26 characters of Crockford base32 (128 random bits). Plain string code, no URL or DOM API, so the phone
 // apps run the same parser through the engine bundle; tests/vectors/join-links.json is shared with them.
 
@@ -7,10 +7,11 @@ export const JOIN_ORIGINS = ["https://before-you-tape-2026.web.app"] as const;
 
 const BOX_ID = /^[A-Za-z0-9-]{1,64}$/;
 const KEY = /^[0-9A-HJKMNP-TV-Z]{26}$/;
-const LINK = /^(https?:\/\/[^/?#]+)\/?\?join=([^&#]*)$/;
+// A path of its own, so the phone apps claim only join links, never the whole site.
+const LINK = /^(https?:\/\/[^/?#]+)\/join\/([^/?#]*)$/;
 
 export function makeJoinLink(origin: string, boxId: string, key: string): string {
-  return `${origin.replace(/\/$/, "")}/?join=${boxId}.${key}`;
+  return `${origin.replace(/\/$/, "")}/join/${boxId}.${key}`;
 }
 
 // The box id and key, or null for anything that is not a well-formed join link from one of these origins.
