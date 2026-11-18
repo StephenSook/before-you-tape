@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): add the rules for the sender's own edits to a reading
+- What: `ReadDraft` holds a reading as the sender edits it, with the web app's rules: numbers are
+  kept as typed text, an empty number means 0 (not printed), a negative or non-number blocks
+  saving, a fix saves only the fields that changed, and a typed item needs what it is (its name
+  defaults to the category's plain name) and counts as "label read" only when label words were
+  typed. The 37 category names are the web app's, in its order.
+- Source: iPhone client plan, task I-9 ("Fix this reading" and "Type it", the web app's rules).
+- Verified: five tests (number parsing, changed fields only, a negative blocks saving, a typed
+  item's rules, the category names read from the web app's file) failed to compile without the
+  type, then passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): read the label's words on this iPhone, offline
 - What: under the camera, "Or type the words on the label" takes the words the sender types or
   scans with the keyboard's own Scan Text, and "Read these words" reads them with Apple's
