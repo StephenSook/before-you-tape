@@ -38,4 +38,16 @@ import Testing
         #expect(files.load(boxId: "big") == nil)
         #expect(files.problem != nil)
     }
+
+    /// A snapshot too large to load again is not written, so the last good file stays.
+    @Test func aSnapshotTooLargeToReopenNeverReplacesTheGoodFile() throws {
+        let files = BoxFiles(folder: folder())
+        let good = BoxSnapshot(boxId: "b3", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources())
+        files.save(good)
+        let huge = BoxItem(itemId: "i1", read: .object(["itemName": .string(String(repeating: "x", count: BoxFiles.maxFileBytes))]),
+                           readSource: "manual", readMs: 0)
+        files.save(BoxSnapshot(boxId: "b3", destinationCode: "PH", items: [huge], cloudConsent: nil, sources: BoxSources()))
+        #expect(files.problem != nil)
+        #expect(files.load(boxId: "b3") == good)
+    }
 }

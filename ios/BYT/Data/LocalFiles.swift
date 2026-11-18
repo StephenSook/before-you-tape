@@ -30,7 +30,13 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         guard let url = url(boxId: snapshot.boxId) else { problem = "The box id is not a safe file name."; return }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try JSONEncoder().encode(snapshot).write(to: url, options: Self.writeOptions)
+            let data = try JSONEncoder().encode(snapshot)
+            // Never replace the last good file with one the loader would refuse.
+            guard data.count <= Self.maxFileBytes else {
+                problem = "The box is too large to save (\(data.count) bytes). The last saved box is kept."
+                return
+            }
+            try data.write(to: url, options: Self.writeOptions)
             problem = nil
         } catch {
             problem = "The box could not be saved: \(error.localizedDescription)"

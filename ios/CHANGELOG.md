@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): never replace a saved box with a file too large to reopen
+- What: `BoxFiles.save` wrote any size while `load` refuses a file over 2,000,000 bytes, so one
+  huge item could leave the box empty on the next launch and then be overwritten. A snapshot over
+  the limit is now not written: the last good file stays and the reason is reported.
+- Source: review of the iPhone pull request (finding 6).
+- Verified: a test saves a good box, then one with a 2,000,000-character name, and still loads the
+  good box with a reason reported; it failed before the change and passes after; 88 app tests
+  pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): refuse a label too long for the rules, and keep every item on screen
 - What: a typed or corrected label over 160 characters (the engine's `labelTextMax`, counted in
   code points) made the engine refuse the whole box, and the box screen then hid every item. The
