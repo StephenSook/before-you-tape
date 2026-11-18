@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The in-app Remote Config defaults: the only place a model name lives in the app.
+     Keys shared with the web app keep the web template's defaults. -->
+<defaultsMap>
+    <entry><key>cloud_model_item</key><value>gemini-3.5-flash-lite</value></entry>
+    <entry><key>kill_cloud</key><value>false</value></entry>
+    <entry><key>use_limited_use_tokens</key><value>true</value></entry>
+    <entry><key>minimum_version_android</key><value>0.0.0</value></entry>
+    <entry><key>ondevice_model_option_android</key><value>stable</value></entry>
+    <entry><key>rules_edition_id</key><value></value></entry>
+    <entry><key>rules_edition_sha256</key><value></value></entry>
+    <entry><key>second_look_policy_json</key><value>{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}</value></entry>
+</defaultsMap>
