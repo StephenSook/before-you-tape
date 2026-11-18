@@ -1,6 +1,7 @@
 // Firebase AI Logic bindings: the only file that calls getGenerativeModel (the model guard enforces it).
 // Three item-read models (spec 5.3): ONLY_ON_DEVICE behind the device guard, PREFER_ON_DEVICE, and
-// ONLY_IN_CLOUD; plus a text-only cloud model for descriptions and listing reads.
+// ONLY_IN_CLOUD, plus an optional cloud-only fallback model; and a text-only cloud model for
+// descriptions and listing reads.
 import { getGenerativeModel, InferenceMode, type AI, type GenerativeModel, type ModelParams, type Part, type Schema } from "firebase/ai";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
@@ -35,22 +36,34 @@ const NO_DEVICE: ModelPort = {
 
 const ON_DEVICE_PARAMS = () => ({ createOptions: DEVICE_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } });
 
-export function createItemModels(ai: AI, cloudModel: string, lm: unknown): ItemModels {
-  const inCloudParams: ModelParams = {
-    model: cloudModel,
-    systemInstruction: ITEM_READ_SYSTEM,
-    generationConfig: { responseMimeType: "application/json", responseSchema: itemReadCloudSchema() },
+const itemCloudParams = (model: string): ModelParams => ({
+  model,
+  systemInstruction: ITEM_READ_SYSTEM,
+  generationConfig: { responseMimeType: "application/json", responseSchema: itemReadCloudSchema() },
+});
+
+// The fallback is a cloud-only model of its own; none when it is empty or the same as the main model.
+function fallbackPort(ai: AI, cloudModel: string, fallbackModel: string): ModelPort | undefined {
+  if (!fallbackModel || fallbackModel === cloudModel) return undefined;
+  return portFor(getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: itemCloudParams(fallbackModel) }), true);
+}
+
+export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallbackModel = ""): ItemModels {
+  const inCloudParams = itemCloudParams(cloudModel);
+  const withFallback = (m: ItemModels): ItemModels => {
+    const fallback = fallbackPort(ai, cloudModel, fallbackModel);
+    return fallback ? { ...m, fallback } : m;
   };
   // Without the browser API, the device and hybrid ports refuse without touching the SDK.
   if (!hasLanguageModelApi(lm)) {
     const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
-    return { device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) };
+    return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) });
   }
   const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
   const hybrid = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS(), inCloudParams });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
-  return { device: guardDevicePort(portFor(device, true), deviceNow), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) };
+  return withFallback({ device: guardDevicePort(portFor(device, true), deviceNow), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) });
 }
 
 export function createTextCloudModel(ai: AI, cloudModel: string, schema: Schema): ModelPort {

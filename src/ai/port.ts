@@ -18,11 +18,13 @@ export interface ModelPort {
   generate(prompt: string, image?: ImagePart): Promise<ModelReply>;
 }
 
-// device: ONLY_ON_DEVICE behind the device guard; hybrid: PREFER_ON_DEVICE; cloud: ONLY_IN_CLOUD.
+// device: ONLY_ON_DEVICE behind the device guard; hybrid: PREFER_ON_DEVICE; cloud: ONLY_IN_CLOUD;
+// fallback: ONLY_IN_CLOUD on a second model, tried once when the cloud model answers 500 or 503.
 export interface ItemModels {
   device: ModelPort;
   hybrid: ModelPort;
   cloud: ModelPort;
+  fallback?: ModelPort;
 }
 
 export type GateState = "available" | "downloadable" | "downloading" | "unavailable" | "no_api";

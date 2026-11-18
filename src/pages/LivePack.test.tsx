@@ -26,7 +26,7 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 
 let n = 0;
 function setup(start: Partial<AppConfig> = {}) {
-  const models: Record<string, ItemModels & Record<keyof ItemModels, ReturnType<typeof port>>> = {};
+  const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud", ReturnType<typeof port>>> = {};
   const makeModels = vi.fn((name: string) => (models[name] ??= { device: port(), hybrid: port(), cloud: port() }));
   const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
   store.setConsent(true);

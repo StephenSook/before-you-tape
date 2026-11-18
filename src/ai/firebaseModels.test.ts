@@ -43,6 +43,23 @@ describe("createItemModels", () => {
     expect(params(2).inCloudParams?.systemInstruction).toBe(ITEM_READ_SYSTEM);
   });
 
+  it("adds a cloud-only fallback port on its own model, and none when it is empty or the same model", () => {
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm, "gemini-3.8-flash");
+    expect(spy.mock.calls.map((c) => (c[1] as HybridParams).mode)).toEqual(["only_on_device", "prefer_on_device", "only_in_cloud", "only_in_cloud"]);
+    expect(params(3).inCloudParams?.model).toBe("gemini-3.8-flash");
+    expect(params(3).inCloudParams?.systemInstruction).toBe(ITEM_READ_SYSTEM);
+    expect(JSON.parse(JSON.stringify(params(3).inCloudParams?.generationConfig?.responseSchema))).toEqual(JSON.parse(JSON.stringify(itemReadCloudSchema())));
+    expect(m.fallback).toBeDefined();
+    for (const none of ["", "gemini-3.5-flash-lite"]) {
+      spy.mockClear();
+      expect(createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm, none).fallback, none).toBeUndefined();
+      expect(spy).toHaveBeenCalledTimes(3);
+    }
+    spy.mockClear();
+    expect(createItemModels(fakeAi(), "gemini-3.5-flash-lite", undefined, "gemini-3.8-flash").fallback).toBeDefined();
+    expect(spy.mock.calls.map((c) => (c[1] as HybridParams).inCloudParams?.model)).toEqual(["gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+  });
+
   it("passes the same options to the session and to the availability check", () => {
     createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm);
     expect(params(0).onDeviceParams?.createOptions).toBe(DEVICE_CREATE_OPTIONS);
