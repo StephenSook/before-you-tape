@@ -27,9 +27,13 @@ export function layerStatuses(edition: RuleEdition, dest: DestinationContext, to
   const d = dest.edition;
   const reviewed = dest.reviewState === "reviewed" && d !== null;
   const immEdition = d ? `IMM ${d.immEdition}` : "not loaded";
+  // Say who read the listing: never claim a person checked it before personReviewedOn is set.
+  let destLabel = `${dest.name} rules`;
+  if (reviewed && d.personReviewedOn) destLabel += `: checked by a person on ${d.personReviewedOn}`;
+  else if (reviewed && d.checkedOn) destLabel += `: read from the USPS page on ${d.checkedOn}, not yet checked by a person`;
   return [
     layer("usps_export", "USPS export rules", usps?.edition ?? "not loaded", usps?.checkedOn ?? null, Boolean(usps), stale.usps_export, today),
-    layer("destination", `${dest.name} rules`, immEdition, d?.checkedOn ?? null, reviewed, stale.destination, today),
+    layer("destination", destLabel, immEdition, d?.checkedOn ?? null, reviewed, stale.destination, today),
     layer("suspensions", "Service suspensions", `Updated ${edition.suspensions.updated}`, edition.suspensions.checkedOn, true,
       stale.suspensions, today),
     layer("customs", `${dest.name} customs`, immEdition, d?.checkedOn ?? null, reviewed && Boolean(d?.customsChecked), stale.customs, today),

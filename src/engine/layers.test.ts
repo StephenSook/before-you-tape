@@ -27,9 +27,18 @@ describe("layerStatuses", () => {
     const [usps, dest, susp, customs] = layerStatuses(ed, resolveDestination(ed, "PH"), "2026-11-20");
     expect(usps).toMatchObject({ label: "USPS export rules", checkedOn: "2026-11-17" });
     expect(usps?.edition).toContain("August 2026");
-    expect(dest).toMatchObject({ label: "Philippines rules", edition: "IMM 2026-11-02", checkedOn: "2026-11-17" });
+    expect(dest).toMatchObject({ edition: "IMM 2026-11-02", checkedOn: "2026-11-17" });
     expect(susp).toMatchObject({ label: "Service suspensions", edition: "Updated 2026-11-06", checkedOn: "2026-11-17" });
     expect(customs).toMatchObject({ label: "Philippines customs", checkedOn: "2026-11-17" });
+  });
+
+  it("says the listing was read by us and not yet checked by a person, until a person checks it", () => {
+    const dest = (e: typeof ed) => layerStatuses(e, resolveDestination(e, "PH"), "2026-11-20")[1];
+    expect(dest(ed)?.label).toBe("Philippines rules: read from the USPS page on 2026-11-17, not yet checked by a person");
+    const checked = structuredClone(ed);
+    checked.destinations.PH!.personReviewedOn = "2026-11-19";
+    expect(dest(checked)?.label).toBe("Philippines rules: checked by a person on 2026-11-19");
+    expect(dest(ed)?.label).not.toMatch(/person-reviewed|reviewed by a person/i);
   });
 
   it("treats a country with no list as missing its rules layer", () => {
