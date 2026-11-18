@@ -45,20 +45,22 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const [cameraError, setCameraError] = useState<CameraErrorKind | null>(null);
   const [event, setEvent] = useState<SteadyEvent | null>(null);
 
-  const grab = useCallback(async (box: Box): Promise<ImagePart> => {
-    if (capture) return capture(box);
-    const video = videoRef.current;
-    if (!video) throw new Error("the camera is not ready");
-    return cropToJpeg(video, box, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality);
-  }, [capture]);
+  // The latest callbacks, kept in refs so a parent re-render never restarts the frame watch: a fresh
+  // detector would see the item still in the zone and read it a second time.
+  const latest = useRef({ onImage, onError, capture });
+  useEffect(() => { latest.current = { onImage, onError, capture }; });
 
   const read = useCallback(async (box: Box, how: ImageHow) => {
+    const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
-      onImage(await grab(box), how);
+      const video = videoRef.current;
+      const part = grab ? await grab(box) : video ? await cropToJpeg(video, box, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality) : null;
+      if (!part) throw new Error("the camera is not ready");
+      emit(part, how);
     } catch (e) {
-      onError?.(e instanceof Error ? e.message : String(e));
+      fail?.(e instanceof Error ? e.message : String(e));
     }
-  }, [grab, onImage, onError]);
+  }, []);
 
   // Open the camera once, and stop it when the stage goes away.
   useEffect(() => {

@@ -80,4 +80,19 @@ describe("CameraStage", () => {
     unmount();
     expect(stop).toHaveBeenCalled();
   });
+
+  // A parent re-render (every box change) must not restart the frame watch: a fresh detector would see the
+  // item still in the zone and read it a second time.
+  it("keeps one frame watch and one camera across parent re-renders", async () => {
+    const intervals = vi.spyOn(globalThis, "setInterval");
+    const open = vi.fn(okCamera);
+    const { rerender } = render(<CameraStage openCamera={open} onImage={() => {}} />);
+    await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    const before = intervals.mock.calls.length;
+    rerender(<CameraStage openCamera={open} onImage={() => {}} onError={() => {}} />);
+    rerender(<CameraStage openCamera={open} onImage={() => {}} onError={() => {}} />);
+    expect(intervals.mock.calls.length).toBe(before);
+    expect(open).toHaveBeenCalledTimes(1);
+    intervals.mockRestore();
+  });
 });
