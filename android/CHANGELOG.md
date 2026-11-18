@@ -3,6 +3,22 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **An item form drawn from the shared item-read contract (commit 56b0c9c).** `ReadForm` shows
+  what the web form shows: name, what it is (37 categories), the words on the label, the four
+  numbers, the seven yes-or-no facts and the box. An empty number means not printed. A negative
+  or non-number value marks its field and blocks Save, and Save also waits for a category.
+  `ReadDrafts` holds the web form's rules. A typed item with label words counts as a label read;
+  otherwise the item is only seen. A typed item with no name takes its category's name. A fix
+  saves only the fields that changed. `ReadCopy` holds the web form's own words. Source: Android
+  plan Task 12. Verified: `ReadDraftTest` (6), `CopyTest.everyContractFieldHasALabel` (fails
+  when `src/shared/itemRead.ts` grows a field with no label; `evidence` is the one derived
+  field) and `CopyTest.theFormLabelsAreTheWebFormsLabels` (numbers, flags, box, headings and
+  categories equal `src/ui/ReadFields.tsx` and `src/ui/categoryLabels.ts`) failed to compile
+  first, then pass. `ReadFormTest` (3) passes on the emulator: every field kind has a control; a
+  negative number blocks Save; a chosen category and a typed number are saved. `bash
+  android/ci-local.sh` and the root CI mirror exit 0. This entry came in a follow-up commit,
+  because the commit's own changelog edit failed.
+
 - **One "Check now" from crop to box.** `BoxSession` sends a crop to the reader. A read is
   added to the box with the engine's tags for its label text and a fresh item id, and the box
   re-checks itself. A blocked or failed read adds nothing and returns the one line that says
