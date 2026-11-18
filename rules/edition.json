@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-efc2c47807eb",
+  "editionId": "byt-38ac8d4a3ae9",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -1056,7 +1056,442 @@
       "askId": "battery_installed"
     }
   ],
-  "destinations": {},
+  "destinations": {
+    "CA": {
+      "code": "CA",
+      "name": "Canada",
+      "immUrl": "https://pe.usps.com/text/imm/ce_003.htm",
+      "immEdition": "2026-11-02",
+      "pageSha256": "0c376167dfdd0c55082b6af17a83cff2b82a0f17bf5d3e482e9619d1de174815",
+      "reviewed": true,
+      "checkedOn": "2026-11-17",
+      "noListFurnished": false,
+      "lines": [
+        {
+          "lineId": "CA-P-01",
+          "section": "prohibitions",
+          "lineSha256": "e2c713c6592d08d3faf449137882800b871d0f5374d6b6e7cc2a916332dd2e20",
+          "ourWording": "No alcoholic drinks, wine included.",
+          "matches": [
+            {
+              "tag": "alcohol",
+              "effect": "take_out"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-P-02",
+          "section": "prohibitions",
+          "lineSha256": "35f5ca0305e63a42365227922d0e964c948d1f3fbb0b87a61d9282f06a7d8937",
+          "ourWording": "No lighters with fuel in them. An empty new lighter is allowed.",
+          "matches": [
+            {
+              "tag": "flammable",
+              "effect": "take_out"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-P-03",
+          "section": "prohibitions",
+          "lineSha256": "504bdeede1bcea2de0154b6293300dd805d5b663073724d87246e926df2db4a2",
+          "ourWording": "Nothing that carries a flammable warning label.",
+          "matches": [
+            {
+              "tag": "flammable",
+              "effect": "take_out"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-P-04",
+          "section": "prohibitions",
+          "lineSha256": "7d57cafd49ca5a58497e51700f38baf56bf052ed49d1b94ec8bae2675d5380e6",
+          "ourWording": "No firearms.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-05",
+          "section": "prohibitions",
+          "lineSha256": "c3fe8e9b45376fe534386fa1923d20988dc930f03386ca59333a24af7f477619",
+          "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
+          "matches": [
+            {
+              "tag": "toy_gun",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-P-06",
+          "section": "prohibitions",
+          "lineSha256": "28cf4302174a295dc788e10fade5ed4d107807f91613895c7fd6f4825930c101",
+          "ourWording": "No vaping liquid with a high nicotine level.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-07",
+          "section": "prohibitions",
+          "lineSha256": "4da8a57944d9ee2b7075b9d3940fc088c0e33ec5bef1505bbdcc64b51cc2f588",
+          "ourWording": "No gold bullion, gold dust or raw precious metals.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-08",
+          "section": "prohibitions",
+          "lineSha256": "c95cd26341a3c2dee9e810f48278277abbb62755bfcd7783e0e1e560e638d6ae",
+          "ourWording": "No margarine or other butter substitutes.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-09",
+          "section": "prohibitions",
+          "lineSha256": "197a9cacb1c9a5745d27574cb2b40c8e42a7204b66c79564f741bd42ab0da850",
+          "ourWording": "No magazine issues whose ads mainly target Canada in the ways the listing describes.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-10",
+          "section": "prohibitions",
+          "lineSha256": "f10daa8fcbb904d93c7121c07b72bf0f38fd90f6c6bc4a5e2bf683639fb6f7b2",
+          "ourWording": "That includes ads that say where in Canada to buy something.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-11",
+          "section": "prohibitions",
+          "lineSha256": "88a573bd1bc4df834c24f5e11389a900083853e83108c485824a07ad3af0b6db",
+          "ourWording": "It also includes ads that give sale terms for Canada.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-12",
+          "section": "prohibitions",
+          "lineSha256": "6d57d55ba1d09026fd2ab65135b397020c779f99a8979bf7618d8a3163266f1a",
+          "ourWording": "No issue with a Canada-only ad that is missing from the home edition.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-13",
+          "section": "prohibitions",
+          "lineSha256": "af64a66f15ca0a46e3d01a6905a1e22116eeced690abcb958e85e0953335ac08",
+          "ourWording": "No goods marked to look as if they were made in Canada or Britain when they were not.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-14",
+          "section": "prohibitions",
+          "lineSha256": "5c68f5edc95c4c6992471d0b4c9985ce69f21fb935775335a1bc8a6413b23163",
+          "ourWording": "No metal trade tags.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-15",
+          "section": "prohibitions",
+          "lineSha256": "ce96d1d57e6454f2824f22c0ab59fe71341c03e10bf6b489421af44732eee569",
+          "ourWording": "No perishable biological material that can carry infection.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-16",
+          "section": "prohibitions",
+          "lineSha256": "62c33772603545c50f0fd48a2b88e292aa348b6cc642b6945b114928597a537a",
+          "ourWording": "No other perishable biological material.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-17",
+          "section": "prohibitions",
+          "lineSha256": "051c719ae23f31ab51f8991b7fc8f6c5d0c143849810e218be3590ed3c9f8177",
+          "ourWording": "No feathers or skins of wild birds.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-18",
+          "section": "prohibitions",
+          "lineSha256": "973751bd88aeba5c7ff6f55c2907052d029ba52c51394ca275e99d1aa774eb71",
+          "ourWording": "No prison-made goods for sale.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-19",
+          "section": "prohibitions",
+          "lineSha256": "c1003e9690b6005d7d71cf6a831fb1b2d71f16b4d1dc308bd6a6862515f037dd",
+          "ourWording": "No radioactive material.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-20",
+          "section": "prohibitions",
+          "lineSha256": "7e60db4bb2e7893fbd2e32658a17616c8ce64c8234baaca9e7ad6ec36fd007cf",
+          "ourWording": "No reprints of works under Canadian copyright.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-21",
+          "section": "prohibitions",
+          "lineSha256": "762c46def84c82d973ac0487b803d9a20d25c45b048b77f8980318c951426f18",
+          "ourWording": "No copies of Canadian stamps, except black and white prints that are crossed out.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-22",
+          "section": "prohibitions",
+          "lineSha256": "ac4f6693f7c788b46bb349f0943dcf0cec5ea7faff5ddac14254d2a998333094",
+          "ourWording": "No smoke-making devices for cars or boats.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-P-23",
+          "section": "prohibitions",
+          "lineSha256": "9fc435d95eeea688cf9a9c5d0c4d74e5d57efd1eb9b3d3f542123b748a5228be",
+          "ourWording": "No used beehives or bee supplies.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-01",
+          "section": "restrictions",
+          "lineSha256": "c95d071c446f9de1bd66fbacc329b90c145a39a86edde60d6a3b6ca3ca14c232",
+          "ourWording": "Valuables such as jewelry, gems, cash or gold can go only in an insured parcel.",
+          "matches": [
+            {
+              "tag": "jewelry_valuables",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-R-02",
+          "section": "restrictions",
+          "lineSha256": "c510b5b2d19612a94c6120a2b7ca2f35af6a089af26adb33e46981cdd0736beb",
+          "ourWording": "Medicines must meet Canadian law.",
+          "matches": [
+            {
+              "tag": "pharmaceutical",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-R-03",
+          "section": "restrictions",
+          "lineSha256": "b44ffebb4ce686d2023ede49980879708f6fc9d29858c3e204ab543804db665f",
+          "ourWording": "Hatching eggs need new packing and a vet certificate.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-04",
+          "section": "restrictions",
+          "lineSha256": "7d284a68bc9067979e54bcd74023ee7655ba3393b5bf9fe81f09b4e9a6290903",
+          "ourWording": "Meat products need a US export certificate and Canadian labels.",
+          "matches": [
+            {
+              "tag": "meat",
+              "effect": "check"
+            },
+            {
+              "tag": "pork_meat",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "CA-R-05",
+          "section": "restrictions",
+          "lineSha256": "4f0220fa87cc0bff9011cafc594088f20842be70da37979d3a98066f82cfcdb2",
+          "ourWording": "Samples under 10 kg are an exception.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-06",
+          "section": "restrictions",
+          "lineSha256": "d2682f3cc99bc2219be5618c2a05e1fea39379ed51adac04c6e7d0f8c9b1451e",
+          "ourWording": "So is meat sent to a government office.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-07",
+          "section": "restrictions",
+          "lineSha256": "6861b9f9a9f96b21b7a449521f94c3d28ed6396f1d9fdd350762ff7b470dd99b",
+          "ourWording": "So is meat the importer carries in for their own use.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-08",
+          "section": "restrictions",
+          "lineSha256": "1f7a7378c54bab8bd7a3b0c2b8e27724422d2c40775b507f1ffea8c4e74e3077",
+          "ourWording": "Some pet foods with raw ingredients need an import permit and a health certificate.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-R-09",
+          "section": "restrictions",
+          "lineSha256": "5d318a03f5290b87660cb7d1738d9feee10b413bea9b2b86b4a1c53e16150686",
+          "ourWording": "Animal vaccines and serums need a permit from Canada.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-O-01",
+          "section": "observations",
+          "lineSha256": "71fcab67681980a611075dc6d7291f49ef548ee6bc09bb23eecbc45220d89e45",
+          "ourWording": "Gifts by mail worth under 60 Canadian dollars come in free of duty and tax.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-O-02",
+          "section": "observations",
+          "lineSha256": "b3c0bb045f57712b694bd1d8a2a9a071d54a7252b5bcd0f34cc8f007547ef924",
+          "ourWording": "Canada turns away items without a full sender and recipient address in Latin letters and Arabic numerals.",
+          "matches": []
+        },
+        {
+          "lineId": "CA-O-03",
+          "section": "observations",
+          "lineSha256": "a47fc61e6e095f20cb19457fc9ebfeb7e968df963495574d0f82010b25dd3fb9",
+          "ourWording": "The address must include the province.",
+          "matches": []
+        }
+      ],
+      "customsChecked": true,
+      "customsNotes": [
+        "Put a card or note in the box saying it is a gift.",
+        "Gifts worth under 60 Canadian dollars come in free of duty and tax.",
+        "Write the full sender and recipient addresses, including the province."
+      ]
+    },
+    "PH": {
+      "code": "PH",
+      "name": "Philippines",
+      "immUrl": "https://pe.usps.com/text/imm/ps_006.htm",
+      "immEdition": "2026-11-02",
+      "pageSha256": "53282eab5038a94eec9013c248ce26d1d5c4609c7ca50d2c38dc8879f8bc4ed2",
+      "reviewed": true,
+      "checkedOn": "2026-11-17",
+      "noListFurnished": false,
+      "lines": [
+        {
+          "lineId": "PH-P-01",
+          "section": "prohibitions",
+          "lineSha256": "43e397b08f0791aab9cbc3d27089a5b14436c1eecf09530f5aa952169e74d7d9",
+          "ourWording": "No liquids, nothing that turns runny easily, and nothing made of glass or as fragile as glass.",
+          "matches": [
+            {
+              "tag": "liquid",
+              "effect": "take_out"
+            },
+            {
+              "tag": "glass_fragile",
+              "effect": "take_out"
+            },
+            {
+              "tag": "easily_liquefiable",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "PH-P-02",
+          "section": "prohibitions",
+          "lineSha256": "3df73e6fdd04e7a302ef5cc5fc6c8468b8ad9c769ecc9e078464ec55e0af597d",
+          "ourWording": "No coins, cash, bearer securities, traveler's checks, precious metals, gems or other valuables.",
+          "matches": [
+            {
+              "tag": "jewelry_valuables",
+              "effect": "take_out"
+            }
+          ]
+        },
+        {
+          "lineId": "PH-P-03",
+          "section": "prohibitions",
+          "lineSha256": "2dac755b1115409deeed33ba15f47b783ea451f438192e4643a2ce08c410c876",
+          "ourWording": "No guns or other weapons, their parts, ammunition, or copies of weapons.",
+          "matches": [
+            {
+              "tag": "toy_gun",
+              "effect": "take_out"
+            },
+            {
+              "tag": "knife",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "PH-P-04",
+          "section": "prohibitions",
+          "lineSha256": "89ffa1058001a2bfed3d5b0d4c2f157143b098b5cc9b1255d55a0017c08010a6",
+          "ourWording": "No gambling devices.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-P-05",
+          "section": "prohibitions",
+          "lineSha256": "d68dfca7e4c4d3112e583379fb9242b068bc5c87c5ae29d657932b88128620ca",
+          "ourWording": "No lottery tickets or lottery advertising.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-P-06",
+          "section": "prohibitions",
+          "lineSha256": "2e8c7d9e321db97e40d7640eec6a13c83a1970a83d9a6c9229f50feeb3b194fb",
+          "ourWording": "No narcotics or similar drugs.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-P-07",
+          "section": "prohibitions",
+          "lineSha256": "ce96d1d57e6454f2824f22c0ab59fe71341c03e10bf6b489421af44732eee569",
+          "ourWording": "No perishable biological material that can carry infection.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-P-08",
+          "section": "prohibitions",
+          "lineSha256": "62c33772603545c50f0fd48a2b88e292aa348b6cc642b6945b114928597a537a",
+          "ourWording": "No other perishable biological material.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-P-09",
+          "section": "prohibitions",
+          "lineSha256": "c1003e9690b6005d7d71cf6a831fb1b2d71f16b4d1dc308bd6a6862515f037dd",
+          "ourWording": "No radioactive material.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-R-01",
+          "section": "restrictions",
+          "lineSha256": "2dbc751644ee572429e006b3692bd4006fb86bf895279bf6ec8a7c566d392e43",
+          "ourWording": "Coffee is allowed for personal use only, up to 2 kg of beans or ground coffee.",
+          "matches": [
+            {
+              "tag": "coffee",
+              "effect": "check"
+            }
+          ]
+        },
+        {
+          "lineId": "PH-R-02",
+          "section": "restrictions",
+          "lineSha256": "2f9175008a1aa2bf67e51c8f94b9bee7335ada1823285876b0462b456cf58efa",
+          "ourWording": "Plants and similar items need import clearance and plant health certificates.",
+          "matches": []
+        },
+        {
+          "lineId": "PH-O-01",
+          "section": "observations",
+          "lineSha256": "40a6ce26bf017c781b5e8a97653ae58fed5d61189ee696163a3b311e6599da1a",
+          "ourWording": "An invoice with a duty value of 3,000 pesos or more may need the Philippine Consulate's stamp, for a $30 fee.",
+          "matches": []
+        }
+      ],
+      "customsChecked": true,
+      "customsNotes": [
+        "If the box is worth 3,000 pesos or more in duty value, the invoice may need the Philippine Consulate's stamp and a $30 fee."
+      ]
+    }
+  },
   "suspensions": {
     "updated": "2026-11-06",
     "checkedOn": "2026-11-17",
