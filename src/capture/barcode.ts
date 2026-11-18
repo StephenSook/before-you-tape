@@ -16,8 +16,25 @@ export function isValidUpc(code: string): boolean {
   return sum % 10 === 0;
 }
 
+let prepared = false;
+
+/**
+ * The zxing-wasm default fetches its WebAssembly from a public CDN at run time. We point it at the copy
+ * Vite bundles into our own build instead, so no third-party code loads and the reader works offline.
+ */
 async function detectBarcode(image: ImageBitmapSource) {
-  const { BarcodeDetector } = await import("barcode-detector/ponyfill");
+  const [{ BarcodeDetector, prepareZXingModule }, { default: wasmUrl }] = await Promise.all([
+    import("barcode-detector/ponyfill"),
+    import("zxing-wasm/reader/zxing_reader.wasm?url"),
+  ]);
+  if (!prepared) {
+    prepareZXingModule({
+      overrides: {
+        locateFile: (path: string, prefix: string) => (path.endsWith(".wasm") ? wasmUrl : prefix + path),
+      },
+    });
+    prepared = true;
+  }
   const detector = new BarcodeDetector({ formats: ["upc_a", "ean_13", "ean_8"] });
   return detector.detect(image);
 }

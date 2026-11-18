@@ -1,5 +1,33 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { isValidUpc, readBarcode } from "./barcode";
+
+describe("the default detector", () => {
+  afterEach(() => {
+    vi.doUnmock("barcode-detector/ponyfill");
+    vi.resetModules();
+  });
+
+  it("serves the WebAssembly from our own build, never a CDN", async () => {
+    vi.resetModules();
+    const prepare = vi.fn();
+    const detect = vi.fn().mockResolvedValue([{ rawValue: "036000291452", format: "upc_a" }]);
+    vi.doMock("barcode-detector/ponyfill", () => ({
+      prepareZXingModule: prepare,
+      BarcodeDetector: class { detect = detect; },
+    }));
+    const fresh = await import("./barcode");
+
+    await expect(fresh.readBarcode(document.createElement("canvas"))).resolves.toBe("036000291452");
+    expect(prepare).toHaveBeenCalledTimes(1);
+    const locateFile = prepare.mock.calls[0]![0].overrides.locateFile as (path: string, prefix: string) => string;
+    const url = locateFile("zxing_reader.wasm", "https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.6/dist/reader/");
+    expect(url).not.toMatch(/jsdelivr|^https?:\/\//);
+    expect(url).toMatch(/zxing_reader.*\.wasm/);
+
+    await fresh.readBarcode(document.createElement("canvas"));
+    expect(prepare).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("isValidUpc", () => {
   it.each(["036000291452", "4006381333931", "96385074"])(
