@@ -223,9 +223,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
         viewModelScope.launch {
             try {
-                client.downloadModel().collect { step ->
-                    if (step is ModelDownload.Failed) state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
-                }
+                ModelReadiness.collectDownload(client.downloadModel()) { state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) } }
             } finally {
                 downloadActive = false
                 refreshModel()

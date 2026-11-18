@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A failed model download shows a message instead of crashing the app.** The pinned SDK
+  reports a failed download as a `Failed` step and then ends the flow with the exception. The
+  view model collected the flow with no catch, so the exception escaped its coroutine and the
+  app crashed. `ModelReadiness.collectDownload` now runs the download: a failure, as a step or
+  as the exception, shows "could not download" once and never escapes, and the status is still
+  checked again afterwards. Closing the screen (cancellation) still stops it and is not shown as
+  a failure. Source: review (second model) of the Android pull request, round 3, finding 2.
+  Verified: `ModelReadinessTest` gains three tests; the two throwing cases first failed with the
+  escaped `IllegalStateException`, then pass, and the cancellation case passes. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **An item whose read leaves out optional fields still loads.** The rules require only
   `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
   may be left out. The phone's decoder required all sixteen, so such an item threw
