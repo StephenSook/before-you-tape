@@ -200,13 +200,22 @@ actor ReadGate {
 }
 
 /// Every cloud read waits for the anonymous sign-in first: AI Logic serves signed-in users only.
-/// A failed sign-in sends nothing to the cloud.
+/// A failed sign-in sends nothing to the cloud, and the pause switch is read again after sign-in,
+/// right before anything is sent, because it can change while sign-in runs.
 struct SignedInCloudRunner: ItemModelRunner {
     let ensureSignedIn: @Sendable @MainActor () async -> Bool
+    let cloudOpen: @Sendable @MainActor () -> Bool
     let inner: any ItemModelRunner
 
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
+        guard await cloudOpen() else { return .failure(ReadError(.cloudPaused)) }
         return await inner.read(input)
     }
+}
+
+/// The pause switch as last applied, shared by every cloud runner.
+@MainActor
+final class PauseSwitch {
+    var paused = RemoteConfigValues.defaults.killCloud
 }

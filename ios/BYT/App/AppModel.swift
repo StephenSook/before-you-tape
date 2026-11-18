@@ -38,6 +38,7 @@ final class AppModel {
     @ObservationIgnored private let remoteConfig = RemoteConfigLoader()
     @ObservationIgnored private let fetchEdition: @Sendable (String) async -> String?
     @ObservationIgnored private let bundledEditionText: String?
+    @ObservationIgnored private let pause: PauseSwitch
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
@@ -60,7 +61,9 @@ final class AppModel {
         self.bundledEditionText = editionText
         self.destinations = editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
-        self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
+        let pause = PauseSwitch()
+        self.pause = pause
+        self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn, pause: pause) }
         let boxId = Self.currentBoxId(defaults)
         self.box = engine.map {
             BoxStore(engine: $0, persistence: persistence, today: today, newId: { UUID().uuidString },
@@ -76,12 +79,12 @@ final class AppModel {
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
     }
 
-    /// Every cloud runner sits behind the sign-in; every answer passes the engine's parser.
-    static func makeReader(engine: RulesEngine, signIn: SignIn) -> ItemReader {
+    /// Every cloud runner sits behind the sign-in and the live pause switch; every answer passes the engine's parser.
+    static func makeReader(engine: RulesEngine, signIn: SignIn, pause: PauseSwitch) -> ItemReader {
         ItemReader(
             device: DeviceRunner(),
             makeCloud: { model in
-                SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() },
+                SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() }, cloudOpen: { !pause.paused },
                                     inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
             },
             parse: { read in
@@ -183,6 +186,7 @@ final class AppModel {
     func applyConfig(_ values: RemoteConfigValues) async {
         let pinChanged = values.rulesEditionId != config.rulesEditionId || values.rulesEditionSha256 != config.rulesEditionSha256
         config = values
+        pause.paused = values.killCloud
         guard pinChanged, let engine, let bundledEditionText else { return }
         let choice = await EditionSource.choose(engine: engine, bundledText: bundledEditionText, wantId: values.rulesEditionId,
                                                 wantSha: values.rulesEditionSha256, fetchRemote: fetchEdition)

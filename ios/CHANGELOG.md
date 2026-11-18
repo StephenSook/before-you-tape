@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): read the pause switch again after sign-in, right before a cloud upload
+- What: a cloud read checked the pause switch, then waited for anonymous sign-in, then sent the
+  photo. A pause applied while sign-in was still running did not stop it. `SignedInCloudRunner`
+  now reads the live switch after sign-in and before anything is sent; a paused read sends
+  nothing and ends as `cloudPaused`. Every cloud runner the app builds reads one shared switch,
+  set in the same step as the rest of Remote Config.
+- Source: review.
+- Verified: two tests (a pause applied during sign-in sends nothing; the app's cloud runner reads
+  the live switch after a config change) failed to compile, then passed; 105 app unit tests pass;
+  the CI mirror exit 0, with the secret scan limited to this branch's history (another
+  branch's test vectors trip the full scan; that is being fixed on that branch).
+
 ### fix(ios): keep the cloud paused when the pause value cannot be read
 - What: `kill_cloud` now fails closed. Only a clear false word ("0", "false", "f", "no", "n",
   "off") opens the cloud; an empty or garbled value ("maybe", "tru") keeps every cloud call
