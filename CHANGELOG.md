@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `eval/PROTOCOL.md`: the eval protocol, frozen before any model run and pinned by hash in the manifest. It covers the set: 40 real photographs of real items, 13 taken by the project owner of his own items with metadata removed, 27 public product photos under open licenses, none taken by a family and none generated. It says what that means: reads of still photos, not live camera holds. It also covers how labels are written and frozen, every metric with its unit, and how "Check this" is scored: safe but not agreement, so only "OK to pack" where the label is not "OK to pack" is a hazard miss, with the front-only power bank as the worked case. Runs record their machine and model, and the public copy carries no label text or names. Source: plan Task 29 and the review of the photo source and scoring. Verified: tone and hygiene checks; local CI mirror exit 0.
 - `src/eval/types.ts` and `src/eval/metrics.ts`: the eval's types and pure metrics (spec 9).
 - Agreement with the labels and the "Check this" rate count rows.
 - The hazard bound counts items: an item fails if any destination shows OK where its label does not, with the exact one-sided 95% Clopper-Pearson upper bound.
