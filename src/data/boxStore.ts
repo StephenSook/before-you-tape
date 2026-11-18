@@ -10,7 +10,8 @@ import { evaluateBox, type BoxResult } from "../engine/verdict";
 import type { ItemRead } from "../shared/itemRead";
 
 // Where an item's read came from. The phones use one name each for both of them.
-export type ReadSource = InferenceSourceName | "manual" | "phone_on_device" | "phone_cloud";
+// cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
+export type ReadSource = InferenceSourceName | "cloud_unreported" | "manual" | "phone_on_device" | "phone_cloud";
 
 export interface CustomsLine {
   description: string;
@@ -143,7 +144,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const itemId = deps.newId();
       items = [...items, {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
-        labelTags: tagsOf(outcome.read.labelText), readSource: outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
+        labelTags: tagsOf(outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
         customs: { ...EMPTY_CUSTOMS },
       }];
       sources = { ...sources, onDevice: sources.onDevice + (outcome.source === "on_device" ? 1 : 0), inCloud: sources.inCloud + (outcome.source === "in_cloud" ? 1 : 0) };

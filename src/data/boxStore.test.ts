@@ -132,9 +132,12 @@ describe("createBoxStore", () => {
     s.addRead(outcome(shirtSeenRead, "in_cloud"), "b");
     expect(s.getState().sources).toMatchObject({ onDevice: 1, inCloud: 1 });
     expect(seen).toHaveBeenCalledTimes(2);
+    const c = s.addRead({ ...outcome(shirtSeenRead, "in_cloud"), unreported: true }, "c");
+    expect(s.getState().items.find((i) => i.itemId === c)?.readSource).toBe("cloud_unreported");
+    expect(s.getState().sources).toMatchObject({ onDevice: 1, inCloud: 2 });
     off();
     s.setConsent(false);
-    expect(seen).toHaveBeenCalledTimes(2);
+    expect(seen).toHaveBeenCalledTimes(3);
     expect(s.getState().cloudConsent).toBe(false);
   });
 
