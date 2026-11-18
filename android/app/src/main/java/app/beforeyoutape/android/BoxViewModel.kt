@@ -171,8 +171,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish()
     }
 
-    override fun quantity(itemId: String, n: Double) = onWorker {
-        box.setQuantity(itemId, n)
+    override fun quantity(itemId: String, step: Int) = onWorker {
+        box.stepQuantity(itemId, step)
         publish()
     }
 

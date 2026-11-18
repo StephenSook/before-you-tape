@@ -58,7 +58,7 @@ class HomeScreenTest {
         override fun fixed(itemId: String, draft: ReadDraft) { calls += "fixed:$itemId" }
         override fun answer(itemId: String, questionId: String, answerId: String) { calls += "answer" }
         override fun remove(itemId: String) { calls += "remove:$itemId" }
-        override fun quantity(itemId: String, n: Double) { calls += "quantity:$itemId:$n" }
+        override fun quantity(itemId: String, step: Int) { calls += "quantity:$itemId:$step" }
     }
 
     private fun show(ui: HomeUi, a: Recorded = Recorded()): Recorded {
@@ -120,7 +120,9 @@ class HomeScreenTest {
         rule.onNodeWithContentDescription(Copy.ONE_FEWER).performScrollTo().assertIsNotEnabled()
         rule.onNodeWithText(Copy.howMany(1)).assertExists()
         rule.onNodeWithContentDescription(Copy.ONE_MORE).performScrollTo().performClick()
-        assertEquals(listOf("quantity:a:2.0"), a.calls)
+        rule.onNodeWithContentDescription(Copy.ONE_MORE).performScrollTo().performClick()
+        // Each tap sends a step, never an absolute number, so fast taps cannot overwrite each other.
+        assertEquals(listOf("quantity:a:1", "quantity:a:1"), a.calls)
     }
 
     @Test fun aFixStartsFromTheCurrentReading() {

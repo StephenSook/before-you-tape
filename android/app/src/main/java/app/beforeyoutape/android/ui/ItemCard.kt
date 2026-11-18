@@ -35,7 +35,7 @@ fun ItemCard(
     onAnswer: (itemId: String, questionId: String, answerId: String) -> Unit,
     onFix: ((itemId: String) -> Unit)? = null,
     onRemove: ((itemId: String) -> Unit)? = null,
-    onQuantity: ((itemId: String, n: Double) -> Unit)? = null,
+    onQuantity: ((itemId: String, step: Int) -> Unit)? = null,
 ) {
     val input = item.input
     val name = input.overrides["itemName"]?.jsonPrimitive?.content ?: input.read.itemName
@@ -47,13 +47,13 @@ fun ItemCard(
             verdict.hits.firstOrNull()?.let { Text(it.text, style = MaterialTheme.typography.bodyLarge) }
             Text(Copy.source(item.readSource), style = MaterialTheme.typography.bodyMedium)
             onQuantity?.let { set ->
-                // 1 to 99, as the box keeps it.
+                // Each tap sends a step, applied to the current quantity (1 to 99) in order.
                 val n = input.quantity.toInt()
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { set(input.itemId, n - 1.0) }, enabled = n > 1,
+                    TextButton(onClick = { set(input.itemId, -1) }, enabled = n > 1,
                         modifier = Modifier.semantics { contentDescription = Copy.ONE_FEWER }) { Text("-") }
                     Text(Copy.howMany(n), style = MaterialTheme.typography.bodyLarge)
-                    TextButton(onClick = { set(input.itemId, n + 1.0) }, enabled = n < 99,
+                    TextButton(onClick = { set(input.itemId, 1) }, enabled = n < 99,
                         modifier = Modifier.semantics { contentDescription = Copy.ONE_MORE }) { Text("+") }
                 }
             }

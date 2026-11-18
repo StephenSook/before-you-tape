@@ -55,6 +55,12 @@ object BoxLogic {
         return s.copy(items = s.items.map { if (it.input.itemId == itemId) it.copy(input = it.input.copy(quantity = q)) else it })
     }
 
+    /** One tap of "One more" (1) or "One fewer" (-1), applied to the current quantity. */
+    fun stepQuantity(s: BoxState, itemId: String, step: Int): BoxState {
+        val now = s.items.firstOrNull { it.input.itemId == itemId }?.input?.quantity ?: return s
+        return setQuantity(s, itemId, now + step)
+    }
+
     fun remove(s: BoxState, itemId: String): BoxState = s.copy(items = s.items.filter { it.input.itemId != itemId })
 
     fun answer(s: BoxState, itemId: String, questionId: String, answerId: String): BoxState = s.copy(
@@ -128,6 +134,11 @@ class BoxController(initial: BoxState, private val engine: BoxEngine, private va
 
     fun remove(itemId: String) {
         state = BoxLogic.remove(state, itemId)
+        recheck()
+    }
+
+    fun stepQuantity(itemId: String, step: Int) {
+        state = BoxLogic.stepQuantity(state, itemId, step)
         recheck()
     }
 

@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Fast quantity taps add up instead of overwriting each other.** Each card sent an absolute
+  quantity (the shown number plus or minus one). Two fast taps on "One more" before the card
+  redrew both sent 2, so the engine judged two phones when the sender meant three. A tap now
+  sends a step (1 or -1), applied to the current quantity on the box's worker thread, in order,
+  and kept between 1 and 99. Source: review (second model) of the Android pull request, finding
+  5. Verified: `OverridesTest.quantityStepsAddUpAndStayBetweenOneAndNinetyNine` failed to
+  compile first, then passes (two steps from 1 give 3; one fewer stops at 1; one more stops at
+  99). `HomeScreenTest.theQuantityStepsUpAndCannotGoBelowOne` now taps twice and records two
+  steps; it passes on the emulator (8 of 8). `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
 - **One shared sign-in, so two anonymous users can never race.** App start launched its own
   anonymous sign-in without waiting, and a cloud read (or a box write) could start a second one
   through `FirebaseSignIn` at the same time. Whichever finished last became the user, so a

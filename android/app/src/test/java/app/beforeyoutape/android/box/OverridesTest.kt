@@ -68,6 +68,19 @@ class OverridesTest {
         assertEquals(1.0, c.state.items.single().input.quantity, 0.0)
     }
 
+    /** Taps send steps, applied to the current quantity in order, so two fast "+" taps from 1 give 3. */
+    @Test fun quantityStepsAddUpAndStayBetweenOneAndNinetyNine() {
+        val c = withBank(Recorder(result))
+        c.stepQuantity("b", 1)
+        c.stepQuantity("b", 1)
+        assertEquals(3.0, c.state.items.single().input.quantity, 0.0)
+        c.stepQuantity("b", -5)
+        assertEquals(1.0, c.state.items.single().input.quantity, 0.0)
+        c.setQuantity("b", 99.0)
+        c.stepQuantity("b", 1)
+        assertEquals(99.0, c.state.items.single().input.quantity, 0.0)
+    }
+
     @Test fun aRemovedItemLeavesTheBoxAndTheBoxRechecks() {
         val e = Recorder(result)
         val c = withBank(e)

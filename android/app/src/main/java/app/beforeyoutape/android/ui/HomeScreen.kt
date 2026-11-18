@@ -53,7 +53,8 @@ interface HomeActions {
     fun fixed(itemId: String, draft: ReadDraft)
     fun answer(itemId: String, questionId: String, answerId: String)
     fun remove(itemId: String)
-    fun quantity(itemId: String, n: Double)
+    /** One tap: 1 for one more, -1 for one fewer. */
+    fun quantity(itemId: String, step: Int)
 }
 
 /**
