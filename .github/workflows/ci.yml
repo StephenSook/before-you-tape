@@ -96,7 +96,7 @@ jobs:
       - name: Browser checks that need App Check
         env:
           APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
-        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts
+        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/token-origin.spec.ts
 
       - name: Tone check
         run: npm run tone
