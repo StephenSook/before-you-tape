@@ -3,6 +3,14 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Every shared vector runs against the bundle on the JVM (gate G-A0).** `SharedVectorsTest`
+  runs all 20 box, 64 review guard and 21 destination vectors through `EngineHost` in QuickJS,
+  with the TypeScript engine tests' own assertions and the shared defaults file, checks the
+  counts against the files, proves itself with a planted wrong expectation (exactly one
+  failure, naming that vector and item), and checks that every guard vector pins every item.
+  The result is recorded in `docs/evidence/android/G-A0.md`. Source: Android plan Task 3.
+  Verified: 6 of 6 pass; `bash android/ci-local.sh` (14 tests) and the root CI mirror exit 0.
+
 - **Engine host that runs the shared rules bundle.** `EngineHost` loads `byt-engine.js` into a
   `JsRuntime`, refuses a bundle whose SHA-256 differs from its manifest (`BundleMismatch`) or
   whose bridge version is not 1, and calls the JSON bridge: `setEdition`, `canonicalEdition`,
