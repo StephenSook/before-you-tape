@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `playwright.config.ts`: the local project never reuses a server that is already on port 4173; it always starts this build's own preview, and fails if the port is taken. Another project's preview was on 4173, and the starts and contrast checks quietly tested that app instead of this one. The port stays 4173, because the browser API key allows only localhost 4173 and 5173. Source: a local CI mirror run whose page snapshot showed another app. Verified: both browser specs pass on this build; local CI mirror exit 0.
 - `src/pages/PackPage.tsx`: a read that found no item (`isNoItem`) is dropped with the hint "Nothing to check there. Hold one item inside the box.", never added as a card, with no crop kept. This covers both a steady camera read and a pressed Check now or added photo. Source: a judge-style review found junk cards named "unknown" with a stored room thumbnail. Verified: new tests in `src/pages/PackPage.test.tsx` (an added photo) and `src/pages/PackSteady.test.tsx` (a steady frame) assert no card, no item and the hint. A mutant without the check fails both; local CI mirror exit 0.
 - `src/pages/PackPage.tsx` and `src/ui/ItemCard.tsx`: the pack page routes each image by how it arrived (`chooseImageRoute`).
 - An item the camera read by itself is read on the built-in model, and the camera may do that only when one exists (`autoRead`). Without one, it reads nothing by itself.
