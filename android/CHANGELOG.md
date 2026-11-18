@@ -3,6 +3,21 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **One client for every Firebase AI Logic call.** `AiClient` is the only file that calls
+  `Firebase.ai(` and `generativeModel(` (the lane guard enforces it): Gemini Developer API
+  backend, limited-use App Check tokens behind Remote Config, the model name and on-device
+  model option from Remote Config, and `generateObject` with the `LabelRead` schema over one
+  content holding the crop image and the prompt text. A read that could reach the cloud refuses
+  to start (`CloudPausedException`) while `kill_cloud` is on or no cloud model is set.
+  `deviceStatus()` maps `checkStatus()` and passes cancellation through. `AiMapping` holds the
+  pure translations (status, mode, source, model option, read); `Models.kt` the app's own
+  types; `CropImage` is what a read may send: the cropped pixels only. Not yet run against the
+  project: the Android app is not registered in Firebase, so the live cloud read test waits.
+  Source: Android plan Task 6. Verified: `AiMappingTest` (4 tests, which failed to compile
+  before the code existed) passes: every SDK status, mode, source and model-option string maps,
+  and a null object is a null read; `bash android/ci-local.sh` (27 tests) and the root CI
+  mirror exit 0.
+
 - **Label read type generated for Firebase AI Logic.** `LabelRead` is a `@Generable` data
   class with the web app's 16 item-read fields in the same order, no `@Guide` text and no
   defaults; `toWire()` gives the engine's `ItemReadWire`. On-device and hybrid modes need such
