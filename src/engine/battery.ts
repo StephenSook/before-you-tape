@@ -45,7 +45,9 @@ function presenceOf(
   // "no battery" or "not lithium" answer from an earlier reading cannot clear one.
   if (BATTERY_DEVICES.has(read.category)) return "installed";
   if (answer === "installed") return "installed";
-  if (answer === "none" || answer === "not_lithium") return "none";
+  // "No battery" and "not lithium" count only when nothing printed says lithium; a label that
+  // says LI-ION or prints mAh, Wh or grams keeps the battery in the lithium checks.
+  if ((answer === "none" || answer === "not_lithium") && !lithiumEvidence) return "none";
   // Volts alone (a mains appliance) or the word battery alone (AA, AAA) is not lithium evidence: ask.
   if (MAYBE_BATTERY_DEVICES.has(read.category)) return lithiumEvidence ? "installed" : "unknown";
   return hasEvidence ? "unknown" : "none";
