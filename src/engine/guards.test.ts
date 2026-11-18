@@ -25,6 +25,8 @@ describe("review guard vectors", () => {
     const all = guards as unknown as Guard[];
     expect(all.length).toBeGreaterThanOrEqual(2);
     for (const g of all) {
+      // Every vector pins a verdict for every item it lists, so none can pass while asserting nothing.
+      expect(Object.keys(g.expect).sort(), `${g.name} must pin a verdict for each item`).toEqual(g.items.map((i) => i.itemId).sort());
       const items: BoxItemInput[] = g.items.map((i) => ({
         overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: [], ...i, read: { ...baseRead, ...i.read },
       }));

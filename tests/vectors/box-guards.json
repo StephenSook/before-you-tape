@@ -144,7 +144,7 @@
   {
     "name": "face_cream_with_alcohol_is_not_an_alcoholic_drink", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "cream", "read": { "category": "lotion_cream", "labelText": "FACE CREAM ALCOHOL DENAT", "alcoholOnLabel": true } }],
-    "expect": {}, "notRules": { "cream": ["CA-P-01"] }
+    "expect": { "cream": "ok" }, "notRules": { "cream": ["CA-P-01", "USPS-INTL-ALCOHOL-DRINK"] }
   },
   {
     "name": "nail_polish_is_not_a_lighter", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
