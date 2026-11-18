@@ -37,8 +37,8 @@ OWNED = [(re.compile(r"\bSystemLanguageModel\b"), "SystemLanguageModel", SESSION
          (re.compile(r"\bfirebaseAI\s*\("), "firebaseAI(", CLIENT_OWNER)]
 SYMBOLS = [(re.compile(rf"\b{name}\b"), name) for name in BANNED_SYMBOLS]
 
-# Measured when the guard was written (2026-11-18): 4 files under ios/ besides the guard. Raise it as ios/ grows.
-DEFAULT_MIN_FILES = 4
+# Measured 2026-11-18 after the engine host, read type and router: 29 files under ios/ besides the guard.
+DEFAULT_MIN_FILES = 29
 
 
 def list_files(root: Path) -> list[str]:

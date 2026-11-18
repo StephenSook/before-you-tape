@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### chore(ios): raise the iOS guard's file floor to the files it walks today
+- What: the guard's floor goes from 4 to 29, the number of files under `ios/` it walks now
+  (besides itself), so a broken file list fails instead of passing as clean.
+- Source: the guard's own rule (a walk below the floor is not clean).
+- Verified: the guard walks 29 files and passes; its six tests pass; `bash
+  ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios-core): route each read by availability, consent and network, with no cloud after a block
 - What: `ReadRoutePolicy.decide` gives the route in the web app's words (hybrid, device_only,
   cloud_only, blocked) and a reason; a photo needs the on-device model to take an image, label
