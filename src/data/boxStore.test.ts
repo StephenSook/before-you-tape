@@ -45,6 +45,18 @@ describe("createBoxStore", () => {
     expect(s.getState().sources.rulesOnlyRechecks).toBe(1);
   });
 
+  it("keeps the re-check time only until the box changes, so it never describes a later read", () => {
+    const s = store();
+    s.addManual(liquidLotionRead);
+    s.setDestination("PH");
+    expect(s.getState().lastRecheckMs).not.toBeNull();
+    s.addRead(outcome(shirtRead, "in_cloud"), "crop-1");
+    expect(s.getState().lastRecheckMs).toBeNull();
+    s.setDestination("CA");
+    s.addManual(shirtRead);
+    expect(s.getState().lastRecheckMs).toBeNull();
+  });
+
   it("late read uses current destination", () => {
     const s = store();
     s.setDestination("PH");

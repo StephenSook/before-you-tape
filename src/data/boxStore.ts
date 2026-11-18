@@ -162,6 +162,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
       items = [...items, item];
+      // The re-check line describes the last country change only; a new read is not part of it.
+      lastRecheckMs = null;
       sources = {
         ...sources,
         onDevice: sources.onDevice + (outcome.source === "on_device" ? 1 : 0),
@@ -177,6 +179,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
       }];
+      lastRecheckMs = null;
       commit();
       return itemId;
     },
