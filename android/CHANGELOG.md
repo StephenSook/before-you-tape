@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The APK scanner reads its tokens without putting them on a command line.** `scan-apk.sh`
+  passed the Keychain debug tokens to its Python step as arguments, where any local process
+  could read them during a scan. The Python step now reads them from the Keychain itself, and
+  only the Keychain service names are arguments. Source: automated security review of the
+  scanner commit. Verified: a new `scan-apk.test.sh` check (no token array passed as
+  arguments) failed first, then passes, with the three earlier checks still passing on real
+  builds; the release APK scans clean (583 entries, 0 hits); `bash android/ci-local.sh` and the
+  root CI mirror exit 0.
+
 - **One script builds and checks the release APK.** `android/release.sh` reads the keystore
   password from the Keychain into the build process only, and builds without the configuration
   cache. It prints the signing certificate, scans the exact signed file with `scan-apk.sh`, and

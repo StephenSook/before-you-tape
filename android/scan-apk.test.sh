@@ -6,7 +6,8 @@ set -uo pipefail
 cd "$(dirname "$0")"
 fail=0
 debug=app/build/outputs/apk/debug/app-debug.apk
-release=app/build/outputs/apk/release/app-release-unsigned.apk
+release=app/build/outputs/apk/release/app-release.apk
+[ -s "$release" ] || release=app/build/outputs/apk/release/app-release-unsigned.apk
 [ -s "$debug" ] && [ -s "$release" ] || { echo "scan-apk.test: build both APKs first (assembleDebug assembleRelease)" >&2; exit 2; }
 
 out="$(bash scan-apk.sh "$debug" 2>&1)"; rc=$?
@@ -19,4 +20,6 @@ if [ $rc -eq 0 ]; then echo "ok: the release APK is clean"; else echo "FAIL: rel
 
 bash scan-apk.sh /nonexistent.apk > /dev/null 2>&1; rc=$?
 if [ $rc -eq 2 ]; then echo "ok: a missing APK exits 2"; else echo "FAIL: missing APK gave exit $rc"; fail=1; fi
+# No token may travel as a command-line argument (other processes can read argv).
+if grep -q 'tokens\[@\]' scan-apk.sh; then echo "FAIL: scan-apk.sh passes tokens as arguments"; fail=1; else echo "ok: no token is passed as an argument"; fi
 exit $fail
