@@ -125,6 +125,7 @@ describe("evaluateBox", () => {
       "chocolate_bar_to_philippines_is_check", "chocolate_named_on_a_packaged_food_to_philippines_is_check",
       "margarine_to_philippines_is_check", "chocolate_bar_to_canada_stays_ok",
       "ceramic_mug_to_canada_is_ok", "ceramic_mug_to_philippines_is_check", "porcelain_named_on_the_label_to_philippines_is_check",
+      "sender_ticked_alcohol_settles_it",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

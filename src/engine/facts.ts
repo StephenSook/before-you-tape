@@ -104,10 +104,12 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   const tagList = [...tags].sort();
 
   // Alcohol in the label words or the category wins over a "no". The model's flag alone does not:
-  // it leaves alcohol unknown, which asks the sender, and their "no" clears it.
+  // it leaves alcohol unknown, which asks the sender, and their "no" clears it. The sender's own word that
+  // the label lists alcohol (a ticked box on a typed item or a fix) settles it like their answer would.
   const answer = input.answers.label_alcohol;
+  const senderSaysAlcohol = input.overrides.alcoholOnLabel === true;
   const cleared = answer === "no" || (freeUnsure && freeAnswer === "yes");
-  const alcohol: ItemFacts["alcohol"] = tags.has("alcohol") || answer === "yes" ? "yes" : cleared ? "no" : "unknown";
+  const alcohol: ItemFacts["alcohol"] = tags.has("alcohol") || answer === "yes" || senderSaysAlcohol ? "yes" : cleared ? "no" : "unknown";
 
   let identity: ItemFacts["identity"] = "unconfirmed";
   if (input.identityConfirmedBy) identity = input.identityConfirmedBy;

@@ -156,5 +156,11 @@
     "code": "PH", "today": "2026-11-20",
     "items": [{ "itemId": "plate", "read": { "category": "other", "labelText": "FINE PORCELAIN DINNER PLATE" } }],
     "expect": { "plate": "check" }, "expectRules": { "plate": ["PH-P-01"] }
+  },
+  {
+    "name": "sender_ticked_alcohol_settles_it", "source": "a typed item or a fix: the sender's own word that the label lists alcohol",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "perfume", "identityConfirmedBy": "sender", "read": { "category": "perfume_fragrance", "liquid": true }, "overrides": { "alcoholOnLabel": true } }],
+    "expect": { "perfume": "take_out" }, "expectRules": { "perfume": ["USPS-INTL-FLAMMABLE-LIQUID"] }
   }
 ]
