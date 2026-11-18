@@ -164,8 +164,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     override fun show(view: HomeView) {
         // Going back to the camera starts a new scan session (lifts a refusal pause).
-        // On the worker, where reads count refusals.
-        if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) onWorker { session.startNewScan() }
+        // A new scan session; the reset itself waits for the next read (a read still running stays in the old one).
+        if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) session.startNewScan()
         publish { it.copy(view = view, message = null) }
     }
 

@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A read still running when a new scan session starts counts in the old session.** Going back to
+  the camera reset the refusal count at once, on the worker. A slow read from before was still
+  waiting on the model; when it returned with a refusal, that refusal counted as the first of the
+  new session, so two more would pause photo reads early. `BoxSession.startNewScan` now marks the
+  reset as pending, and `check` applies it just before the next read starts. Source: review
+  (second model) of the Android pull request, round 2, finding 5. Verified: the updated
+  `aNewScanSessionLiftsTheRefusalPause` and the new `aReadInFlightDuringANewSessionIsNotCountedInIt`
+  failed first (the reset landed between the old read's start and end), then pass; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **An older model check can no longer put a stale status back.** Every model status check wrote
   its result when it finished. If the app went to the background and back during a download, the
   resume check could finish after the post-download check and set the status back to

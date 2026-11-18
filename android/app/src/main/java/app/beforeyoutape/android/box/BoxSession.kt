@@ -16,14 +16,27 @@ class BoxSession(
     private val newId: () -> String,
     private val resetRun: () -> Unit,
 ) {
+    @Volatile private var resetPending = false
+
     /**
      * A new scan session (the person went back to the camera): three refusals in a row pause photo
-     * reads for the session, and this lifts the pause.
+     * reads for the session, and this lifts the pause. The reset is applied just before the next read
+     * starts, so a read still running from the old session counts in the old session.
      */
-    fun startNewScan() = resetRun()
+    fun startNewScan() {
+        resetPending = true
+    }
 
     /** null when the item was added, otherwise the line to show. */
-    suspend fun check(crop: CropImage): String? = when (val out = reader(crop)) {
+    suspend fun check(crop: CropImage): String? {
+        if (resetPending) {
+            resetPending = false
+            resetRun()
+        }
+        return outcome(reader(crop))
+    }
+
+    private fun outcome(out: ReadOutcome): String? = when (out) {
         is ReadOutcome.Read -> {
             box.addRead(out.read, tags(out.read.labelText), out.source, out.ms, newId())
             null
