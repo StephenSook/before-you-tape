@@ -179,6 +179,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     confirmIdentity: (itemId) => update(itemId, (i) => ({ ...i, identityConfirmedBy: "sender" })),
     applySecondLook(itemId, merged, ms, reason) {
       sources = { ...sources, secondLooks: sources.secondLooks + 1 };
+      // A second look that worked replaces any earlier failure of it.
+      if (errors[itemId] !== undefined) {
+        const { [itemId]: _done, ...rest } = errors;
+        void _done;
+        errors = rest;
+      }
       // A second look confirms identity only when both reads see the same kind of item.
       update(itemId, (i) => ({
         ...i, read: merged, labelTags: tagsOf(merged.labelText), secondLook: { ms, reason },
