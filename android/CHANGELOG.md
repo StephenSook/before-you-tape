@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **One script builds and checks the release APK.** `android/release.sh` reads the keystore
+  password from the Keychain into the build process only, and builds without the configuration
+  cache. It prints the signing certificate, scans the exact signed file with `scan-apk.sh`, and
+  requires `zipalign -c -P 16` to pass, so the QuickJS native libraries suit 16 KB memory
+  pages. Its last line names the APK. Source: Android plan Task 14. Verified: `bash
+  android/release.sh` exit 0; certificate SHA-256 `7d672af6...6ada` (the registered one); scan
+  583 entries, 0 hits; zipalign 16 KB check exit 0; last line `release APK:
+  app/build/outputs/apk/release/app-release.apk`; `bash android/ci-local.sh` and the root CI
+  mirror exit 0. The phone check (G-A4) waits for the App Check provider decision and the A16.
+
 - **Every release APK is scanned for App Check debug secrets.** `android/scan-apk.sh` (ported
   from the PLS app, with this app's Keychain token names) checks the raw bytes of every entry
   (UTF-8 and UTF-16), the decoded resource table and the dex. It reports any debug token, a
