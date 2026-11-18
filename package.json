@@ -17,6 +17,10 @@
     "test": "vitest run",
     "tone": "tsx scripts/tone-check.ts",
     "guard": "tsx scripts/model-guard.ts",
+    "edition": "tsx scripts/build-edition.ts",
+    "edition:check": "tsx scripts/build-edition.ts --check",
+    "release:gate": "tsx scripts/release-gate.ts",
+    "desk:apply": "tsx scripts/apply-desk-pass.ts",
     "appcheck:control": "tsx --env-file-if-exists=.env.local scripts/appcheck-control.ts"
   },
   "dependencies": {
