@@ -6,6 +6,16 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `public/eval/items/*.jpg` and `eval/set/manifest.json`, the output of `scripts/eval-set-photos.py` for set `eval-v1`. 40 published photos, 11 MB, 1600 px on the long side.
+- 13 are the project owner's and 27 are public photos: 22 from Wikimedia Commons (CC BY-SA 3.0 or 4.0, CC BY 2.0, CC0 1.0, public domain) and 5 from Open Food Facts or Open Beauty Facts (CC BY-SA 3.0).
+- Each manifest item carries the published and the original SHA-256, size, alt text, printed battery numbers where a label prints them, and provenance with source page, file URL, author, license, license link and changes.
+- Labels and hashes for the protocol and the labels come later; they stay empty until the freeze.
+Source: plan Task 29. Verified:
+- Every original matched its recorded SHA-256 before processing.
+- exiftool finds 0 Exif, XMP, IPTC or comment tags in the 40 copies.
+- The repo's own segment parser agrees, and finds Exif in exactly the 10 originals whose changes say "metadata removed".
+- A contact sheet of four copies is upright with readable labels.
+- Local CI mirror exit 0.
 - `scripts/eval-set-photos.py`: builds the published eval photos and `eval/set/manifest.json` from the original photos, which stay private. For each item it checks the original's SHA-256, turns it upright, shrinks it to 1600 px on the long side (never enlarging), and saves a fresh JPEG at quality 88 with no Exif, XMP, IPTC or comment block; only the ICC color profile is kept. It records both hashes and writes `changes` from what it actually did. The app crops to 768 px before any model call, so 1600 px loses nothing the model sees. Needs Python 3 with Pillow. Source: plan Task 29 and the review of the public photos (strip metadata, keep originals private, record both hashes). Verified: compiles; its output is checked by the photo check in the next commits; local CI mirror exit 0.
 - `src/eval/types.ts` and `src/eval/manifest.ts`: each photo's provenance now says how the published copy differs from the original (`changes`, required, for example "resized, metadata removed"), with an optional `fileUrl` for the exact file it was downloaded from. `setProblems` rejects an empty `changes`. The credit line for an open-license photo ends with the changes in parentheses, since CC BY and CC BY-SA ask for changes to be shown. Source: review of the public photos (credits must say each image was modified). Verified by tests in `src/eval/manifest.test.ts` that failed first (14 eval tests pass); local CI mirror exit 0.
 - `scripts/photo-check.ts`: the photo check now also rejects a JPEG comment block, which can carry a name, beside Exif, XMP and IPTC. Pillow copies an existing comment into a saved JPEG, so a re-encoded photo could keep one. Source: review of the photo pipeline before publishing the eval photos. Verified by a new test in `scripts/photo-check.test.ts` that failed first; local CI mirror exit 0.
