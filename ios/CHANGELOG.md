@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): look for a camera before asking to use it
+- What: `CameraSession.start` used to ask for camera permission before looking for a camera,
+  so an iPhone with no usable camera (and the simulator) showed a permission prompt for nothing.
+  It now looks first: no camera gives "No camera found. Add a photo instead." with no prompt;
+  the decision is `CameraSession.firstStep(hasCamera:status:)`.
+- Source: the simulator check of the camera screen.
+- Verified: a test (no camera never asks; asked, refused, restricted and allowed each map right)
+  failed to compile, then passed; 61 app tests pass; on a fresh simulator the screen shows the
+  line with no prompt; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): read a photo from the camera or the library into the box
 - What: "Check an item" on the Ready check opens the camera screen. A crop (or a picked photo)
   goes to `AppModel.readPhoto`, which reads it on the router's path with the phone's network

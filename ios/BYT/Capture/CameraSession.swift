@@ -22,17 +22,28 @@ final class CameraSession: NSObject, @unchecked Sendable {
     private var configured = false
     private var inFlight: [Int64: PhotoDelegate] = [:]
 
-    func start() async -> CameraState {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized: break
-        case .notDetermined:
-            guard await AVCaptureDevice.requestAccess(for: .video) else { return .denied }
+    enum Step: Equatable, Sendable { case noCamera, denied, ask, run }
+
+    /// Look for a camera before asking to use it: with no camera there is nothing to allow.
+    static func firstStep(hasCamera: Bool, status: AVAuthorizationStatus) -> Step {
+        guard hasCamera else { return .noCamera }
+        switch status {
+        case .authorized: return .run
+        case .notDetermined: return .ask
         default: return .denied
         }
+    }
+
+    func start() async -> CameraState {
         let types: [AVCaptureDevice.DeviceType] = [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera, .builtInWideAngleCamera]
-        guard let device = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video, position: .back).devices.first else {
-            return .unavailable
+        let device = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video, position: .back).devices.first
+        switch Self.firstStep(hasCamera: device != nil, status: AVCaptureDevice.authorizationStatus(for: .video)) {
+        case .noCamera: return .unavailable
+        case .denied: return .denied
+        case .ask: guard await AVCaptureDevice.requestAccess(for: .video) else { return .denied }
+        case .run: break
         }
+        guard let device else { return .unavailable }
         return await withCheckedContinuation { continuation in
             queue.async { [self] in
                 continuation.resume(returning: configureAndRun(device))
