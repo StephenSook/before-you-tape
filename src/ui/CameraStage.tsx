@@ -2,7 +2,7 @@
 // reads the hold zone when an item sits still and sharp in it, on "Check now" (or Space), or from a photo.
 // When the camera cannot help, it says why and offers the other ways in.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ImagePart } from "../ai/port";
+import type { ImageHow, ImagePart } from "../ai/port";
 import { CameraError, type CameraErrorKind, type openCamera as openCameraFn } from "../capture/camera";
 import { cropToJpeg, fileToJpeg } from "../capture/crop";
 import { SteadyDetector, type Box, type SteadyConfig, type SteadyEvent } from "../capture/steady";
@@ -15,7 +15,7 @@ const FRAME_W = 64;
 const FRAME_H = 36;
 const FRAME_MS = 100;
 
-export type ImageHow = "steady" | "check_now" | "upload";
+export type { ImageHow };
 
 export interface CameraStageProps {
   openCamera: typeof openCameraFn;
