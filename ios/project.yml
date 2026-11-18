@@ -83,6 +83,19 @@ targets:
         "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
     dependencies:
       - target: BYT
+  BYTUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: BYTUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.beforeyoutape.reader.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: BYT
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+    dependencies:
+      - target: BYT
 schemes:
   BYT:
     build:
@@ -91,3 +104,4 @@ schemes:
     test:
       targets:
         - BYTTests
+        - BYTUITests

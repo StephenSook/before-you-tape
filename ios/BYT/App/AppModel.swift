@@ -70,7 +70,11 @@ final class AppModel {
     func start() async {
         network.start()
         signedIn = await signIn.ensure()
+        #if DEBUG
+        if !UITestSupport.active { onDevice = ModelSessionFactory.onDeviceStatus() }
+        #else
         onDevice = ModelSessionFactory.onDeviceStatus()
+        #endif
     }
 
     /// Reads one cropped photo on the router's path and adds what it read to the box. The cloud is

@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### test(ios): run the box loop on screen: a read, its verdict, and a country flip
+- What: a UI test target (`BYTUITests`) with `LoopUITests`. With the launch argument
+  `-uiTestFakeReader`, a debug-only fixed reader returns a body lotion, the on-device model counts
+  as available and the box is kept in memory (`UITestSupport`, compiled only into debug builds).
+  The test types the label words, reads them, sees "Body lotion: OK to pack. Read on this
+  iPhone.", opens the box, switches the country to the Philippines, and sees "1 to take out" and
+  "Re-checked 1 items for Philippines in N ms. 0 model calls." The photo picker runs outside the
+  app, so the label words field carries the item in; the photo path itself was checked by hand.
+- Source: iPhone client plan, task I-9 (the UI test "photo, verdict, country flip").
+- Verified: the UI test passes on the simulator (about 23 s); `bash ios/scripts/ci-local-ios.sh`
+  exit 0 with it in the scheme.
+
 ### fix(ios): keep each line's own accessibility id inside a group
 - What: the summary, the consent sheet, the layer list and the question row set an id on their
   group, which SwiftUI passed down over their children's own ids, so "recheck-line" and the
