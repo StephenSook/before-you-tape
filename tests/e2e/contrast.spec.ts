@@ -1,8 +1,8 @@
 // Every control on the camera stage must be readable: its text at least 4.5:1 against its own background
 // (WCAG 2.2 AA). The stage is dark with light text, so a button that inherits that light text on its
-// light background disappears; it did, at 1:1. A fake camera stands in for a webcam so the stage shows
-// its camera controls. Plain Playwright: it needs no App Check token, so CI runs it.
-import { expect, test } from "@playwright/test";
+// light background disappears; it did, at 1:1. Checked before and after the camera starts; a fake camera
+// stands in for a webcam. Plain Playwright: it needs no App Check token, so CI runs it.
+import { expect, test, type Locator } from "@playwright/test";
 
 test.use({
   permissions: ["camera"],
@@ -12,9 +12,19 @@ test.use({
 test("every control on the camera stage has readable text", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByTestId("stage");
-  await expect(stage.getByRole("button").first()).toBeVisible({ timeout: 20_000 });
+  await expect(stage.getByRole("button", { name: "Start camera" })).toBeVisible({ timeout: 20_000 });
+  const before = await ratiosOf(stage);
+  await stage.getByRole("button", { name: "Start camera" }).click();
+  await expect(stage.getByRole("button", { name: "Check now" })).toBeVisible();
+  const after = await ratiosOf(stage);
 
-  const ratios = await stage.evaluate((root) => {
+  expect(before.length, "the stage shows its controls before the camera starts").toBeGreaterThanOrEqual(2);
+  expect(after.length, "and once it is on").toBeGreaterThanOrEqual(3);
+  for (const r of [...before, ...after]) expect(r.ratio, r.name).toBeGreaterThanOrEqual(4.5);
+});
+
+function ratiosOf(stage: Locator) {
+  return stage.evaluate((root) => {
     const rgba = (c: string): [number, number, number, number] => {
       const n = (c.match(/[\d.]+/g) ?? []).map(Number);
       return [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0, n.length > 3 ? (n[3] ?? 1) : 1];
@@ -44,7 +54,4 @@ test("every control on the camera stage has readable text", async ({ page }) => 
     }
     return out;
   });
-
-  expect(ratios.length, "the stage shows its controls").toBeGreaterThanOrEqual(2);
-  for (const r of ratios) expect(r.ratio, r.name).toBeGreaterThanOrEqual(4.5);
-});
+}
