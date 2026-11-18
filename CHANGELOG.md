@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `eval/PROTOCOL.md` and `src/eval/ruleChanges.ts`: the protocol records, in plain words, that two engine rule changes were made after the set was labelled, prompted by items i25 (commit dda2875: chocolate and margarine are easily liquefiable for the Philippines) and i20 (commit 877f673: a ceramic category). The labels themselves were not changed. Every eval report gives two numbers side by side for every metric, all 40 items and the 38 that prompted no change, with the same denominator rule. From the freeze on, no item may prompt an engine change; a later gap is a miss, and its fix waits for a new set. `RULE_CHANGES_AFTER_LABELLING` lists the two changes, and `untouchedItems(set)` gives the set without those items for the second number. Source: the eval review ruling on the two rule gaps. Verified by `src/eval/ruleChanges.test.ts` (the listed changes and the subset), which failed before the module existed; tone check clean; local CI mirror exit 0.
 - A new item category, `ceramic` (ceramic or porcelain: a mug, a plate, a vase), so a ceramic item is no longer "other".
 - `src/shared/itemRead.ts` adds it before "other", so the model's category list and the parser have it.
 - `src/ui/categoryLabels.ts` labels it "Ceramic or porcelain (mug, plate, vase)".
