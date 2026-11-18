@@ -42,12 +42,15 @@ export const GUARD_PATHSPECS = [
   ":(glob)functions/src/**",
   ":(glob)scripts/**",
   ":(glob)tests/**",
+  ":(glob)extension/**",
+  ":(exclude)extension/dist/**",
+  ":(exclude)extension/out/**",
   ":(exclude)scripts/model-guard.ts",
   ":(exclude)scripts/model-guard.test.ts",
 ];
 
-// Measured on 2026-11-17 at bootstrap: 9 files. A walk below this means the pathspecs broke.
-export const GUARD_MIN_FILES = 6;
+// Measured on 2026-11-18 with the extension lane: 175 files. Allow three files of headroom.
+export const GUARD_MIN_FILES = 172;
 
 export function guardFiles(files: TextFile[], minFiles: number): { ok: boolean; messages: string[] } {
   const messages: string[] = [];

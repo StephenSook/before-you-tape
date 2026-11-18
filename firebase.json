@@ -8,6 +8,15 @@
   "hosting": {
     "site": "before-you-tape-2026",
     "public": "dist",
+    "headers": [
+      {
+        "source": "/edition.json",
+        "headers": [
+          { "key": "Access-Control-Allow-Origin", "value": "*" },
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

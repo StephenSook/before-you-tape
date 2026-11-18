@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "tests/**/*.test.ts"],
+    include: ["extension/**/*.test.{ts,tsx}", "src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "tests/**/*.test.ts"],
     // The Firestore rules tests need the emulator: npm run test:rules.
     exclude: ["tests/e2e/**", "tests/firestore/**", "node_modules/**"],
   },

@@ -10,6 +10,9 @@
   },
   "scripts": {
     "dev": "vite",
+    "ext:build": "vite build -c extension/vite.config.ts",
+    "ext:check": "node --import tsx scripts/ext-check.ts",
+    "ext:zip": "node --import tsx scripts/ext-zip.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",

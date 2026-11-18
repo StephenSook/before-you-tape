@@ -56,6 +56,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build extension
+        run: npm run ext:build
+
+      - name: Check extension package
+        run: npm run ext:check
+
       - name: Build serves this commit
         run: |
           built=$(python3 -c "import json;print(json.load(open('dist/version.json'))['sha'])")

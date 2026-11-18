@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -12,6 +13,11 @@ function versionFile(): Plugin {
       const sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
       if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`git rev-parse HEAD returned ${sha}`);
       const dirty = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim() !== "";
+      this.emitFile({
+        type: "asset",
+        fileName: "edition.json",
+        source: readFileSync(new URL("./rules/edition.json", import.meta.url)),
+      });
       this.emitFile({
         type: "asset",
         fileName: "version.json",
