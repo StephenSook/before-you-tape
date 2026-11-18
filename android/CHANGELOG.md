@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Typed items, fixes, quantity and removal in the box, each re-checked.** `BoxLogic` and
+  `BoxController` gain `addManual` (a typed item, read source "manual", identity confirmed by
+  the sender), `override` (corrected fields kept as overrides on the read; a corrected label
+  brings its own tags), `setQuantity` (rounded and kept between 1 and 99, as the web app does,
+  so zero becomes 1) and `remove`. The box re-checks after each. `forSync` now also drops a typed
+  label from the overrides, as the web app's stored copy does, so no label text leaves the phone.
+  Source: Android plan Task 12. The plan's "a quantity of zero is checked, not accepted" became
+  the web app's 1 to 99 clamp, for parity. Verified: `OverridesTest` (6 tests, which failed to
+  compile first) passes, and putting `forSync` back to keeping the typed label fails
+  `aTypedLabelStaysOffTheSyncedItemToo`; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **An item form drawn from the shared item-read contract (commit 56b0c9c).** `ReadForm` shows
   what the web form shows: name, what it is (37 categories), the words on the label, the four
   numbers, the seven yes-or-no facts and the box. An empty number means not printed. A negative
