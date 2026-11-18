@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/pages/RulesPage.tsx`, `src/pages/RulesRoute.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /rules page. It lists every USPS export rule the app applies, in our words, with its outcome and a link to its section, under the Publication 52 edition and check date. It gives each country's lines, saying who read them and when (from `rulesReadBy`, the same source as the picker and the card), with a link to the country's listing. It names the countries where mail service is suspended, with the list's dates. Everything is read from the rule edition the app runs, so the page and the verdicts cannot drift apart. Source: P1 item 6 (/rules). Verified by `src/pages/RulesPage.test.tsx`: every export rule listed once, the aerosol rule with its outcome and Pub 52 623 link, the Philippines lines with "not yet checked by a person", and the suspensions with Haiti and the check date. It failed before the page existed; local CI mirror exit 0.
 - `public/llms.txt` lists /about now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/AboutPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /about page. It says, in plain words:
 - what the app checks;

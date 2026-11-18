@@ -44,7 +44,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card + .card { margin-top: var(--space-3); }
 .card .item-name { font-size: 20px; font-weight: 600; margin: 0; }
 .card img { width: 96px; height: auto; border-radius: 8px; border: var(--outline); }
-.judge, .about { max-width: 760px; margin: 0 auto; padding: var(--space-5); }
+.judge, .about, .rules { max-width: 760px; margin: 0 auto; padding: var(--space-5); }
 .about .credits { font-size: 14px; }
 .sample-card img { width: 160px; }
 .sample-card .credit { font-size: 13px; margin-bottom: 0; }
