@@ -27,7 +27,8 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 let n = 0;
 function setup(start: Partial<AppConfig> = {}) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud", ReturnType<typeof port>>> = {};
-  const makeModels = vi.fn((name: string) => (models[name] ??= { device: port(), hybrid: port(), cloud: port() }));
+  // Keyed by the main name only; the tests read the fallback name from the calls.
+  const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: port(), cloud: port() }));
   const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
   store.setConsent(true);
   const cfg = fakeSource(start);
@@ -44,7 +45,7 @@ describe("LivePack", () => {
 
   it("reads in the cloud with the model Remote Config names", async () => {
     const { models, makeModels } = setup({ cloudModelItem: "gemini-3.8-flash" });
-    expect(makeModels).toHaveBeenCalledWith("gemini-3.8-flash");
+    expect(makeModels).toHaveBeenCalledWith("gemini-3.8-flash", CONFIG_DEFAULTS.cloudModelItemFallback);
     await userEvent.upload(screen.getByTestId("upload-input"), photo);
     await screen.findByTestId("item-card");
     expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
@@ -60,13 +61,15 @@ describe("LivePack", () => {
     for (const g of all) expect(g).not.toHaveBeenCalled();
   });
 
-  it("builds new models only when the model name changes", () => {
+  it("builds new models only when a model name changes, the fallback included", () => {
     const { makeModels, push } = setup();
     expect(makeModels).toHaveBeenCalledTimes(1);
     act(() => push({ killCloud: true }));
     expect(makeModels).toHaveBeenCalledTimes(1);
     act(() => push({ cloudModelItem: "gemini-3.8-flash" }));
-    expect(makeModels).toHaveBeenLastCalledWith("gemini-3.8-flash");
-    expect(makeModels).toHaveBeenCalledTimes(2);
+    expect(makeModels).toHaveBeenLastCalledWith("gemini-3.8-flash", "gemini-3.8-flash");
+    act(() => push({ cloudModelItemFallback: "gemini-4-argon" }));
+    expect(makeModels).toHaveBeenLastCalledWith("gemini-3.8-flash", "gemini-4-argon");
+    expect(makeModels).toHaveBeenCalledTimes(3);
   });
 });
