@@ -52,11 +52,17 @@ describe("PackPage", () => {
     expect(screen.getByTestId("edition-notice")).toHaveTextContent("A newer rule edition failed its integrity check. Using the built-in edition.");
   });
 
-  it("shows the suspended banner", () => {
+  it("shows the suspended banner, with the date the suspension list was checked", () => {
     const store = newStore();
     store.setDestination("HT");
     setup({ store });
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Haiti is suspended.");
+    expect(screen.getByTestId("suspended-banner")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
+  });
+
+  it("says when the post office suspension list was checked, next to the destination", () => {
+    setup();
+    expect(screen.getByTestId("suspension-checked")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
   });
 
   it("asks for consent before any cloud call and remembers the answer", async () => {
