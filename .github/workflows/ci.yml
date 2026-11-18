@@ -80,7 +80,9 @@ jobs:
             exit 1
           fi
 
+      # A hung system package install once held a run for 12 minutes; fail fast and rerun instead.
       - name: Install the test browser
+        timeout-minutes: 6
         run: npx playwright install --with-deps chromium
 
       # The built app in a real browser: it starts, and every camera-stage control is readable.
