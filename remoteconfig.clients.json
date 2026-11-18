@@ -1,0 +1,13 @@
+{
+  "web": [
+    "cloud_model_item",
+    "cloud_model_item_fallback",
+    "cloud_model_text",
+    "kill_cloud",
+    "rules_edition_id",
+    "rules_edition_sha256",
+    "second_look_policy_json"
+  ],
+  "ios": ["minimum_version_ios"],
+  "android": ["minimum_version_android"]
+}

@@ -28,6 +28,13 @@ npm run release:gate    # run before a release: fails while a country listing ha
 
 Copy `.env.example` to `.env.local` and fill in your own Firebase web config. Never commit `.env.local`.
 
+## Security you can check
+
+- **App Check is enforced for Firebase AI Logic.** A model call with the site's public web key but no App Check token is refused with HTTP 401 "Firebase App Check token is invalid." The exact `curl` is in [`docs/SECURITY.md`](docs/SECURITY.md#check-it-yourself), and the daily probe makes the same call.
+- **Limited-use App Check tokens.** The web app asks for them when it creates its AI Logic instance (`getAi(true)`, in `src/pages/PackRoute.tsx` and `src/firebase/app.ts`). The iPhone and Android clients will list theirs when they ship. AI Logic enforces them (replay protection, since 2026-11-18).
+- **Per-user rate limit.** AI Logic generate-content requests are limited to 20 a minute per user (the default is 100), read back on 2026-11-18. One sender checks items one at a time.
+- Every row of Firebase's AI Logic security checklist, with its state, date and how to check it, is in [`docs/SECURITY.md`](docs/SECURITY.md).
+
 ## License
 
 Apache License 2.0. See `LICENSE` and `NOTICE`.

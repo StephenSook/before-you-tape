@@ -135,6 +135,20 @@ describe("createBoxStore", () => {
     expect(s.getState().sources.secondLooks).toBe(1);
   });
 
+  it("switches to a newer edition and judges the box again with it", () => {
+    const s = store();
+    s.addRead(outcome(liquidLotionLabelRead, "on_device"), "k");
+    const before = s.getState().result;
+    const seen = vi.fn();
+    s.subscribe(seen);
+    const newer = { ...ed, editionId: "byt-newer000001", destinations: { ...ed.destinations, CA: { ...ed.destinations.CA!, checkedOn: "2026-11-25" } } };
+    s.setEdition(newer);
+    expect(s.edition().editionId).toBe("byt-newer000001");
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(s.getState().result).not.toBe(before);
+    expect(s.getState().result.items[s.getState().items[0]!.itemId]?.layers.some((l) => l.checkedOn === "2026-11-25")).toBe(true);
+  });
+
   it("records a fallback model read on the item with its route, and counts it on the box", () => {
     const s = store();
     const a = s.addRead({ ...outcome(shirtSeenRead, "in_cloud"), route: "cloud_only", fallbackAfter: "503" }, "a");

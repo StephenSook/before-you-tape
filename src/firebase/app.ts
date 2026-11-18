@@ -4,14 +4,17 @@ import { getAI, GoogleAIBackend, type AI } from "firebase/ai";
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { connectAuthEmulator, getAuth, signInAnonymously, type Auth } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
+import {
+  connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore,
+} from "firebase/firestore";
 
 export interface FirebaseEnv {
   VITE_FB_API_KEY: string;
   VITE_FB_AUTH_DOMAIN: string;
   VITE_FB_PROJECT_ID: string;
   VITE_FB_APP_ID: string;
-  VITE_FB_MEASUREMENT_ID: string;
+  // Optional: a build without this setting must still start.
+  VITE_FB_MEASUREMENT_ID?: string;
   VITE_RECAPTCHA_SITE_KEY: string;
   VITE_USE_EMULATORS: string;
 }
@@ -43,7 +46,8 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
     projectId: env.VITE_FB_PROJECT_ID,
     appId: env.VITE_FB_APP_ID,
   };
-  if (env.VITE_FB_MEASUREMENT_ID.trim()) options.measurementId = env.VITE_FB_MEASUREMENT_ID;
+  const measurementId = env.VITE_FB_MEASUREMENT_ID?.trim();
+  if (measurementId) options.measurementId = measurementId;
   const app = name ? initializeApp(options, name) : initializeApp(options);
 
   // App Check goes first, so every later call to Auth, Firestore or AI Logic carries a token.
@@ -52,7 +56,12 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
   initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
 
   const auth = getAuth(app);
-  const db = getFirestore(app);
+  // The box stays readable offline and in sync across tabs; a browser without IndexedDB keeps it in memory.
+  const db = initializeFirestore(app, {
+    localCache: typeof indexedDB !== "undefined" && indexedDB
+      ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      : memoryLocalCache(),
+  });
   if (env.VITE_USE_EMULATORS === "true") {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);

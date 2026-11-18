@@ -1,0 +1,38 @@
+{
+  "about": "The documents the web app writes for one box, as Firestore stores them. Phone clients write the same shapes; tests/firestore/contract.test.ts checks the web app against this file and firestore.rules enforces it.",
+  "box": {
+    "path": "boxes/{boxId}",
+    "doc": {
+      "ownerUid": "owner-uid",
+      "memberUids": ["owner-uid"],
+      "joinKeyHash": "",
+      "destinationCode": "CA",
+      "editionId": "byt-contract",
+      "cloudConsent": true,
+      "sources": { "onDevice": 1, "inCloud": 0, "secondLooks": 1, "rulesOnlyRechecks": 0, "cloudFallbacks": 0 },
+      "lastRecheckMs": null
+    }
+  },
+  "item": {
+    "path": "boxes/{boxId}/items/{itemId}",
+    "doc": {
+      "itemId": "item-1",
+      "read": {
+        "itemName": "Phone", "category": "phone", "labelText": "", "volts": 3.7, "milliampHours": 2600, "wattHours": 9.62, "lithiumGrams": 0,
+        "batteryWords": true, "liquid": false, "pressurized": false, "alcoholOnLabel": false, "flammableOnLabel": false,
+        "glassContainer": false, "powder": false, "retailBox": "sealed", "evidence": "label_read"
+      },
+      "overrides": {},
+      "answers": { "battery_installed": "installed", "device_condition": "new_sealed" },
+      "quantity": 1,
+      "identityConfirmedBy": "second_look",
+      "labelTags": ["battery_label", "label_text", "li_ion"],
+      "readSource": "phone_on_device",
+      "readMs": 1450,
+      "secondLook": { "ms": 980, "reason": "The watt-hours on the label did not match the volts and capacity, so the cloud read it again." },
+      "readFallback": { "after": "503", "route": "cloud_only" },
+      "cropKey": null,
+      "customs": { "description": "", "lintOk": false, "weightOz": null, "valueUsd": null, "countryOfOrigin": null, "upc": null }
+    }
+  }
+}

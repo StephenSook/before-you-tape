@@ -1,7 +1,8 @@
 // App Check control for Firebase AI Logic: proves a raw generateContent call with no App Check token
-// is refused (401) before it makes one that succeeds with a debug token (200). Writes only status
-// codes and reasons to evidence/appcheck-control/, never the API key or a token, and exits 1 unless
-// it saw 401 and then 200. The call with a token runs only after the 401 is seen.
+// is refused (401) before it makes one that succeeds (200). AI Logic also requires a signed-in user, so
+// the succeeding call carries a limited-use App Check token and an anonymous user's ID token, and the
+// record shows that App Check without sign-in is refused too. Writes only status codes and reasons to
+// evidence/appcheck-control/, never the API key or a token, and exits 1 unless it saw 401 and then 200.
 //
 // Env: VITE_FB_API_KEY, VITE_FB_PROJECT_ID, VITE_FB_APP_ID, APPCHECK_DEBUG_TOKEN.
 // Optional: CONTROL_REFERER (the browser key only answers its allowed referrers; default localhost).
@@ -11,6 +12,19 @@ import { pathToFileURL } from "node:url";
 
 // The smallest current model the Gemini Developer API serves through AI Logic, with a one-word reply.
 const MODEL = "gemini-3.5-flash-lite";
+
+// AI Logic enforces replay protection, so it accepts only limited-use App Check tokens.
+export function exchangeRequest(debugToken: string): { debug_token: string; limited_use: true } {
+  return { debug_token: debugToken, limited_use: true };
+}
+
+// The headers the SDK sends: the key and referrer, then App Check, then the signed-in user.
+export function aiHeaders(apiKey: string, referer: string, appCheckToken?: string, idToken?: string): Record<string, string> {
+  const h: Record<string, string> = { "x-goog-api-key": apiKey, Referer: referer };
+  if (appCheckToken) h["X-Firebase-AppCheck"] = appCheckToken;
+  if (idToken) h.Authorization = `Firebase ${idToken}`;
+  return h;
+}
 
 export function controlPassed(noTokenStatus: number | null, withTokenStatus: number | null): boolean {
   return noTokenStatus === 401 && withTokenStatus === 200;
@@ -52,22 +66,34 @@ async function main(): Promise<void> {
   const secrets = [apiKey, debugToken];
   const generate = `https://firebasevertexai.googleapis.com/v1beta/projects/${projectId}/models/${MODEL}:generateContent`;
   const prompt = { contents: [{ role: "user", parts: [{ text: "Reply with the single word ok." }] }], generationConfig: { maxOutputTokens: 8 } };
-  const base = { "x-goog-api-key": apiKey, Referer: referer };
 
   const record: Record<string, unknown> = { ranAt: new Date().toISOString(), projectId, model: MODEL, referer };
-  const none = await post(generate, prompt, base);
+  const none = await post(generate, prompt, aiHeaders(apiKey, referer));
   record.noToken = { status: none.status, error: errorSummary(none.body) };
 
   let withStatus: number | null = null;
   let appCheckToken = "";
+  let idToken = "";
+  let freshToken = "";
   if (none.status === 401) {
     const exchange = await post(
       `https://content-firebaseappcheck.googleapis.com/v1/projects/${projectId}/apps/${appId}:exchangeDebugToken?key=${apiKey}`,
-      { debug_token: debugToken }, { Referer: referer });
+      exchangeRequest(debugToken), { Referer: referer });
     record.exchangeStatus = exchange.status;
     appCheckToken = typeof exchange.body.token === "string" ? exchange.body.token : "";
     if (appCheckToken) {
-      const ok = await post(generate, prompt, { ...base, "X-Firebase-AppCheck": appCheckToken });
+      // App Check alone, without a signed-in user, must be refused while authenticated-users mode is on.
+      const appCheckOnly = await post(generate, prompt, aiHeaders(apiKey, referer, appCheckToken));
+      record.appCheckWithoutSignIn = { status: appCheckOnly.status, error: errorSummary(appCheckOnly.body) };
+      const signUp = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, { returnSecureToken: true }, { Referer: referer });
+      record.anonymousSignInStatus = signUp.status;
+      idToken = typeof signUp.body.idToken === "string" ? signUp.body.idToken : "";
+      const second = idToken ? await post(
+        `https://content-firebaseappcheck.googleapis.com/v1/projects/${projectId}/apps/${appId}:exchangeDebugToken?key=${apiKey}`,
+        exchangeRequest(debugToken), { Referer: referer }) : null;
+      // Replay protection: each limited-use token works once, so the signed-in call gets a fresh one.
+      freshToken = second && typeof second.body.token === "string" ? second.body.token : "";
+      const ok = await post(generate, prompt, aiHeaders(apiKey, referer, freshToken, idToken));
       withStatus = ok.status;
       record.withToken = ok.status === 200 ? { status: 200, modelVersion: ok.body.modelVersion } : { status: ok.status, error: errorSummary(ok.body) };
     }
@@ -79,7 +105,7 @@ async function main(): Promise<void> {
   const dir = join(process.cwd(), "evidence", "appcheck-control");
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `${String(record.ranAt).replace(/[:.]/g, "-")}.json`);
-  const json = redact(JSON.stringify(record, null, 2), [...secrets, appCheckToken]) + "\n";
+  const json = redact(JSON.stringify(record, null, 2), [...secrets, appCheckToken, freshToken, idToken]) + "\n";
   writeFileSync(file, json);
   console.log(json);
   console.log(`wrote ${file}`);

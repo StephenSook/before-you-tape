@@ -57,6 +57,8 @@ export interface BoxStore {
   getState(): BoxState;
   // The edition the verdicts come from, for its limits and its reviewed countries.
   edition(): RuleEdition;
+  // Switch to another edition (a verified newer one) and judge the box again with it.
+  setEdition(e: RuleEdition): void;
   subscribe(listener: (s: BoxState) => void): () => void;
   addRead(outcome: ReadOutcome, cropKey: string): string;
   addManual(read: ItemRead): string;
@@ -98,6 +100,8 @@ function forStorage(item: BoxItem): BoxItem {
 
 export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let items: BoxItem[] = [];
+  let switchedTo: RuleEdition | null = null;
+  const currentEdition = () => switchedTo ?? deps.edition();
   let destinationCode = DEFAULT_DESTINATION;
   let liveRead: { code: string; edition: DestinationEdition } | null = null;
   let cloudConsent: boolean | null = null;
@@ -108,7 +112,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const listeners = new Set<(s: BoxState) => void>();
 
   const evaluate = (): BoxResult => {
-    const edition = deps.edition();
+    const edition = currentEdition();
     const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
     return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live), deps.today());
   };
@@ -124,7 +128,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     items = items.map((i) => (i.itemId === itemId ? change(i) : i));
     commit();
   };
-  const tagsOf = (labelText: string) => labelTagsOf(labelText, deps.edition());
+  const tagsOf = (labelText: string) => labelTagsOf(labelText, currentEdition());
 
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
@@ -140,7 +144,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   return {
     ready,
     getState: () => state,
-    edition: () => deps.edition(),
+    edition: () => currentEdition(),
+    setEdition(e) {
+      switchedTo = e;
+      commit();
+    },
     subscribe(listener) {
       listeners.add(listener);
       return () => { listeners.delete(listener); };

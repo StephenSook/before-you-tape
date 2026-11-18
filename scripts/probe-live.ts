@@ -1,6 +1,7 @@
 // Daily live probe for the judging window, with no credential: the site serves main, the page loads,
-// robots.txt and llms.txt are plain text, and the models page still lists each allowed model with no
-// Gemini Developer API shutdown before the window ends. Retires itself after the last judging day.
+// robots.txt and llms.txt are plain text, the models page still lists each allowed model with no Gemini
+// Developer API shutdown before the window ends, and Firebase AI Logic refuses a call that carries the
+// public web key but no App Check token. Retires itself after the last judging day.
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CLOUD_MODELS } from "../src/config/models";
@@ -27,6 +28,17 @@ export function modelStatus(page: string, id: string): { ok: boolean; detail: st
   const date = /^Shutdown date: (.+)$/.exec(dev)?.[1];
   const when = date ? Date.parse(`${date} 23:59:59 UTC`) : NaN;
   return { ok: Number.isFinite(when) && when > WINDOW_END, detail: dev };
+}
+
+const AI_LOGIC = "https://firebasevertexai.googleapis.com/v1beta/projects/before-you-tape-2026/models";
+const APP_CHECK_REFUSAL = "Firebase App Check token is invalid.";
+
+// App Check is enforced only if a call with no App Check token is refused with exactly that message;
+// any answer, or any other refusal (a bad key, a blocked referrer), does not show it.
+export function appCheckRefusal(status: number, body: unknown): { ok: boolean; detail: string } {
+  const message = (body as { error?: { message?: unknown } } | null)?.error?.message;
+  const text = typeof message === "string" ? message : "no error message";
+  return { ok: status === 401 && text === APP_CHECK_REFUSAL, detail: `HTTP ${status}: ${text}` };
 }
 
 async function get(url: string): Promise<Response> {
@@ -66,13 +78,25 @@ async function main(): Promise<void> {
       return { ok: r.status === 200 && isPlainText(type), detail: `HTTP ${r.status}, ${type}` };
     });
   }
+  // The public web key and the site as referrer, and no App Check token: the call must be refused.
+  await check("AI Logic refuses a call with no App Check token", async () => {
+    const key = process.env.PROBE_API_KEY?.trim();
+    if (!key) return { ok: false, detail: "PROBE_API_KEY is not set" };
+    const r = await fetch(`${AI_LOGIC}/${CLOUD_MODELS[0].name}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key, Referer: `${site}/`, "User-Agent": "before-you-tape-probe" },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "Say ok." }] }] }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    return appCheckRefusal(r.status, await r.json().catch(() => null));
+  });
   const models = await (await get(MODELS_PAGE)).text().catch(() => "");
   for (const m of CLOUD_MODELS) await check(`${m.name} on the models page`, async () => modelStatus(models, m.name));
 
   for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${r.check}: ${r.detail}`);
   const failed = results.filter((r) => !r.ok).length;
   console.log(`probe: ${results.length} checks, ${failed} failed`);
-  if (failed > 0 || results.length < 4 + CLOUD_MODELS.length) process.exit(1);
+  if (failed > 0 || results.length < 5 + CLOUD_MODELS.length) process.exit(1);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

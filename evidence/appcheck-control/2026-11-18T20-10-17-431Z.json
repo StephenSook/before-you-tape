@@ -1,0 +1,27 @@
+{
+  "ranAt": "2026-11-18T20:10:17.431Z",
+  "projectId": "before-you-tape-2026",
+  "model": "gemini-3.5-flash-lite",
+  "referer": "http://localhost:5173/",
+  "noToken": {
+    "status": 401,
+    "error": {
+      "status": "UNAUTHENTICATED",
+      "message": "Firebase App Check token is invalid."
+    }
+  },
+  "exchangeStatus": 200,
+  "appCheckWithoutSignIn": {
+    "status": 401,
+    "error": {
+      "status": "UNAUTHENTICATED",
+      "message": "Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project."
+    }
+  },
+  "anonymousSignInStatus": 200,
+  "withToken": {
+    "status": 200,
+    "modelVersion": "gemini-3.5-flash-lite"
+  },
+  "passed": true
+}
