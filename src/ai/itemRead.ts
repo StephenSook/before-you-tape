@@ -78,18 +78,36 @@ export type StillAllowed = () => boolean;
 const SWITCHED_OFF = "cloud checks were switched off during the read";
 const blocked = () => new ReadFailure("blocked", SWITCHED_OFF);
 
-interface Withdrawal { opts: CallOptions; withdrawn: () => boolean; aborted: () => boolean }
+interface Withdrawal { opts: CallOptions; withdrawn: () => boolean; aborted: () => boolean; settle: <T>(call: Promise<T>) => Promise<T> }
+
+// A call that can reach the cloud settles as blocked the moment its signal aborts, even while it is still
+// waiting (for sign-in, or for the SDK's tokens), so a withdrawn read never leaves the card checking.
+function untilAborted<T>(call: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return call;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(blocked());
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+    call.then(
+      (v) => { signal.removeEventListener("abort", onAbort); resolve(v); },
+      (e: unknown) => { signal.removeEventListener("abort", onAbort); reject(e); },
+    );
+  });
+}
 
 function withdrawal(stillAllowed: StillAllowed, signal?: AbortSignal): Withdrawal {
   const aborted = () => signal?.aborted === true;
-  return { opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed }, aborted, withdrawn: () => aborted() || !stillAllowed() };
+  return {
+    opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed },
+    aborted, withdrawn: () => aborted() || !stillAllowed(), settle: (call) => untilAborted(call, signal),
+  };
 }
 
 async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
     if (w.withdrawn()) throw blocked();
     try {
-      return { reply: await models.cloud.generate(ITEM_READ_PROMPT, image, w.opts) };
+      return { reply: await w.settle(models.cloud.generate(ITEM_READ_PROMPT, image, w.opts)) };
     } catch (e) {
       if (w.aborted()) throw blocked();
       const c = classifyCloudError(e);
@@ -99,7 +117,7 @@ async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): P
       if (w.withdrawn()) throw blocked();
       // One try on the fallback model, with no retry of its own.
       try {
-        return { reply: await models.fallback.generate(ITEM_READ_PROMPT, image, w.opts), fallbackAfter: status };
+        return { reply: await w.settle(models.fallback.generate(ITEM_READ_PROMPT, image, w.opts)), fallbackAfter: status };
       } catch (f) {
         if (w.aborted()) throw blocked();
         throw new ReadFailure(classifyCloudError(f).kind, errorName(f));
@@ -149,7 +167,7 @@ export async function readItem(
     if (w.withdrawn()) return onDevice();
     let recoveredFrom: string;
     try {
-      const reply = await models.hybrid.generate(ITEM_READ_PROMPT, image, w.opts);
+      const reply = await w.settle(models.hybrid.generate(ITEM_READ_PROMPT, image, w.opts));
       return done(reply, null);
     } catch (e) {
       if (w.aborted()) throw blocked();

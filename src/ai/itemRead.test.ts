@@ -160,6 +160,18 @@ describe("readItem", () => {
     expect(before.cloud.generate).not.toHaveBeenCalled();
   });
 
+  it("settles as blocked the moment its signal aborts, even while a cloud call has not answered", async () => {
+    const pending = (): MockPort => ({ generate: vi.fn(() => new Promise<never>(() => {})) });
+    for (const route of ["hybrid", "cloud_only"] as const) {
+      const ac = new AbortController();
+      const m = models({ hybrid: pending(), cloud: pending() });
+      const read = readItem(m, img, route, clock(0, 1), () => true, ac.signal);
+      await Promise.resolve();
+      ac.abort();
+      await expect(read).rejects.toMatchObject({ kind: "blocked" });
+    }
+  });
+
   it("tries the fallback once when the API says the model is gone, without retrying the gone model", async () => {
     for (const msg of [
       "[GoogleGenerativeAI Error]: fetch-error 404 Not Found: models/gemini-2.5-flash is no longer available to new users",
