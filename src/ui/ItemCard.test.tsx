@@ -93,4 +93,22 @@ describe("ItemCard", () => {
     await userEvent.click(within(screen.getByTestId("question-row")).getByRole("button", { name: "Yes, it says alcohol-free" }));
     expect(onAnswer).toHaveBeenCalledWith("l", "label_alcohol_free", "yes");
   });
+
+  it("says when the cloud is checking again, and shows the second look's reason once it is done", () => {
+    const { rerender } = render(<ItemCard item={shirtSeen} verdict={identityCheck} crop={null} checking />);
+    expect(screen.getByRole("status")).toHaveTextContent("Checking again in the cloud.");
+    const looked = { ...shirtSeen, secondLook: { ms: 900, reason: "The first read could not confirm what this is, so the cloud looked again." } };
+    rerender(<ItemCard item={looked} verdict={verdictFor(looked)} crop={null} />);
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByTestId("second-look")).toHaveTextContent("The first read could not confirm what this is, so the cloud looked again.");
+  });
+
+  it("shows a second-look failure with Try again, and the verdict stays", async () => {
+    const onRetry = vi.fn();
+    render(<ItemCard item={shirtSeen} verdict={identityCheck} crop={null} error="No connection. This check will run when you are back online." onRetry={onRetry} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("No connection. This check will run when you are back online.");
+    expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledWith("s");
+  });
 });

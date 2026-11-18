@@ -20,6 +20,11 @@
       "valueType": "BOOLEAN",
       "description": "true pauses every cloud call (reads, second looks, descriptions); checks on the device keep working."
     },
+    "second_look_policy_json": {
+      "defaultValue": { "value": "{\"whMismatch\":true,\"batteryNumbers\":true,\"notSure\":true,\"hazardNoLabel\":true,\"identity\":true}" },
+      "valueType": "JSON",
+      "description": "Which on-device reads get a cloud second look; every reason must be true or false, or the app keeps its default."
+    },
     "minimum_version_ios": {
       "defaultValue": { "value": "0.0.0" },
       "valueType": "STRING",

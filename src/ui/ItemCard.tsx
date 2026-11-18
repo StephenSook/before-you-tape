@@ -17,11 +17,15 @@ export interface ItemCardProps {
   onConfirm?: (itemId: string) => void;
   onAnswer?: (itemId: string, questionId: string, answerId: string) => void;
   onFix?: (itemId: string, patch: Partial<ItemRead>) => void;
+  // A cloud second look in progress, or the message from one that failed.
+  checking?: boolean;
+  error?: string;
+  onRetry?: (itemId: string) => void;
 }
 
 const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "checked", stale: "out of date", missing: "not loaded" };
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix }: ItemCardProps) {
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
@@ -35,6 +39,10 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix }: It
       <VerdictChip level={verdict.level} />
       {reason && <p>{reason}</p>}
       <SourceGlyph source={item.readSource} />
+      {checking && <p role="status">Checking again in the cloud.</p>}
+      {!checking && item.secondLook && <p data-testid="second-look">{item.secondLook.reason}</p>}
+      {error && <p role="alert">{error}</p>}
+      {error && onRetry && <button type="button" onClick={() => onRetry(item.itemId)}>Try again</button>}
       {verdict.question && <QuestionRow question={verdict.question} value={item.answers[verdict.question.id]} onAnswer={(q, a) => onAnswer?.(item.itemId, q, a)} />}
       {needsIdentity && <button type="button" data-testid="confirm-identity" onClick={() => onConfirm?.(item.itemId)}>Yes, this is {name}</button>}
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}

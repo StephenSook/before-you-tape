@@ -124,6 +124,17 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(true);
   });
 
+  it("clears the item's error when a second look then succeeds", () => {
+    const s = store();
+    const id = s.addRead(outcome(shirtSeenRead, "on_device"), "k");
+    s.setError(id, "No connection. This check will run when you are back online.");
+    expect(s.getState().errors[id]).toMatch(/No connection/);
+    s.applySecondLook(id, shirtSeenRead, 900, "The first read could not confirm what this is, so the cloud looked again.");
+    expect(s.getState().errors[id]).toBeUndefined();
+    expect(s.getState().items[0]?.secondLook).toEqual({ ms: 900, reason: "The first read could not confirm what this is, so the cloud looked again." });
+    expect(s.getState().sources.secondLooks).toBe(1);
+  });
+
   it("records a fallback model read on the item with its route, and counts it on the box", () => {
     const s = store();
     const a = s.addRead({ ...outcome(shirtSeenRead, "in_cloud"), route: "cloud_only", fallbackAfter: "503" }, "a");
