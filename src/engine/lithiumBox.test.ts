@@ -36,6 +36,13 @@ describe("evaluateLithiumBox", () => {
     expect(r.text).toContain(TWO_BOX_NOTE);
   });
 
+  it("answers over at once for a huge box of unknown batteries instead of trying every split", () => {
+    const entries = Array.from({ length: 18 }, (_, i) => unk(`p${i}`, 2 ** i));
+    const r = run(entries);
+    expect(r.status).toBe("over");
+    expect(r.text).toContain(TWO_BOX_NOTE);
+  });
+
   it("stays over when a box is over a limit and also has both kinds", () => {
     const r = run([batt("a"), batt("b"), batt("c"), cell("phone")]);
     expect(r.status).toBe("over");

@@ -40,10 +40,16 @@ export function evaluateLithiumBox(entries: LithiumEntry[], limits: LithiumLimit
     else unknown.push(e);
   }
 
-  // Every reachable number of unknown units read as cells; the rest read as batteries.
-  let sums = new Set<number>([0]);
-  for (const e of unknown) sums = new Set([...sums].flatMap((s) => [s, s + e.battery.units]));
   const unknownUnits = unknown.reduce((n, e) => n + e.battery.units, 0);
+  // When the total is above both limits added together, every split is over a limit, so the two
+  // extreme splits give the whole range and nothing needs enumerating (a huge box cannot blow up).
+  const total = knownCells + knownBatteries + unknownUnits;
+  let sums = new Set<number>([0, unknownUnits]);
+  if (total <= limits.maxCells + limits.maxBatteries) {
+    // Every reachable number of unknown units read as cells; the rest read as batteries.
+    sums = new Set<number>([0]);
+    for (const e of unknown) sums = new Set([...sums].flatMap((s) => [s, s + e.battery.units]));
+  }
 
   const outcomes = [...sums].map((s) => {
     const cells = knownCells + s;
