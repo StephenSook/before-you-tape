@@ -74,6 +74,34 @@ class BoxDocsContractTest {
         assertEquals(900L, d["readMs"])
     }
 
+    /** The web app times reads and re-checks with performance.now(), so both can be fractional. */
+    @Test fun fractionalTimingsSurviveARoundTrip() {
+        val item = doc("item").toMutableMap().apply { put("readMs", 1450.75) }
+        assertEquals(1450.75, BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", item))["readMs"])
+        val box = doc("box").toMutableMap().apply { put("lastRecheckMs", 12.375) }
+        assertEquals(12.375, BoxDocs.boxToDoc(BoxDocs.boxFromDoc(box))["lastRecheckMs"])
+    }
+
+    /**
+     * The rules require only itemName, category, labelText and evidence in a read. Any other field
+     * left out takes the web app's form default: 0 for a number, false for a flag, cannot_tell for
+     * the retail box.
+     */
+    @Test fun aReadWithOnlyTheRequiredFieldsDecodesWithTheWebsDefaults() {
+        @Suppress("UNCHECKED_CAST")
+        val full = doc("item")["read"] as Map<String, Any?>
+        val minimal = full.filterKeys { it in setOf("itemName", "category", "labelText", "evidence") }
+        val d = doc("item").toMutableMap().apply { put("read", minimal) }
+        val read = BoxDocs.itemFromDoc("item-1", d).input.read
+        assertEquals(full["itemName"], read.itemName)
+        assertEquals(full["category"], read.category.name)
+        assertEquals(full["evidence"], read.evidence.name)
+        assertEquals(listOf(0.0, 0.0, 0.0, 0.0), listOf(read.volts, read.milliampHours, read.wattHours, read.lithiumGrams))
+        assertEquals(List(7) { false }, listOf(read.batteryWords, read.liquid, read.pressurized, read.alcoholOnLabel,
+            read.flammableOnLabel, read.glassContainer, read.powder))
+        assertEquals(RetailBoxWire.cannot_tell, read.retailBox)
+    }
+
     @Test fun anUnknownReadSourceAndTheWebsExtraFieldsAreKept() {
         val d = doc("item").toMutableMap().apply { put("readSource", "cloud_unreported") }
         val back = BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", d))

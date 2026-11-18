@@ -11,6 +11,10 @@ change to this file after the freeze fails the manifest test.
   items held in hand, with every camera metadata field removed and anything private blurred. The other 27 are public
   product photos under CC0, public domain, CC BY or CC BY-SA, credited on the About page and the blind
   check page. None was taken by a family mailing a box, and none is generated.
+- The published copies, which every run reads, are made by `scripts/eval-set-photos.py`: turned upright,
+  shrunk to 1600 px on the long side, and saved again with no Exif, XMP, IPTC or comment block. The
+  originals stay private; `eval/set/manifest.json` records both SHA-256 hashes and what changed for each
+  photo. The app crops to 768 px before any model call, so the shrink removes nothing a model sees.
 - What that means for the measurement: these are reads of still photos. They are not live camera holds
   at a packing table, so they say nothing about how steady a hand is, the light in a real room, or how
   often a sender re-takes a photo.
@@ -23,12 +27,16 @@ change to this file after the freeze fails the manifest test.
 - A label is the right answer for the real item in the photo, written by a person from those sources
   before any model run, and frozen by hash. A label mistake found before the freeze is fixed with the
   section as its reason; after the freeze, labels do not change.
+- A hazard item is an item whose label is not "OK to pack" for at least one destination; a lotion that
+  is fine for Canada but barred by the Philippines is one. The manifest check rejects any hazard flag
+  that disagrees with the labels.
 
 ## Metrics
 
 - **Agreement**: rows where the shipped verdict equals the label, over all rows.
-- **Hazard called OK**: items with a hazard label for which any destination shipped "OK to pack". The
-  bound is the exact one-sided 95% Clopper-Pearson upper limit over hazard items. Pass line: 0.
+- **Hazard called OK**: hazard items for which some destination shipped "OK to pack" where that
+  destination's label is not "OK to pack". The bound is the exact one-sided 95% Clopper-Pearson upper
+  limit over hazard items. Pass line: 0.
 - **Check rate**: rows where the shipped verdict is "Check this", over all rows.
 - How "Check this" is scored: it is safe but it is not agreement. If the label is "Take it out" and the app
   says "Check this", the row counts against agreement and adds to the check rate, but it is not a hazard

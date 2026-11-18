@@ -10,6 +10,7 @@ import app.beforeyoutape.android.AppCheckSetup
 import app.beforeyoutape.android.R
 import app.beforeyoutape.android.ai.AiClient
 import app.beforeyoutape.android.ai.CloudState
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.ai.ItemReader
 import app.beforeyoutape.android.ai.ReadOutcome
 import app.beforeyoutape.android.ai.Source
@@ -67,7 +68,8 @@ class ReleaseAppCheckProbeTest {
         val host = EngineAssets.load(InstrumentationRegistry.getInstrumentation().targetContext)
         val client = AiClient { values }
         val reader = ItemReader(
-            model = client, parse = { host.parseItemRead(it) }, gate = { client.deviceStatus() },
+            // Gate pinned to no model on the phone, so a phone with Gemini Nano still takes the cloud route this probe proves.
+            model = client, parse = { host.parseItemRead(it) }, gate = { DeviceModelStatus.UNAVAILABLE },
             cloud = { CloudState(consent = true, online = true, killCloud = values.killCloud) },
             prompt = { Prompts.ITEM_READ_PROMPT }, signIn = { FirebaseSignIn.ensureSignedIn() },
         )

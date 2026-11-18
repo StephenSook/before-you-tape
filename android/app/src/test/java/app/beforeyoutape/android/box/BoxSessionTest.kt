@@ -14,6 +14,7 @@ import app.beforeyoutape.engine.ItemCategoryWire
 import app.beforeyoutape.engine.ItemReadWire
 import app.beforeyoutape.engine.LithiumBox
 import app.beforeyoutape.engine.RetailBoxWire
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -40,7 +41,7 @@ class BoxSessionTest {
         assertEquals("item-1", item.input.itemId)
         assertEquals(listOf("liquid"), item.input.labelTags)
         assertEquals("phone_cloud", item.readSource)
-        assertEquals(900L, item.readMs)
+        assertEquals(900.0, item.readMs, 0.0)
     }
 
     @Test fun aBlockedReadAddsNothingAndSaysWhy() = runTest {
@@ -69,9 +70,30 @@ class BoxSessionTest {
         )
         assertEquals(Copy.blocked(BlockReason.REFUSALS_PAUSED), s.check(crop))
         s.startNewScan()
-        assertEquals(1, resets)
+        assertEquals("the reset waits for the next read", 0, resets)
         assertNull(s.check(crop))
+        assertEquals(1, resets)
         assertEquals(1, box.state.items.size)
+    }
+
+    /** A read still running when the person starts a new scan session belongs to the old session. */
+    @Test fun aReadInFlightDuringANewSessionIsNotCountedInIt() = runTest {
+        val box = box()
+        val order = mutableListOf<String>()
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val s = BoxSession(
+            box,
+            reader = { order += "read starts"; gate.await(); order += "read ends (its refusal counts)"; ReadOutcome.Failed(FailReason.REFUSED, retryable = true) },
+            tags = { emptyList() }, newId = { "n" }, resetRun = { order += "reset" },
+        )
+        val slow = async { s.check(crop) }
+        kotlinx.coroutines.yield()
+        s.startNewScan()
+        gate.complete(Unit)
+        slow.await()
+        s.check(crop)
+        // The old read's refusal is counted in the old session; the reset comes only right before the next read.
+        assertEquals(listOf("read starts", "read ends (its refusal counts)", "reset", "read starts"), order.take(4))
     }
 
     @Test fun eachReadGetsItsOwnId() = runTest {

@@ -35,6 +35,14 @@ class BoxPersistenceTest {
         assertEquals(s.copy(result = null, engineError = null), back)
     }
 
+    @Test fun aFractionalReadTimeIsKeptOnThePhone() {
+        val one = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "w1")
+        val s = one.copy(items = one.items.map { it.copy(readMs = 1450.75) })
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(s)
+        assertEquals(1450.75, BoxPersistence(prefs).load()!!.items.single().readMs, 0.0)
+    }
+
     @Test fun nothingSavedMeansNoBox() {
         assertNull(BoxPersistence(MapPrefs()).load())
     }

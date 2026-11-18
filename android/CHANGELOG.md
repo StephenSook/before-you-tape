@@ -3,6 +3,79 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **An item whose read leaves out optional fields still loads.** The rules require only
+  `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
+  may be left out. The phone's decoder required all sixteen, so such an item threw
+  `MissingFieldException` instead of loading. Missing fields now take the web app's form
+  defaults (0 for a number, false for a flag, `cannot_tell` for the retail box) before decoding.
+  Source: review (second model) of the Android pull request, round 2, finding 7. Verified:
+  `BoxDocsContractTest.aReadWithOnlyTheRequiredFieldsDecodesWithTheWebsDefaults` first failed
+  with that exception (twelve fields required), then passes; `bash android/ci-local.sh` and the
+  root CI mirror exit 0.
+
+- **Fractional read and re-check times survive sync and a restart.** The web app times reads
+  and rules-only re-checks with `performance.now()`, so `readMs` and `lastRecheckMs` can be
+  fractional (`1450.75`), and the rules accept any number. The phone kept both as whole
+  numbers, so syncing an item or reloading the saved box cut `1450.75` to `1450`. Both are now
+  `Double` on the phone, in the item, the box header and the saved box. The document mapper
+  writes a whole value as an integer and a fractional one as a double, as the web SDK does.
+  Source: review (second model) of the Android pull request, round 2, finding 6. Verified:
+  `BoxDocsContractTest.fractionalTimingsSurviveARoundTrip` first failed (`expected:<1450.75> but
+  was:<1450>`), then passes; `BoxPersistenceTest.aFractionalReadTimeIsKeptOnThePhone` passes;
+  the existing check that a whole `readMs` stays an integer (`900`) still passes. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A read still running when a new scan session starts counts in the old session.** Going back to
+  the camera reset the refusal count at once, on the worker. A slow read from before was still
+  waiting on the model; when it returned with a refusal, that refusal counted as the first of the
+  new session, so two more would pause photo reads early. `BoxSession.startNewScan` now marks the
+  reset as pending, and `check` applies it just before the next read starts. Source: review
+  (second model) of the Android pull request, round 2, finding 5. Verified: the updated
+  `aNewScanSessionLiftsTheRefusalPause` and the new `aReadInFlightDuringANewSessionIsNotCountedInIt`
+  failed first (the reset landed between the old read's start and end), then pass; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
+- **An older model check can no longer put a stale status back.** Every model status check wrote
+  its result when it finished. If the app went to the background and back during a download, the
+  resume check could finish after the post-download check and set the status back to
+  "downloading", hiding the camera until the next refresh. Now `LatestCheck` lets only the most
+  recently started check update the screen. While the app's own download runs, a status below
+  AVAILABLE shows "downloading" (`ModelReadiness.shown`), so the download offer cannot come back
+  and start a second download. When the download ends, either way, the status is checked again.
+  Source: review (second model) of the Android pull request, round 2, finding 4. Verified:
+  `ModelReadinessTest` (2 tests, which failed to compile first) passes; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A cancelled sign-in waiter can no longer start a second anonymous user.** The shared sign-in
+  serialized callers with a lock, but the Firebase sign-in ran inside the caller. If that caller
+  was cancelled while waiting (its screen closed), the lock was released while the Firebase
+  sign-in kept running, and the next caller started a second one: the same uid race as before.
+  The one anonymous sign-in now runs in an app-wide scope; every caller waits on that same
+  sign-in, a cancelled waiter leaves it running, and a failed sign-in is not kept, so the next
+  caller tries again. Source: review (second model) of the Android pull request, round 2, finding
+  3. Verified: `SignInTest.aCancelledWaiterDoesNotStartASecondSignIn` first failed on the old
+  lock (the second caller got `uid-2`), then passes; the other two sign-in tests still pass.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **The release probe takes the cloud route on any phone.** The probe asked the phone for its
+  on-device model status. On a phone with a ready model the reader chose hybrid inference, the
+  phone answered on its own, and the probe (which requires a cloud read) failed though App Check
+  and sign-in had worked. The probe now pins the reader's gate to "no model on the phone", so it
+  always exercises the cloud route through the same reader and parser. Source: review (second
+  model) of the Android pull request, round 2, finding 2. Verified: the device tests compile;
+  the probe is a live release-only test and runs on the judge phone (`android/RELEASE.md`);
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **The saved box never goes back in time.** The view model saved the box in `publish`, which
+  also runs on the UI thread. A UI-thread save could take an older box while the worker saved a
+  newer one, then write the older one over it, so the next start restored a stale item or
+  quantity. Now the box is saved in exactly one place, the worker helper `onWorker`, right after
+  each change, and every box change runs there. Source: review (second model) of the Android pull
+  request, round 2, finding 1 (high). Verified: `BoxSavesOnTheWorkerTest` (the one save is inside
+  `onWorker`, never in `publish`) failed first, then passes. On the emulator: a typed lotion
+  stepped to 3, `am force-stop`, and a cold start showed "Lotion or cream x 3", "How many: 3",
+  "OK to pack". `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A written release gate: a real read on the judge path.** `android/RELEASE.md` says how to
   build the release APK and what `release.sh` checks. An APK ships only after the release probe
   passes on a real phone with the signed APK sideloaded, the way a judge installs it: a token

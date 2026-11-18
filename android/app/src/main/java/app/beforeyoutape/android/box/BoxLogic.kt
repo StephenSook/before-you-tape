@@ -26,7 +26,7 @@ object BoxLogic {
         val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, null, labelTags)
         val readSource = if (source == Source.ON_DEVICE) "phone_on_device" else "phone_cloud"
         return s.copy(
-            items = s.items + BoxItem(input, readSource, ms, null),
+            items = s.items + BoxItem(input, readSource, ms.toDouble(), null),
             onDeviceReads = s.onDeviceReads + if (source == Source.ON_DEVICE) 1 else 0,
             cloudReads = s.cloudReads + if (source == Source.IN_CLOUD) 1 else 0,
         )
@@ -35,7 +35,7 @@ object BoxLogic {
     /** A typed item: the sender's own, so its identity is confirmed by the sender. */
     fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String): BoxState {
         val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, "sender", labelTags)
-        return s.copy(items = s.items + BoxItem(input, "manual", 0, null))
+        return s.copy(items = s.items + BoxItem(input, "manual", 0.0, null))
     }
 
     /**

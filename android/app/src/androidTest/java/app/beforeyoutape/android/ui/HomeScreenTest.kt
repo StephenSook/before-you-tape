@@ -38,7 +38,7 @@ class HomeScreenTest {
 
     private val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION", 0.0, 0.0, 0.0, 0.0,
         false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
-    private val item = BoxItem(BoxItemInput("a", read, JsonObject(emptyMap()), emptyMap(), 1.0, null, emptyList()), "phone_cloud", 900, null)
+    private val item = BoxItem(BoxItemInput("a", read, JsonObject(emptyMap()), emptyMap(), 1.0, null, emptyList()), "phone_cloud", 900.0, null)
     private val verdict = ItemVerdict(VerdictLevel.check, "Headline from the engine", emptyList(), null, emptyList(), "service")
     private val result = BoxResult(mapOf("a" to verdict), LithiumBox("none", emptyList(), emptyList(), ""), emptyList(), BoxCounts(0, 1, 0), "byt-x")
     private val places = listOf(DestinationName("CA", "Canada"), DestinationName("PH", "Philippines"))

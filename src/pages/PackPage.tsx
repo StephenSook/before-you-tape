@@ -5,13 +5,15 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
 import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
-import type { GateState, ImagePart, ItemModels } from "../ai/port";
+import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
+import { rulesReadBy } from "../engine/layers";
 import type { ItemRead } from "../shared/itemRead";
-import { chooseReadRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
+import { isNoItem } from "../shared/noItem";
+import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
@@ -44,6 +46,15 @@ export interface PackPageProps {
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
+
+// Why a photo cannot be read right now, in the sender's situation.
+function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }): string {
+  if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
+  if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
+  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
+  return BLOCKED;
+}
+const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
 const FAILURE: Record<ReadFailureKind, string> = {
   blocked: BLOCKED,
   device_failed: "This laptop couldn't read that one. Try again, or type the item.",
@@ -52,6 +63,9 @@ const FAILURE: Record<ReadFailureKind, string> = {
   cloud_unreachable: "The cloud check could not connect. Check the internet and try again, or type the item.",
   invalid_output: "That read did not make sense. Try again with the label facing the camera.",
 };
+
+// A read that found no item is dropped, never added as a card.
+const NO_ITEM = "Nothing to check there. Hold one item inside the box.";
 
 // A failed second look leaves the device read and its verdict in place.
 const SECOND_LOOK_FAILURE: Record<ReadFailureKind, string> = {
@@ -80,11 +94,15 @@ export function PackPage(p: PackPageProps) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [crops, setCrops] = useState<Record<string, ImagePart>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  // Why the last photo could not be read, shown only while that situation still holds.
+  const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
   const [checking, setChecking] = useState<Record<string, boolean>>({});
+  // Items the camera read by itself on this device whose cloud look waits for the sender's press.
+  const [offered, setOffered] = useState<Record<string, boolean>>({});
   // What each item needs to be looked at again; kept in memory only, like its crop.
   const looks = useRef(new Map<string, PendingLook>());
   const waitingForOnline = useRef(new Set<string>());
@@ -99,6 +117,7 @@ export function PackPage(p: PackPageProps) {
       else store.setError(itemId, SECOND_LOOK_FAILURE.blocked);
       return;
     }
+    setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     try {
       const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct);
@@ -123,12 +142,16 @@ export function PackPage(p: PackPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.online]);
 
-  const onImage = async (part: ImagePart) => {
-    const route = chooseReadRoute({ gate, cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
-    if (route === "blocked") { setNotice(BLOCKED); return; }
+  // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
+  const onImage = async (part: ImagePart, how: ImageHow) => {
+    const route = chooseImageRoute(how, { gate, ...cloudInputs() });
+    if (route === "skip") return;
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs()), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
+    setBlocked(null);
     try {
       const outcome = await readItem(models, part, route, now);
+      if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));
@@ -136,7 +159,8 @@ export function PackPage(p: PackPageProps) {
       const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, config.secondLook ?? SECOND_LOOK_DEFAULT) : null;
       if (reason && shouldRunSecondLook(reason, cloudInputs())) {
         looks.current.set(itemId, { reason, read: outcome.read, part });
-        void secondLook(itemId);
+        if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
+        else void secondLook(itemId);
       }
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
@@ -145,14 +169,18 @@ export function PackPage(p: PackPageProps) {
     }
   };
 
-  const reviewed = index.filter((d) => resolveDestination(edition, d.code).reviewState === "reviewed").map((d) => d.code);
+  const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
+  const readBy = Object.fromEntries(index.flatMap((d) => {
+    const r = rulesReadBy(resolveDestination(edition, d.code));
+    return r ? [[d.code, r.by] as const] : [];
+  }));
   const dest = state.result.destination;
   // The suspension list decides whether anything can go at all, so its check date is always in view.
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
     <div>
       <div className="pack-top">
-        <DestinationPicker index={index} reviewed={reviewed} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+        <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} />
       </div>
@@ -161,9 +189,10 @@ export function PackPage(p: PackPageProps) {
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
+      {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
         <div>
-          <CameraStage openCamera={p.openCamera} onImage={(part) => void onImage(part)} phoneReady={p.phoneReady} onError={setNotice}
+          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
             onTypeIt={() => setTyping(true)} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
@@ -179,7 +208,8 @@ export function PackPage(p: PackPageProps) {
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
-                onRetry={(id) => void secondLook(id)} />
+                onRetry={(id) => void secondLook(id)}
+                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined} />
             ) : null;
           })}
         </div>
