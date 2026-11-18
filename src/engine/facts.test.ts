@@ -38,6 +38,14 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("SD Alcohol 40-B", ed)).toContain("alcohol");
   });
 
+  it("reads tobacco and cigars from the label", () => {
+    expect(labelTagsOf("20 CIGARETTES", ed)).toContain("tobacco");
+    expect(labelTagsOf("Pipe Tobacco", ed)).toContain("tobacco");
+    expect(labelTagsOf("SMOKELESS TOBACCO", ed)).toContain("tobacco");
+    expect(labelTagsOf("Hand rolled cigars", ed)).toContain("cigar");
+    expect(labelTagsOf("Hand rolled cigars", ed)).not.toContain("tobacco");
+  });
+
   it("marks that label text was read, and returns nothing for no text", () => {
     expect(labelTagsOf("LOTION 8 FL OZ", ed)).toContain("label_text");
     expect(labelTagsOf("", ed)).toEqual([]);

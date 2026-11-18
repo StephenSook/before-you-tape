@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-e9e783889a23",
+  "editionId": "byt-8cca86c2ac3b",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -295,6 +295,18 @@
     {
       "pattern": "party poppers?",
       "tag": "christmas_cracker"
+    },
+    {
+      "pattern": "tobacco",
+      "tag": "tobacco"
+    },
+    {
+      "pattern": "cigarettes?",
+      "tag": "tobacco"
+    },
+    {
+      "pattern": "cigars?",
+      "tag": "cigar"
     },
     {
       "pattern": "mercury",

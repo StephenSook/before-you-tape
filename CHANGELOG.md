@@ -26,6 +26,8 @@ All notable changes to this project are listed here.
 - `.github/workflows/ci.yml`: the concurrency group now includes the commit SHA on pull requests too, so a newer push no longer cancels the run for the previous commit. Source: run 44236969420 for bd14d63 was cancelled by the next push, leaving that commit with no verdict. Verified: the YAML parses, and every PR commit after this one shows its own completed run.
 - `rules/sources.json`: the USPS export source now cites the Publication 52 PDF and its printed issue date, August 2026, which supersedes the February 2026 edition. Source: plan Task 11 (record the Pub 52 edition from the PDF cover). Verified by reading the first two pages of `https://pe.usps.com/cpim/ftp/pubs/Pub52/pub52.pdf` live on 2026-11-17; edition rebuilt and `edition:check` passes.
 
+- `rules/label-words.json`: "tobacco" and "cigarette" on a label now tag the item `tobacco`, and "cigar" tags it `cigar`, so the export rules can act on them. Source: plan Task 11 (tobacco is in the rule list; there is no tobacco category). Verified by the new test "reads tobacco and cigars from the label", which failed first.
+
 ### Fixed
 
 - `rules/label-words.json`: fatty alcohols that sit on most lotion labels (cetyl, cetearyl, stearyl, benzyl, behenyl, myristyl, lanolin, oleyl, lauryl, isostearyl, arachidyl and phenethyl alcohol) no longer tag an item as containing alcohol, which would have taken lotions out of the box. "Alcohol denat." and "SD alcohol" still do. Source: found while writing the USPS export rules (Task 11). Verified by the new test "does not read fatty alcohols in a lotion as alcohol" in `src/engine/facts.test.ts`, which failed before the change.
