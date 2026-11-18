@@ -70,10 +70,17 @@ if banned:
     problems.append("the bundle holds " + ", ".join(sorted({b.decode() for b in banned})))
 if not 20_000 <= len(bundle) <= 300_000:
     problems.append(f"bundle size {len(bundle)} bytes is outside 20,000 to 300,000")
-bridge = pathlib.Path("src/embed/bridge.ts").read_text()
-m = re.search(r"export const BRIDGE_VERSION = (\d+);", bridge)
+# The bundle itself must be the bridge: its export map names every bridge function, and its
+# version comes from the bundle, not from a source file the bundle may not contain.
+text = bundle.decode("utf-8")
+exports = ["BRIDGE_VERSION", "canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
+           "itemReadContract", "labelTagsJson", "parseItemReadJson", "setEdition"]
+missing = [n for n in exports if not re.search(r"\b" + n + r": \(\) => " + n + r"\b", text)]
+if missing:
+    problems.append("the bundle does not export the bridge (missing " + ", ".join(missing) + ")")
+m = re.search(r"\bvar BRIDGE_VERSION = (\d+);", text)
 if not m:
-    problems.append("no BRIDGE_VERSION in src/embed/bridge.ts")
+    problems.append("the bundle has no BRIDGE_VERSION")
 if problems:
     for p in problems:
         print(f"build-embed: {p}", file=sys.stderr)

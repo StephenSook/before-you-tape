@@ -92,4 +92,15 @@ describe("scripts/build-embed.sh", () => {
       rmSync(out, { recursive: true, force: true });
     }
   });
+
+  it("a bundle that is not the bridge fails the build", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    try {
+      const r = build(out, "src/engine/verdict.ts");
+      expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/does not export the bridge/);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
 });
