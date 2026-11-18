@@ -14,7 +14,9 @@ const MAYBE_BATTERY_DEVICES: ReadonlySet<ItemCategory> = new Set([
 ]);
 const LOOSE_CATEGORIES: ReadonlySet<ItemCategory> = new Set(["power_bank", "loose_battery"]);
 
-const printed = (n: number): number | null => (n > 0 ? n : null);
+// Typed fixes reach the engine unparsed, so a value may arrive as text. Only a real number counts.
+const isNumber = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
+const printed = (n: unknown): number | null => (isNumber(n) && n > 0 ? n : null);
 const inRange = (n: number | null, [lo, hi]: readonly [number, number]) => n === null || (n >= lo && n <= hi);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -58,10 +60,12 @@ export function deriveBattery(
   const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null;
   // Label words count as battery evidence even when the model's batteryWords flag is false.
   const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
-  const hasEvidence = read.batteryWords || anyNumber || labelEvidence;
+  // A battery number that is not a real number (text, NaN, negative) is a misread, never a pass.
+  const badNumber = [read.volts, read.milliampHours, read.wattHours, read.lithiumGrams].some((n) => !isNumber(n));
+  const hasEvidence = read.batteryWords || anyNumber || labelEvidence || badNumber;
 
   let whStatus: BatteryFacts["whStatus"];
-  if (!inRange(volts, RANGE.volts) || !inRange(milliampHours, RANGE.milliampHours) || !inRange(whPrinted, RANGE.wattHours)) {
+  if (badNumber || !inRange(volts, RANGE.volts) || !inRange(milliampHours, RANGE.milliampHours) || !inRange(whPrinted, RANGE.wattHours)) {
     whStatus = "implausible";
   } else if (whPrinted !== null && volts !== null && milliampHours !== null) {
     whStatus = crossCheckWh(volts, milliampHours, whPrinted, limits.whTolerancePct);
