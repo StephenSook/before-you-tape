@@ -179,3 +179,15 @@ actor ReadGate {
         if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
     }
 }
+
+/// Every cloud read waits for the anonymous sign-in first: AI Logic serves signed-in users only.
+/// A failed sign-in sends nothing to the cloud.
+struct SignedInCloudRunner: ItemModelRunner {
+    let ensureSignedIn: @Sendable @MainActor () async -> Bool
+    let inner: any ItemModelRunner
+
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+        guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
+        return await inner.read(input)
+    }
+}

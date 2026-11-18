@@ -1,3 +1,4 @@
+import BYTCore
 import Foundation
 import Observation
 
@@ -8,10 +9,31 @@ final class AppModel {
     let signIn: SignIn
     private(set) var signedIn = false
     private(set) var onDevice: OnDeviceStatus
+    /// The web app's rules engine; nil only when its bundled script would not load.
+    let engine: RulesEngine?
+    /// Reads items on Apple's model or, when allowed, on Gemini through Firebase AI Logic.
+    let reader: ItemReader?
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus()) {
         self.signIn = signIn
         self.onDevice = onDevice
+        let engine = try? RulesEngine()
+        self.engine = engine
+        self.reader = engine.map { Self.makeReader(engine: $0, signIn: signIn) }
+    }
+
+    /// Every cloud runner sits behind the sign-in; every answer passes the engine's parser.
+    static func makeReader(engine: RulesEngine, signIn: SignIn) -> ItemReader {
+        ItemReader(
+            device: DeviceRunner(),
+            makeCloud: { model in
+                SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() },
+                                    inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
+            },
+            parse: { read in
+                guard let data = try? JSONEncoder().encode(read) else { return nil }
+                return try? engine.parseItemRead(String(decoding: data, as: UTF8.self))
+            })
     }
 
     func start() async {

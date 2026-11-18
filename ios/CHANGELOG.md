@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): make every cloud read wait for the anonymous sign-in
+- What: `SignedInCloudRunner` awaits `SignIn.ensure()` before any cloud call and sends nothing
+  when sign-in fails (`not_signed_in`). `AppModel` now owns the rules engine and the item
+  reader; the reader builds every cloud runner, main and fallback model alike, behind that
+  sign-in, uses limited-use App Check tokens, and passes every answer through the engine's
+  parser.
+- Source: review (Firebase AI Logic is moving to signed-in users only).
+- Verified: three tests (the sign-in comes before the cloud call; a failed sign-in sends nothing;
+  the app's reader wraps every cloud runner) failed to compile, then passed; a mutant that builds
+  a bare cloud runner fails the last one; 52 app tests pass; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### feat(ios-core): add the not-signed-in read failure
 - What: `ReadFailure.notSignedIn` ("not_signed_in") for a read that made no cloud call because
   the sign-in failed. It always goes to typed entry: there is nothing to retry until sign-in works.
