@@ -37,5 +37,14 @@
       { "id": "no", "label": "No" },
       { "id": "cannot_tell", "label": "Can't tell" }
     ]
+  },
+  {
+    "id": "label_alcohol_free",
+    "text": "Does the label say alcohol-free?",
+    "answers": [
+      { "id": "yes", "label": "Yes, it says alcohol-free" },
+      { "id": "no", "label": "No" },
+      { "id": "cannot_tell", "label": "Can't tell" }
+    ]
   }
 ]

@@ -446,6 +446,7 @@
     "when": {
       "all": [
         { "fact": "alcohol", "op": "eq", "value": "unknown" },
+        { "not": { "fact": "tags", "op": "has", "value": "alcohol_free_unsure" } },
         {
           "any": [
             { "fact": "category", "op": "in", "value": ["perfume_fragrance", "liquid_toiletry", "medicine"] },
@@ -457,6 +458,23 @@
     },
     "outcome": "check",
     "askId": "label_alcohol"
+  },
+  {
+    "id": "DATA-NEEDS-ANSWER",
+    "layer": "data",
+    "scope": "item",
+    "section": "Before You Tape: questions",
+    "url": "https://before-you-tape-2026.web.app/rules",
+    "basis": "inference",
+    "ourWording": "We read \"alcohol\" at the end of one line and \"free\" at the start of the next. Does the label say alcohol-free? Answer to finish this check.",
+    "when": {
+      "all": [
+        { "fact": "alcohol", "op": "eq", "value": "unknown" },
+        { "fact": "tags", "op": "has", "value": "alcohol_free_unsure" }
+      ]
+    },
+    "outcome": "check",
+    "askId": "label_alcohol_free"
   },
   {
     "id": "DATA-NEEDS-ANSWER",

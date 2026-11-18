@@ -59,11 +59,25 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("POLYVINYL ALCOHOL", ed)).not.toContain("alcohol");
   });
 
-  it("reads a -free word split over a line break as one word", () => {
-    expect(labelTagsOf("ALCOHOL\nFREE LOTION 8 FL OZ", ed)).not.toContain("alcohol");
-    expect(labelTagsOf("ALCOHOL-\nFREE LOTION 8 FL OZ", ed)).not.toContain("alcohol");
-    expect(labelTagsOf("BODY LOTION\nALCOHOL 8 FL OZ", ed)).toContain("alcohol");
-    expect(labelTagsOf("MARGARINE\nFREE FROM PALM OIL", ed)).toContain("margarine");
+  it("negates a hyphen-wrapped -free, and never silently negates across a plain line break", () => {
+    const tags = (t: string) => labelTagsOf(t, ed);
+    // "ALCOHOL-" then "FREE": a hyphen wrap is one word, so it negates.
+    expect(tags("ALCOHOL-\nFREE LOTION 8 FL OZ")).not.toContain("alcohol");
+    expect(tags("ALCOHOL-\nFREE LOTION 8 FL OZ")).not.toContain("alcohol_free_unsure");
+    // "ALCOHOL" then "FREE ..." on the next line may be "alcohol-free" or "FREE SHIPPING": ask.
+    expect(tags("ALCOHOL\nFREE LOTION 8 FL OZ")).not.toContain("alcohol");
+    expect(tags("ALCOHOL\nFREE LOTION 8 FL OZ")).toContain("alcohol_free_unsure");
+    expect(tags("INGREDIENTS: WATER, ALCOHOL\nFREE SHIPPING")).toContain("alcohol_free_unsure");
+    // An unbroken mention elsewhere decides it without a question.
+    expect(tags("ALCOHOL DENAT\nWATER, ALCOHOL\nFREE SHIPPING")).toContain("alcohol");
+    expect(tags("ALCOHOL DENAT\nWATER, ALCOHOL\nFREE SHIPPING")).not.toContain("alcohol_free_unsure");
+    // Other words are never negated across a plain break; only alcohol has a question to clear it.
+    expect(tags("MERCURY\nFREE THERMOMETER")).toContain("mercury");
+    // Same-line negation is unchanged.
+    expect(tags("ALCOHOL FREE LOTION")).not.toContain("alcohol");
+    expect(tags("ALCOHOL FREE LOTION")).not.toContain("alcohol_free_unsure");
+    expect(tags("BODY LOTION\nALCOHOL 8 FL OZ")).toContain("alcohol");
+    expect(tags("MARGARINE\nFREE FROM PALM OIL")).toContain("margarine");
   });
 
   it("reads plurals of the cream and gel words", () => {
@@ -163,6 +177,16 @@ describe("deriveFacts", () => {
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "no" } }).alcohol).toBe("no");
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "yes" } }).alcohol).toBe("yes");
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "cannot_tell" } }).alcohol).toBe("unknown");
+  });
+
+  it("leaves alcohol to the sender when FREE starts the line after ALCOHOL", () => {
+    const wrapped = r({ category: "lotion_cream", labelText: "ALCOHOL\nFREE LOTION 8 FL OZ" });
+    expect(facts({ read: wrapped }).alcohol).toBe("unknown");
+    expect(facts({ read: wrapped, answers: { label_alcohol_free: "yes" } }).alcohol).toBe("no");
+    expect(facts({ read: wrapped, answers: { label_alcohol_free: "no" } }).alcohol).toBe("yes");
+    expect(facts({ read: wrapped, answers: { label_alcohol_free: "no" } }).tags).toContain("alcohol");
+    // The answer means nothing without the wrapped reading: it never clears a plain ALCOHOL.
+    expect(facts({ read: r({ labelText: "ALCOHOL DENAT. 50 ML" }), answers: { label_alcohol_free: "yes" } }).alcohol).toBe("yes");
   });
 
   it("keeps the stricter reading when the label and the answer disagree on alcohol", () => {

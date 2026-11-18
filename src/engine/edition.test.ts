@@ -45,7 +45,7 @@ describe("rule edition", () => {
   it("lets one rule id ask different questions, but refuses an exact duplicate", () => {
     const ask = (askId: string) => ({ ...validRule, id: "DATA-NEEDS-ANSWER", outcome: "check", askId });
     expect(parseEdition(bundled).rules.filter((r) => r.id === "DATA-NEEDS-ANSWER").map((r) => r.askId).sort())
-      .toEqual(["battery_installed", "device_condition", "label_alcohol"]);
+      .toEqual(["battery_installed", "device_condition", "label_alcohol", "label_alcohol_free"]);
     expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, ask("label_alcohol")] })).toThrow(EditionError);
     expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, validRule, validRule] })).toThrow(EditionError);
     expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, ask("no_such_question")] })).toThrow(EditionError);

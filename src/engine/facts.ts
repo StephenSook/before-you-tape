@@ -17,8 +17,12 @@ const FLAG_TAGS = [
   ["powder", "powder"],
 ] as const;
 
+// "ALCOHOL" at the end of a line with "FREE" starting the next: the label may say alcohol-free, or
+// the next line may be "FREE SHIPPING". The sender's answer to label_alcohol_free decides it.
+export const ALCOHOL_FREE_UNSURE_TAG = "alcohol_free_unsure";
+
 // Tags this file adds on its own, beside the edition's category tags and label words.
-export const ENGINE_TAGS: readonly string[] = [LABEL_TEXT_TAG, ...FLAG_TAGS.map(([, tag]) => tag)];
+export const ENGINE_TAGS: readonly string[] = [LABEL_TEXT_TAG, ALCOHOL_FREE_UNSURE_TAG, ...FLAG_TAGS.map(([, tag]) => tag)];
 
 const patternCache = new Map<string, RegExp>();
 function wholeWord(pattern: string): RegExp {
@@ -42,31 +46,38 @@ export function normalizeLabel(text: string): string {
 }
 
 // A word is negated by "no", "non", "not", "without", "zero", "free of", "free from" or "0%" just
-// before it on the same line, or by "free" just after it ("alcohol-free", "mercury free"), even when
-// that "free" wraps onto the next line ("ALCOHOL-" then "FREE"). "Free from" and "free of" after a
-// word negate what follows them, not the word before.
+// before it on the same line, or by "free" just after it on the same line ("alcohol-free", "mercury
+// free") or after a hyphen that ends the line ("ALCOHOL-" then "FREE"). A plain line break before
+// "FREE" never negates, because the next line may be "FREE SHIPPING". "Free from" and "free of"
+// after a word negate what follows them, not the word before.
 const NEGATED_BEFORE = / ?(?:\b(?:no|non|not|without|zero|free of|free from) ?-? ?|\b0(?:\.0+)? ?% ?)$/i;
-const NEGATED_AFTER = /^ ?-? ?free\b(?! (?:from|of)\b)/i;
+const NEGATED_AFTER = /^ ?(?:-? ?|- ?\n ?)free\b(?! (?:from|of)\b)/i;
+const FREE_AFTER_BREAK = /^\n ?-? ?free\b(?! (?:from|of)\b)/i;
 
 export function labelTagsOf(labelText: string, edition: RuleEdition): string[] {
   const text = normalizeLabel(labelText);
   if (text === "") return [];
-  // Matching treats a line break as a space, so a phrase split over two lines still matches. The
-  // check for a negating word before reads the text with its line breaks, so a "no" ending one line
-  // never reaches a word on the next; the check for "-free" after reads breaks as spaces, so a
-  // wrapped "ALCOHOL-" / "FREE" still negates. Both texts have the same length, so positions agree.
+  // Matching treats a line break as a space, so a phrase split over two lines still matches. Both
+  // negation checks read the text with its line breaks (same length, so the positions agree).
   const matchText = text.replace(/\n/g, " ");
   const tags = new Set<string>([LABEL_TEXT_TAG]);
   for (const w of edition.labelWords) {
     if (tags.has(w.tag)) continue;
+    let freeAfterBreak = false;
     for (const m of matchText.matchAll(wholeWord(w.pattern))) {
       const before = text.slice(Math.max(0, m.index - 12), m.index);
-      const after = matchText.slice(m.index + m[0].length, m.index + m[0].length + 12);
-      if (!NEGATED_BEFORE.test(before) && !NEGATED_AFTER.test(after)) {
-        tags.add(w.tag);
-        break;
+      const after = text.slice(m.index + m[0].length, m.index + m[0].length + 12);
+      if (NEGATED_BEFORE.test(before) || NEGATED_AFTER.test(after)) continue;
+      if (FREE_AFTER_BREAK.test(after)) {
+        freeAfterBreak = true;
+        continue;
       }
+      tags.add(w.tag);
+      break;
     }
+    // Only "FREE" on the next line stood against the word. Never negate on that: alcohol becomes a
+    // question for the sender, and any other word counts.
+    if (freeAfterBreak && !tags.has(w.tag)) tags.add(w.tag === "alcohol" ? ALCOHOL_FREE_UNSURE_TAG : w.tag);
   }
   return [...tags].sort();
 }
@@ -85,12 +96,18 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   // Saved tags stand in for label text that stayed on the laptop. A label the sender corrected
   // replaces the old label, so the tags saved from the old one no longer apply.
   if (input.overrides.labelText === undefined) for (const t of input.labelTags) tags.add(t);
+  // "ALCOHOL" then "FREE" on the next line, and no plain "ALCOHOL" anywhere: the sender says whether
+  // the label reads alcohol-free. "No" counts the alcohol; "yes" clears it.
+  const freeAnswer = input.answers.label_alcohol_free;
+  const freeUnsure = tags.has(ALCOHOL_FREE_UNSURE_TAG) && !tags.has("alcohol");
+  if (freeUnsure && freeAnswer === "no") tags.add("alcohol");
   const tagList = [...tags].sort();
 
   // Alcohol in the label words or the category wins over a "no". The model's flag alone does not:
   // it leaves alcohol unknown, which asks the sender, and their "no" clears it.
   const answer = input.answers.label_alcohol;
-  const alcohol: ItemFacts["alcohol"] = tags.has("alcohol") || answer === "yes" ? "yes" : answer === "no" ? "no" : "unknown";
+  const cleared = answer === "no" || (freeUnsure && freeAnswer === "yes");
+  const alcohol: ItemFacts["alcohol"] = tags.has("alcohol") || answer === "yes" ? "yes" : cleared ? "no" : "unknown";
 
   let identity: ItemFacts["identity"] = "unconfirmed";
   if (input.identityConfirmedBy) identity = input.identityConfirmedBy;
