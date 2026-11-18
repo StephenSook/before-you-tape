@@ -9,5 +9,5 @@
     <entry><key>ondevice_model_option_android</key><value>stable</value></entry>
     <entry><key>rules_edition_id</key><value></value></entry>
     <entry><key>rules_edition_sha256</key><value></value></entry>
-    <entry><key>second_look_policy_json</key><value></value></entry>
+    <entry><key>second_look_policy_json</key><value>{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}</value></entry>
 </defaultsMap>

@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The phone's second-look policy default matches the web template's.** The web Remote Config
+  template gained the second-look policy, the rule edition id and its hash. The phone's
+  defaults had the two edition keys equal and the policy empty, while the template's default is
+  `{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}`.
+  The phone now ships that value. `RcDefaultsTest` now lets the set of shared keys grow, as long
+  as the first three are there and every shared key equals the template's default. Source: a
+  fresh run after merging main (a false green: Gradle had kept the earlier test result because
+  the template is not a declared input of the test task; the next entry fixes that). Verified:
+  the test failed on exactly this value (expected the policy JSON, was empty), then passes; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The local Android gate holds a floor of 90 unit tests and compiles the device tests.**
   `android/ci-local.sh` raises its floor from 1 to 90 (92 tests now, rounded down to a ten, at
   this merge point; the floor is never lowered) and compiles the device tests too, matching the

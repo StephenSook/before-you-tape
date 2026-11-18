@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
@@ -31,7 +32,8 @@ class RcDefaultsTest {
     @Test fun sharedKeysMatchTheWebTemplateDefaults() {
         val params = Json.parseToJsonElement(File("../../remoteconfig.template.json").readText()).jsonObject.getValue("parameters").jsonObject
         val shared = xmlDefaults().filterKeys { it in params }
-        assertEquals(setOf("cloud_model_item", "kill_cloud", "minimum_version_android"), shared.keys)
+        // The set grows as the web template gains keys the phone also reads; these three were first.
+        assertTrue(shared.keys.containsAll(setOf("cloud_model_item", "kill_cloud", "minimum_version_android")))
         for ((k, v) in shared) {
             val web = params.getValue(k).jsonObject.getValue("defaultValue").jsonObject.getValue("value").jsonPrimitive.content
             assertEquals(k, web, v)
