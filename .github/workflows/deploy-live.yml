@@ -112,3 +112,10 @@ jobs:
         env:
           BYT_LIVE: "1"
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
+
+      # A box saved on the live site must come back from the server in a browser with no copy of it.
+      - name: A saved box comes back from the server
+        if: steps.head.outputs.current == 'true'
+        env:
+          BYT_LIVE: "1"
+        run: npx playwright test --project=live tests/e2e/roundtrip.live.spec.ts
