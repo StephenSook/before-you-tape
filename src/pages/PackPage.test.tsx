@@ -21,6 +21,13 @@ const newStore = () => createBoxStore({ edition: () => ed, persistence, now: () 
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
+// Adds a photo and presses "Check this part" on the crop step, as a sender does.
+const addPhoto = async () => {
+  await userEvent.upload(screen.getByTestId("upload-input"), photo);
+  const send = await screen.findByRole("button", { name: "Check this part" });
+  await waitFor(() => expect(send).toBeEnabled());
+  await userEvent.click(send);
+};
 
 function setup(over: Partial<PackPageProps> = {}, consent: boolean | null = true) {
   const store = over.store ?? newStore();
@@ -41,7 +48,7 @@ describe("PackPage", () => {
 
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true } });
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this laptop still work."));
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
@@ -75,7 +82,7 @@ describe("PackPage", () => {
 
   it("reads an added photo in the cloud and shows its verdict, then re-checks a country change with no model call", async () => {
     const { models } = setup();
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     const card = await screen.findByTestId("item-card");
     expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
@@ -91,7 +98,7 @@ describe("PackPage", () => {
     const nothing: ItemRead = { ...liquidLotionLabelRead, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
     const cloud = { generate: vi.fn(async () => ({ text: JSON.stringify(nothing), source: "in_cloud" as const })) };
     const { store } = setup({ models: { ...spyModels(), cloud } });
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);
@@ -99,7 +106,7 @@ describe("PackPage", () => {
 
   it("says what to do when nothing can read the photo", async () => {
     const { models } = setup({}, false);
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });

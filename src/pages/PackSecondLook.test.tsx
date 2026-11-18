@@ -38,7 +38,13 @@ function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent
   return { store, models, rerender: (online: boolean) => view.rerender(<PackPage {...props(online)} />) };
 }
 const photo = new File(["x"], "phone.jpg", { type: "image/jpeg" });
-const upload = () => userEvent.upload(screen.getByTestId("upload-input"), photo);
+// Adds a photo and presses "Check this part" on the crop step, as a sender does.
+const upload = async () => {
+  await userEvent.upload(screen.getByTestId("upload-input"), photo);
+  const send = await screen.findByRole("button", { name: "Check this part" });
+  await waitFor(() => expect(send).toBeEnabled());
+  await userEvent.click(send);
+};
 
 describe("Pack page second look", () => {
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
