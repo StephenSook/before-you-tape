@@ -28,6 +28,11 @@ const IDENTITY_HIT: RuleHit = {
   text: "Confirm what this is. We only saw it, so we can't be sure from the picture alone.",
 };
 
+const BAD_QUANTITY_HIT: RuleHit = {
+  ruleId: "DATA-BAD-QUANTITY", layer: "data", level: "check", section: "Before You Tape: item count", url: RULES_PAGE,
+  text: "The count for this item must be a whole number, 1 or more. Fix the count.",
+};
+
 function boxHit(edition: RuleEdition, ruleId: string, level: RuleHit["level"], text?: string, askId?: string): RuleHit {
   const rule = edition.rules.find((r) => r.id === ruleId);
   const hit: RuleHit = {
@@ -49,9 +54,14 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
       }
     : null;
 
-  const perItem = sorted.map((input) => {
+  const perItem = sorted.map((raw) => {
+    // A count must be a whole number of 1 or more. Anything else is checked and counted as 1, so a
+    // zero, negative or fractional count can never lower the lithium total of the other items.
+    const goodQuantity = Number.isInteger(raw.quantity) && raw.quantity >= 1;
+    const input = goodQuantity ? raw : { ...raw, quantity: 1 };
     const facts = deriveFacts(input, edition);
     const hits: RuleHit[] = [];
+    if (!goodQuantity) hits.push(BAD_QUANTITY_HIT);
     if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
     hits.push(...evaluateItemRules(facts, edition.rules));
     hits.push(...evaluateDestination(facts, input.answers, dest));
