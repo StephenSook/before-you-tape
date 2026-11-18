@@ -26,6 +26,10 @@ echo "== iOS: model guard and its tests"
 python3 -I ios/scripts/test_ios_guard.py
 python3 -I ios/scripts/ios_guard.py .
 
+echo "== iOS: the engine file is fresh, and the engine host passes the contract and the shared vectors"
+bash ios/scripts/check_engine_bundle.sh
+swift test --package-path ios/BYTCore
+
 echo "== iOS: generate the project, app tests on the simulator, unsigned device build"
 xcodegen generate --spec ios/project.yml --quiet
 DD="${TMPDIR:-/tmp}/byt-ci-dd"

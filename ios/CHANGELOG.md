@@ -5,6 +5,24 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): run the web app's rules engine in JavaScriptCore on the phone
+- What: `ios/BYTCore`, a Swift package. `RulesEngine` loads the engine file built by the
+  repository's own `scripts/build-embed.sh` (`byt-engine.js`, 48,417 bytes, with its SHA-256 in
+  `byt-engine.sha256`) into JavaScriptCore and calls the bridge's functions through their JSON
+  envelope; an engine refusal is a typed `EngineError`, never a crash.
+  `ios/scripts/check_engine_bundle.sh` rebuilds the file and fails on any byte difference, so the
+  phone and the laptop run the same engine code. The local gate runs the check and the package's
+  tests.
+- Source: iPhone client plan, tasks I-3 and I-4 (engine as the same bundle, not a Swift twin).
+- Verified: six contract tests (the bridge's exact function list and version 1; a call before an
+  edition is a `NoEditionError`; `rules/edition.json` loads as `byt-65f5528fc307`; Swift's
+  SHA-256 over JavaScriptCore's canonical body reproduces that id; the item-read contract; bad
+  input is an engine error) failed to compile without the host, then passed. All 105 shared
+  vectors pass in JavaScriptCore with the bridge test's merge rules; a mutation expecting
+  "ok_to_pack" everywhere gave 96 failures. The freshness check failed on a bundle built from
+  the bridge's pull request branch, then passed on the one built from main;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### build(ios): sign device builds with the team App Attest is registered for
 - What: `DEVELOPMENT_TEAM` is set in `ios/project.yml`. The Firebase iOS app now carries the same
   team id, and its App Attest provider is registered, so device builds can get App Check tokens.
