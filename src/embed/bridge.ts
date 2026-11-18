@@ -171,9 +171,16 @@ export function destinationHitsJson(inputJson: string): string {
   return reply(() => {
     const e = current();
     const input = object(inputJson);
-    if (typeof input.facts !== "object" || input.facts === null) throw new BadInputError("facts must be an object");
-    const answers = (input.answers ?? {}) as ItemAnswers;
-    return evaluateDestination(input.facts as ItemFacts, answers, resolveDestination(e, str(input, "code")));
+    const facts = plain(input.facts, "facts");
+    // The destination layer matches tags and reads the category; a string where a list belongs
+    // would be matched by substring, so both are checked first.
+    if (!Array.isArray(facts.tags) || !facts.tags.every((t) => typeof t === "string")) throw new BadInputError("facts.tags must be a list of strings");
+    checkField(FIELDS.get("category")!, facts.category, "facts");
+    const answers = plain(input.answers ?? {}, "answers");
+    for (const [k, v] of Object.entries(answers)) {
+      if (typeof v !== "string") throw new BadInputError(`answers.${k} must be a string`);
+    }
+    return evaluateDestination(facts as unknown as ItemFacts, answers as ItemAnswers, resolveDestination(e, str(input, "code")));
   });
 }
 

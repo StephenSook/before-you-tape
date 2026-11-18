@@ -167,4 +167,21 @@ describe("the JSON bridge for native clients", () => {
     expect(got).not.toBe(data);
     expect(Object.prototype.hasOwnProperty.call(got.c, "__proto__")).toBe(true);
   });
+
+  it("refuses destination facts whose tags or answers are not what the engine expects", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const facts = structuredClone(defaults.baseFacts);
+    const send = (input: unknown) => reply(BYT.destinationHitsJson(JSON.stringify(input)));
+    expect(send({ facts: { ...facts, tags: ["non_alcoholic_drink"] }, answers: {}, code: "CA" }).ok).toBe(true);
+    for (const [why, input] of [
+      ["tags as one string", { facts: { ...facts, tags: "non_alcoholic_drink" }, answers: {}, code: "CA" }],
+      ["a tag that is not text", { facts: { ...facts, tags: [7] }, answers: {}, code: "CA" }],
+      ["an answer that is not text", { facts: { ...facts, tags: [] }, answers: { label_alcohol: true }, code: "CA" }],
+      ["an unknown category", { facts: { ...facts, category: "lotion_creem" }, answers: {}, code: "CA" }],
+    ] as Array<[string, unknown]>) {
+      const r = send(input);
+      expect(r.ok, why).toBe(false);
+      if (!r.ok) expect(r.error.name, why).toBe("BadInputError");
+    }
+  });
 });
