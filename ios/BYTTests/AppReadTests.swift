@@ -71,4 +71,26 @@ import Testing
         #expect(web.contains("\"" + ConsentSheet.sentence.replacingOccurrences(of: "this iPhone", with: "this laptop") + "\""))
         #expect(ConsentSheet.allowLabel == "Allow" && ConsentSheet.keepLabel == "Keep everything on this iPhone")
     }
+
+    /// Label words are read on this iPhone, with no network and without asking about the cloud.
+    @Test func labelWordsAreReadOnThisIPhoneOffline() async throws {
+        let j = FakeItemRunner.Journal()
+        let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: TokenUse(input: 800, output: 90)))])
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+        let available = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: false)
+        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDevice: available,
+                             persistence: MemoryBoxPersistence(), reader: reader)
+        await model.readWords("  EAU DE PARFUM ALCOHOL DENAT 50 ML  ")
+        #expect(!model.askingConsent)
+        #expect(j.events == ["device start", "device end"])
+        #expect(model.box?.items.first?.readSource == "phone_on_device")
+        #expect(model.readLine == "Perfume: Take it out. Read on this iPhone.")
+    }
+
+    @Test func emptyWordsReadNothing() async {
+        let j = FakeItemRunner.Journal()
+        let model = fakeModel(j)
+        await model.readWords("   ")
+        #expect(j.events.isEmpty && model.lastRead == nil)
+    }
 }

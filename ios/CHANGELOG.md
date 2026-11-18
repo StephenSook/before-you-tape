@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): read the label's words on this iPhone, offline
+- What: under the camera, "Or type the words on the label" takes the words the sender types or
+  scans with the keyboard's own Scan Text, and "Read these words" reads them with Apple's
+  on-device model (no network needed, and no cloud question when the iPhone can read them).
+  Photos and words share one read path, so the cloud question still comes first whenever a read
+  can run only in the cloud. Words are trimmed and capped at 500 characters.
+- Source: iPhone client plan, task I-9 and the label-words reading on this iPhone.
+- Verified: two tests (words read on the iPhone with no network land as `phone_on_device` with
+  "Read on this iPhone."; empty words read nothing) failed to compile, then passed; 73 app tests
+  pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): show the box with verdict chips, where each read ran, and a country picker
 - What: "Your box" lists every item with its name, a verdict chip (the word and its own icon,
   never colour alone), the first reason, where it was read ("Read on this iPhone", "Read in the

@@ -22,9 +22,11 @@ final class AppModel {
     /// The last read and the box item it made, for the line under the camera.
     private(set) var lastRead: ReadOutcome?
     private(set) var lastItemId: String?
-    /// True while the one-time cloud question is on screen; the photo waits for the answer.
+    /// True while the one-time cloud question is on screen; the read waits for the answer.
     private(set) var askingConsent = false
-    @ObservationIgnored private var pendingPhoto: Data?
+    @ObservationIgnored private var pending: ItemInput?
+    /// Label words longer than this are cut: a label's words fit well inside it.
+    static let maxWords = 500
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil) {
@@ -71,16 +73,26 @@ final class AppModel {
 
     /// Reads one cropped photo on the router's path and adds what it read to the box. The cloud is
     /// used only when the sender allowed it and the phone is online (and every cloud call signs in first).
-    func readPhoto(_ jpeg: Data) async {
+    func readPhoto(_ jpeg: Data) async { await read(.photo(cropJPEG: jpeg)) }
+
+    /// Label words the sender typed or scanned with the keyboard: read on this iPhone when it can.
+    func readWords(_ text: String) async {
+        let words = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxWords))
+        guard !words.isEmpty else { return }
+        await read(.words(words))
+    }
+
+    private func read(_ input: ItemInput) async {
         guard let reader, let box else { return }
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: .defaults)
         // Asked once, before the first cloud call: nothing goes to the cloud until the sender picks.
-        if box.cloudConsent == nil, ItemReader.needsCloud(.photo, situation) {
-            pendingPhoto = jpeg
+        if box.cloudConsent == nil, ItemReader.needsCloud(input.kind, situation) {
+            pending = input
             askingConsent = true
             return
         }
-        let outcome = await reader.read(.photo(cropJPEG: jpeg), situation: situation)
+        let outcome = await reader.read(input, situation: situation)
+        lastKind = input.kind
         lastRead = outcome
         lastItemId = box.addRead(outcome, cropFile: nil)
     }
@@ -89,20 +101,25 @@ final class AppModel {
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
         box?.setConsent(allow)
-        guard let photo = pendingPhoto else { return }
-        pendingPhoto = nil
-        await readPhoto(photo)
+        guard let input = pending else { return }
+        pending = nil
+        await read(input)
     }
+
+    private(set) var lastKind: ReadInputKind = .photo
 
     var readLine: String? {
-        Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent)
+        Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind)
     }
 
-    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil) -> String? {
+    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
             let name: String = if case let .string(n)? = read["itemName"], !n.isEmpty { n } else { "This item" }
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
+        }
+        if outcome.route == .blocked, kind == .labelWords {
+            return "This iPhone cannot read label words right now, and the cloud is not allowed."
         }
         if outcome.route == .blocked {
             return consent == false ? "You chose to keep everything on this iPhone, and this iPhone does not read photos yet."
