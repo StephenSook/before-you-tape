@@ -61,14 +61,17 @@ struct ItemReader: Sendable {
     var device: any ItemModelRunner
     var makeCloud: @Sendable (String) -> any ItemModelRunner
     /// The web app's own parser (the rules engine's parseItemRead); nil means it refused the answer.
-    var parse: @Sendable (JSONValue) -> JSONValue? = { $0 }
+    /// Required, so no caller can skip it.
+    var parse: @Sendable (JSONValue) -> JSONValue?
     var deviceSeconds: Double = 30
     var cloudSeconds: Double = 45
     private let gate = ReadGate()
 
-    init(device: any ItemModelRunner, makeCloud: @escaping @Sendable (String) -> any ItemModelRunner) {
+    init(device: any ItemModelRunner, makeCloud: @escaping @Sendable (String) -> any ItemModelRunner,
+         parse: @escaping @Sendable (JSONValue) -> JSONValue?) {
         self.device = device
         self.makeCloud = makeCloud
+        self.parse = parse
     }
 
     func read(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {

@@ -45,7 +45,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     let words = ItemInput.words("EAU DE PARFUM 50 ML")
 
     func reader(device: FakeItemRunner, cloud: FakeItemRunner, built: Built = Built()) -> ItemReader {
-        ItemReader(device: device, makeCloud: { model in built.models.append(model); return cloud })
+        ItemReader(device: device, makeCloud: { model in built.models.append(model); return cloud }, parse: { $0 })
     }
     final class Built: @unchecked Sendable { var models: [String] = [] }
 

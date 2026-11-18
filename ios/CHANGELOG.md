@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### refactor(ios): make the reader's parser a required argument
+- What: `ItemReader` no longer defaults its parser to "accept the answer as is". Every caller
+  must pass the web app's parser, so a forgotten argument fails to compile instead of skipping
+  the check without a sign.
+- Source: review of the reader change.
+- Verified: reader tests pass with the parser passed in; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): read an item on Apple's model or on Gemini by the router's plan
 - What: `ItemReader` reads one item (a hold-zone crop or the label's words) on the path the
   router picks, one read at a time, with a time limit per call (30 s on the iPhone, 45 s in the
