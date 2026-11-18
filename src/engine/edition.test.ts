@@ -41,6 +41,14 @@ describe("rule edition", () => {
 
   it("accepts a valid rule", () => expect(parseEdition(withRule({})).rules).toHaveLength(1));
 
+  it("lets one rule id ask different questions, but refuses an exact duplicate", () => {
+    const ask = (askId: string) => ({ ...validRule, id: "DATA-NEEDS-ANSWER", outcome: "check", askId });
+    expect(parseEdition({ ...bundled, rules: [ask("label_alcohol"), ask("device_condition")] }).rules).toHaveLength(2);
+    expect(() => parseEdition({ ...bundled, rules: [ask("label_alcohol"), ask("label_alcohol")] })).toThrow(EditionError);
+    expect(() => parseEdition({ ...bundled, rules: [validRule, validRule] })).toThrow(EditionError);
+    expect(() => parseEdition({ ...bundled, rules: [ask("no_such_question")] })).toThrow(EditionError);
+  });
+
   it("rejects stored USPS wording fields, an unknown layer, an empty section", () => {
     expect(() => parseEdition(withRule({ shortQuote: "any text" }))).toThrow(EditionError);
     expect(() => parseEdition(withRule({ layer: "vibes" }))).toThrow(EditionError);

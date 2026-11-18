@@ -190,14 +190,15 @@ export function parseEdition(json: unknown): RuleEdition {
     });
   });
 
-  const ruleIds = new Set<string>();
+  // One rule id may ask several questions (DATA-NEEDS-ANSWER), so the unique key is id plus askId.
+  const ruleKeys = new Set<string>();
   list(e.rules, "rules").forEach((x, i) => {
     const w = `rules[${i}]`;
     const r = obj(x, w);
     keys(r, ["id", "layer", "scope", "section", "url", "basis", "ourWording", "when", "outcome"], ["askId"], w);
-    const id = str(r.id, `${w}.id`);
-    if (ruleIds.has(id)) fail(`${w}.id`, "duplicate");
-    ruleIds.add(id);
+    const key = `${str(r.id, `${w}.id`)}|${typeof r.askId === "string" ? r.askId : ""}`;
+    if (ruleKeys.has(key)) fail(`${w}.id`, "duplicate");
+    ruleKeys.add(key);
     oneOf(r.layer, ["usps_export", "data"] as const, `${w}.layer`);
     oneOf(r.scope, ["item", "box", "note"] as const, `${w}.scope`);
     str(r.section, `${w}.section`);

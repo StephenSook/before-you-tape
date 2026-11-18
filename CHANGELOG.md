@@ -21,6 +21,7 @@ All notable changes to this project are listed here.
 
 ### Changed
 
+- `src/engine/edition.ts`: a rule id may now appear more than once when each entry asks a different question, so `DATA-NEEDS-ANSWER` can ask about alcohol, device condition and battery placement. An exact duplicate (same id and question) is still refused, and an unknown question is refused. Source: plan Task 11 (`DATA-NEEDS-ANSWER` carries an `askId`). Verified by the new test "lets one rule id ask different questions, but refuses an exact duplicate", which failed first.
 - `.github/workflows/ci.yml`: the concurrency group now includes the commit SHA on pull requests too, so a newer push no longer cancels the run for the previous commit. Source: run 44236969420 for bd14d63 was cancelled by the next push, leaving that commit with no verdict. Verified: the YAML parses, and every PR commit after this one shows its own completed run.
 - `rules/sources.json`: the USPS export source now cites the Publication 52 PDF and its printed issue date, August 2026, which supersedes the February 2026 edition. Source: plan Task 11 (record the Pub 52 edition from the PDF cover). Verified by reading the first two pages of `https://pe.usps.com/cpim/ftp/pubs/Pub52/pub52.pdf` live on 2026-11-17; edition rebuilt and `edition:check` passes.
 
