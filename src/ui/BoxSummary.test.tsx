@@ -32,6 +32,11 @@ describe("BoxSummary", () => {
     expect(screen.queryByTestId("recheck-line")).toBeNull();
   });
 
+  it("says one item, not one items", () => {
+    render(<BoxSummary limits={ed.limits} result={result} itemCount={1} recheck={{ ms: 2, country: "Canada" }} />);
+    expect(screen.getByTestId("recheck-line")).toHaveTextContent("Re-checked 1 item for Canada in 2 ms. 0 model calls.");
+  });
+
   it("says a country change re-checked the box with no model call", () => {
     render(<BoxSummary limits={ed.limits} result={result} itemCount={3} recheck={{ ms: 3, country: "Canada" }} />);
     expect(screen.getByTestId("recheck-line")).toHaveTextContent("Re-checked 3 items for Canada in 3 ms. 0 model calls.");
