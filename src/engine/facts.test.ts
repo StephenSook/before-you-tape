@@ -86,6 +86,13 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("LIP BALMS", ed)).toContain("easily_liquefiable");
   });
 
+  it("reads sanitizer words in both spellings", () => {
+    expect(labelTagsOf("HAND SANITIZER GEL", ed)).toContain("sanitizer");
+    expect(labelTagsOf("SANITISING WIPES", ed)).toContain("sanitizer");
+    expect(labelTagsOf("HAND SANITIZERS 3 PACK", ed)).toContain("sanitizer");
+    expect(labelTagsOf("SHEA BODY LOTION", ed)).not.toContain("sanitizer");
+  });
+
   it("reads hemp alone as a question and CBD as a hemp product", () => {
     expect(labelTagsOf("55% HEMP 45% COTTON", ed)).toContain("hemp_maybe");
     expect(labelTagsOf("55% HEMP 45% COTTON", ed)).not.toContain("hemp");

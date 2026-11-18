@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-8f4d1dd616bf",
+  "editionId": "byt-65f5528fc307",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -198,6 +198,10 @@
     {
       "pattern": "inflammable",
       "tag": "flammable"
+    },
+    {
+      "pattern": "saniti[sz](?:ers?|ing)",
+      "tag": "sanitizer"
     },
     {
       "pattern": "[1-9][0-9]?(?:\\.[0-9]+)? ?% ?(?:alc|abv)",
@@ -662,6 +666,11 @@
             ]
           },
           {
+            "fact": "tags",
+            "op": "has",
+            "value": "sanitizer"
+          },
+          {
             "all": [
               {
                 "fact": "alcohol",
@@ -672,12 +681,57 @@
                 "fact": "tags",
                 "op": "has",
                 "value": "liquid"
+              },
+              {
+                "not": {
+                  "fact": "category",
+                  "op": "eq",
+                  "value": "lotion_cream"
+                }
               }
             ]
           }
         ]
       },
       "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-ALCOHOL-LOTION",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "IMM 136.1; Pub 52 343.1",
+      "url": "https://pe.usps.com/text/imm/immc1_015.htm",
+      "basis": "inference",
+      "ourWording": "Lotions and creams that list alcohol are often fine to mail, but USPS bars any liquid that can catch fire, and a label rarely says which. If the label says flammable, or alcohol is the first ingredient, take it out.",
+      "when": {
+        "all": [
+          {
+            "fact": "category",
+            "op": "eq",
+            "value": "lotion_cream"
+          },
+          {
+            "fact": "alcohol",
+            "op": "eq",
+            "value": "yes"
+          },
+          {
+            "not": {
+              "fact": "tags",
+              "op": "has",
+              "value": "flammable"
+            }
+          },
+          {
+            "not": {
+              "fact": "tags",
+              "op": "has",
+              "value": "sanitizer"
+            }
+          }
+        ]
+      },
+      "outcome": "check"
     },
     {
       "id": "USPS-INTL-FLAMMABLE-OTHER",
