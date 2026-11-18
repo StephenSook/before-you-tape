@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Every read sends the web app's system lines and read prompt.** `Prompts` holds the web
+  app's item-read system lines and prompt (`src/ai/prompts.ts`) word for word, and `AiClient`
+  now builds its model with the system lines as `systemInstruction`, as the web app does. The
+  shared bundle takes these over in bridge v2. Source: Android plan Task 9 (reads on the judged
+  path) and review of parity with the web app. Verified: `PromptsTest` (3 tests, which failed to
+  compile first) passes: the five system lines and the prompt equal the literals parsed out of
+  `src/ai/prompts.ts`, and the one `generativeModel(` call carries the system lines; the live
+  cloud read on the emulator with the web prompt answered from the cloud in 2,409 ms with
+  category power_bank, 18.5 Wh and evidence label_read; `bash android/ci-local.sh` and the
+  root CI mirror exit 0.
+
 - **Camera screen with a hold zone, a photo picker and a typed way in.** `CameraScreen` asks
   for the camera once and shows the preview with the hold zone drawn on it (4 wide by 3 tall,
   80% of the width, centred; `holdZoneFor` gives the same fractions for the drawing and the

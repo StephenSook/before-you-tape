@@ -28,6 +28,7 @@ class AiClient(private val rc: () -> RcValues) : LabelModel {
 
     private fun model(v: RcValues, mode: InferenceMode) = ai(v).generativeModel(
         modelName = v.cloudModelItem.ifEmpty { NO_CLOUD_MODEL },
+        systemInstruction = content { text(Prompts.ITEM_READ_SYSTEM) },
         onDeviceConfig = OnDeviceConfig(mode = mode, modelOption = AiMapping.modelOption(v.onDeviceModelOption)),
     )
 

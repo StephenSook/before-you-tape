@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.beforeyoutape.android.R
 import app.beforeyoutape.android.ai.AiClient
+import app.beforeyoutape.android.ai.Prompts
 import app.beforeyoutape.android.ai.SdkMode
 import app.beforeyoutape.android.ai.Source
 import app.beforeyoutape.android.capture.BitmapCrop
@@ -34,7 +35,7 @@ class AiLogicLiveTest {
         return b
     }
 
-    /** One cloud read of a drawn battery label through the app's own client, with the in-app Remote Config defaults. */
+    /** One cloud read of a drawn battery label through the app's own client and the web's prompt and system lines, with the in-app Remote Config defaults. */
     @Test fun aCloudReadOfADrawnBatteryLabelAnswers(): Unit = runBlocking {
         val remote = Firebase.remoteConfig
         remote.setDefaultsAsync(R.xml.remote_config_defaults).await()
@@ -43,9 +44,9 @@ class AiLogicLiveTest {
         val reply = AiClient { values }.read(
             SdkMode.ONLY_IN_CLOUD,
             BitmapCrop(drawnLabel()),
-            "Read what is printed on this item's label. Fill every field; use 0 for a number that is not printed.",
+            Prompts.ITEM_READ_PROMPT,
         )
-        Log.i("BYT-PROBE", "cloud read source=${reply.source} latencyMs=${reply.latencyMs} category=${reply.read?.category} batteryWords=${reply.read?.batteryWords}")
+        Log.i("BYT-PROBE", "cloud read source=${reply.source} latencyMs=${reply.latencyMs} category=${reply.read?.category} batteryWords=${reply.read?.batteryWords} wh=${reply.read?.wattHours} evidence=${reply.read?.evidence}")
         assertEquals(Source.IN_CLOUD, reply.source)
         assertNotNull("the reply had no read", reply.read)
     }
