@@ -1,7 +1,7 @@
 // The box: local-first, with verdicts always derived (plan Task 18). Every change re-runs evaluateBox, so
 // a verdict is never read back from storage. Label text stays in memory and with the crop on this device;
 // the copy handed to persistence carries only the tags found in it.
-import type { ReadOutcome } from "../ai/itemRead";
+import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
@@ -27,7 +27,7 @@ export interface BoxItem extends BoxItemInput {
   readMs: number;
   secondLook: { ms: number; reason: string } | null;
   // Set only when the fallback cloud model made the read, with the status that sent it there.
-  readFallback?: { after: "500" | "503"; route: ReadRoute };
+  readFallback?: { after: FallbackAfter; route: ReadRoute };
   cropKey: string | null;
   customs: CustomsLine;
 }

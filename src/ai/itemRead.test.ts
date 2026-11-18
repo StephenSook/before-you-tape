@@ -102,6 +102,24 @@ describe("readItem", () => {
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
+  it("tries the fallback once when the API says the model is gone, without retrying the gone model", async () => {
+    for (const msg of [
+      "[GoogleGenerativeAI Error]: fetch-error 404 Not Found: models/gemini-2.5-flash is no longer available to new users",
+      "fetch-error 404 models/gemini-x is not found for API version v1beta, or is not supported for generateContent",
+    ]) {
+      const m = models({ cloud: fails(msg), fallback: ok("in_cloud") });
+      expect(await readItem(m, img, "cloud_only", clock(0, 9)), msg).toMatchObject({ route: "cloud_only", fallbackAfter: "404", read: validRead });
+      expect(m.cloud.generate, msg).toHaveBeenCalledTimes(1);
+      expect(m.fallback.generate, msg).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("does not use the fallback for a 404 that does not say the model is gone", async () => {
+    const m = models({ cloud: fails("fetch-error 404 Not Found"), fallback: never() });
+    await expect(readItem(m, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(m.fallback.generate).not.toHaveBeenCalled();
+  });
+
   it("does not use the fallback for other failures, and does not retry the fallback", async () => {
     for (const msg of ["fetch-error 429 Too Many Requests", "Failed to fetch", "fetch-error 403", "fetch-error 502"]) {
       const m = models({ cloud: fails(msg), fallback: never() });
