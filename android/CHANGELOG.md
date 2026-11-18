@@ -3,6 +3,20 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Live App Check and cloud-read checks, run only on request.** Tests marked `@Live` call the
+  live project and are left out of the default device run (`notAnnotation`). Run them with
+  `-Pandroid.testInstrumentationRunnerArguments.annotation=app.beforeyoutape.android.live.Live
+  -Pandroid.testInstrumentationRunnerArguments.notAnnotation=androidx.test.filters.FlakyTest`.
+  `AppCheckLiveTest` checks that the debug build's registered debug token gets an App Check
+  token and that sign-in gives a user id (nothing is printed). `AiLogicLiveTest` sends one
+  cloud read of a drawn "Li-ion 3.7V 5000mAh 18.5Wh" label through `AiClient` with the in-app
+  Remote Config defaults and checks that it answers from the cloud with a read. Source: Android
+  plan Tasks 4 and 6; and the check that the Android API key, now restricted to this package and
+  its two signing certificates, still answers. Verified: on the emulator against
+  `before-you-tape-2026`, 2 of 2 pass; the read came back in the cloud in 3,541 ms as a power
+  bank with battery words (local evidence, not in the repo); `bash android/ci-local.sh` and the
+  root CI mirror exit 0.
+
 - **Live Remote Config store with safe defaults.** `RcStore` publishes `RcValues` from a
   `RcSource`; the Firebase source sets the in-app defaults XML, fetches at start and listens in
   real time, and keeps the last activated values if an update fails. Until the defaults or a

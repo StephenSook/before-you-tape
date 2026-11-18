@@ -40,6 +40,8 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Tests that call the live Firebase project run only when asked for.
+        testInstrumentationRunnerArguments["notAnnotation"] = "app.beforeyoutape.android.live.Live"
     }
 
     buildTypes {
@@ -86,6 +88,11 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
 
+    implementation(libs.coroutines.play.services)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
