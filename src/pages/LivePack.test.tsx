@@ -73,6 +73,25 @@ describe("LivePack", () => {
     for (const g of all) expect(g).not.toHaveBeenCalled();
   });
 
+  it("aborts a cloud read in flight the moment kill_cloud turns on, before the page re-renders", async () => {
+    let signal: AbortSignal | undefined;
+    const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<never>(() => {}); }) };
+    const makeModels = () => ({ device: port(), hybrid: port(), cloud, fallback: port() });
+    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
+    store.setConsent(true);
+    const cfg = fakeSource();
+    render(<LivePack source={cfg.source} makeModels={makeModels} store={store} gate="no_api" openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
+      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />);
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    expect(signal?.aborted).toBe(false);
+    // Subscribed after the page, so it sees the state at the moment the update is announced.
+    let abortedWhenAnnounced: boolean | undefined;
+    cfg.source.subscribe(() => { abortedWhenAnnounced = signal?.aborted; });
+    act(() => cfg.push({ killCloud: true }));
+    expect(abortedWhenAnnounced).toBe(true);
+  });
+
   it("passes the second-look policy from Remote Config to the page", async () => {
     const { models, push } = setup({}, "available");
     act(() => push({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));

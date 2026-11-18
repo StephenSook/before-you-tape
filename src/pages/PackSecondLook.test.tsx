@@ -57,7 +57,8 @@ describe("Pack page second look", () => {
     await screen.findByTestId("second-look");
     expect(screen.getByTestId("second-look")).toHaveTextContent(SECOND_LOOK_TEXT.wh_mismatch);
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
-    expect(models.cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, models.hybrid.generate.mock.calls[0]?.[1]);
+    // The same prompt and crop, with the cloud check and the abort signal the page fires on a withdrawal.
+    expect(models.cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, models.hybrid.generate.mock.calls[0]?.[1], { allowed: expect.any(Function), signal: expect.any(AbortSignal) });
     const item = store.getState().items[0];
     expect(item?.read.milliampHours).toBe(2600);
     expect(item?.secondLook?.reason).toBe(SECOND_LOOK_TEXT.wh_mismatch);

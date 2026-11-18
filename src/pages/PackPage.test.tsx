@@ -122,6 +122,20 @@ describe("PackPage", () => {
     expect(fallback.generate).not.toHaveBeenCalled();
   });
 
+  it("aborts a cloud read in flight the moment the sender takes back consent, before the page re-renders", async () => {
+    let signal: AbortSignal | undefined;
+    const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<never>(() => {}); }) };
+    const { store } = setup({ models: { ...spyModels(), cloud } });
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    expect(signal?.aborted).toBe(false);
+    // Subscribed after the page, so it sees the state at the moment the change is announced.
+    let abortedWhenAnnounced: boolean | undefined;
+    store.subscribe(() => { abortedWhenAnnounced = signal?.aborted; });
+    act(() => store.setConsent(false));
+    expect(abortedWhenAnnounced).toBe(true);
+  });
+
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));

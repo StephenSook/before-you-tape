@@ -15,11 +15,13 @@ import { ITEM_READ_SYSTEM } from "./prompts";
 // and is marked unreported so the card does not claim the cloud either.
 function portFor(model: GenerativeModel, withImage: boolean): ModelPort {
   return {
-    async generate(prompt, image) {
+    async generate(prompt, image, opts) {
       const parts: Array<string | Part> = withImage && image
         ? [prompt, { type: "inlineData", inlineData: { mimeType: image.mimeType, data: image.base64 } }]
         : [prompt];
-      const { response } = await model.generateContent(parts);
+      // The SDK checks the signal before it gets its tokens and again before the request (its hybrid
+      // mode's own cloud step included), so a withdrawn read sends nothing.
+      const { response } = opts?.signal ? await model.generateContent(parts, { signal: opts.signal }) : await model.generateContent(parts);
       const where = response.inferenceSource;
       if (where === "on_device") return { text: response.text(), source: "on_device" };
       if (where === "in_cloud") return { text: response.text(), source: "in_cloud" };

@@ -3,7 +3,7 @@
 // is thrown away. Cloud network errors, 429 and 5xx get one automatic retry; a 500 or 503 after that
 // retry, or a 404 saying the model is gone, gets one try on the fallback model when there is one.
 import { parseItemRead, type ItemRead } from "../shared/itemRead";
-import type { GateState, ImagePart, InferenceSourceName, ItemModels, ModelPort, ModelReply, ReadRoute } from "./port";
+import type { CallOptions, GateState, ImagePart, InferenceSourceName, ItemModels, ModelPort, ModelReply, ReadRoute } from "./port";
 import { ITEM_READ_PROMPT } from "./prompts";
 
 export type ReadFailureKind = "blocked" | "device_failed" | "leak_guard" | "cloud_refused" | "cloud_unreachable" | "invalid_output";
@@ -70,25 +70,38 @@ function fallbackStatus(e: unknown): FallbackAfter | null {
 interface CloudReply { reply: ModelReply; fallbackAfter?: FallbackAfter }
 
 // Cloud checks can be switched off while a read is running. Each further cloud call (a retry, the fallback
-// model, or the cloud recovery of a failed hybrid call) asks first, so only a call already in flight finishes.
+// model, or the cloud recovery of a failed hybrid call) asks first, and every call that can reach the cloud
+// carries the check and the read's abort signal, which the page aborts when the cloud is withdrawn. The SDK
+// checks that signal before it gets its tokens and before the request, so only a request already sent
+// finishes.
 export type StillAllowed = () => boolean;
 const SWITCHED_OFF = "cloud checks were switched off during the read";
+const blocked = () => new ReadFailure("blocked", SWITCHED_OFF);
 
-async function callCloud(models: ItemModels, image: ImagePart, stillAllowed: StillAllowed): Promise<CloudReply> {
+interface Withdrawal { opts: CallOptions; withdrawn: () => boolean; aborted: () => boolean }
+
+function withdrawal(stillAllowed: StillAllowed, signal?: AbortSignal): Withdrawal {
+  const aborted = () => signal?.aborted === true;
+  return { opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed }, aborted, withdrawn: () => aborted() || !stillAllowed() };
+}
+
+async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
-    if (!stillAllowed()) throw new ReadFailure("blocked", SWITCHED_OFF);
+    if (w.withdrawn()) throw blocked();
     try {
-      return { reply: await models.cloud.generate(ITEM_READ_PROMPT, image) };
+      return { reply: await models.cloud.generate(ITEM_READ_PROMPT, image, w.opts) };
     } catch (e) {
+      if (w.aborted()) throw blocked();
       const c = classifyCloudError(e);
       if (c.retry && attempt < 2) continue;
       const status = fallbackStatus(e);
       if (!models.fallback || !status) throw new ReadFailure(c.kind, errorName(e));
-      if (!stillAllowed()) throw new ReadFailure("blocked", SWITCHED_OFF);
+      if (w.withdrawn()) throw blocked();
       // One try on the fallback model, with no retry of its own.
       try {
-        return { reply: await models.fallback.generate(ITEM_READ_PROMPT, image), fallbackAfter: status };
+        return { reply: await models.fallback.generate(ITEM_READ_PROMPT, image, w.opts), fallbackAfter: status };
       } catch (f) {
+        if (w.aborted()) throw blocked();
         throw new ReadFailure(classifyCloudError(f).kind, errorName(f));
       }
     }
@@ -103,10 +116,13 @@ function parseOrFail(reply: ModelReply): ItemRead {
   }
 }
 
-export async function readItem(models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true): Promise<ReadOutcome> {
+export async function readItem(
+  models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
+): Promise<ReadOutcome> {
   const start = now();
-  const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: FallbackAfter): ReadOutcome => {
-    const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route, recoveredFrom };
+  const w = withdrawal(stillAllowed, signal);
+  const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: FallbackAfter, ran: ReadRoute = route): ReadOutcome => {
+    const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route: ran, recoveredFrom };
     if (reply.unreported) out.unreported = true;
     if (fallbackAfter) out.fallbackAfter = fallbackAfter;
     return out;
@@ -114,7 +130,7 @@ export async function readItem(models: ItemModels, image: ImagePart, route: Read
 
   if (route === "blocked") throw new ReadFailure("blocked", "no route: the on-device model is not ready and the cloud is not allowed");
 
-  if (route === "device_only") {
+  const onDevice = async (): Promise<ReadOutcome> => {
     let reply: ModelReply;
     try {
       reply = await models.device.generate(ITEM_READ_PROMPT, image);
@@ -122,21 +138,27 @@ export async function readItem(models: ItemModels, image: ImagePart, route: Read
       throw e instanceof ReadFailure ? e : new ReadFailure("device_failed", errorName(e));
     }
     if (reply.source !== "on_device") throw new ReadFailure("leak_guard", `a device-only read came back from ${reply.source}`);
-    return done(reply, null);
-  }
+    return done(reply, null, undefined, "device_only");
+  };
+
+  if (route === "device_only") return onDevice();
 
   if (route === "hybrid") {
+    // The SDK's hybrid mode may go to the cloud inside the call, so it starts only while the cloud is
+    // allowed; otherwise the read stays on the device-only model.
+    if (w.withdrawn()) return onDevice();
     let recoveredFrom: string;
     try {
-      const reply = await models.hybrid.generate(ITEM_READ_PROMPT, image);
+      const reply = await models.hybrid.generate(ITEM_READ_PROMPT, image, w.opts);
       return done(reply, null);
     } catch (e) {
+      if (w.aborted()) throw blocked();
       recoveredFrom = errorName(e);
     }
-    const cloud = await callCloud(models, image, stillAllowed);
+    const cloud = await callCloud(models, image, w);
     return done(cloud.reply, recoveredFrom, cloud.fallbackAfter);
   }
 
-  const cloud = await callCloud(models, image, stillAllowed);
+  const cloud = await callCloud(models, image, w);
   return done(cloud.reply, null, cloud.fallbackAfter);
 }

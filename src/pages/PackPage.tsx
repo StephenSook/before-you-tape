@@ -43,6 +43,8 @@ export interface PackPageProps {
   newCropKey?: () => string;
   // Why a newer rule edition could not be used, if one was named and failed.
   editionNotice?: string | null;
+  // Remote Config as it changes, so a pause stops reads already running the moment it arrives.
+  liveConfig?: { get(): { killCloud: boolean }; subscribe(listener: (c: { killCloud: boolean }) => void): () => void };
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
@@ -114,6 +116,23 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online }; });
   const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, ...live.current });
 
+  // Reads and second looks that can reach the cloud. Taking back consent or pausing cloud checks aborts
+  // them when the change is announced, before the page re-renders; the SDK checks the signal before it
+  // gets its tokens and before the request, so it sends nothing it had not already sent.
+  const inflight = useRef(new Set<AbortController>());
+  const { liveConfig } = p;
+  useEffect(() => {
+    const withdraw = () => { for (const ac of inflight.current) ac.abort(); inflight.current.clear(); };
+    const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== true) withdraw(); });
+    const offPause = liveConfig?.subscribe((c) => { if (c.killCloud) withdraw(); });
+    return () => { offConsent(); offPause?.(); };
+  }, [store, liveConfig]);
+  const cloudWork = () => {
+    const ac = new AbortController();
+    inflight.current.add(ac);
+    return { signal: ac.signal, end: () => { inflight.current.delete(ac); } };
+  };
+
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
     if (!look) return;
@@ -124,8 +143,9 @@ export function PackPage(p: PackPageProps) {
     }
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
+    const work = cloudWork();
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed);
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
     } catch (e) {
@@ -133,6 +153,7 @@ export function PackPage(p: PackPageProps) {
       if (kind === "cloud_unreachable") waitingForOnline.current.add(itemId);
       store.setError(itemId, SECOND_LOOK_FAILURE[kind]);
     } finally {
+      work.end();
       setChecking((c) => ({ ...c, [itemId]: false }));
     }
   };
@@ -154,8 +175,9 @@ export function PackPage(p: PackPageProps) {
     if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs()), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
     setBlocked(null);
+    const work = cloudWork();
     try {
-      const outcome = await readItem(models, part, route, now, stillAllowed);
+      const outcome = await readItem(models, part, route, now, stillAllowed, work.signal);
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
@@ -171,6 +193,8 @@ export function PackPage(p: PackPageProps) {
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
     } catch (e) {
       setNotice(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
+    } finally {
+      work.end();
     }
   };
 
