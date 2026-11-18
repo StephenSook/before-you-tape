@@ -55,6 +55,13 @@ describe("rule edition", () => {
     expect(() => parseEdition(withRule({ section: "" }))).toThrow(EditionError);
   });
 
+  it("rejects dates that do not exist on the calendar", () => {
+    for (const bad of ["2026-13-01", "2026-02-30", "2026-00-10", "2026-11-31"]) {
+      expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, checkedOn: bad } }), bad).toThrow(/checkedOn/);
+    }
+    expect(parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, checkedOn: "2028-02-29" } }).suspensions.checkedOn).toBe("2028-02-29");
+  });
+
   it("rejects a bad predicate, a non-https url and a tolerance at the misread", () => {
     expect(() => parseEdition(withRule({ when: { fact: "category", op: "like", value: "x" } }))).toThrow(EditionError);
     expect(() => parseEdition(withRule({ url: "http://pe.usps.com/x" }))).toThrow(EditionError);

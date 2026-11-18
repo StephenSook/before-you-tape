@@ -1,10 +1,13 @@
 // The four rule layers behind every verdict, each with its edition and check date.
 // The caller passes today's date; the engine never reads a clock.
+import { isCalendarDate } from "./edition";
 import type { DestinationContext, LayerStatus, RuleEdition } from "./types";
 
 const DAY_MS = 86_400_000;
 
-function ageInDays(checkedOn: string, today: string): number {
+// Null when either date is not a real calendar date, so the layer fails closed.
+function ageInDays(checkedOn: string, today: string): number | null {
+  if (!isCalendarDate(checkedOn) || !isCalendarDate(today)) return null;
   return Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${checkedOn}T00:00:00Z`)) / DAY_MS);
 }
 
@@ -12,7 +15,9 @@ function layer(
   id: LayerStatus["id"], label: string, edition: string, checkedOn: string | null, present: boolean, staleDays: number, today: string,
 ): LayerStatus {
   let state: LayerStatus["state"] = "missing";
-  if (present && checkedOn) state = ageInDays(checkedOn, today) > staleDays ? "stale" : "checked";
+  const age = present && checkedOn ? ageInDays(checkedOn, today) : null;
+  // A check dated after today cannot vouch for today, so it counts as missing, never fresh.
+  if (age !== null && age >= 0) state = age > staleDays ? "stale" : "checked";
   return { id, label, edition, checkedOn, state };
 }
 

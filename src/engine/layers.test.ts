@@ -37,4 +37,12 @@ describe("layerStatuses", () => {
     const e = { ...ed, destinations: { ...ed.destinations, KN: kn } };
     expect(layerStatuses(e, resolveDestination(e, "KN"), "2026-11-20").find((l) => l.id === "destination")!.state).toBe("missing");
   });
+
+  it("never reads an impossible today or a check dated after today as fresh", () => {
+    const states = (today: string) => layerStatuses(ed, resolveDestination(ed, "CA"), today).map((l) => l.state);
+    expect(states("2026-99-99")).toEqual(["missing", "missing", "missing", "missing"]);
+    expect(states("2026-02-30")).toEqual(["missing", "missing", "missing", "missing"]);
+    expect(states("2026-11-10")).toEqual(["missing", "missing", "missing", "missing"]);
+    expect(states("2026-11-17")).toEqual(["checked", "checked", "checked", "checked"]);
+  });
 });
