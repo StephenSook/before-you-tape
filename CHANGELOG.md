@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `public/llms.txt` lists /about now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/AboutPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /about page. It says, in plain words:
 - what the app checks;
 - that the rules run in the browser;
