@@ -72,6 +72,15 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("HEMP SEED OIL LOTION", ed)).not.toContain("hemp");
   });
 
+  it("needs a medicine cue to read medicine, not the word tablet or capsule alone", () => {
+    for (const label of ["TABLET COMPUTER", "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "COFFEE CAPSULES", "PARTY LOZENGES CANDY"]) {
+      expect(labelTagsOf(label, ed), label).not.toContain("pharmaceutical");
+    }
+    for (const label of ["ASPIRIN TABLETS 325 MG", "IBUPROFEN 200", "DRUG FACTS", "COUGH DROPS", "THROAT LOZENGES", "Active ingredient: loratadine"]) {
+      expect(labelTagsOf(label, ed), label).toContain("pharmaceutical");
+    }
+  });
+
   it("does not read fatty alcohols in a lotion as alcohol", () => {
     for (const label of ["WATER, CETEARYL ALCOHOL, GLYCERIN", "Cetyl Alcohol", "stearyl alcohol", "Benzyl Alcohol",
       "BEHENYL ALCOHOL", "Myristyl Alcohol", "Lanolin Alcohol", "Oleyl Alcohol", "Lauryl Alcohol", "Isostearyl Alcohol"]) {

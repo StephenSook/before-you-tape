@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-85c553b3533c",
+  "editionId": "byt-87f19f8f51d0",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -292,15 +292,27 @@
       "tag": "pharmaceutical"
     },
     {
-      "pattern": "tablets?",
+      "pattern": "active ingredients?",
       "tag": "pharmaceutical"
     },
     {
-      "pattern": "capsules?",
+      "pattern": "(?:pain|fever) (?:relievers?|reducers?)",
       "tag": "pharmaceutical"
     },
     {
-      "pattern": "lozenges?",
+      "pattern": "(?:aspirin|ibuprofen|acetaminophen|paracetamol|naproxen|loratadine|cetirizine|diphenhydramine)",
+      "tag": "pharmaceutical"
+    },
+    {
+      "pattern": "antihistamines?",
+      "tag": "pharmaceutical"
+    },
+    {
+      "pattern": "cough drops?",
+      "tag": "pharmaceutical"
+    },
+    {
+      "pattern": "(?:throat|cough) lozenges?",
       "tag": "pharmaceutical"
     },
     {
