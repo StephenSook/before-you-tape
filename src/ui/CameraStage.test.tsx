@@ -9,22 +9,44 @@ const part: ImagePart = { mimeType: "image/jpeg", base64: "/9j/AAAA" };
 const fakeStream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
 const okCamera = vi.fn(async () => ({ stream: fakeStream, stop: vi.fn() }));
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
+const start = () => userEvent.click(screen.getByRole("button", { name: "Start camera" }));
 
 describe("CameraStage", () => {
   // jsdom has no media playback; the stage only asks the video to play.
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
 
+  it("keeps the camera off until the sender starts it, and turns it off on request", async () => {
+    const stop = vi.fn();
+    const open = vi.fn(async () => ({ stream: fakeStream, stop }));
+    render(<CameraStage openCamera={open} onImage={() => {}} />);
+    expect(screen.getByText("The camera stays off until you start it.")).toBeInTheDocument();
+    expect(screen.getByTestId("upload-input")).toBeInTheDocument();
+    expect(screen.queryByTestId("check-now")).toBeNull();
+    await act(async () => { await Promise.resolve(); });
+    expect(open).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith("user"));
+    expect(screen.getByTestId("check-now")).toBeInTheDocument();
+    await act(async () => { await Promise.resolve(); });
+    await userEvent.click(screen.getByRole("button", { name: "Turn off camera" }));
+    expect(stop).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start camera" })).toBeInTheDocument();
+  });
+
   it("shows upload when camera is denied", async () => {
     render(<CameraStage openCamera={async () => { throw new CameraError("denied", "no"); }} onImage={() => {}} />);
+    await start();
     expect(await screen.findByText("Camera is off. Add a photo instead.")).toBeInTheDocument();
     expect(screen.getByTestId("upload-input")).toBeInTheDocument();
   });
 
   it("says why for each other camera failure", async () => {
     const { unmount } = render(<CameraStage openCamera={async () => { throw new CameraError("none", "no"); }} onImage={() => {}} />);
+    await start();
     expect(await screen.findByText("No camera found. Add a photo instead.")).toBeInTheDocument();
     unmount();
     render(<CameraStage openCamera={async () => { throw new CameraError("busy", "no"); }} onImage={() => {}} />);
+    await start();
     expect(await screen.findByText("The camera is in use by another app. Add a photo instead.")).toBeInTheDocument();
   });
 
@@ -47,16 +69,18 @@ describe("CameraStage", () => {
 
   it("draws the hold zone, never mirrors the video, and gives one guidance line", async () => {
     render(<CameraStage openCamera={okCamera} onImage={() => {}} />);
+    await start();
     await waitFor(() => expect(okCamera).toHaveBeenCalledWith("user"));
     expect(screen.getByTestId("hold-zone")).toBeInTheDocument();
     expect(screen.getByTestId("stage").querySelector("video")?.style.transform ?? "").not.toMatch(/scale/);
-    expect(screen.getByText("Hold the label close to the camera.")).toBeInTheDocument();
+    expect(screen.getByText("Hold the label close to the camera, then press Check now.")).toBeInTheDocument();
   });
 
   it("reads the hold zone now on Check now and on Space", async () => {
     const onImage = vi.fn();
     const capture = vi.fn(async () => part);
     render(<CameraStage openCamera={okCamera} onImage={onImage} capture={capture} />);
+    await start();
     await userEvent.click(screen.getByTestId("check-now"));
     await waitFor(() => expect(onImage).toHaveBeenCalledWith(part, "check_now"));
     await act(async () => { await userEvent.keyboard(" "); });
@@ -75,6 +99,7 @@ describe("CameraStage", () => {
   it("stops the camera when the stage goes away", async () => {
     const stop = vi.fn();
     const { unmount } = render(<CameraStage openCamera={async () => ({ stream: fakeStream, stop })} onImage={() => {}} />);
+    await start();
     await waitFor(() => expect(screen.getByTestId("hold-zone")).toBeInTheDocument());
     await act(async () => { await Promise.resolve(); });
     unmount();
@@ -87,6 +112,7 @@ describe("CameraStage", () => {
     const intervals = vi.spyOn(globalThis, "setInterval");
     const open = vi.fn(okCamera);
     const { rerender } = render(<CameraStage openCamera={open} onImage={() => {}} />);
+    await start();
     await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
     const before = intervals.mock.calls.length;
     rerender(<CameraStage openCamera={open} onImage={() => {}} onError={() => {}} />);
