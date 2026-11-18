@@ -3,6 +3,31 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Camera screen with a hold zone, a photo picker and a typed way in.** `CameraScreen` asks
+  for the camera once and shows the preview with the hold zone drawn on it (4 wide by 3 tall,
+  80% of the width, centred; `holdZoneFor` gives the same fractions for the drawing and the
+  cut). "Check now" takes one picture with CameraX 1.6.2's `LifecycleCameraController`. The
+  frame is cut to the capture's crop rectangle (the preview's viewport), turned upright by its
+  rotation, cut to the zone and scaled to the shared 768 px limit, and the full frame is
+  recycled at once (`Upright`). CameraX hands the buffer over unrotated, and `toBitmap()`
+  ignores the crop rectangle, both read in the 1.6.2 sources, so both steps are applied here.
+  "Add a photo" uses the system photo picker (no permission), decodes the photo upright
+  (`PhotoDecode`: ImageDecoder from Android 9, EXIF orientation before that) and cuts it to the
+  zone's shape around its centre. "Type it" is always shown. With the camera denied, the screen
+  says so and offers the picker and typing. "Check now" waits while a read runs. The manifest
+  asks for `CAMERA` and marks the camera optional. Source: Android plan Task 8. Verified:
+  `UprightTest` (4) and `CameraScreenTest` (3), which failed to compile first, pass on the
+  emulator: a quarter turn puts a red-left buffer red-on-top before the zone is cut and the
+  frame is recycled; the crop rectangle is applied before the turn; a 2000x1000 zone becomes
+  768x384; a picked 3000x4000 photo becomes 4:3 with a 768 px long side; denied shows the
+  camera-off line with a working picker and typing and no "Check now"; granted shows the zone
+  and a working "Check now"; busy holds it. Two new `CropTest` cases pin the zone's shape and
+  centring, portrait and landscape, and an aspect mutation fails both. `bash
+  android/ci-local.sh` and the root CI mirror exit 0. Socket has no record of these CameraX
+  artifacts (Google Maven, not Maven Central); they are the official AndroidX artifacts, and
+  the sources jars read were camera-view dfb710c6d7b0, camera-core 9803a0c47248 and
+  camera-lifecycle 573cdf43f258 (SHA-256 prefixes).
+
 - **Consent before any photo leaves the phone.** `ConsentScreen` asks once, with the consent
   sentence and its two choices. Declining with a model on the phone says labels are read on
   this phone only. Declining with no model on the phone says nothing can read a label here

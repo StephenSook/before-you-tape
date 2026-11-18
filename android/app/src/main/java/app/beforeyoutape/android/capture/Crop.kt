@@ -16,6 +16,19 @@ object CropLimits {
     const val MAX_BYTES = 500_000
 }
 
+/** The hold zone's shape: 4 wide by 3 tall, drawn 80% of the preview's width (less when the
+ * preview is too short), centred. */
+const val HOLD_ZONE_ASPECT_W = 4f
+const val HOLD_ZONE_ASPECT_H = 3f
+const val HOLD_ZONE_WIDTH = 0.8f
+
+/** The hold zone as fractions of a preview (and so of the upright frame) of this size. */
+fun holdZoneFor(previewW: Int, previewH: Int): Zone {
+    val h = (HOLD_ZONE_WIDTH * previewW * HOLD_ZONE_ASPECT_H / HOLD_ZONE_ASPECT_W / previewH).coerceAtMost(0.9f)
+    val w = h * previewH * HOLD_ZONE_ASPECT_W / HOLD_ZONE_ASPECT_H / previewW
+    return Zone((1f - w) / 2f, (1f - h) / 2f, w, h)
+}
+
 /** Pure crop math: only the hold zone ever leaves the phone, never the whole frame. */
 object Crop {
     /** The zone in pixels, clipped to the frame. */

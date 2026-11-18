@@ -19,6 +19,9 @@ object Copy {
     const val RULES_NOT_LOADED = "The rules could not be loaded, so nothing is checked yet."
     const val KEPT_ON_PHONE = "Labels are read on this phone only."
     const val NO_ITEMS = "Nothing in the box yet."
+    const val CAMERA_OFF = "Camera is off. Add a photo instead."
+    const val PHOTO_FAILED = "That photo did not work. Take it again, or add a photo."
+    const val HOLD_ZONE = "Hold the item's label inside this frame."
 
     /** Where an item's read ran. Web values are the laptop's own reads, seen from this phone. */
     fun source(readSource: String): String = when (readSource) {
@@ -46,6 +49,6 @@ object Copy {
     }
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
+        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
 }

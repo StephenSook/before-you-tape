@@ -29,6 +29,21 @@ class CropTest {
         assertEquals(PixelRect(1000, 0, 2000, 1000), Crop.centerToAspect(4000, 1000, 2f, 1f))
     }
 
+    @Test fun theHoldZoneIsFourByThreeAndCentred() {
+        val z = holdZoneFor(1080, 1920)
+        assertEquals(0.8f, z.w, 1e-4f)
+        assertEquals(4f / 3f, z.w * 1080 / (z.h * 1920), 1e-3f)
+        assertEquals(0.1f, z.x, 1e-4f)
+        assertEquals((1f - z.h) / 2f, z.y, 1e-4f)
+    }
+
+    @Test fun onAShortPreviewTheHoldZoneKeepsItsShapeAndFits() {
+        val z = holdZoneFor(1920, 1080)
+        assertEquals(0.9f, z.h, 1e-4f)
+        assertEquals(4f / 3f, z.w * 1920 / (z.h * 1080), 1e-3f)
+        assertEquals(true, z.x >= 0f && z.x + z.w <= 1f)
+    }
+
     /** The phone uses the web app's own crop limits (src/shared/cropLimits.ts), so every side agrees. */
     @Test fun theLimitsAreTheSharedLimits() {
         val root = File(System.getProperty("byt.repoRoot") ?: error("byt.repoRoot is not set by Gradle"))
