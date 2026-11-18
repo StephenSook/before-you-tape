@@ -141,6 +141,30 @@ import Testing
         #expect(flaky.calls == 2 && m.box?.result?.editionId == "byt-newer-test")
     }
 
+    /// The country picker lists the countries of the edition in force, not only the built-in one's.
+    @Test func thePickerOffersTheInstalledEditionsCountries() async throws {
+        var json = try JSONSerialization.jsonObject(with: Data(EditionSourceTests.bundled().utf8)) as! [String: Any]
+        var destinations = json["destinations"] as! [String: Any]
+        var extra = destinations["CA"] as! [String: Any]
+        extra["code"] = "ZZ"
+        extra["name"] = "Testland"
+        destinations["ZZ"] = extra
+        json["destinations"] = destinations
+        json["editionId"] = "byt-more-countries"
+        let text = String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+        let probe = try RulesEngine()
+        _ = try probe.setEdition(text)
+        let sha = EditionSource.sha256Hex(try probe.canonicalEdition())
+        let m = model(Models(), fetchEdition: { _ in text })
+        #expect(!m.destinations.contains { $0.code == "ZZ" })
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-more-countries", "rules_edition_sha256": sha]))
+        #expect(m.box?.result?.editionId == "byt-more-countries")
+        #expect(m.destinations.contains(Destination(code: "ZZ", name: "Testland")))
+        // Back to the built-in edition: its countries again.
+        await m.applyConfig(RemoteConfigValues.defaults)
+        #expect(!m.destinations.contains { $0.code == "ZZ" })
+    }
+
     final class Holder: @unchecked Sendable { var model: AppModel? }
 
     /// Pauses the cloud while the on-device read runs, then fails it so the read would fall to the cloud.

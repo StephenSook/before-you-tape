@@ -16,8 +16,8 @@ final class AppModel {
     let reader: ItemReader?
     /// The box, with verdicts from the rule edition bundled with the app.
     let box: BoxStore?
-    /// The countries the bundled edition covers, for the country picker.
-    let destinations: [Destination]
+    /// The countries the edition in force covers, for the country picker.
+    private(set) var destinations: [Destination]
     let network = NetworkStatus()
     let camera = CameraSession()
     /// The last read and the box item it made, for the line under the camera.
@@ -216,12 +216,16 @@ final class AppModel {
                                                 wantSha: config.rulesEditionSha256, fetchRemote: fetchEdition)
         // A newer request may have started while this one was checked: only the latest installs anything.
         guard request == editionRequest else { return }
+        var installed = choice.text
         if (try? engine.setEdition(choice.text)) != nil {
             editionNotice = choice.notice
         } else {
             _ = try? engine.setEdition(bundledEditionText)
+            installed = bundledEditionText
             editionNotice = EditionSource.notRead
         }
+        // The picker and the verdicts move to the new edition in the same step.
+        destinations = Self.destinations(fromEdition: installed)
         // Only a pin that was met counts as installed; the built-in fallback is tried again later.
         installedPin = editionNotice == nil ? want : ""
         box?.reevaluate()

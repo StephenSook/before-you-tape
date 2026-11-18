@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): list the countries of the rule edition in force
+- What: the country picker was filled once from the built-in edition, so a newer edition that
+  adds a country could judge it while the picker could not select it. The picker now takes its
+  countries from the edition just installed, in the same step that derives the verdicts again,
+  and goes back to the built-in list when the built-in edition is back in force.
+- Source: review.
+- Verified: a test installs an edition with one more country; the picker lacked it on the old
+  code (failed) and lists it now, and drops it again on return to the built-in edition (passes);
+  110 app unit tests pass; the CI mirror exit 0, with the secret scan limited to this branch's
+  history (another branch's test vectors trip the full scan; that is being fixed on that branch).
+
 ### fix(ios): try a pinned rule edition again after a failed fetch
 - What: the app followed an edition pin only when the pin changed, so a fetch that failed once
   (the document briefly unavailable) left the built-in edition in force until the pin changed or
