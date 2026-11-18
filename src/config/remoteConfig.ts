@@ -3,6 +3,8 @@
 import type { FirebaseApp } from "firebase/app";
 import { activate, fetchAndActivate, getRemoteConfig, getValue, onConfigUpdate } from "firebase/remote-config";
 import { CONFIG_DEFAULTS } from "./defaults";
+import { isAllowedCloudModel } from "./models";
+import type { SecondLookPolicy } from "../routing/policy";
 
 export type AppConfig = typeof CONFIG_DEFAULTS;
 
@@ -11,6 +13,7 @@ export const RC_KEYS = {
   cloudModelItemFallback: "cloud_model_item_fallback",
   cloudModelText: "cloud_model_text",
   killCloud: "kill_cloud",
+  secondLook: "second_look_policy_json",
 } as const;
 
 export const RC_DEFAULTS: Record<string, string | boolean> = {
@@ -18,23 +21,39 @@ export const RC_DEFAULTS: Record<string, string | boolean> = {
   [RC_KEYS.cloudModelItemFallback]: CONFIG_DEFAULTS.cloudModelItemFallback,
   [RC_KEYS.cloudModelText]: CONFIG_DEFAULTS.cloudModelText,
   [RC_KEYS.killCloud]: CONFIG_DEFAULTS.killCloud,
+  [RC_KEYS.secondLook]: JSON.stringify(CONFIG_DEFAULTS.secondLook),
 };
 
 type Read = (key: string) => { asString(): string; asBoolean(): boolean };
 
-// A model name must look like a Gemini model, so a stray value can never be sent as one.
-const MODEL_NAME = /^gemini-[a-z0-9][a-z0-9.-]*$/;
-const model = (raw: string, fallback: string) => (MODEL_NAME.test(raw.trim()) ? raw.trim() : fallback);
+// A model name must be on the allow-list, so a stray value or a shut-down model is never sent.
+const model = (raw: string, fallback: string) => (isAllowedCloudModel(raw.trim()) ? raw.trim() : fallback);
+
+const POLICY_KEYS = ["whMismatch", "batteryNumbers", "notSure", "hazardNoLabel", "identity"] as const;
+
+// The policy must name all five reasons with true or false; anything else keeps the default.
+function policy(raw: string): SecondLookPolicy {
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (typeof v !== "object" || v === null || Array.isArray(v)) return CONFIG_DEFAULTS.secondLook;
+    const o = v as Record<string, unknown>;
+    if (!POLICY_KEYS.every((k) => typeof o[k] === "boolean")) return CONFIG_DEFAULTS.secondLook;
+    return Object.fromEntries(POLICY_KEYS.map((k) => [k, o[k]])) as unknown as SecondLookPolicy;
+  } catch {
+    return CONFIG_DEFAULTS.secondLook;
+  }
+}
 
 export function readConfig(get: Read): AppConfig {
   return {
     cloudModelItem: model(get(RC_KEYS.cloudModelItem).asString(), CONFIG_DEFAULTS.cloudModelItem),
-    // Empty turns the fallback off; anything else must look like a Gemini model.
+    // Empty turns the fallback off; anything else must be on the allow-list.
     cloudModelItemFallback: get(RC_KEYS.cloudModelItemFallback).asString().trim() === ""
       ? ""
       : model(get(RC_KEYS.cloudModelItemFallback).asString(), CONFIG_DEFAULTS.cloudModelItemFallback),
     cloudModelText: model(get(RC_KEYS.cloudModelText).asString(), CONFIG_DEFAULTS.cloudModelText),
     killCloud: get(RC_KEYS.killCloud).asBoolean(),
+    secondLook: policy(get(RC_KEYS.secondLook).asString()),
   };
 }
 
