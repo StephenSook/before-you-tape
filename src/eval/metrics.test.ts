@@ -3,7 +3,7 @@ import type { ItemRead } from "../shared/itemRead";
 import { clopperPearsonUpper, computeEvalMetrics, percentile, redactRun } from "./metrics";
 import type { EvalItem, EvalRow, EvalRun, EvalSet, Level } from "./types";
 
-const provenance = { sourcePage: "https://example.org/p", author: "A", license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/" };
+const provenance = { sourcePage: "https://example.org/p", author: "A", license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "resized" };
 const item = (itemId: string, hazard: boolean, truth: Record<string, Level>, printed: EvalItem["printed"] = null): EvalItem => ({
   itemId, photo: `/eval/items/${itemId}.jpg`, photoSha256: "0".repeat(64), hazard, printed, provenance,
   truth: Object.fromEntries(Object.entries(truth).map(([d, expected]) => [d, { expected, section: "test" }])),

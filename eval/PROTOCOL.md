@@ -11,6 +11,10 @@ change to this file after the freeze fails the manifest test.
   items held in hand, with every camera metadata field removed and anything private blurred. The other 27 are public
   product photos under CC0, public domain, CC BY or CC BY-SA, credited on the About page and the blind
   check page. None was taken by a family mailing a box, and none is generated.
+- The published copies, which every run reads, are made by `scripts/eval-set-photos.py`: turned upright,
+  shrunk to 1600 px on the long side, and saved again with no Exif, XMP, IPTC or comment block. The
+  originals stay private; `eval/set/manifest.json` records both SHA-256 hashes and what changed for each
+  photo. The app crops to 768 px before any model call, so the shrink removes nothing a model sees.
 - What that means for the measurement: these are reads of still photos. They are not live camera holds
   at a packing table, so they say nothing about how steady a hand is, the light in a real room, or how
   often a sender re-takes a photo.
