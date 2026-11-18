@@ -11,7 +11,8 @@ export interface FirebaseEnv {
   VITE_FB_AUTH_DOMAIN: string;
   VITE_FB_PROJECT_ID: string;
   VITE_FB_APP_ID: string;
-  VITE_FB_MEASUREMENT_ID: string;
+  // Optional: a build without this setting must still start.
+  VITE_FB_MEASUREMENT_ID?: string;
   VITE_RECAPTCHA_SITE_KEY: string;
   VITE_USE_EMULATORS: string;
 }
@@ -43,7 +44,8 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
     projectId: env.VITE_FB_PROJECT_ID,
     appId: env.VITE_FB_APP_ID,
   };
-  if (env.VITE_FB_MEASUREMENT_ID.trim()) options.measurementId = env.VITE_FB_MEASUREMENT_ID;
+  const measurementId = env.VITE_FB_MEASUREMENT_ID?.trim();
+  if (measurementId) options.measurementId = measurementId;
   const app = name ? initializeApp(options, name) : initializeApp(options);
 
   // App Check goes first, so every later call to Auth, Firestore or AI Logic carries a token.
