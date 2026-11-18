@@ -29,6 +29,19 @@ val debugToken: String = localProps.getProperty(
     "",
 )
 
+// Release signing: a keystore outside the repo (byt.release.storeFile in local.properties, default
+// ~/.byt-keys/byt-android-release.jks). Its password lives in the macOS Keychain; the release
+// scripts read it into BYT_RELEASE_PASSWORD for one build that runs without the configuration
+// cache, so the password is never written to a cache entry.
+val releaseStore: String = localProps.getProperty("byt.release.storeFile", "${System.getProperty("user.home")}/.byt-keys/byt-android-release.jks")
+val releaseAlias: String = localProps.getProperty("byt.release.keyAlias", "byt-android")
+val releasePassword: String? = System.getenv("BYT_RELEASE_PASSWORD")?.takeIf { it.isNotEmpty() }
+if (releasePassword != null) {
+    check(!gradle.startParameter.isConfigurationCacheRequested) {
+        "Release signing must run with --no-configuration-cache."
+    }
+}
+
 // The rules bundle built from the web repo (android/build/embed, made by :engine:buildEmbed) and
 // the bundled rules edition ship as app assets under engine/.
 abstract class CopyEngineAssets : DefaultTask() {
@@ -77,9 +90,24 @@ android {
         testInstrumentationRunnerArguments["notAnnotation"] = "app.beforeyoutape.android.live.Live"
     }
 
+    signingConfigs {
+        if (releasePassword != null) {
+            create("release") {
+                storeFile = file(releaseStore)
+                keyAlias = releaseAlias
+                storePassword = releasePassword
+                keyPassword = releasePassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             resValue("string", "firebase_app_check_debug_token", debugToken)
+        }
+        release {
+            isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Release builds are signed with the release key.** The keystore lives outside the repo
+  (`byt.release.storeFile` in the untracked `local.properties`, default
+  `~/.byt-keys/byt-android-release.jks`, alias `byt-android`). Its password comes from the macOS
+  Keychain into `BYT_RELEASE_PASSWORD` for one build, and the build refuses to sign with the
+  configuration cache on, so the password is never written to a cache. Without the password,
+  the release build stays unsigned, as in CI. Release minify stays off. Source: Android plan
+  Task 14. Verified: `assembleRelease` with the password gave `app-release.apk`, whose
+  certificate SHA-256 is `7d672af6...6ada` (the one registered with Firebase); without it,
+  `app-release-unsigned.apk`; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A read that can reach the cloud signs in first.** Cloud AI Logic requests can be required
   to carry a Firebase Auth ID token, and the app's start-up sign-in is not awaited, so a read
   could reach the cloud before it finished. `ItemReader` now takes a `signIn` step (no default,
