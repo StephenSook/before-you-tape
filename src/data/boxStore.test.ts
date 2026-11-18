@@ -102,6 +102,21 @@ describe("createBoxStore", () => {
     expect(saved.labelTags).toEqual(expect.arrayContaining(["alcohol", "liquid"]));
   });
 
+  it("stamps each new item with the time it was added", () => {
+    let t = 1_795_000_000_000;
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, clock: () => t++ });
+    s.addManual(shirtRead);
+    s.addRead(outcome(liquidLotionRead, "in_cloud"), "crop-1");
+    expect(s.getState().items.map((i) => i.addedAt)).toEqual([1_795_000_000_000, 1_795_000_000_001]);
+  });
+
+  it("shows saved items in the order they were added, whatever order the server returns them in", async () => {
+    const at = (itemId: string, addedAt?: number): BoxItem => ({ ...phoneItem, itemId, ...(addedAt === undefined ? {} : { addedAt }) });
+    const s = store({ persistence: spyPersistence({ items: [at("c", 30), at("old"), at("a", 10), at("b", 20)] }) });
+    await s.ready;
+    expect(s.getState().items.map((i) => i.itemId)).toEqual(["a", "b", "c", "old"]);
+  });
+
   it("merges a remote item once", () => {
     const s = store();
     s.mergeRemoteItem(phoneItem);

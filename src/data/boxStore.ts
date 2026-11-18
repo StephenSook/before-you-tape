@@ -30,6 +30,8 @@ export interface BoxItem extends BoxItemInput {
   readFallback?: { after: FallbackAfter; route: ReadRoute };
   cropKey: string | null;
   customs: CustomsLine;
+  // When the item was added, in milliseconds since 1970 on the adding device; orders the box after a reload.
+  addedAt?: number;
 }
 
 export interface BoxSources { onDevice: number; inCloud: number; secondLooks: number; rulesOnlyRechecks: number; cloudFallbacks: number }
@@ -84,9 +86,19 @@ export interface BoxStoreDeps {
   today: () => string;
   newId: () => string;
   boxId?: string;
+  // Wall-clock time for addedAt; now() is only for measuring how long things take.
+  clock?: () => number;
 }
 
 const DEFAULT_DESTINATION = "CA";
+
+// Items in the order they were added. The server returns them by id, which is random; an item saved before
+// addedAt existed keeps its place after the dated ones.
+export function inAddedOrder(items: readonly BoxItem[]): BoxItem[] {
+  return items.map((item, i) => ({ item, i }))
+    .sort((a, b) => (a.item.addedAt ?? Infinity) - (b.item.addedAt ?? Infinity) || a.i - b.i)
+    .map((x) => x.item);
+}
 const EMPTY_CUSTOMS: CustomsLine = { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null };
 
 const clampQuantity = (n: number) => (Number.isFinite(n) ? Math.min(99, Math.max(1, Math.round(n))) : 1);
@@ -107,6 +119,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let cloudConsent: boolean | null = null;
   let sources: BoxSources = { ...NO_SOURCES };
   let lastRecheckMs: number | null = null;
+  const clock = deps.clock ?? (() => Date.now());
   let errors: Record<string, string> = {};
   const boxId = deps.boxId ?? deps.newId();
   const listeners = new Set<(s: BoxState) => void>();
@@ -133,7 +146,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
     const known = new Set(items.map((i) => i.itemId));
-    items = [...(saved.items ?? []).filter((i) => !known.has(i.itemId)), ...items];
+    items = [...inAddedOrder((saved.items ?? []).filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
     if (saved.cloudConsent !== undefined && cloudConsent === null) cloudConsent = saved.cloudConsent;
     // A box saved before a count existed starts that count at 0.
@@ -158,7 +171,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
         labelTags: tagsOf(outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
-        customs: { ...EMPTY_CUSTOMS },
+        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
       items = [...items, item];
@@ -178,6 +191,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       items = [...items, {
         itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
+        addedAt: clock(),
       }];
       lastRecheckMs = null;
       commit();
