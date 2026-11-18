@@ -226,6 +226,14 @@ final class BoxStore {
         }
     }
 
+    /// The sender's fix from "Fix this reading": the changed fields on top of the read, and when the
+    /// fix says what the item is, the sender also confirms it.
+    func applyFix(_ itemId: String, patch: [String: JSONValue]) {
+        guard !patch.isEmpty else { return }
+        override(itemId, patch: patch)
+        if patch["evidence"] != nil { confirmIdentity(itemId) }
+    }
+
     func setQuantity(_ itemId: String, _ n: Double) {
         update(itemId) { $0.quantity = n.isFinite ? min(99, max(1, Int(n.rounded()))) : 1 }
     }

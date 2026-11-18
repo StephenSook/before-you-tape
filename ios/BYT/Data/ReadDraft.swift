@@ -86,6 +86,20 @@ struct ReadDraft: Equatable, Sendable {
         return patch
     }
 
+    /// The fields that say what the item is.
+    static let identityFields: Set<String> = ["category", "itemName", "labelText"]
+
+    /// A fix as saved: the changed fields, and when the sender changed what the item is, their word
+    /// as the evidence (the label they typed, or what they say it is), so an unsure read is resolved.
+    func fixPatch(from read: JSONValue) -> [String: JSONValue] {
+        var patch = changed(from: read)
+        if !patch.keys.filter(Self.identityFields.contains).isEmpty {
+            let label = labelText.trimmingCharacters(in: .whitespacesAndNewlines)
+            patch["evidence"] = .string(label.isEmpty ? "item_seen" : "label_read")
+        }
+        return patch
+    }
+
     /// An item the sender typed instead of showing it; nil until it says what the item is and every
     /// number is valid. Typed label words count as a read label; otherwise the sender only says what it is.
     func manualRead() -> JSONValue? {

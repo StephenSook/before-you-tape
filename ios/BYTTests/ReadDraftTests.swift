@@ -93,4 +93,24 @@ import Testing
         #expect(s.result?.items[shirt] != nil)
         #expect(BoxView.rows(items: s.items, result: s.result).first?.verdict != nil)
     }
+
+    /// A fix that says what the item is clears "We're not sure what this is": the sender's word is the evidence.
+    @Test func aFixThatSaysWhatItIsClearsTheUncertainty() throws {
+        let s = try BoxStoreTests().store()
+        let unsure = BoxStoreTests.read(["itemName": .string("Item"), "category": .string("other"), "evidence": .string("not_sure")])
+        let id = s.addRead(ReadOutcome(read: unsure, source: .onDevice, route: .hybrid, failure: nil, records: []), cropFile: nil)!
+        #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "DATA-UNSURE" } == true)
+        let item = try #require(s.items.first)
+        var d = ReadDraft.of(FixReadingView.current(item))
+        d.category = "clothing"
+        d.itemName = "Cotton shirt"
+        s.applyFix(id, patch: d.fixPatch(from: FixReadingView.current(item)))
+        #expect(s.items.first?.overrides["evidence"] == .string("item_seen"))
+        #expect(s.items.first?.identityConfirmedBy == "sender")
+        #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "DATA-UNSURE" } == false)
+        // A fix that only changes a number is not a statement about what the item is.
+        var n = ReadDraft.of(FixReadingView.current(s.items.first!))
+        n.flags["liquid"] = true
+        #expect(n.fixPatch(from: FixReadingView.current(s.items.first!)) == ["liquid": .bool(true)])
+    }
 }

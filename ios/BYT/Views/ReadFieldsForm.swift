@@ -62,7 +62,7 @@ struct FixReadingView: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            box.override(item.itemId, patch: draft.changed(from: Self.current(item)))
+                            box.applyFix(item.itemId, patch: draft.fixPatch(from: Self.current(item)))
                             dismiss()
                         }
                         .disabled(!draft.canSave)

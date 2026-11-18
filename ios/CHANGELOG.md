@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): let a fix that says what the item is clear an unsure reading
+- What: the rules keep "We're not sure what this is" while the reading's evidence is `not_sure` or
+  its category is `other`, and "Fix this reading" never changed the evidence, so a corrected item
+  stayed on "Check this". When a fix changes what the item is (its category, name or label), it
+  now records the sender's word as the evidence (`label_read` when they typed label words,
+  `item_seen` otherwise) and confirms the item as the sender's (`BoxStore.applyFix`). A fix that
+  only changes numbers or flags changes nothing else.
+- Source: review of the iPhone pull request (finding 8).
+- Verified: a test corrects a `not_sure` "Something else" to a cotton shirt and the uncertainty
+  hit goes away, with identity confirmed; a numbers-only fix adds nothing; it failed to compile
+  without the change, then passed; 89 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): never replace a saved box with a file too large to reopen
 - What: `BoxFiles.save` wrote any size while `load` refuses a file over 2,000,000 bytes, so one
   huge item could leave the box empty on the next launch and then be overwritten. A snapshot over
