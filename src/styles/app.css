@@ -29,7 +29,9 @@ button {
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--night); outline-offset: 2px; }
 
 .pack { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: var(--space-5); padding: var(--space-5); }
-@media (max-width: 700px) { .pack { grid-template-columns: 1fr; padding: var(--space-4); } }
+/* minmax(0, 1fr): a plain 1fr column cannot shrink below its widest content (the photo picker row). */
+@media (max-width: 700px) { .pack { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); } }
+.stage input[type="file"] { max-width: 100%; }
 
 .stage { position: relative; background: var(--night); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-4); }
 /* Controls keep dark text on their light face; inheriting the stage's light text made them vanish. */

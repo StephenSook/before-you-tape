@@ -19,6 +19,8 @@ for (const p of PAGES) for (const w of WIDTHS) {
     await page.goto(p.path);
     await expect(page.getByRole("heading", { level: 1 }).or(page.getByRole("button", { name: "Type an item" })).first()).toBeVisible({ timeout: 20_000 });
     expect(await page.getByRole("main").count(), "one main landmark").toBe(1);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, "no sideways page scroll").toBeLessThanOrEqual(0);
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
 
