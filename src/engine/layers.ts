@@ -22,6 +22,17 @@ function layer(
   return { id, label, edition, checkedOn, state };
 }
 
+// Who read a country's rules, and when: a person, or us from the USPS page (not yet checked by a person).
+// The card's layer label and the destination picker both say only this, so they can never disagree.
+export type RulesReadBy = { by: "person" | "usps_page"; on: string };
+
+export function rulesReadBy(dest: DestinationContext): RulesReadBy | null {
+  const d = dest.edition;
+  if (dest.reviewState !== "reviewed" || d === null) return null;
+  if (d.personReviewedOn) return { by: "person", on: d.personReviewedOn };
+  return d.checkedOn ? { by: "usps_page", on: d.checkedOn } : null;
+}
+
 export function layerStatuses(edition: RuleEdition, dest: DestinationContext, today: string): LayerStatus[] {
   const stale = edition.limits.staleDays;
   const usps = edition.sources.find((s) => s.id === "usps_export");
@@ -29,9 +40,10 @@ export function layerStatuses(edition: RuleEdition, dest: DestinationContext, to
   const reviewed = dest.reviewState === "reviewed" && d !== null;
   const immEdition = d ? `IMM ${d.immEdition}` : "not loaded";
   // Say who read the listing: never claim a person checked it before personReviewedOn is set.
+  const readBy = rulesReadBy(dest);
   let destLabel = `${dest.name} rules`;
-  if (reviewed && d.personReviewedOn) destLabel += `: checked by a person on ${d.personReviewedOn}`;
-  else if (reviewed && d.checkedOn) destLabel += `: read from the USPS page on ${d.checkedOn}, not yet checked by a person`;
+  if (readBy?.by === "person") destLabel += `: checked by a person on ${readBy.on}`;
+  else if (readBy?.by === "usps_page") destLabel += `: read from the USPS page on ${readBy.on}, not yet checked by a person`;
   return [
     layer("usps_export", "USPS export rules", usps?.edition ?? "not loaded", usps?.checkedOn ?? null, Boolean(usps), stale.usps_export, today),
     layer("destination", destLabel, immEdition, d?.checkedOn ?? null, reviewed, stale.destination, today),

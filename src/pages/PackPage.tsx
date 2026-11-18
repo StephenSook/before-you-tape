@@ -10,6 +10,7 @@ import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
+import { rulesReadBy } from "../engine/layers";
 import type { ItemRead } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
 import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
@@ -169,14 +170,17 @@ export function PackPage(p: PackPageProps) {
   };
 
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
-  const reviewed = index.filter((d) => resolveDestination(edition, d.code).reviewState === "reviewed").map((d) => d.code);
+  const readBy = Object.fromEntries(index.flatMap((d) => {
+    const r = rulesReadBy(resolveDestination(edition, d.code));
+    return r ? [[d.code, r.by] as const] : [];
+  }));
   const dest = state.result.destination;
   // The suspension list decides whether anything can go at all, so its check date is always in view.
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
     <div>
       <div className="pack-top">
-        <DestinationPicker index={index} reviewed={reviewed} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+        <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} />
       </div>

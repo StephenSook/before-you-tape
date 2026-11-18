@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ed, withCustomsUnchecked } from "../../tests/engine/helpers";
 import { resolveDestination } from "./edition";
-import { layerStatuses } from "./layers";
+import { layerStatuses, rulesReadBy } from "./layers";
 
 describe("layerStatuses", () => {
   it("reports four checked layers when all are fresh", () =>
@@ -39,6 +39,14 @@ describe("layerStatuses", () => {
     checked.destinations.PH!.personReviewedOn = "2026-11-19";
     expect(dest(checked)?.label).toBe("Philippines rules: checked by a person on 2026-11-19");
     expect(dest(ed)?.label).not.toMatch(/person-reviewed|reviewed by a person/i);
+  });
+
+  it("says who read a country's rules, from one place, for the card and the picker alike", () => {
+    expect(rulesReadBy(resolveDestination(ed, "PH"))).toEqual({ by: "usps_page", on: "2026-11-17" });
+    const checked = structuredClone(ed);
+    checked.destinations.PH!.personReviewedOn = "2026-11-19";
+    expect(rulesReadBy(resolveDestination(checked, "PH"))).toEqual({ by: "person", on: "2026-11-19" });
+    expect(rulesReadBy(resolveDestination(ed, "GH"))).toBeNull();
   });
 
   it("treats a country with no list as missing its rules layer", () => {
