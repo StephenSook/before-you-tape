@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): keep the shared box in step with this iPhone's box
+- What: `BoxSync` takes every saved snapshot (through `SyncingPersistence`, after the local file)
+  and writes each changed item once under its own id as the shared document, deletes an item that
+  was removed, and keeps writes that fail (no signal) for the next flush. It creates the box once
+  with this iPhone as its owner and member and an empty join key; after that it updates only the
+  box's own fields (country, edition, cloud answer, counts), never who owns it. An item another
+  device wrote is added to the box once and not written back. Box items now keep the fallback's
+  route and the second look, customs line and crop key another device wrote, so writing an item
+  back never drops them. Not yet wired to Firestore or a listener.
+- Source: iPhone client plan, task I-11.
+- Verified: five tests (written once under its own id with no label text and the engine's tags;
+  a cloud read written as `phone_cloud` and a removed item deleted; an item added offline written
+  when the network returns; the box created once as owner, then only its fields updated; a laptop
+  item appears once, says "Read on a laptop" and is not written back) failed to compile, then
+  passed; 108 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios-core): encode and decode a box item as the shared Firestore document
 - What: `ItemDoc` is one box item as `boxes/{boxId}/items/{itemId}`, the shape in
   `tests/contracts/box-docs.json` that the web app writes and the rules enforce: the read with its

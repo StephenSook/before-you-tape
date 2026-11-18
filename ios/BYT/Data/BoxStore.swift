@@ -46,7 +46,13 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     var readSource: String
     var readMs: Double
     var readFallback: FallbackAfter?
+    /// The route of the read the fallback model made, written with the item.
+    var readFallbackRoute: String?
     var cropFile: String?
+    /// Fields another device wrote that this iPhone keeps and writes back unchanged.
+    var secondLook: JSONValue?
+    var customs: JSONValue?
+    var cropKey: String?
 
     var id: String { itemId }
 
@@ -186,7 +192,8 @@ final class BoxStore {
         let itemId = newId()
         items.append(BoxItem(itemId: itemId, read: read, labelTags: tags(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
-                             readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile))
+                             readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter,
+                             readFallbackRoute: outcome.fallbackAfter == nil ? nil : outcome.route.rawValue, cropFile: cropFile))
         sources.add(\.onDevice, source == .onDevice ? 1 : 0)
         sources.add(\.inCloud, source == .cloud ? 1 : 0)
         sources.add(\.cloudFallbacks, outcome.fallbackAfter == nil ? 0 : 1)
