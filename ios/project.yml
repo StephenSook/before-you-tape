@@ -21,6 +21,8 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     exactVersion: 13.2.0
+  BYTCore:
+    path: BYTCore
 targets:
   BYT:
     type: application
@@ -64,6 +66,8 @@ targets:
         product: FirebaseRemoteConfig
       - package: Firebase
         product: FirebasePerformance
+      - package: BYTCore
+        product: BYTCore
   BYTTests:
     type: bundle.unit-test
     platform: iOS

@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): add the guided item-read type and prompts, checked against the web schema
+- What: the app links BYTCore. `ItemReadG` is the type the on-device model fills: the web app's
+  16 read fields, the 37 categories and the two enums with the web wire values; `read` gives the
+  wire JSON and cuts label text to 160 characters (code points, as the web parser counts).
+  `Prompts` holds the photo read's instructions and prompt, word for word from
+  `src/ai/prompts.ts`, including the four fixed lines.
+- Source: iPhone client plan, task I-5.
+- Verified: six app tests (every schema field has a twin property; every enum maps to the web
+  values in order; the web parser returns the mapped read unchanged; label text cut to 160; the
+  instructions and the photo prompt match the web file, read from it) failed to compile without
+  the types, then passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios-core): run the web app's rules engine in JavaScriptCore on the phone
 - What: `ios/BYTCore`, a Swift package. `RulesEngine` loads the engine file built by the
   repository's own `scripts/build-embed.sh` (`byt-engine.js`, 48,417 bytes, with its SHA-256 in
