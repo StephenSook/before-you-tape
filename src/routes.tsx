@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Route, Routes } from "react-router-dom";
+import { AboutPage } from "./pages/AboutPage";
 import { BlindRoute } from "./pages/BlindRoute";
 import { JudgeRoute } from "./pages/JudgeRoute";
 import { PackRoute } from "./pages/PackRoute";
@@ -38,7 +39,7 @@ export function routePaths(dev: boolean): string[] {
 }
 
 // Routes with a built page; the others show their title until their page lands.
-const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/blind/:token": <BlindRoute /> };
+const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/about": <AboutPage />, "/blind/:token": <BlindRoute /> };
 
 // The public pages that are built, for lists that must never point at a stub.
 export function builtPagePaths(): string[] {

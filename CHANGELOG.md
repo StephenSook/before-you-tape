@@ -6,6 +6,14 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/pages/AboutPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /about page. It says, in plain words:
+- what the app checks;
+- that the rules run in the browser;
+- that a photo is read on the device when it has a built-in model;
+- that otherwise, and only if the sender allows it, the cropped part and its label words go to Google's Gemini through Firebase AI Logic, and that this can be turned off again;
+- that photos and label words stay on the device, while the box list is saved without them;
+- that the app is not affiliated with the US Postal Service.
+It credits all 40 published eval photos with author, a link to the license and a link to the source, plus the changes made to each copy; the 13 owner photos read "Photo by the project owner". Each claim matches the code: crops and label text are kept in IndexedDB (`src/data/crops.ts`), and the box document carries no label text. Source: P1 item 6 (/about) and the CC BY and CC BY-SA attribution for the published photos. Verified by `src/pages/AboutPage.test.tsx` (the plain statements; 40 credits, 13 owner, linked license and source for an open photo), which failed before the page existed; tone check clean; local CI mirror exit 0.
 - `tests/e2e/judge.spec.ts` and `.github/workflows/ci.yml`: a browser check that /judge works. The sample box shows nine cards, the lotion is OK to pack for Canada with its photo loaded, a switch to the Philippines makes it Take it out with "0 model calls", and the page makes no request to a Google API: no sign-in, no model, no database. CI runs it with the other browser checks before merge. Source: P1 item 9 (a test that /judge has a working path). Verified: it passes on the built app. A control with the same request recorder on the pack page, which signs in, does see Google API requests, so the zero on /judge is not vacuous. Local CI mirror exit 0, and the mirror now takes its spec list from ci.yml.
 - `public/llms.txt` lists /judge, "Try the sample box", now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` (every listed page is built) passes; tone check clean; local CI mirror exit 0.
 - `src/pages/JudgePage.tsx`, `src/pages/JudgeRoute.tsx`, `src/routes.tsx` and `src/styles/app.css`: the page at /judge, "Try the sample box". The nine sample items show with their photo, label words, verdict, the rule text with a link to its section, any question, and the photo credit. They are judged by the app's own engine on the built-in edition, in the browser. It needs no camera, no built-in model and no sign-in; the page says so. The country picker re-checks the whole box ("Re-checked 9 items ... 0 model calls."), and the perfume's alcohol question can be answered. Source: P1 item 6. Verified by `src/pages/JudgePage.test.tsx`:
