@@ -111,6 +111,10 @@ android {
         }
     }
 
+    // -Pbyt.testBuildType=release runs the device tests against the release build (its App Check
+    // provider and signing), for the release App Check probe; everything else tests debug.
+    testBuildType = providers.gradleProperty("byt.testBuildType").orNull ?: "debug"
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

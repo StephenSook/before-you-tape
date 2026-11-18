@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A device test can run against the release build, to probe its App Check provider.**
+  `-Pbyt.testBuildType=release` runs the device tests against the release build type, with its
+  App Check provider and release signing; every other run tests debug. `ReleaseAppCheckProbeTest`
+  (live) skips on debug. On a release build it asks for a limited-use App Check token, signs in,
+  and makes one cloud read of a drawn battery label, which App Check enforcement accepts only with
+  a valid token. It logs BYT-PROBE lines with each outcome and error text, never a token. Source:
+  review of the judge path for a sideloaded APK on an emulator. Verified: with the release
+  provider switched (locally, not committed) to reCAPTCHA Enterprise at threshold 0.5, the probe
+  ran on a Play-image and a plain AOSP emulator: the reCAPTCHA client produced a token on both,
+  the exchange returned "403 App attestation failed", and the cloud read was refused ("Firebase
+  App Check token is invalid"); `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Release builds are signed with the release key.** The keystore lives outside the repo
   (`byt.release.storeFile` in the untracked `local.properties`, default
   `~/.byt-keys/byt-android-release.jks`, alias `byt-android`). Its password comes from the macOS
