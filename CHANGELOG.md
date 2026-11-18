@@ -6,6 +6,11 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/eval/loadSet.ts`: joins `eval/set/manifest.json` and `eval/set/labels.json` into the `EvalSet` the metrics read. The hazard flag comes from the labels only: an item is a hazard item when its label is not "OK to pack" for at least one destination. It refuses labels for another set, and any item without labels. `src/eval/loadSet.test.ts` also checks the committed set in CI:
+- it passes every manifest check with 40 items;
+- every published photo exists with its manifest SHA-256 and no metadata block;
+- the protocol and labels hashes stay empty until the labels are frozen, then must match the files.
+Source: plan Task 29 and the review ruling (hazard from labels.json only). Verified: tests failed before the module existed; 19 eval tests pass; local CI mirror exit 0.
 - `eval/set/labels.json`: draft labels for set `eval-v1`, written from the rule sources before any model run. Each of the 40 items has an expected verdict and its section for Canada and the Philippines: 80 rows, 47 Take it out, 29 OK to pack, 4 Check this, and 28 hazard items.
 - Sources: USPS Pub 52 622.5, 623 and 424; the USPS international restrictions page read 2026-11-18 ("Aerosols", "Nail Polish", "Perfumes (containing alcohol)", "Alcoholic Beverages", and the lithium sentence); IMM 136.4; and the edition's Canada and Philippines lines.
 - Where a row rests on more than the photo, it says so: back-label photos for the lotions, the owner's statement for the perfumes, the phone's unknown condition, and the sender's call on chocolate and coffee for the Philippines.
