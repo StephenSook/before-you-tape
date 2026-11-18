@@ -60,6 +60,7 @@ describe("scripts/build-embed.sh", () => {
       writeFileSync(join(dir, "planted.ts"), 'import "firebase/app";\nexport * from "../../../src/embed/bridge";\n');
       const r = build(out, "node_modules/.cache/byt-embed-test/planted.ts");
       expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/input outside .*@firebase\/app/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
       rmSync(out, { recursive: true, force: true });
@@ -81,7 +82,7 @@ describe("scripts/build-embed.sh", () => {
     const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
     const planted = join(root, "src", "embed", ".planted-api.ts");
     try {
-      for (const api of ["new XMLHttpRequest()", "new WebSocket(\"wss://x\")", "navigator.userAgent", "localStorage.length", "indexedDB.open(\"x\")"]) {
+      for (const api of ["\"firebase\"", "new XMLHttpRequest()", "new WebSocket(\"wss://x\")", "navigator.userAgent", "localStorage.length", "indexedDB.open(\"x\")"]) {
         writeFileSync(planted, `export * from "./bridge";\nexport const leak = () => ${api};\n`);
         const r = build(out, "src/embed/.planted-api.ts");
         expect(r.status, api).toBe(1);
