@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectors from "../../tests/vectors/box.json";
+import defaults from "../../tests/vectors/defaults.json";
 import { ed, withCustomsUnchecked, withSuspended } from "../../tests/engine/helpers";
 import type { ItemRead } from "../shared/itemRead";
 import { resolveDestination } from "./edition";
@@ -7,14 +8,12 @@ import { TWO_BOX_NOTE } from "./lithiumBox";
 import type { BoxItemInput, RuleEdition } from "./types";
 import { evaluateBox } from "./verdict";
 
-const baseRead: ItemRead = {
-  itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
-  batteryWords: false, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
-  glassContainer: false, powder: false, retailBox: "cannot_tell", evidence: "label_read",
-};
+// The defaults a vector leaves out, shared with the native clients' vector runners.
+const baseRead = defaults.baseRead as ItemRead;
+const itemDefaults = defaults.itemDefaults as Omit<BoxItemInput, "itemId" | "read">;
 type ItemSpec = Partial<Omit<BoxItemInput, "read">> & { itemId: string; read: Partial<ItemRead> };
 const input = (s: ItemSpec): BoxItemInput => ({
-  overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: [], ...s, read: { ...baseRead, ...s.read },
+  ...structuredClone(itemDefaults), ...s, read: { ...baseRead, ...s.read },
 });
 const run = (items: BoxItemInput[], code: string, today = "2026-11-20", e: RuleEdition = ed) =>
   evaluateBox(items, e, resolveDestination(e, code), today);
