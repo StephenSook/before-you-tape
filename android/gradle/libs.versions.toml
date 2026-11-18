@@ -23,6 +23,9 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOndevice" }
 firebase-ai-ksp-processor = { module = "com.google.firebase:firebase-ai-ksp-processor", version.ref = "firebaseAiKsp" }
+firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }

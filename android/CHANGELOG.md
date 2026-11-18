@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **App Check and anonymous sign-in before any Firebase call.** `BytApp` installs the App
+  Check provider first, then signs in anonymously, and does nothing when the build has no
+  Firebase config. Debug builds use the App Check debug provider (`app/src/debug`), with the
+  token from the untracked `local.properties` (`byt.appcheck.debugToken`, or
+  `byt.appcheck.debugToken.a16` with `-Pbyt.device=a16`); release builds use Play Integrity
+  (`app/src/release`) and carry no debug provider or token. Adds `firebase-appcheck-
+  playintegrity`, `firebase-appcheck-debug` (debug only) and `firebase-auth` from the BoM.
+  Source: Android plan Task 4. Verified: `AppCheckSetupTest.theDebugBuildUsesTheDebugProvider`
+  failed to compile first, then passes; debug and release both assemble; the lane guard keeps
+  the debug provider inside `app/src/debug`; `bash android/ci-local.sh` (42 tests) and the root
+  CI mirror exit 0.
+
 - **Ledger: the release certificate and Play Integrity are registered.** The release
   certificate's SHA-256 is on the Firebase Android app (SHA id `c7055e329b4b2a52`), and the
   Play Integrity App Check provider is registered for it (token TTL 3600 s, minimum device
