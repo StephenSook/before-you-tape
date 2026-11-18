@@ -76,7 +76,7 @@ jobs:
       # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
       - name: The built app starts
         if: steps.head.outputs.current == 'true'
-        run: npx playwright test --project=local tests/e2e/smoke.spec.ts -g "checker starts"
+        run: npx playwright test --project=local tests/e2e/starts.spec.ts
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         if: steps.head.outputs.current == 'true'
@@ -111,4 +111,4 @@ jobs:
         if: steps.head.outputs.current == 'true'
         env:
           BYT_LIVE: "1"
-        run: npx playwright test --project=live tests/e2e/smoke.spec.ts -g "checker starts"
+        run: npx playwright test --project=live tests/e2e/starts.spec.ts

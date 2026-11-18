@@ -48,4 +48,4 @@ jobs:
         env:
           BYT_LIVE: "1"
           BYT_LIVE_URL: ${{ inputs.site }}
-        run: npx playwright test --project=live tests/e2e/smoke.spec.ts -g "checker starts"
+        run: npx playwright test --project=live tests/e2e/starts.spec.ts
