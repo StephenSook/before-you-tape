@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/styles/app.css`: on a card the verdict word reads at display size, in Bricolage Grotesque at 1.15rem with more padding. It is the answer the sender came for. The chip colors are unchanged and still pinned in the token test. Source: P1 item 8 (the verdict word at display size). Verified: the browser checks pass, including axe on every page; local CI mirror exit 0.
 - `src/styles/app.css`: on phones the pack page's column is `minmax(0, 1fr)`, and the photo picker is capped at the column width. A plain `1fr` column could not shrink below the photo picker row, so the home page scrolled sideways by 7 px at 390 px. `tests/e2e/a11y.spec.ts` now also asserts no sideways page scroll on every built page at both widths. Source: a review of the new layout at phone width. Verified: the new assertion failed first on the home page at 390 px (7 px), and passes after; all 14 browser checks pass; local CI mirror exit 0.
 - `src/App.tsx`, `src/pages/PackPage.tsx` and `src/styles/app.css`: the site header and gutters.
 - The wordmark is styled in the display font, weight 800, in ink, with no link blue or underline, and still links home.
