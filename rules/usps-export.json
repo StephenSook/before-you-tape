@@ -63,8 +63,30 @@
     "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
     "basis": "summarized",
     "ourWording": "Matches and lighters can't go by international mail.",
-    "when": { "fact": "tags", "op": "has", "value": "lighter" },
+    "when": { "any": [{ "fact": "tags", "op": "has", "value": "lighter" }, { "fact": "tags", "op": "has", "value": "matches" }] },
     "outcome": "take_out"
+  },
+  {
+    "id": "USPS-INTL-EXPLOSIVE",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "Pub 52 623 (Class 1)",
+    "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+    "basis": "summarized",
+    "ourWording": "Fireworks, sparklers and other explosives can't go by international mail.",
+    "when": { "fact": "tags", "op": "has", "value": "explosive" },
+    "outcome": "take_out"
+  },
+  {
+    "id": "USPS-INTL-CRACKER",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "Pub 52 623 (Class 1)",
+    "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
+    "basis": "inference",
+    "ourWording": "Christmas crackers hold a small snap charge, and explosives can't go by international mail. Check before you pack them.",
+    "when": { "fact": "tags", "op": "has", "value": "christmas_cracker" },
+    "outcome": "check"
   },
   {
     "id": "USPS-INTL-ENDS",
@@ -74,7 +96,7 @@
     "url": "https://pe.usps.com/text/imm/immc1_015.htm",
     "basis": "summarized",
     "ourWording": "E-cigarettes, vapes and e-liquids can't go by international mail.",
-    "when": { "fact": "category", "op": "eq", "value": "e_cigarette" },
+    "when": { "fact": "tags", "op": "has", "value": "vaping" },
     "outcome": "take_out"
   },
   {

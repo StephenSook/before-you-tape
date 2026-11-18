@@ -1,5 +1,37 @@
 [
   {
+    "name": "disposable_vape_read_as_electronics_is_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "vape", "read": { "category": "other_electronics", "labelText": "DISPOSABLE VAPE 5% NICOTINE 13Wh", "wattHours": 13,
+      "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "vape": "take_out" }, "expectRules": { "vape": ["USPS-INTL-ENDS"] }
+  },
+  {
+    "name": "acetone_remover_is_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "remover", "read": { "category": "liquid_toiletry", "labelText": "NAIL POLISH REMOVER ACETONE 4 FL OZ KEEP AWAY FROM FLAME",
+      "liquid": true }, "answers": { "label_alcohol": "no" } }],
+    "expect": { "remover": "take_out" }, "expectRules": { "remover": ["USPS-INTL-FLAMMABLE-LIQUID"] }
+  },
+  {
+    "name": "butane_refill_is_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "refill", "read": { "category": "liquid_toiletry", "labelText": "BUTANE LIGHTER REFILL" }, "answers": { "label_alcohol": "no" } }],
+    "expect": { "refill": "take_out" }
+  },
+  {
+    "name": "sparklers_are_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "sparklers", "read": { "category": "toy", "labelText": "BIRTHDAY SPARKLERS 10 PACK" } }],
+    "expect": { "sparklers": "take_out" }, "expectRules": { "sparklers": ["USPS-INTL-EXPLOSIVE"] }
+  },
+  {
+    "name": "safety_matches_read_as_other_are_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "matches", "read": { "category": "other", "labelText": "SAFETY MATCHES 50 STICKS" } }],
+    "expect": { "matches": "take_out" }, "expectRules": { "matches": ["USPS-INTL-MATCHES-LIGHTERS"] }
+  },
+  {
+    "name": "christmas_crackers_are_checked", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "crackers", "read": { "category": "toy", "labelText": "CHRISTMAS CRACKERS 6 PACK" } }],
+    "expect": { "crackers": "check" }, "expectRules": { "crackers": ["USPS-INTL-CRACKER"] }
+  },
+  {
     "name": "tablet_computer_is_not_medicine", "source": "Codex M8 / Fable I5", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "tab", "read": { "category": "tablet", "labelText": "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "volts": 3.85,
       "milliampHours": 7000, "wattHours": 26.95, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
