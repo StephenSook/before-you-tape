@@ -14,9 +14,19 @@ enum UITestSupport {
         ItemReader(device: FixedRunner(), makeCloud: { _ in FixedRunner() }, parse: { $0 })
     }
 
+    /// Every model call the fixed reader takes, counted where the reader is called.
+    final class Calls: @unchecked Sendable {
+        private let lock = NSLock()
+        private var n = 0
+        var value: Int { lock.lock(); defer { lock.unlock() }; return n }
+        func add() { lock.lock(); n += 1; lock.unlock() }
+    }
+    static let calls = Calls()
+
     struct FixedRunner: ItemModelRunner {
         func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
-            .success(ItemReply(read: .object([
+            UITestSupport.calls.add()
+            return .success(ItemReply(read: .object([
                 "itemName": .string("Body lotion"), "category": .string("lotion_cream"), "labelText": .string("SHEA BODY LOTION 8 FL OZ"),
                 "volts": .number(0), "milliampHours": .number(0), "wattHours": .number(0), "lithiumGrams": .number(0),
                 "batteryWords": .bool(false), "liquid": .bool(true), "pressurized": .bool(false), "alcoholOnLabel": .bool(false),

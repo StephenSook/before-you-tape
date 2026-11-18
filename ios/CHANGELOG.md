@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### test(ios): count model calls where the reader is called in the box loop UI test
+- What: the UI test's "0 model calls" check read the screen's own words, so a country change that
+  made a model call would still pass. The debug-only fixed reader now counts every call it takes,
+  UI-test builds show that count in the box, and the test asserts it is 1 after the read and still
+  1 after the country flip. Release builds have neither the counter nor the line.
+- Source: review of the iPhone pull request (finding 10).
+- Verified: the UI test failed while the count was missing, then passed (about 22 s);
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): send only the hold zone of a picked photo, and show the sender that part
 - What: a photo from the library was sent whole, while the cloud question promises "a cropped
   photo of the item", so anything else in the picture (an address on a parcel, a face) went too.

@@ -9,7 +9,15 @@ struct BoxView: View {
         List {
             if let box = model.box {
                 Section { DestinationPicker(destinations: model.destinations, box: box) }
-                Section("Your box") { BoxSummaryView(box: box) }
+                Section("Your box") {
+                    BoxSummaryView(box: box)
+                    #if DEBUG
+                    if UITestSupport.active {
+                        // UI tests read the count of model calls here; release builds have no such line.
+                        Text("Model calls: \(UITestSupport.calls.value)").font(.caption).accessibilityIdentifier("ui-test-model-calls")
+                    }
+                    #endif
+                }
                 ForEach(Self.rows(items: box.items, result: box.result)) { row in
                     if let verdict = row.verdict {
                         ItemCardView(item: row.item, verdict: verdict, box: box)

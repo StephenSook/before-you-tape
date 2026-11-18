@@ -23,6 +23,10 @@ final class LoopUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Your box"].tap()
         XCTAssertTrue(app.staticTexts["1 OK to pack"].waitForExistence(timeout: 10))
+        // Model calls are counted where the reader is called, not taken from the screen's own words.
+        let calls = app.staticTexts["ui-test-model-calls"]
+        XCTAssertTrue(calls.waitForExistence(timeout: 5))
+        XCTAssertEqual(calls.label, "Model calls: 1")
         app.buttons["destination-picker"].tap()
         app.buttons["Philippines"].tap()
 
@@ -31,5 +35,6 @@ final class LoopUITests: XCTestCase {
         XCTAssertTrue(recheck.waitForExistence(timeout: 5))
         XCTAssertTrue(recheck.label.hasPrefix("Re-checked 1 items for Philippines in "), recheck.label)
         XCTAssertTrue(recheck.label.hasSuffix("ms. 0 model calls."), recheck.label)
+        XCTAssertEqual(app.staticTexts["ui-test-model-calls"].label, "Model calls: 1")
     }
 }
