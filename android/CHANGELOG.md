@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **An item whose read leaves out optional fields still loads.** The rules require only
+  `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
+  may be left out. The phone's decoder required all sixteen, so such an item threw
+  `MissingFieldException` instead of loading. Missing fields now take the web app's form
+  defaults (0 for a number, false for a flag, `cannot_tell` for the retail box) before decoding.
+  Source: review (second model) of the Android pull request, round 2, finding 7. Verified:
+  `BoxDocsContractTest.aReadWithOnlyTheRequiredFieldsDecodesWithTheWebsDefaults` first failed
+  with that exception (twelve fields required), then passes; `bash android/ci-local.sh` and the
+  root CI mirror exit 0.
+
 - **Fractional read and re-check times survive sync and a restart.** The web app times reads
   and rules-only re-checks with `performance.now()`, so `readMs` and `lastRecheckMs` can be
   fractional (`1450.75`), and the rules accept any number. The phone kept both as whole

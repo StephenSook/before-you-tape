@@ -68,6 +68,17 @@ object BoxDocs {
     @Suppress("UNCHECKED_CAST")
     private fun map(v: Any?): Map<String, Any?> = (v as? Map<String, Any?>) ?: emptyMap()
 
+    /**
+     * The read fields the rules let a document leave out (only itemName, category, labelText and
+     * evidence are required), with the web app's form defaults: 0 for a number, false for a flag,
+     * cannot_tell for the retail box.
+     */
+    private val READ_DEFAULTS: Map<String, Any?> = linkedMapOf(
+        "volts" to 0.0, "milliampHours" to 0.0, "wattHours" to 0.0, "lithiumGrams" to 0.0,
+        "batteryWords" to false, "liquid" to false, "pressurized" to false, "alcoholOnLabel" to false,
+        "flammableOnLabel" to false, "glassContainer" to false, "powder" to false, "retailBox" to "cannot_tell",
+    )
+
     fun itemToDoc(item: BoxItem): Map<String, Any?> {
         val input = BoxLogic.forSync(item.input)
         val doc = linkedMapOf<String, Any?>(
@@ -89,7 +100,7 @@ object BoxDocs {
     }
 
     fun itemFromDoc(id: String, doc: Map<String, Any?>): BoxItem {
-        val read = Json.decodeFromJsonElement(ItemReadWire.serializer(), toJson(doc["read"]).jsonObject)
+        val read = Json.decodeFromJsonElement(ItemReadWire.serializer(), toJson(READ_DEFAULTS + map(doc["read"])).jsonObject)
         val input = BoxItemInput(
             itemId = doc["itemId"] as? String ?: id,
             read = read,
