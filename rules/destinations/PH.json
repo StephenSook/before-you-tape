@@ -26,6 +26,10 @@
         {
           "tag": "easily_liquefiable",
           "effect": "check"
+        },
+        {
+          "tag": "ceramic",
+          "effect": "check"
         }
       ]
     },

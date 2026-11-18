@@ -78,7 +78,7 @@
   { "pattern": "perfume", "tag": "fragrance" },
   { "pattern": "margarine", "tag": "margarine" }, { "pattern": "margarine", "tag": "easily_liquefiable" },
   { "pattern": "oleomargarine", "tag": "margarine" }, { "pattern": "oleomargarine", "tag": "easily_liquefiable" },
-  { "pattern": "butter substitutes?", "tag": "margarine" }, { "pattern": "butter substitutes?", "tag": "easily_liquefiable" },
+  { "pattern": "butter substitutes?", "tag": "margarine" }, { "pattern": "butter substitutes?", "tag": "easily_liquefiable" }, {"pattern": "ceramics?", "tag": "ceramic"}, {"pattern": "porcelain", "tag": "ceramic"}, {"pattern": "stoneware", "tag": "ceramic"},
   { "pattern": "(?:pet|dog|cat) food", "tag": "pet_food" },
   { "pattern": "(?:pet|dog|cat) (?:treats?|chews?)", "tag": "pet_food" },
   { "pattern": "bullion", "tag": "bullion" },

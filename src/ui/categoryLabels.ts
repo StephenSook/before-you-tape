@@ -38,5 +38,6 @@ export const CATEGORY_LABELS: Record<ItemCategory, string> = {
   shoes: "Shoes",
   book_paper: "Book or paper",
   toy: "Toy",
+  ceramic: "Ceramic or porcelain (mug, plate, vase)",
   other: "Something else",
 };

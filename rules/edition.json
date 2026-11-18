@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-29215030fbc4",
+  "editionId": "byt-e1710fc2f032",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -160,6 +160,9 @@
     "book_paper": [],
     "toy": [
       "toy"
+    ],
+    "ceramic": [
+      "ceramic"
     ],
     "other": []
   },
@@ -507,6 +510,18 @@
     {
       "pattern": "butter substitutes?",
       "tag": "easily_liquefiable"
+    },
+    {
+      "pattern": "ceramics?",
+      "tag": "ceramic"
+    },
+    {
+      "pattern": "porcelain",
+      "tag": "ceramic"
+    },
+    {
+      "pattern": "stoneware",
+      "tag": "ceramic"
     },
     {
       "pattern": "(?:pet|dog|cat) food",
@@ -1987,6 +2002,10 @@
             },
             {
               "tag": "easily_liquefiable",
+              "effect": "check"
+            },
+            {
+              "tag": "ceramic",
               "effect": "check"
             }
           ]

@@ -35,5 +35,5 @@
   "shoes": ["clothing"],
   "book_paper": [],
   "toy": ["toy"],
-  "other": []
+  "ceramic": ["ceramic"], "other": []
 }
