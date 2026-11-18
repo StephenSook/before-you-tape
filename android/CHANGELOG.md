@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The saved box never goes back in time.** The view model saved the box in `publish`, which
+  also runs on the UI thread. A UI-thread save could take an older box while the worker saved a
+  newer one, then write the older one over it, so the next start restored a stale item or
+  quantity. Now the box is saved in exactly one place, the worker helper `onWorker`, right after
+  each change, and every box change runs there. Source: review (second model) of the Android pull
+  request, round 2, finding 1 (high). Verified: `BoxSavesOnTheWorkerTest` (the one save is inside
+  `onWorker`, never in `publish`) failed first, then passes. On the emulator: a typed lotion
+  stepped to 3, `am force-stop`, and a cold start showed "Lotion or cream x 3", "How many: 3",
+  "OK to pack". `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A written release gate: a real read on the judge path.** `android/RELEASE.md` says how to
   build the release APK and what `release.sh` checks. An APK ships only after the release probe
   passes on a real phone with the signed APK sideloaded, the way a judge installs it: a token

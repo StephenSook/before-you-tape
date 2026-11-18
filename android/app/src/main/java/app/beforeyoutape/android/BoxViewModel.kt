@@ -116,13 +116,21 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         return cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 
+    /**
+     * Every box change runs here, on the one worker thread, and the box is saved right after it.
+     * Saving only here keeps the saved box in step with the changes: a save from another thread could
+     * write an older box over a newer one.
+     */
     private fun onWorker(work: suspend () -> Unit) {
-        viewModelScope.launch(worker) { work() }
+        viewModelScope.launch(worker) {
+            work()
+            if (restored) persistence.save(box.state)
+        }
     }
 
+    /** Shows the current box. Runs on any thread, so it never saves. */
     private fun publish(change: (HomeUi) -> HomeUi = { it }) {
         state.update { change(it).copy(box = box.state) }
-        if (restored) persistence.save(box.state)
     }
 
     override fun destination(code: String) {
