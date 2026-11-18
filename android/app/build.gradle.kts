@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.firebase.ai.ondevice)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.config)
     debugImplementation(libs.firebase.appcheck.debug)
     ksp(libs.firebase.ai.ksp.processor)
     implementation(libs.serialization.json)

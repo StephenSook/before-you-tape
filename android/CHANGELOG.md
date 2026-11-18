@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Live Remote Config store with safe defaults.** `RcStore` publishes `RcValues` from a
+  `RcSource`; the Firebase source sets the in-app defaults XML, fetches at start and listens in
+  real time, and keeps the last activated values if an update fails. Until the defaults or a
+  fetch load, the map is empty, so no cloud model is set and no cloud read can start. Adds
+  `firebase-config` from the BoM. Source: Android plan Task 4. Verified: `RcStoreTest` (2 tests,
+  which failed to compile first) passes: nothing loaded means no cloud model, and a live update
+  (kill_cloud on) is published; `bash android/ci-local.sh` (44 tests) and the root CI mirror
+  exit 0.
+
 - **App Check and anonymous sign-in before any Firebase call.** `BytApp` installs the App
   Check provider first, then signs in anonymously, and does nothing when the build has no
   Firebase config. Debug builds use the App Check debug provider (`app/src/debug`), with the
