@@ -102,6 +102,27 @@ describe("readItem", () => {
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
+  it("checks that the cloud is still allowed before a retry, a fallback, and a hybrid recovery", async () => {
+    // The switch goes off while the first cloud call is running: no retry follows.
+    let allowed = true;
+    const retry = models({ cloud: { generate: vi.fn(async () => { allowed = false; throw new Error("fetch-error 503"); }) }, fallback: ok("in_cloud") });
+    await expect(readItem(retry, img, "cloud_only", clock(0, 1), () => allowed)).rejects.toMatchObject({ kind: "blocked" });
+    expect(retry.cloud.generate).toHaveBeenCalledTimes(1);
+    expect(retry.fallback.generate).not.toHaveBeenCalled();
+    // The switch goes off during the retry: the fallback model is not tried.
+    let calls = 0;
+    const fallback = models({ cloud: { generate: vi.fn(async () => { if (++calls === 2) allowed = false; throw new Error("fetch-error 503"); }) }, fallback: ok("in_cloud") });
+    allowed = true;
+    await expect(readItem(fallback, img, "cloud_only", clock(0, 1), () => allowed)).rejects.toMatchObject({ kind: "blocked" });
+    expect(fallback.cloud.generate).toHaveBeenCalledTimes(2);
+    expect(fallback.fallback.generate).not.toHaveBeenCalled();
+    // The switch goes off during a hybrid call that then fails: no cloud recovery follows.
+    allowed = true;
+    const hybrid = models({ hybrid: { generate: vi.fn(async () => { allowed = false; throw new Error("QuotaExceededError"); }) }, cloud: never() });
+    await expect(readItem(hybrid, img, "hybrid", clock(0, 1), () => allowed)).rejects.toMatchObject({ kind: "blocked" });
+    expect(hybrid.cloud.generate).not.toHaveBeenCalled();
+  });
+
   it("tries the fallback once when the API says the model is gone, without retrying the gone model", async () => {
     for (const msg of [
       "[GoogleGenerativeAI Error]: fetch-error 404 Not Found: models/gemini-2.5-flash is no longer available to new users",

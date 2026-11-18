@@ -69,8 +69,14 @@ function fallbackStatus(e: unknown): FallbackAfter | null {
 
 interface CloudReply { reply: ModelReply; fallbackAfter?: FallbackAfter }
 
-async function callCloud(models: ItemModels, image: ImagePart): Promise<CloudReply> {
+// Cloud checks can be switched off while a read is running. Each further cloud call (a retry, the fallback
+// model, or the cloud recovery of a failed hybrid call) asks first, so only a call already in flight finishes.
+export type StillAllowed = () => boolean;
+const SWITCHED_OFF = "cloud checks were switched off during the read";
+
+async function callCloud(models: ItemModels, image: ImagePart, stillAllowed: StillAllowed): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
+    if (!stillAllowed()) throw new ReadFailure("blocked", SWITCHED_OFF);
     try {
       return { reply: await models.cloud.generate(ITEM_READ_PROMPT, image) };
     } catch (e) {
@@ -78,6 +84,7 @@ async function callCloud(models: ItemModels, image: ImagePart): Promise<CloudRep
       if (c.retry && attempt < 2) continue;
       const status = fallbackStatus(e);
       if (!models.fallback || !status) throw new ReadFailure(c.kind, errorName(e));
+      if (!stillAllowed()) throw new ReadFailure("blocked", SWITCHED_OFF);
       // One try on the fallback model, with no retry of its own.
       try {
         return { reply: await models.fallback.generate(ITEM_READ_PROMPT, image), fallbackAfter: status };
@@ -96,7 +103,7 @@ function parseOrFail(reply: ModelReply): ItemRead {
   }
 }
 
-export async function readItem(models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number): Promise<ReadOutcome> {
+export async function readItem(models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true): Promise<ReadOutcome> {
   const start = now();
   const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: FallbackAfter): ReadOutcome => {
     const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route, recoveredFrom };
@@ -126,10 +133,10 @@ export async function readItem(models: ItemModels, image: ImagePart, route: Read
     } catch (e) {
       recoveredFrom = errorName(e);
     }
-    const cloud = await callCloud(models, image);
+    const cloud = await callCloud(models, image, stillAllowed);
     return done(cloud.reply, recoveredFrom, cloud.fallbackAfter);
   }
 
-  const cloud = await callCloud(models, image);
+  const cloud = await callCloud(models, image, stillAllowed);
   return done(cloud.reply, null, cloud.fallbackAfter);
 }
