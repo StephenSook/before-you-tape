@@ -2,7 +2,8 @@
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { lockSession, openSession, saveCall } from "../../src/data/blindSession";
 
 let env: RulesTestEnvironment;
 let alice: Firestore;
@@ -58,5 +59,25 @@ describe("blind sessions", () => {
     await assertSucceeds(updateDoc(doc(alice, "blindSessions/open"), { lockedAt: serverTimestamp() }));
     await assertFails(setDoc(doc(alice, "blindSessions/open/calls/a_CA"), call()));
     await assertFails(updateDoc(doc(alice, "blindSessions/open"), { lockedAt: serverTimestamp() }));
+  });
+});
+
+describe("blind session client", () => {
+  it("opens a session by token, saves calls, then locks it so a later save is refused", async () => {
+    expect(await openSession(alice, "open")).toEqual({ setId: "set-1", locked: false });
+    await saveCall(alice, "open", { itemId: "a", destination: "CA", call: "depends" });
+    await saveCall(alice, "open", { itemId: "a", destination: "CA", call: "ship" });
+    await env.withSecurityRulesDisabled(async (c) => {
+      const d = (await getDoc(doc(c.firestore() as unknown as Firestore, "blindSessions/open/calls/a_CA"))).data();
+      expect(d).toMatchObject({ itemId: "a", destination: "CA", call: "ship" });
+    });
+    await lockSession(alice, "open");
+    expect(await openSession(alice, "open")).toEqual({ setId: "set-1", locked: true });
+    await expect(saveCall(alice, "open", { itemId: "a", destination: "PH", call: "ship" })).rejects.toBeTruthy();
+  });
+
+  it("reports a missing session as missing, and a locked one as locked", async () => {
+    expect(await openSession(alice, "missing")).toBeNull();
+    expect(await openSession(alice, "done")).toEqual({ setId: "set-1", locked: true });
   });
 });
