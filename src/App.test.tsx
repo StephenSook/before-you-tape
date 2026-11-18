@@ -6,8 +6,18 @@ import { routePaths } from "./routes";
 describe("App", () => {
   it("renders the name and the footer", () => {
     render(<App />);
-    expect(screen.getByText("Before You Tape")).toBeInTheDocument();
+    expect(screen.getByTestId("wordmark")).toHaveTextContent("Before You Tape");
     expect(screen.getByText("Not affiliated with or approved by the US Postal Service.")).toBeInTheDocument();
+  });
+});
+
+describe("header", () => {
+  it("links the wordmark home and names every built page in its nav, nothing else", () => {
+    render(<App />);
+    expect(screen.getByTestId("wordmark")).toHaveAttribute("href", "/");
+    const nav = screen.getByRole("navigation", { name: "Pages" });
+    const links = Array.from(nav.querySelectorAll("a")).map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(links).toEqual([["Sample box", "/judge"], ["Rules", "/rules"], ["What ran where", "/ran"], ["About", "/about"]]);
   });
 });
 

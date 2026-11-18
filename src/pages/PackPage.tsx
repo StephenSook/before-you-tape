@@ -183,7 +183,7 @@ export function PackPage(p: PackPageProps) {
   // The suspension list decides whether anything can go at all, so its check date is always in view.
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
-    <div>
+    <div className="pack-page">
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
