@@ -196,13 +196,13 @@
     "i06": {
       "CA": {
         "expected": "check",
-        "section": "Pub 52 622.5 (rule edition USPS-INTL-LI-USED-DEVICE and USPS-INTL-LI-NEW-OPENED): a used device with a lithium battery can't go by international mail; a new one goes only packed in its own box",
-        "evidence": "the photo shows neither the phone's condition nor its packaging: used is Take it out, new is Check this, and neither is OK to pack"
+        "section": "Pub 52 622.5 (pe.usps.com/text/pub52/pub52c6_005.htm, read 2026-11-18): 'Used, damaged, defective, or recalled lithium batteries and used, damaged, or defective electronic devices (excluding devices that are new in original packaging, and manufacturer-certified new or refurbished devices) containing or packaged with lithium batteries are prohibited and may not be mailed internationally'",
+        "evidence": "the photo shows neither the phone's condition nor its packaging: a used phone is barred by this line, and a new one goes only in its original packaging; neither is OK to pack"
       },
       "PH": {
         "expected": "check",
-        "section": "Pub 52 622.5 (rule edition USPS-INTL-LI-USED-DEVICE and USPS-INTL-LI-NEW-OPENED): a used device with a lithium battery can't go by international mail; a new one goes only packed in its own box",
-        "evidence": "the photo shows neither the phone's condition nor its packaging: used is Take it out, new is Check this, and neither is OK to pack"
+        "section": "Pub 52 622.5 (pe.usps.com/text/pub52/pub52c6_005.htm, read 2026-11-18): 'Used, damaged, defective, or recalled lithium batteries and used, damaged, or defective electronic devices (excluding devices that are new in original packaging, and manufacturer-certified new or refurbished devices) containing or packaged with lithium batteries are prohibited and may not be mailed internationally'",
+        "evidence": "the photo shows neither the phone's condition nor its packaging: a used phone is barred by this line, and a new one goes only in its original packaging; neither is OK to pack"
       }
     },
     "i07": {
@@ -341,8 +341,9 @@
         "section": "No USPS export rule and no line of this destination in the rule edition applies to a ceramic mug"
       },
       "PH": {
-        "expected": "take_out",
-        "section": "IMM Philippines PH-P-01 (nothing made of glass or as fragile as glass: a glazed ceramic mug)"
+        "expected": "check",
+        "section": "IMM Philippines PH-P-01 (liquids, easily liquefiable items, and glass)",
+        "evidence": "the Philippines bars glass; ceramic is not named"
       }
     },
     "i21": {
