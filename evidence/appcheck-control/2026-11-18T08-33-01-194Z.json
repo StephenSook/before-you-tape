@@ -1,0 +1,19 @@
+{
+  "ranAt": "2026-11-18T08:33:01.194Z",
+  "projectId": "before-you-tape-2026",
+  "model": "gemini-3.5-flash-lite",
+  "referer": "https://before-you-tape-2026.web.app/",
+  "noToken": {
+    "status": 401,
+    "error": {
+      "status": "UNAUTHENTICATED",
+      "message": "Firebase App Check token is invalid."
+    }
+  },
+  "exchangeStatus": 200,
+  "withToken": {
+    "status": 200,
+    "modelVersion": "gemini-3.5-flash-lite"
+  },
+  "passed": true
+}
