@@ -51,6 +51,12 @@ describe("initFirebase", () => {
     expect(() => fb.getAi(false)).toThrow(/useLimitedUseAppCheckTokens/);
   });
 
+  it("starts when the optional measurement id is missing entirely, as in a build without that setting", () => {
+    const { VITE_FB_MEASUREMENT_ID: _optional, ...withoutIt } = validEnv;
+    void _optional;
+    expect(() => initFirebase(withoutIt as FirebaseEnv, `test-${n++}`)).not.toThrow();
+  });
+
   it("refuses an emulator setting that is not true or false", () => expect(() => fresh({ VITE_USE_EMULATORS: "yes" })).toThrow(/VITE_USE_EMULATORS/));
 });
 

@@ -8,6 +8,14 @@ test("the site serves this commit, built from a clean tree", async ({ request })
   expect(version.dirty).toBe(false);
 });
 
+// The title and version.json can be right while the app itself failed to start; only the started screen shows it.
+test("the checker starts: no error banner, and a visitor can type an item", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Type an item" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("could not start")).toHaveCount(0);
+  await expect(page.getByText("missing its settings")).toHaveCount(0);
+});
+
 test("the home page loads", async ({ page }) => {
   const res = await page.goto("/");
   expect(res?.status()).toBe(200);

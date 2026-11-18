@@ -39,3 +39,13 @@ jobs:
           MAIN_SHA=$(git ls-remote origin refs/heads/main | cut -f1)
           export MAIN_SHA
           npx tsx scripts/probe-live.ts
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      # The fetch checks above cannot see a page that failed to start; this one opens it like a visitor.
+      - name: The live app starts
+        env:
+          BYT_LIVE: "1"
+          BYT_LIVE_URL: ${{ inputs.site }}
+        run: npx playwright test --project=live tests/e2e/smoke.spec.ts -g "checker starts"
