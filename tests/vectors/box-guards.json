@@ -1,5 +1,23 @@
 [
   {
+    "name": "alcohol_flag_alone_on_a_cetearyl_lotion_asks", "source": "Fable I3", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "CETEARYL ALCOHOL GLYCERIN 8 FL OZ", "liquid": true,
+      "alcoholOnLabel": true } }],
+    "expect": { "lotion": "check" }, "expectQuestion": { "lotion": "label_alcohol" }, "notRules": { "lotion": ["USPS-INTL-FLAMMABLE-LIQUID"] }
+  },
+  {
+    "name": "alcohol_flag_cleared_by_the_sender_passes", "source": "Fable I3", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "CETEARYL ALCOHOL GLYCERIN 8 FL OZ", "liquid": true,
+      "alcoholOnLabel": true }, "answers": { "label_alcohol": "no" } }],
+    "expect": { "lotion": "ok" }
+  },
+  {
+    "name": "alcohol_denat_on_the_label_still_takes_out", "source": "Fable I3 control", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "ALCOHOL DENAT. CETEARYL ALCOHOL 8 FL OZ", "liquid": true,
+      "alcoholOnLabel": true }, "answers": { "label_alcohol": "no" } }],
+    "expect": { "lotion": "take_out" }, "expectRules": { "lotion": ["USPS-INTL-FLAMMABLE-LIQUID"] }
+  },
+  {
     "name": "lithium_metal_cell_over_1g_is_taken_out", "source": "Codex M6", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "LITHIUM METAL 1.2 G", "lithiumGrams": 1.2, "batteryWords": true },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],

@@ -84,15 +84,19 @@ describe("deriveFacts", () => {
       .toEqual(expect.arrayContaining(["alcohol", "pressurized"])));
 
   it("reads alcohol from label, then answer", () => {
-    expect(facts({ read: r({ alcoholOnLabel: true }) }).alcohol).toBe("yes");
+    expect(facts({ read: r({ labelText: "ALCOHOL DENAT. 50 ML" }) }).alcohol).toBe("yes");
+    expect(facts({ read: r({ alcoholOnLabel: true }) }).alcohol).toBe("unknown");
+    expect(facts({ read: r({ alcoholOnLabel: true }) }).tags).toContain("alcohol_flag");
     expect(facts({ read: r({ category: "perfume_fragrance" }) }).alcohol).toBe("unknown");
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "no" } }).alcohol).toBe("no");
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "yes" } }).alcohol).toBe("yes");
     expect(facts({ read: r({ category: "perfume_fragrance" }), answers: { label_alcohol: "cannot_tell" } }).alcohol).toBe("unknown");
   });
 
-  it("keeps the stricter reading when the label and the answer disagree on alcohol", () =>
-    expect(facts({ read: r({ alcoholOnLabel: true }), answers: { label_alcohol: "no" } }).alcohol).toBe("yes"));
+  it("keeps the stricter reading when the label and the answer disagree on alcohol", () => {
+    expect(facts({ read: r({ labelText: "ALCOHOL DENAT." }), answers: { label_alcohol: "no" } }).alcohol).toBe("yes");
+    expect(facts({ read: r({ alcoholOnLabel: true }), answers: { label_alcohol: "no" } }).alcohol).toBe("no");
+  });
 
   it("needs independent evidence for identity", () => {
     expect(facts({ read: r({ category: "clothing", evidence: "item_seen" }) }).identity).toBe("unconfirmed");

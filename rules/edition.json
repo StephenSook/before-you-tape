@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-2584ef017548",
+  "editionId": "byt-6ab76f873050",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -1194,6 +1194,11 @@
                 "fact": "tags",
                 "op": "has",
                 "value": "fragrance"
+              },
+              {
+                "fact": "tags",
+                "op": "has",
+                "value": "alcohol_flag"
               }
             ]
           }

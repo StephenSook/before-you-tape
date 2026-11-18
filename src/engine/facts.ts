@@ -6,10 +6,12 @@ import type { BoxItemInput, ItemFacts, RuleEdition } from "./types";
 // identity survives a reload after the label text itself has been left on the laptop.
 export const LABEL_TEXT_TAG = "label_text";
 
+// The model's alcohol flag is weak evidence: a small model often says yes to fatty alcohols such
+// as cetearyl alcohol. It asks the sender instead of deciding; label words decide.
 const FLAG_TAGS = [
   ["liquid", "liquid"],
   ["pressurized", "pressurized"],
-  ["alcoholOnLabel", "alcohol"],
+  ["alcoholOnLabel", "alcohol_flag"],
   ["flammableOnLabel", "flammable"],
   ["glassContainer", "glass_fragile"],
   ["powder", "powder"],
@@ -46,7 +48,8 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   for (const t of input.labelTags) tags.add(t);
   const tagList = [...tags].sort();
 
-  // Any evidence of alcohol wins over a "no", so a disagreement keeps the stricter reading.
+  // Alcohol in the label words or the category wins over a "no". The model's flag alone does not:
+  // it leaves alcohol unknown, which asks the sender, and their "no" clears it.
   const answer = input.answers.label_alcohol;
   const alcohol: ItemFacts["alcohol"] = tags.has("alcohol") || answer === "yes" ? "yes" : answer === "no" ? "no" : "unknown";
 

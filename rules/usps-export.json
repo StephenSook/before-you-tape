@@ -406,7 +406,8 @@
         {
           "any": [
             { "fact": "category", "op": "in", "value": ["perfume_fragrance", "liquid_toiletry", "medicine"] },
-            { "fact": "tags", "op": "has", "value": "fragrance" }
+            { "fact": "tags", "op": "has", "value": "fragrance" },
+            { "fact": "tags", "op": "has", "value": "alcohol_flag" }
           ]
         }
       ]
