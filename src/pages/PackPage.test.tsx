@@ -104,6 +104,24 @@ describe("PackPage", () => {
     expect(store.getState().items).toHaveLength(0);
   });
 
+  it("makes no further cloud call once cloud checks are switched off during a read, not even a retry", async () => {
+    const store = newStore();
+    store.setConsent(true);
+    let fail: (e: Error) => void = () => {};
+    const cloud = { generate: vi.fn(() => new Promise<never>((_r, reject) => { fail = reject; })) };
+    const fallback = { generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" as const })) };
+    const models = { ...spyModels(), cloud, fallback };
+    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, online: true };
+    const { rerender } = render(<PackPage {...props} config={{ killCloud: false }} />);
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    rerender(<PackPage {...props} config={{ killCloud: true }} />);
+    await act(async () => { fail(new Error("fetch-error 503")); await Promise.resolve(); });
+    await waitFor(() => expect(screen.queryByTestId("item-card")).toBeNull());
+    expect(cloud.generate).toHaveBeenCalledTimes(1);
+    expect(fallback.generate).not.toHaveBeenCalled();
+  });
+
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));

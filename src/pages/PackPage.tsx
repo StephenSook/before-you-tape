@@ -13,7 +13,7 @@ import { deriveFacts } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { ItemRead } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
-import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
+import { chooseImageRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
@@ -108,6 +108,11 @@ export function PackPage(p: PackPageProps) {
   const waitingForOnline = useRef(new Set<string>());
 
   const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
+  // The switch and the connection as they are now, for a read that started earlier: before each further
+  // cloud call (a retry, the fallback model, a recovery) the read asks whether the cloud is still allowed.
+  const live = useRef({ killCloud: config.killCloud, online: p.online });
+  useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online }; });
+  const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, ...live.current });
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
@@ -120,7 +125,7 @@ export function PackPage(p: PackPageProps) {
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct);
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed);
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
     } catch (e) {
@@ -150,7 +155,7 @@ export function PackPage(p: PackPageProps) {
     setNotice(null);
     setBlocked(null);
     try {
-      const outcome = await readItem(models, part, route, now);
+      const outcome = await readItem(models, part, route, now, stillAllowed);
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
