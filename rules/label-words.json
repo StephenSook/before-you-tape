@@ -42,6 +42,8 @@
   { "pattern": "(?:pain|fever) (?:relievers?|reducers?)", "tag": "pharmaceutical" },
   { "pattern": "(?:aspirin|ibuprofen|acetaminophen|paracetamol|naproxen|loratadine|cetirizine|diphenhydramine)", "tag": "pharmaceutical" },
   { "pattern": "antihistamines?", "tag": "pharmaceutical" },
+  { "pattern": "(?:tablets?|capsules?|caplets?|softgels?|pills?) [0-9]+(?:\\.[0-9]+)? ?(?:mg|mcg)", "tag": "pharmaceutical" },
+  { "pattern": "[0-9]+(?:\\.[0-9]+)? ?(?:mg|mcg) (?:tablets?|capsules?|caplets?|softgels?|pills?)", "tag": "pharmaceutical" },
   { "pattern": "cough drops?", "tag": "pharmaceutical" },
   { "pattern": "(?:throat|cough) lozenges?", "tag": "pharmaceutical" },
   { "pattern": "chocolate", "tag": "chocolate" },
