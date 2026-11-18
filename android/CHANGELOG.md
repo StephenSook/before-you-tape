@@ -3,6 +3,23 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Engine host that runs the shared rules bundle.** `EngineHost` loads `byt-engine.js` into a
+  `JsRuntime`, refuses a bundle whose SHA-256 differs from its manifest (`BundleMismatch`) or
+  whose bridge version is not 1, and calls the JSON bridge: `setEdition`, `canonicalEdition`,
+  `editionBodyCanonical`, `evaluateBox`, `destinationHits`, `labelTags`, `parseItemRead` and
+  `itemReadContract`. Arguments reach JavaScript only as JSON string literals. A bridge error
+  becomes an `EngineError` with the bridge's own name. `EngineModels.kt` mirrors the engine's
+  JSON (unknown keys ignored), with enum constants named as the wire strings (37 categories,
+  3 retail-box values, 3 evidence values) and `quantity` as a number, as in the engine. Kotlin
+  holds no rule logic and no verdict words. Source: Android plan Task 3. Verified:
+  `EngineHostTest`, `EditionHashTest` and `ItemReadWireTest` (7 tests, which failed to
+  compile before the host existed) pass in QuickJS on the JVM: a bundle with one changed
+  character is refused, `parseItemRead("not json")` is an `InvalidReadError`, evaluating
+  before an edition is a `NoEditionError`, a label with quotes, a backslash, a newline, U+2028
+  and `</script>` round-trips exactly, the edition body hashes in Kotlin to the edition id,
+  every enum value passes the web app's parser, and the read fields match the TypeScript
+  contract in order; `bash android/ci-local.sh` (8 tests) and the root CI mirror exit 0.
+
 - **The rules bundle is built with the app.** Gradle task `:engine:buildEmbed` runs the web
   repo's `scripts/build-embed.sh` into `android/build/embed` (`byt-engine.js` and its
   manifest), with the engine, shared and embed sources and the script as inputs, so it reruns
