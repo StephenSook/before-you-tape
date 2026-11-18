@@ -66,6 +66,12 @@ struct ReadDraft: Equatable, Sendable {
 
     var numbersValid: Bool { Self.numberFields.allSatisfy { Self.parseNumber(numbers[$0.id] ?? "") != nil } }
 
+    /// The engine's longest label (its contract's labelTextMax), counted in Unicode code points as
+    /// the engine counts them. A longer label would make it refuse the whole box.
+    static let labelTextMax = 160
+    var labelValid: Bool { labelText.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count <= Self.labelTextMax }
+    var canSave: Bool { numbersValid && labelValid }
+
     /// Only the fields the sender changed, as overrides on top of the read.
     func changed(from read: JSONValue) -> [String: JSONValue] {
         var patch: [String: JSONValue] = [:]
@@ -83,7 +89,7 @@ struct ReadDraft: Equatable, Sendable {
     /// An item the sender typed instead of showing it; nil until it says what the item is and every
     /// number is valid. Typed label words count as a read label; otherwise the sender only says what it is.
     func manualRead() -> JSONValue? {
-        guard !category.isEmpty, numbersValid else { return nil }
+        guard !category.isEmpty, canSave else { return nil }
         let label = labelText.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = itemName.trimmingCharacters(in: .whitespacesAndNewlines)
         var o: [String: JSONValue] = [

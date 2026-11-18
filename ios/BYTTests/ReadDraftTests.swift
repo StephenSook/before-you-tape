@@ -69,4 +69,28 @@ import Testing
         #expect(s.items.first?.overrides == ["milliampHours": .number(2600)])
         #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "USPS-INTL-LI-WH-MISMATCH" } == false)
     }
+
+    /// A label longer than the engine takes would make it refuse the whole box, so it cannot be saved.
+    @Test func aLabelOverTheEnginesCapCannotBeSaved() throws {
+        #expect(try RulesEngine().itemReadContract()["labelTextMax"] == .number(Double(ReadDraft.labelTextMax)))
+        var d = ReadDraft.of(nil)
+        d.category = "clothing"
+        d.labelText = String(repeating: "é", count: ReadDraft.labelTextMax)
+        #expect(d.canSave && d.manualRead() != nil)
+        d.labelText += "x"
+        #expect(!d.labelValid && !d.canSave && d.manualRead() == nil)
+    }
+
+    /// When the engine refuses the box, every item still has a row the sender can fix or remove.
+    @Test func everyItemKeepsARowWhenTheBoxCannotBeChecked() throws {
+        let s = try BoxStoreTests().store()
+        let shirt = s.addManual(BoxStoreTests.shirt)
+        let long = s.addManual(BoxStoreTests.read(["category": .string("clothing"), "labelText": .string(String(repeating: "x", count: 161))]))
+        #expect(s.result == nil && s.engineProblem != nil)
+        let rows = BoxView.rows(items: s.items, result: s.result)
+        #expect(rows.map(\.item.itemId) == [shirt, long] && rows.allSatisfy { $0.verdict == nil })
+        s.remove(long)
+        #expect(s.result?.items[shirt] != nil)
+        #expect(BoxView.rows(items: s.items, result: s.result).first?.verdict != nil)
+    }
 }

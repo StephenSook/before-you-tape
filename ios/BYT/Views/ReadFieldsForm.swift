@@ -14,6 +14,7 @@ struct ReadFieldsForm: View {
             }
             TextField("Name", text: $draft.itemName)
             TextField("Words on the label", text: $draft.labelText, axis: .vertical)
+            if !draft.labelValid { Text("The label words can be at most \(ReadDraft.labelTextMax) characters.") }
         }
         Section("Numbers printed on it") {
             ForEach(ReadDraft.numberFields, id: \.id) { f in
@@ -64,7 +65,7 @@ struct FixReadingView: View {
                             box.override(item.itemId, patch: draft.changed(from: Self.current(item)))
                             dismiss()
                         }
-                        .disabled(!draft.numbersValid)
+                        .disabled(!draft.canSave)
                     }
                 }
         }

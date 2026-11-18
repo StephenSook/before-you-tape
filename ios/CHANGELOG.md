@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): refuse a label too long for the rules, and keep every item on screen
+- What: a typed or corrected label over 160 characters (the engine's `labelTextMax`, counted in
+  code points) made the engine refuse the whole box, and the box screen then hid every item. The
+  edit forms now refuse such a label (`ReadDraft.labelValid`, `canSave`) and say why, and the box
+  keeps a row for every item: one the rules could not check says so and offers "Fix this reading"
+  and "Remove".
+- Source: review of the iPhone pull request (finding 5).
+- Verified: two tests (the cap equals the engine's contract and a 161-character label cannot be
+  saved; a box the engine refuses still has a row for every item, and removing the bad one brings
+  the verdicts back) failed to compile, then passed; 87 app tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): derive every verdict again when the app comes back or the day changes
 - What: a verdict was derived only when the box changed, so an "OK to pack" made on one day could
   stay on screen after a rule layer went out of date. The box's verdicts are now derived again
