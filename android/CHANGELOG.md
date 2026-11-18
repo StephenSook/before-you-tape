@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Fractional read and re-check times survive sync and a restart.** The web app times reads
+  and rules-only re-checks with `performance.now()`, so `readMs` and `lastRecheckMs` can be
+  fractional (`1450.75`), and the rules accept any number. The phone kept both as whole
+  numbers, so syncing an item or reloading the saved box cut `1450.75` to `1450`. Both are now
+  `Double` on the phone, in the item, the box header and the saved box. The document mapper
+  writes a whole value as an integer and a fractional one as a double, as the web SDK does.
+  Source: review (second model) of the Android pull request, round 2, finding 6. Verified:
+  `BoxDocsContractTest.fractionalTimingsSurviveARoundTrip` first failed (`expected:<1450.75> but
+  was:<1450>`), then passes; `BoxPersistenceTest.aFractionalReadTimeIsKeptOnThePhone` passes;
+  the existing check that a whole `readMs` stays an integer (`900`) still passes. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A read still running when a new scan session starts counts in the old session.** Going back to
   the camera reset the refusal count at once, on the worker. A slow read from before was still
   waiting on the model; when it returned with a refusal, that refusal counted as the first of the

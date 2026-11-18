@@ -74,6 +74,14 @@ class BoxDocsContractTest {
         assertEquals(900L, d["readMs"])
     }
 
+    /** The web app times reads and re-checks with performance.now(), so both can be fractional. */
+    @Test fun fractionalTimingsSurviveARoundTrip() {
+        val item = doc("item").toMutableMap().apply { put("readMs", 1450.75) }
+        assertEquals(1450.75, BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", item))["readMs"])
+        val box = doc("box").toMutableMap().apply { put("lastRecheckMs", 12.375) }
+        assertEquals(12.375, BoxDocs.boxToDoc(BoxDocs.boxFromDoc(box))["lastRecheckMs"])
+    }
+
     @Test fun anUnknownReadSourceAndTheWebsExtraFieldsAreKept() {
         val d = doc("item").toMutableMap().apply { put("readSource", "cloud_unreported") }
         val back = BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", d))

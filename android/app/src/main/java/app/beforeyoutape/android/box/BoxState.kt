@@ -6,12 +6,13 @@ import app.beforeyoutape.engine.BoxResult
 /**
  * One item in the box. [readSource] is "phone_on_device", "phone_cloud", "manual" or a value the web
  * app wrote. [extras] keeps the web app's item fields this phone does not use (secondLook,
- * readFallback, cropKey, customs), so syncing an item never drops them.
+ * readFallback, cropKey, customs), so syncing an item never drops them. [readMs] can be fractional:
+ * the web app times reads with performance.now().
  */
 data class BoxItem(
     val input: BoxItemInput,
     val readSource: String,
-    val readMs: Long,
+    val readMs: Double,
     val cropFile: String?,
     val extras: Map<String, Any?> = emptyMap(),
 )

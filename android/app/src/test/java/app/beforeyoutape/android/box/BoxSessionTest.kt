@@ -41,7 +41,7 @@ class BoxSessionTest {
         assertEquals("item-1", item.input.itemId)
         assertEquals(listOf("liquid"), item.input.labelTags)
         assertEquals("phone_cloud", item.readSource)
-        assertEquals(900L, item.readMs)
+        assertEquals(900.0, item.readMs, 0.0)
     }
 
     @Test fun aBlockedReadAddsNothingAndSaysWhy() = runTest {

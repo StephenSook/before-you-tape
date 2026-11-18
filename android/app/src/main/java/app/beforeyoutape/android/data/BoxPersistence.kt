@@ -9,11 +9,11 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 
 /**
  * The active box, kept in app-private storage so it survives Android stopping the app's process.
@@ -63,7 +63,7 @@ class BoxPersistence(private val prefs: Prefs) {
                 BoxItem(
                     input = Json.decodeFromJsonElement(BoxItemInput.serializer(), i.getValue("input")),
                     readSource = i.getValue("readSource").jsonPrimitive.content,
-                    readMs = i.getValue("readMs").jsonPrimitive.long,
+                    readMs = i.getValue("readMs").jsonPrimitive.double,
                     cropFile = (i["cropFile"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
                     extras = (BoxDocs.fromJson(i.getValue("extras")) as? Map<String, Any?>) ?: emptyMap(),
                 )

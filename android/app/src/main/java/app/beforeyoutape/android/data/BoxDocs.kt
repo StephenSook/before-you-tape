@@ -27,7 +27,7 @@ data class BoxHeader(
     val editionId: String,
     val cloudConsent: Boolean?,
     val sources: BoxSources,
-    val lastRecheckMs: Long?,
+    val lastRecheckMs: Double?,
 )
 
 /**
@@ -51,6 +51,12 @@ object BoxDocs {
         else -> throw IllegalArgumentException("not a document value: ${v::class.simpleName}")
     }
 
+    /**
+     * A time in milliseconds as Firestore stores it from the web app: a whole value as Long, a
+     * fractional one (performance.now() timings) as Double.
+     */
+    private fun ms(v: Double): Any = if (v % 1.0 == 0.0 && kotlin.math.abs(v) < 9.007199254740992E15) v.toLong() else v
+
     /** JSON as a Firestore value: whole numbers as Long, others as Double. */
     fun fromJson(e: JsonElement): Any? = when (e) {
         is JsonNull -> null
@@ -73,7 +79,7 @@ object BoxDocs {
             "identityConfirmedBy" to input.identityConfirmedBy,
             "labelTags" to input.labelTags,
             "readSource" to item.readSource,
-            "readMs" to item.readMs,
+            "readMs" to ms(item.readMs),
             "secondLook" to item.extras["secondLook"],
         )
         if ("readFallback" in item.extras) doc["readFallback"] = item.extras["readFallback"]
@@ -94,7 +100,7 @@ object BoxDocs {
             labelTags = (doc["labelTags"] as List<*>).map { it as String },
         )
         val extras = EXTRA_KEYS.filter { it in doc }.associateWith { doc[it] }
-        return BoxItem(input, doc["readSource"] as String, (doc["readMs"] as? Number)?.toLong() ?: 0L, null, extras)
+        return BoxItem(input, doc["readSource"] as String, (doc["readMs"] as? Number)?.toDouble() ?: 0.0, null, extras)
     }
 
     fun boxToDoc(h: BoxHeader): Map<String, Any?> = linkedMapOf(
@@ -109,7 +115,7 @@ object BoxDocs {
             "secondLooks" to h.sources.secondLooks.toLong(), "rulesOnlyRechecks" to h.sources.rulesOnlyRechecks.toLong(),
             "cloudFallbacks" to h.sources.cloudFallbacks.toLong(),
         ),
-        "lastRecheckMs" to h.lastRecheckMs,
+        "lastRecheckMs" to h.lastRecheckMs?.let(::ms),
     )
 
     fun boxFromDoc(doc: Map<String, Any?>): BoxHeader {
@@ -123,7 +129,7 @@ object BoxDocs {
             editionId = doc["editionId"] as String,
             cloudConsent = doc["cloudConsent"] as Boolean?,
             sources = BoxSources(count("onDevice"), count("inCloud"), count("secondLooks"), count("rulesOnlyRechecks"), count("cloudFallbacks")),
-            lastRecheckMs = (doc["lastRecheckMs"] as? Number)?.toLong(),
+            lastRecheckMs = (doc["lastRecheckMs"] as? Number)?.toDouble(),
         )
     }
 }
