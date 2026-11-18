@@ -3,6 +3,19 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Box logic that re-checks by rules alone.** `BoxState` holds the box on the phone;
+  `BoxLogic` changes it without calling a model (add a read with where it ran, answer a
+  question, set the destination, take a result or an engine error, and the synced form of an
+  item, which drops the label text and keeps its tags); `BoxController` re-checks the whole box
+  through the engine after every change, always with the current destination. A country change
+  is a rules-only re-check and is counted. When the engine fails, no verdict is shown and the
+  error is kept. Source: Android plan Task 9. Verified: `BoxLogicTest` (6 tests, which failed
+  to compile first) passes: a read is added with "phone_on_device" and re-checked; a country
+  change re-checks with the new code and no model call; a read added after a country change
+  uses the new country; an answer re-checks with the answer; the synced item has no label text
+  but keeps its tags; with the engine failing there is no verdict; `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
+
 - **The rules bundle runs in QuickJS inside the app.** `QuickJsRuntime` runs Zipline's
   QuickJS on one dedicated thread (a QuickJS context must stay on the thread that made it), and
   `EngineAssets` loads `assets/engine/byt-engine.js` with its build manifest and the bundled
