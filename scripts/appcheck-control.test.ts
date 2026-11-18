@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { controlPassed, exchangeRequest, redact } from "./appcheck-control";
+import { aiHeaders, controlPassed, exchangeRequest, redact } from "./appcheck-control";
 
 describe("appcheck-control", () => {
   it("passes only when the call without a token is refused with 401 and the call with one succeeds", () => {
@@ -16,4 +16,12 @@ describe("appcheck-control", () => {
 
   it("asks for a limited-use token, which AI Logic requires now that replay protection is enforced", () =>
     expect(exchangeRequest("debug-1")).toEqual({ debug_token: "debug-1", limited_use: true }));
+
+  it("sends App Check and the signed-in user the way the SDK does, now that AI Logic requires both", () => {
+    expect(aiHeaders("k", "https://site/")).toEqual({ "x-goog-api-key": "k", Referer: "https://site/" });
+    expect(aiHeaders("k", "https://site/", "ac")).toEqual({ "x-goog-api-key": "k", Referer: "https://site/", "X-Firebase-AppCheck": "ac" });
+    expect(aiHeaders("k", "https://site/", "ac", "id")).toEqual({
+      "x-goog-api-key": "k", Referer: "https://site/", "X-Firebase-AppCheck": "ac", Authorization: "Firebase id",
+    });
+  });
 });
