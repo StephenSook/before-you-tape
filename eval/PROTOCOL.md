@@ -23,12 +23,16 @@ change to this file after the freeze fails the manifest test.
 - A label is the right answer for the real item in the photo, written by a person from those sources
   before any model run, and frozen by hash. A label mistake found before the freeze is fixed with the
   section as its reason; after the freeze, labels do not change.
+- A hazard item is an item whose label is not "OK to pack" for at least one destination; a lotion that
+  is fine for Canada but barred by the Philippines is one. The manifest check rejects any hazard flag
+  that disagrees with the labels.
 
 ## Metrics
 
 - **Agreement**: rows where the shipped verdict equals the label, over all rows.
-- **Hazard called OK**: items with a hazard label for which any destination shipped "OK to pack". The
-  bound is the exact one-sided 95% Clopper-Pearson upper limit over hazard items. Pass line: 0.
+- **Hazard called OK**: hazard items for which some destination shipped "OK to pack" where that
+  destination's label is not "OK to pack". The bound is the exact one-sided 95% Clopper-Pearson upper
+  limit over hazard items. Pass line: 0.
 - **Check rate**: rows where the shipped verdict is "Check this", over all rows.
 - How "Check this" is scored: it is safe but it is not agreement. If the label is "Take it out" and the app
   says "Check this", the row counts against agreement and adds to the check rate, but it is not a hazard

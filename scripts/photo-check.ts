@@ -1,5 +1,6 @@
-// Photo check for the published eval photos: every file in public/eval/items is a JPEG with no Exif, XMP
-// or IPTC block (so no camera, date or location travels with it), and its SHA-256 equals the manifest's.
+// Photo check for the published eval photos: every file in public/eval/items is a JPEG with no Exif, XMP,
+// IPTC or comment block (so no camera, date, location or name travels with it), and its SHA-256 equals the
+// manifest's.
 // Exits 1 on any problem. Run: npx tsx scripts/photo-check.ts
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -21,6 +22,7 @@ export function jpegMetadataBlocks(buf: Buffer): string[] {
     if (marker === 0xe1 && head.startsWith("Exif\0")) found.push("Exif");
     else if (marker === 0xe1 && head.startsWith("http://ns.adobe.com/xap/1.0/")) found.push("XMP");
     else if (marker === 0xed) found.push("IPTC");
+    else if (marker === 0xfe) found.push("Comment");
     i += 2 + len;
   }
   return found;
