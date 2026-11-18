@@ -1,7 +1,9 @@
 // Daily live probe for the judging window, with no credential: the site serves main, the page loads,
 // robots.txt and llms.txt are plain text, the models page still lists each allowed model with no Gemini
 // Developer API shutdown before the window ends, and Firebase AI Logic refuses a call that carries the
-// public web key but no App Check token. Retires itself after the last judging day.
+// public web key but no App Check token. The two app-link files the phones verify are the repository's,
+// served as JSON with no redirect. Retires itself after the last judging day.
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CLOUD_MODELS } from "../src/config/models";
@@ -41,6 +43,23 @@ export function appCheckRefusal(status: number, body: unknown): { ok: boolean; d
   return { ok: status === 401 && text === APP_CHECK_REFUSAL, detail: `HTTP ${status}: ${text}` };
 }
 
+// The phones fetch these on the exact host and accept no redirect; Android also needs JSON.
+const APP_LINK_FILES = ["/.well-known/assetlinks.json", "/.well-known/apple-app-site-association"] as const;
+
+export function appLinkFile(
+  r: { status: number; redirected: boolean; contentType: string | null; body: string }, expected: unknown,
+): { ok: boolean; detail: string } {
+  let same: boolean;
+  try {
+    same = JSON.stringify(JSON.parse(r.body)) === JSON.stringify(expected);
+  } catch {
+    same = false;
+  }
+  const json = /^application\/json(\s*;|$)/i.test(r.contentType?.trim() ?? "");
+  const detail = `HTTP ${r.status}, ${r.contentType}${r.redirected ? ", redirected" : ""}${same ? "" : ", not the repository's file"}`;
+  return { ok: r.status === 200 && !r.redirected && json && same, detail };
+}
+
 async function get(url: string): Promise<Response> {
   return fetch(url, { headers: { "Cache-Control": "no-cache", "User-Agent": "before-you-tape-probe" }, signal: AbortSignal.timeout(20_000) });
 }
@@ -78,6 +97,13 @@ async function main(): Promise<void> {
       return { ok: r.status === 200 && isPlainText(type), detail: `HTTP ${r.status}, ${type}` };
     });
   }
+  for (const path of APP_LINK_FILES) {
+    await check(`${path} is the repository's file, as JSON`, async () => {
+      const r = await fetch(`${site}${path}`, { redirect: "manual", headers: { "Cache-Control": "no-cache", "User-Agent": "before-you-tape-probe" }, signal: AbortSignal.timeout(20_000) });
+      const expected: unknown = JSON.parse(readFileSync(resolve("public", `.${path}`), "utf8"));
+      return appLinkFile({ status: r.status, redirected: r.redirected, contentType: r.headers.get("content-type"), body: await r.text() }, expected);
+    });
+  }
   // The public web key and the site as referrer, and no App Check token: the call must be refused.
   await check("AI Logic refuses a call with no App Check token", async () => {
     const key = process.env.PROBE_API_KEY?.trim();
@@ -96,7 +122,7 @@ async function main(): Promise<void> {
   for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${r.check}: ${r.detail}`);
   const failed = results.filter((r) => !r.ok).length;
   console.log(`probe: ${results.length} checks, ${failed} failed`);
-  if (failed > 0 || results.length < 5 + CLOUD_MODELS.length) process.exit(1);
+  if (failed > 0 || results.length < 5 + APP_LINK_FILES.length + CLOUD_MODELS.length) process.exit(1);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

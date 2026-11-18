@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appCheckRefusal, isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
+import { appCheckRefusal, appLinkFile, isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
 
 const page = [
   "| **Model** | **Gemini Developer API** | **Agent Platform Gemini API** |",
@@ -58,5 +58,25 @@ describe("appCheckRefusal", () => {
     expect(appCheckRefusal(403, { error: { message: "Requests from referer <empty> are blocked." } })).toMatchObject({ ok: false });
     expect(appCheckRefusal(401, { error: { message: "Request had invalid authentication credentials." } })).toMatchObject({ ok: false });
     expect(appCheckRefusal(401, null)).toMatchObject({ ok: false });
+  });
+});
+
+describe("appLinkFile", () => {
+  const file = [{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app" } }];
+  const served = (over: Partial<{ status: number; redirected: boolean; contentType: string | null; body: string }> = {}) =>
+    ({ status: 200, redirected: false, contentType: "application/json", body: JSON.stringify(file, null, 2), ...over });
+
+  it("passes the repository's file served as JSON from the exact host", () => {
+    expect(appLinkFile(served(), file).ok).toBe(true);
+    expect(appLinkFile(served({ contentType: "application/json; charset=utf-8" }), file).ok).toBe(true);
+  });
+
+  it("fails a redirect, a missing file, the wrong type, other bytes, or a page that is not JSON", () => {
+    expect(appLinkFile(served({ status: 301 }), file).ok).toBe(false);
+    expect(appLinkFile(served({ redirected: true }), file).ok).toBe(false);
+    expect(appLinkFile(served({ status: 404 }), file).ok).toBe(false);
+    expect(appLinkFile(served({ contentType: "application/octet-stream" }), file).ok).toBe(false);
+    expect(appLinkFile(served({ body: "[]" }), file).ok).toBe(false);
+    expect(appLinkFile(served({ body: "<!doctype html>" }), file)).toMatchObject({ ok: false, detail: expect.stringContaining("not the repository's file") });
   });
 });
