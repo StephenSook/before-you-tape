@@ -7,7 +7,7 @@ import type { EvalItem, EvalSet } from "./types";
 export const OWN_PHOTO_LICENSE = "own photo (owner-provided for this project)";
 const OPEN_LICENSE = /^(CC0 1\.0|Public domain|CC BY \d\.\d|CC BY-SA \d\.\d)$/;
 
-const isOwn = (i: EvalItem) => i.provenance.license === OWN_PHOTO_LICENSE;
+const isOwn = (i: Pick<EvalItem, "provenance">) => i.provenance.license === OWN_PHOTO_LICENSE;
 
 export function setProblems(set: EvalSet, expectedItems: number): string[] {
   const out: string[] = [];
@@ -45,7 +45,7 @@ function hostOf(url: string): string {
   }
 }
 
-export function creditLine(i: EvalItem): string {
+export function creditLine(i: Pick<EvalItem, "provenance">): string {
   if (isOwn(i)) return "Photo by the project owner";
   return `Photo: ${i.provenance.author}, ${i.provenance.license}, ${hostOf(i.provenance.sourcePage)} (${i.provenance.changes})`;
 }
