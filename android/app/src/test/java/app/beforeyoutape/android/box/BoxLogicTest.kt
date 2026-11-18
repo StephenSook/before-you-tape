@@ -81,6 +81,16 @@ class BoxLogicTest {
         assertEquals("SHEA LOTION 8 FL OZ", c.state.items.single().input.read.labelText)
     }
 
+    @Test fun aRestoredBoxIsRecheckedAtOnce() {
+        val e = FakeEngine(result)
+        val c = controller(e)
+        val saved = BoxLogic.addRead(BoxLogic.empty("PH"), read, emptyList(), Source.IN_CLOUD, 900, "item-1")
+        c.restore(saved)
+        assertEquals(listOf("PH"), e.codes)
+        assertEquals(result, c.state.result)
+        assertEquals("item-1", c.state.items.single().input.itemId)
+    }
+
     @Test fun withNoEngineNoVerdictIsShown() {
         val e = FakeEngine(result, fail = true)
         val c = controller(e)

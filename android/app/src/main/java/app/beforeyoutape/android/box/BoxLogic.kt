@@ -107,6 +107,12 @@ class BoxController(initial: BoxState, private val engine: BoxEngine, private va
         }
     }
 
+    /** A saved box (after Android stopped the process): its verdicts are recomputed, never restored. */
+    fun restore(saved: BoxState) {
+        state = saved.copy(result = null, engineError = null)
+        recheck()
+    }
+
     fun addRead(read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String) {
         state = BoxLogic.addRead(state, read, labelTags, source, ms, newId)
         recheck()

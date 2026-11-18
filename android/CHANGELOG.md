@@ -3,6 +3,21 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The box survives Android stopping the app.** The box lived only in memory, so when Android
+  reclaimed the process, reopening the app kept the destination but dropped every item, fix,
+  quantity and answer. `BoxPersistence` now saves the active box in app-private storage after
+  every change: the items (label text included, which stays on the phone), the destination, the
+  consent answer and the read counts. On start the view model restores it, and
+  `BoxController.restore` re-checks it by the rules, so verdicts are recomputed, never restored.
+  Nothing is saved until the restore has run, so an early change cannot overwrite the saved box.
+  A damaged save starts an empty box. Source: review (second model) of the Android pull request,
+  finding 6. Verified: `BoxPersistenceTest` (3) and `BoxLogicTest.aRestoredBoxIsRecheckedAtOnce`
+  failed to compile first, then pass; the whole box with answers, a fix, quantity 3, a
+  destination change and the web's extra fields comes back equal. On the emulator: a typed lotion
+  to Canada ("OK to pack"), then `am force-stop` (the process ended), then a cold start in a new
+  process showed "See the box (1)" and the lotion with "OK to pack" and "Typed by you". `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Going back to the camera lifts a refusal pause.** Three refusals in a row pause photo reads
   for the run, but nothing ever started a new run, so after three refusals no photo could be read
   again until the app was killed. `BoxSession.startNewScan` now resets the reader's run. The view

@@ -20,6 +20,7 @@ import app.beforeyoutape.android.capture.BitmapCrop
 import app.beforeyoutape.android.config.FirebaseRcSource
 import app.beforeyoutape.android.config.RcStore
 import app.beforeyoutape.android.data.FirebaseSignIn
+import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
@@ -54,6 +55,10 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val store = LocalStore(SharedPrefs(app))
+    private val persistence = BoxPersistence(SharedPrefs(app))
+
+    // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
+    @Volatile private var restored = false
     private val rc: RcStore? = if (FirebaseApp.getApps(app).isNotEmpty()) RcStore(FirebaseRcSource(Firebase.remoteConfig)).also { it.start() } else null
     private val ai: AiClient? = rc?.let { r -> AiClient { r.current() } }
     private val worker = Dispatchers.Default.limitedParallelism(1)
@@ -95,6 +100,9 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             // The bundled rules: the host checks the bundle's hash, and setEdition lists the destinations.
             val loaded = runCatching { EngineAssets.load(app).let { h -> h to h.setEdition(EngineAssets.edition(app)).destinations } }.getOrNull()
             host = loaded?.first
+            // The box from before Android stopped the process, re-checked by the rules.
+            persistence.load()?.let { box.restore(it) }
+            restored = true
             state.update {
                 it.copy(loading = false, destinations = loaded?.second.orEmpty(), box = box.state, message = if (loaded == null) Copy.RULES_NOT_LOADED else null)
             }
@@ -114,7 +122,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         viewModelScope.launch(worker) { work() }
     }
 
-    private fun publish(change: (HomeUi) -> HomeUi = { it }) = state.update { change(it).copy(box = box.state) }
+    private fun publish(change: (HomeUi) -> HomeUi = { it }) {
+        state.update { change(it).copy(box = box.state) }
+        if (restored) persistence.save(box.state)
+    }
 
     override fun destination(code: String) {
         store.setDestination(code)
