@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
 import { prepareDeviceModel } from "../ai/deviceModel";
+import { afterSignIn } from "../ai/authGate";
 import { createItemModels } from "../ai/firebaseModels";
 import { checkGate } from "../ai/gate";
 import type { GateState, ItemModels } from "../ai/port";
@@ -59,7 +60,8 @@ function buildDeps(): PackDeps | Error {
     const makeModels = (name: string, fallback: string) => {
       const key = `${name}|${fallback}`;
       let m = byName.get(key);
-      if (!m) { m = createItemModels(ai, name, lm, fallback); byName.set(key, m); }
+      // Cloud-capable ports wait for anonymous sign-in, so AI Logic can require a signed-in user.
+      if (!m) { m = afterSignIn(createItemModels(ai, name, lm, fallback), signIn); byName.set(key, m); }
       return m;
     };
     const source = remoteConfigSource(fb.app);
