@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/capture/barcode.ts` (Task 37): `isValidUpc` accepts only UPC-A, EAN-13 and EAN-8 digit strings with a correct GS1 check digit; `readBarcode` returns the first valid detected code or null and never throws. The default detector is the `barcode-detector@3.2.3` ponyfill (MIT; Socket supply chain 99, vulnerability 100), loaded on first use so importing the module loads no WebAssembly; the native global is never used. A barcode is a hint for the customs worksheet only and never changes a verdict. Built in the Codex build lane, reviewed by the orchestrator. Verified: tests failed first, then pass (the plan's three check-digit cases and two read cases, plus EAN-8, a throwing detector and a code with a space); `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` exit 0. Wiring into the item card and worksheet comes with Task 37's screens.
 - Web app shell: Vite, React and strict TypeScript, with the routes `/`, `/judge`, `/measured`, `/rules`, `/ran`, `/about`, `/worksheet` and `/blind/:token`. The `/desk/listing` and `/desk/eval` routes exist in development builds only. Verified by `src/App.test.tsx`.
 - `dist/version.json` with the commit SHA and build time, written at build.
 - `scripts/tone-check.ts`: fails on long dashes and curly quotes in user-facing text, and fails when it walks fewer files than its floor. Verified by `scripts/tone-check.test.ts`.
