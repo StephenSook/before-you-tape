@@ -10,6 +10,9 @@ export const CLOUD_MODELS = [
   { name: "gemini-3.8-flash", stage: "Stable", shutdown: "none listed", checked: "2026-11-18", source: MODELS_PAGE },
 ] as const;
 
+// The next date to re-read the models page and refresh the checked dates; a test fails after it.
+export const MODELS_RECHECK_BY = "2026-11-28";
+
 export function isAllowedCloudModel(name: string): boolean {
   return CLOUD_MODELS.some((m) => m.name === name);
 }
