@@ -82,6 +82,31 @@ describe("readItem", () => {
     expect(refused.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
+  it("tries the fallback model once, only after the retry still answers 500 or 503, and records it", async () => {
+    for (const status of ["500", "503"] as const) {
+      const m = models({ cloud: fails(`fetch-error ${status} high demand`), fallback: ok("in_cloud") });
+      expect(await readItem(m, img, "cloud_only", clock(0, 9)), status).toMatchObject({ source: "in_cloud", route: "cloud_only", fallbackAfter: status, read: validRead });
+      expect(m.cloud.generate, status).toHaveBeenCalledTimes(2);
+      expect(m.fallback.generate, status).toHaveBeenCalledTimes(1);
+    }
+    const hybrid = models({ hybrid: fails("QuotaExceededError"), cloud: fails("fetch-error 503"), fallback: ok("in_cloud") });
+    expect(await readItem(hybrid, img, "hybrid", clock(0, 9))).toMatchObject({ route: "hybrid", recoveredFrom: "QuotaExceededError", fallbackAfter: "503" });
+    expect(await readItem(models({ cloud: ok("in_cloud"), fallback: never() }), img, "cloud_only", clock(0, 9))).not.toHaveProperty("fallbackAfter");
+  });
+
+  it("does not use the fallback for other failures, and does not retry the fallback", async () => {
+    for (const msg of ["fetch-error 429 Too Many Requests", "Failed to fetch", "fetch-error 403", "fetch-error 502"]) {
+      const m = models({ cloud: fails(msg), fallback: never() });
+      await expect(readItem(m, img, "cloud_only", clock(0, 1)), msg).rejects.toBeInstanceOf(Error);
+      expect(m.fallback.generate, msg).not.toHaveBeenCalled();
+    }
+    const both = models({ cloud: fails("fetch-error 503"), fallback: fails("fetch-error 503") });
+    await expect(readItem(both, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(both.fallback.generate).toHaveBeenCalledTimes(1);
+    const none = models({ cloud: fails("fetch-error 503") });
+    await expect(readItem(none, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+  });
+
   it("calls invalid cloud output invalid_output", async () =>
     expect(readItem(models({ cloud: text("{\"itemName\":1}", "in_cloud") }), img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "invalid_output" }));
 });

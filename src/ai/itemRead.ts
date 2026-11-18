@@ -1,6 +1,7 @@
 // Reads one item photo by the chosen route (spec 5.3). On "hybrid" a failed or unreadable on-device answer
 // is retried in the cloud; on "device_only" the cloud is never called and a reply that came from the cloud
-// is thrown away. Cloud network errors, 429 and 5xx get one automatic retry.
+// is thrown away. Cloud network errors, 429 and 5xx get one automatic retry; a 500 or 503 after that
+// retry gets one try on the fallback model when there is one.
 import { parseItemRead, type ItemRead } from "../shared/itemRead";
 import type { GateState, ImagePart, InferenceSourceName, ItemModels, ModelPort, ModelReply, ReadRoute } from "./port";
 import { ITEM_READ_PROMPT } from "./prompts";
@@ -21,6 +22,7 @@ export interface ReadOutcome {
   route: ReadRoute;
   recoveredFrom: string | null;
   unreported?: true; // the SDK named no route; source is in_cloud for privacy
+  fallbackAfter?: "500" | "503"; // the fallback model answered after the main cloud model failed with this status
 }
 
 // Checks the on-device model at call time, so a model that went away since the page loaded is never asked.
@@ -52,13 +54,26 @@ function classifyCloudError(e: unknown): CloudErrorClass {
   return { kind: "cloud_unreachable", retry: false };
 }
 
-async function callCloud(cloud: ModelPort, image: ImagePart): Promise<ModelReply> {
+// Overloaded or failing servers: the only answers for which a second model is worth one try.
+const FALLBACK_STATUSES = new Set(["500", "503"]);
+
+interface CloudReply { reply: ModelReply; fallbackAfter?: "500" | "503" }
+
+async function callCloud(models: ItemModels, image: ImagePart): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await cloud.generate(ITEM_READ_PROMPT, image);
+      return { reply: await models.cloud.generate(ITEM_READ_PROMPT, image) };
     } catch (e) {
       const c = classifyCloudError(e);
-      if (!c.retry || attempt >= 2) throw new ReadFailure(c.kind, errorName(e));
+      if (c.retry && attempt < 2) continue;
+      const status = /\b(5\d\d)\b/.exec(e instanceof Error ? e.message : String(e))?.[1];
+      if (!models.fallback || !status || !FALLBACK_STATUSES.has(status)) throw new ReadFailure(c.kind, errorName(e));
+      // One try on the fallback model, with no retry of its own.
+      try {
+        return { reply: await models.fallback.generate(ITEM_READ_PROMPT, image), fallbackAfter: status as "500" | "503" };
+      } catch (f) {
+        throw new ReadFailure(classifyCloudError(f).kind, errorName(f));
+      }
     }
   }
 }
@@ -73,9 +88,10 @@ function parseOrFail(reply: ModelReply): ItemRead {
 
 export async function readItem(models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number): Promise<ReadOutcome> {
   const start = now();
-  const done = (reply: ModelReply, recoveredFrom: string | null): ReadOutcome => {
+  const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: "500" | "503"): ReadOutcome => {
     const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route, recoveredFrom };
     if (reply.unreported) out.unreported = true;
+    if (fallbackAfter) out.fallbackAfter = fallbackAfter;
     return out;
   };
 
@@ -100,10 +116,10 @@ export async function readItem(models: ItemModels, image: ImagePart, route: Read
     } catch (e) {
       recoveredFrom = errorName(e);
     }
-    const reply = await callCloud(models.cloud, image);
-    return done(reply, recoveredFrom);
+    const cloud = await callCloud(models, image);
+    return done(cloud.reply, recoveredFrom, cloud.fallbackAfter);
   }
 
-  const reply = await callCloud(models.cloud, image);
-  return done(reply, null);
+  const cloud = await callCloud(models, image);
+  return done(cloud.reply, null, cloud.fallbackAfter);
 }
