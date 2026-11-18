@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The cloud is offered only when the phone is online. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- The camera is optional: without one, "Add a photo" and "Type it" still work. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 

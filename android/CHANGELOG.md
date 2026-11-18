@@ -3,6 +3,34 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The app runs end to end: destination, consent, camera or typing, rules, box.**
+  - `BoxViewModel` holds the box and runs every box change on one worker thread. It loads the
+    bundled rules (hash-checked) and their destinations, and keeps consent and destination in
+    the phone's local store.
+  - It reads crops through `ItemReader`: the device model's status before each read; the cloud
+    only with consent, a connection and kill_cloud off; and a Firebase sign-in first
+    (`FirebaseSignIn`).
+  - Typed items go through the web app's own read parser, then into the box. A fix saves only
+    the fields that changed, and a corrected label brings its new tags.
+  - After a successful read it shows the box. If the rules fail to load, it shows the
+    rules-not-loaded line and no verdict.
+  - `MainActivity` draws `HomeScreen` with the real camera screen. The manifest adds
+    `ACCESS_NETWORK_STATE`.
+
+  Source: Android plan Task 9 (and Task 12's typing and fixing). Verified on the Play-image
+  emulator with the debug build:
+  - Launch shows the destination picker and the consent question.
+  - After "Allow" and Canada, "Check now" on the emulator's camera scene read in the cloud.
+    The read said "unknown", and the engine answered "Check this" ("Confirm what this is. We only
+    saw it, ..."), with "Read in the cloud, from this phone".
+  - "Type it" with "Lotion or cream" and label words gave the engine's "OK to pack", marked
+    "Typed by you".
+  - Switching to the Philippines re-checked the box by rules alone. The lotion became "Take it
+    out" with the engine's reason, as the shared vector `lotion_ph` expects.
+  - No crash.
+
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The read with the sender's fixes applied.** `BoxLogic.effectiveRead` applies each
   override to the read, so "Fix this reading" opens the form at what the sender last saw. An
   override the read type cannot take (typed text in a number field) is left out of the form;
