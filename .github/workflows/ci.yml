@@ -4,14 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
-# Every commit gets its own group, on main and on pull requests, so a newer push
-# never cancels an older run and each SHA carries its own verdict.
+# A newer push to a pull request cancels that pull request's older run, to save
+# Actions minutes. Every main commit gets its own group, so a main run is never
+# cancelled and each main SHA carries its own verdict.
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.sha }}
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
