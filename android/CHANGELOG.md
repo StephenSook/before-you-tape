@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The release probe now proves a real read, not just a reply.** The probe passed whenever the
+  App Check call and the model call returned, even when the reply could not be decoded (no read)
+  and even when sign-in failed (only logged). It now runs the app's production read path: the
+  app's `ItemReader` with the web app's parser from the bundled engine, the shared sign-in, and
+  the cloud route. It requires an App Check token, a successful sign-in, and a read that came back
+  from the cloud and parsed as the drawn power bank. Source: review (second model) of the Android
+  pull request, finding 9. Verified: on the Play-image emulator with the release build (Play
+  Integrity, which this device cannot pass until App Check allows a sideloaded APK), the probe
+  failed at the right step: "no App Check token from the release provider on this device" (403
+  App attestation failed), with sign-in ok and the read outcome Failed. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The box survives Android stopping the app.** The box lived only in memory, so when Android
   reclaimed the process, reopening the app kept the destination but dropped every item, fix,
   quantity and answer. `BoxPersistence` now saves the active box in app-private storage after
