@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Every release APK is scanned for App Check debug secrets.** `android/scan-apk.sh` (ported
+  from the PLS app, with this app's Keychain token names) checks the raw bytes of every entry
+  (UTF-8 and UTF-16), the decoded resource table and the dex. It reports any debug token, a
+  filled `firebase_app_check_debug_token` resource, the debug provider class or
+  `FIREBASE_APPCHECK_DEBUG_TOKEN`, and prints no token. Exit 0 means clean, 1 means a hit, 2
+  means the scan could not run. Source: Android plan Task 14. Verified: `android/scan-apk.test.sh`
+  (local only, since it needs the Keychain token) failed first with no scanner (exit 127). It
+  now passes on real builds: the debug APK is refused, naming the token resource and the debug
+  provider; the release APK is clean; a missing file exits 2. `bash android/ci-local.sh` and
+  the root CI mirror exit 0.
+
 - **A quantity stepper on each item.** Each card in the box shows "How many: n" with "One fewer"
   and "One more" buttons. One fewer is off at 1 and one more is off at 99, matching the box's
   1 to 99 rule, and the box re-checks after each step. The web app keeps the same field
