@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-502256ab1f5a",
+  "editionId": "byt-85c553b3533c",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -164,7 +164,7 @@
   },
   "labelWords": [
     {
-      "pattern": "(?<!(?:cetyl|cetearyl|stearyl|benzyl|behenyl|myristyl|lanolin|oleyl|lauryl|isostearyl|arachidyl|phenethyl) )alcohol(?![- ]?free)",
+      "pattern": "(?<!(?:cetyl|cetearyl|stearyl|benzyl|behenyl|myristyl|lanolin|oleyl|lauryl|isostearyl|arachidyl|phenethyl|polyvinyl) )alcohol",
       "tag": "alcohol"
     },
     {
@@ -192,7 +192,7 @@
       "tag": "pressurized"
     },
     {
-      "pattern": "(?<!non-?)flammable",
+      "pattern": "flammable",
       "tag": "flammable"
     },
     {
@@ -200,7 +200,7 @@
       "tag": "flammable"
     },
     {
-      "pattern": "[0-9]+(?:\\.[0-9]+)? ?% ?(?:alc|abv)",
+      "pattern": "[1-9][0-9]?(?:\\.[0-9]+)? ?% ?(?:alc|abv)",
       "tag": "alcoholic_drink"
     },
     {
@@ -268,15 +268,15 @@
       "tag": "liquid"
     },
     {
-      "pattern": "cream",
+      "pattern": "creams?",
       "tag": "easily_liquefiable"
     },
     {
-      "pattern": "gel",
+      "pattern": "gels?",
       "tag": "easily_liquefiable"
     },
     {
-      "pattern": "balm",
+      "pattern": "balms?",
       "tag": "easily_liquefiable"
     },
     {
@@ -373,7 +373,7 @@
     },
     {
       "pattern": "hemp",
-      "tag": "hemp"
+      "tag": "hemp_maybe"
     },
     {
       "pattern": "dry ice",
@@ -749,6 +749,32 @@
         "value": "hemp"
       },
       "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-HEMP-MAYBE",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "USPS international shipping restrictions",
+      "url": "https://www.usps.com/international/shipping-restrictions.htm",
+      "basis": "inference",
+      "ourWording": "The label lists hemp. Hemp-based products can't go by international mail, so check whether this is one.",
+      "when": {
+        "all": [
+          {
+            "fact": "tags",
+            "op": "has",
+            "value": "hemp_maybe"
+          },
+          {
+            "not": {
+              "fact": "tags",
+              "op": "has",
+              "value": "hemp"
+            }
+          }
+        ]
+      },
+      "outcome": "check"
     },
     {
       "id": "USPS-INTL-DRY-ICE",

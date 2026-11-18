@@ -122,6 +122,22 @@
     "outcome": "take_out"
   },
   {
+    "id": "USPS-INTL-HEMP-MAYBE",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "USPS international shipping restrictions",
+    "url": "https://www.usps.com/international/shipping-restrictions.htm",
+    "basis": "inference",
+    "ourWording": "The label lists hemp. Hemp-based products can't go by international mail, so check whether this is one.",
+    "when": {
+      "all": [
+        { "fact": "tags", "op": "has", "value": "hemp_maybe" },
+        { "not": { "fact": "tags", "op": "has", "value": "hemp" } }
+      ]
+    },
+    "outcome": "check"
+  },
+  {
     "id": "USPS-INTL-DRY-ICE",
     "layer": "usps_export",
     "scope": "item",

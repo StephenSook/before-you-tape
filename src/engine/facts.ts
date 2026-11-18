@@ -21,16 +21,41 @@ const patternCache = new Map<string, RegExp>();
 function wholeWord(pattern: string): RegExp {
   let re = patternCache.get(pattern);
   if (!re) {
-    re = new RegExp(`\\b(?:${pattern})\\b`, "i");
+    re = new RegExp(`\\b(?:${pattern})\\b`, "gi");
     patternCache.set(pattern, re);
   }
   return re;
 }
 
+// Labels arrive with no-break spaces, line breaks and Unicode hyphens; match on one plain form.
+export function normalizeLabel(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(/[‐-―−﹘﹣－]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// A word is negated by "no", "non", "not", "without", "zero", "free of" or "0%" just before it,
+// or by "free" just after it ("alcohol-free", "mercury free").
+const NEGATED_BEFORE = /(?:\b(?:no|non|not|without|zero|free of)\s?-?\s?|\b0(?:\.0+)?\s?%\s?)$/i;
+const NEGATED_AFTER = /^\s?-?\s?free\b/i;
+
 export function labelTagsOf(labelText: string, edition: RuleEdition): string[] {
-  if (labelText.trim() === "") return [];
+  const text = normalizeLabel(labelText);
+  if (text === "") return [];
   const tags = new Set<string>([LABEL_TEXT_TAG]);
-  for (const w of edition.labelWords) if (wholeWord(w.pattern).test(labelText)) tags.add(w.tag);
+  for (const w of edition.labelWords) {
+    if (tags.has(w.tag)) continue;
+    for (const m of text.matchAll(wholeWord(w.pattern))) {
+      const before = text.slice(Math.max(0, m.index - 12), m.index);
+      const after = text.slice(m.index + m[0].length, m.index + m[0].length + 8);
+      if (!NEGATED_BEFORE.test(before) && !NEGATED_AFTER.test(after)) {
+        tags.add(w.tag);
+        break;
+      }
+    }
+  }
   return [...tags].sort();
 }
 

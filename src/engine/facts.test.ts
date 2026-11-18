@@ -29,6 +29,49 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("EXTREMELY FLAMMABLE", ed)).toContain("flammable");
   });
 
+  it("does not read negated hazard words as hazards", () => {
+    const none = (label: string, tag: string) => expect(labelTagsOf(label, ed), label).not.toContain(tag);
+    none("BODY LOTION NON FLAMMABLE", "flammable");
+    none("NOT FLAMMABLE", "flammable");
+    none("TOY CAR MERCURY FREE", "mercury");
+    none("0% MERCURY", "mercury");
+    none("NON-AEROSOL HAIR SPRAY", "pressurized");
+    none("PROPELLANT FREE PUMP", "pressurized");
+    none("TONER NO ALCOHOL 6 FL OZ", "alcohol");
+    none("CONTAINS NO ALCOHOL", "alcohol");
+    none("0% ALCOHOL", "alcohol");
+    none("NON-ALCOHOLIC BEER 0.0% ABV", "alcoholic_drink");
+    none("FRAGRANCE FREE LOTION", "fragrance");
+    const some = (label: string, tag: string) => expect(labelTagsOf(label, ed), label).toContain(tag);
+    some("CONTAINS ALCOHOL", "alcohol");
+    some("NO PETS. FLAMMABLE", "flammable");
+    some("NOT FOR CHILDREN. CONTAINS MERCURY", "mercury");
+    some("NO. 5 EAU DE PARFUM", "fragrance");
+    some("RED WINE 13.5% ALC/VOL", "alcoholic_drink");
+  });
+
+  it("reads labels the same whatever spaces and hyphens they use", () => {
+    expect(labelTagsOf("STILL WATER 250 mL", ed)).toContain("liquid");
+    expect(labelTagsOf("NON‑FLAMMABLE ALCOHOL‑FREE", ed)).not.toContain("flammable");
+    expect(labelTagsOf("NON‑FLAMMABLE ALCOHOL‑FREE", ed)).not.toContain("alcohol");
+    expect(labelTagsOf("CETEARYL  ALCOHOL", ed)).not.toContain("alcohol");
+    expect(labelTagsOf("CETYL\nALCOHOL", ed)).not.toContain("alcohol");
+    expect(labelTagsOf("POLYVINYL ALCOHOL", ed)).not.toContain("alcohol");
+  });
+
+  it("reads plurals of the cream and gel words", () => {
+    expect(labelTagsOf("ENERGY GELS", ed)).toContain("easily_liquefiable");
+    expect(labelTagsOf("HAND CREAMS GIFT SET", ed)).toContain("easily_liquefiable");
+    expect(labelTagsOf("LIP BALMS", ed)).toContain("easily_liquefiable");
+  });
+
+  it("reads hemp alone as a question and CBD as a hemp product", () => {
+    expect(labelTagsOf("55% HEMP 45% COTTON", ed)).toContain("hemp_maybe");
+    expect(labelTagsOf("55% HEMP 45% COTTON", ed)).not.toContain("hemp");
+    expect(labelTagsOf("CBD OIL 500 MG", ed)).toContain("hemp");
+    expect(labelTagsOf("HEMP SEED OIL LOTION", ed)).not.toContain("hemp");
+  });
+
   it("does not read fatty alcohols in a lotion as alcohol", () => {
     for (const label of ["WATER, CETEARYL ALCOHOL, GLYCERIN", "Cetyl Alcohol", "stearyl alcohol", "Benzyl Alcohol",
       "BEHENYL ALCOHOL", "Myristyl Alcohol", "Lanolin Alcohol", "Oleyl Alcohol", "Lauryl Alcohol", "Isostearyl Alcohol"]) {

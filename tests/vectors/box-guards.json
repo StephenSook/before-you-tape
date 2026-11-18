@@ -1,5 +1,15 @@
 [
   {
+    "name": "hemp_blend_shirt_is_checked_not_taken_out", "source": "Fable I2", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "shirt", "read": { "category": "clothing", "labelText": "55% HEMP 45% COTTON" } }],
+    "expect": { "shirt": "check" }, "expectRules": { "shirt": ["USPS-INTL-HEMP-MAYBE"] }, "notRules": { "shirt": ["USPS-INTL-HEMP"] }
+  },
+  {
+    "name": "non_flammable_lotion_passes", "source": "Fable I2 / Codex M5", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "lotion", "read": { "category": "lotion_cream", "labelText": "BODY LOTION NON‑FLAMMABLE ALCOHOL‑FREE 8 FL OZ", "liquid": true } }],
+    "expect": { "lotion": "ok" }
+  },
+  {
     "name": "face_cream_with_alcohol_is_not_an_alcoholic_drink", "source": "Fable I4", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "cream", "read": { "category": "lotion_cream", "labelText": "FACE CREAM ALCOHOL DENAT", "alcoholOnLabel": true } }],
     "expect": {}, "notRules": { "cream": ["CA-P-01"] }
