@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { factsOf } from "../../tests/engine/helpers";
-import { chooseReadRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy } from "./policy";
+import { chooseImageRoute, chooseReadRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy } from "./policy";
 
 describe("routing policy", () => {
   it("treats unanswered consent as not allowed", () => {
@@ -65,5 +65,24 @@ describe("second look policy", () => {
     expect(shouldRunSecondLook("wh_mismatch", { cloudConsent: null, killCloud: false, online: true })).toBe(false);
     expect(shouldRunSecondLook("wh_mismatch", { cloudConsent: true, killCloud: true, online: true })).toBe(false);
     expect(shouldRunSecondLook("wh_mismatch", { cloudConsent: true, killCloud: false, online: false })).toBe(false);
+  });
+});
+
+describe("chooseImageRoute", () => {
+  const gates = ["available", "downloadable", "downloading", "unavailable", "no_api"] as const;
+  const consents = [true, false, null] as const;
+
+  it("reads a steady camera frame on this device only, or not at all, under every input", () => {
+    for (const gate of gates) for (const cloudConsent of consents) for (const killCloud of [false, true]) for (const online of [true, false]) {
+      const route = chooseImageRoute("steady", { gate, cloudConsent, killCloud, online });
+      expect(route, `${gate} ${String(cloudConsent)} ${String(killCloud)} ${String(online)}`).toBe(gate === "available" ? "device_only" : "skip");
+    }
+  });
+
+  it("uses the normal route for a press of Check now or an added photo", () => {
+    const allowed = { cloudConsent: true, killCloud: false, online: true };
+    expect(chooseImageRoute("check_now", { gate: "available", ...allowed })).toBe("hybrid");
+    expect(chooseImageRoute("upload", { gate: "no_api", ...allowed })).toBe("cloud_only");
+    expect(chooseImageRoute("check_now", { gate: "no_api", ...allowed, cloudConsent: null })).toBe("blocked");
   });
 });

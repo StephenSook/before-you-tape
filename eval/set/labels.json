@@ -1,0 +1,422 @@
+{
+  "setId": "eval-v1",
+  "status": "draft: written from the rule sources before any model run; frozen by hash after the blind check, before the first run",
+  "items": {
+    "own-01": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; Packaging Instruction 9E (lithium batteries go internationally only installed in the equipment they operate; also note 7: a lithium-ion battery must not exceed 100 Wh); usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally'"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; Packaging Instruction 9E; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally'"
+      }
+    },
+    "own-03": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; Packaging Instruction 9E (a power bank is a standalone battery at any capacity); usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally'"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; Packaging Instruction 9E; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally'"
+      }
+    },
+    "own-04": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Nail Polish'; Pub 52 623 (Class 3 flammable liquids nonmailable internationally); IMM Canada CA-P-03"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Nail Polish'; Pub 52 623; IMM Philippines PH-P-01 (liquids)"
+      }
+    },
+    "own-14": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Nail Polish'; Pub 52 623; IMM Canada CA-P-03"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Nail Polish'; Pub 52 623; IMM Philippines PH-P-01"
+      }
+    },
+    "own-16": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 623 (label: EXTREMELY FLAMMABLE); IMM Canada CA-P-03"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 623; IMM Philippines PH-P-01"
+      }
+    },
+    "own-18": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export or IMM Canada prohibition applies to a non-flammable lotion",
+        "evidence": "back label own-21, no flammable warning"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "IMM Philippines PH-P-01 (liquids and easily liquefiable)",
+        "evidence": "back label own-21"
+      }
+    },
+    "own-20": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export or IMM Canada prohibition applies to a non-flammable lotion",
+        "evidence": "back label own-19, no flammable warning",
+        "note": "Palmer's lists isopropyl and benzyl alcohol near the end with no flammable warning; an app 'Check this' here is safe but not agreement"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "IMM Philippines PH-P-01",
+        "evidence": "back label own-19"
+      }
+    },
+    "own-23": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623 (Class 3 flammable liquids); IMM Canada CA-P-03",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623; IMM Philippines PH-P-01 (liquids)",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      }
+    },
+    "own-25": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623 (Class 3 flammable liquids); IMM Canada CA-P-03",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623; IMM Philippines PH-P-01 (liquids)",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      }
+    },
+    "own-27": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623 (Class 3 flammable liquids); IMM Canada CA-P-03",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Perfumes (containing alcohol)'; Pub 52 623; IMM Philippines PH-P-01 (liquids)",
+        "evidence": "owner statement in chat 2026-11-18 (ingredient line not photographed): contains alcohol"
+      }
+    },
+    "own-30": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424 (alcoholic beverages); IMM Canada CA-P-01 (no alcoholic drinks, wine included)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424; IMM Philippines PH-P-01"
+      }
+    },
+    "own-32": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424; IMM Canada CA-P-01"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424; IMM Philippines PH-P-01"
+      }
+    },
+    "own-33": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424; IMM Canada CA-P-01"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'These items may not be sent from the United States to any country:' 'Alcoholic Beverages'; Pub 52 424; IMM Philippines PH-P-01"
+      }
+    },
+    "i01": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      }
+    },
+    "i02": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      }
+    },
+    "i03": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a power bank is a standalone battery, never installed in equipment)"
+      }
+    },
+    "i04": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a loose lithium metal cell)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (a loose lithium metal cell)"
+      }
+    },
+    "i05": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (the cell stands beside the flashlight, not installed in it)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 622.5; usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Only lithium cells and batteries that are properly installed in the equipment they are intended to operate may be mailed internationally' (the cell stands beside the flashlight, not installed in it)"
+      }
+    },
+    "i06": {
+      "CA": {
+        "expected": "check",
+        "section": "Pub 52 622.5 (pe.usps.com/text/pub52/pub52c6_005.htm, read 2026-11-18): 'Used, damaged, defective, or recalled lithium batteries and used, damaged, or defective electronic devices (excluding devices that are new in original packaging, and manufacturer-certified new or refurbished devices) containing or packaged with lithium batteries are prohibited and may not be mailed internationally'",
+        "evidence": "the photo shows neither the phone's condition nor its packaging: a used phone is barred by this line, and a new one goes only in its original packaging; neither is OK to pack"
+      },
+      "PH": {
+        "expected": "check",
+        "section": "Pub 52 622.5 (pe.usps.com/text/pub52/pub52c6_005.htm, read 2026-11-18): 'Used, damaged, defective, or recalled lithium batteries and used, damaged, or defective electronic devices (excluding devices that are new in original packaging, and manufacturer-certified new or refurbished devices) containing or packaged with lithium batteries are prohibited and may not be mailed internationally'",
+        "evidence": "the photo shows neither the phone's condition nor its packaging: a used phone is barred by this line, and a new one goes only in its original packaging; neither is OK to pack"
+      }
+    },
+    "i07": {
+      "CA": {
+        "expected": "take_out",
+        "section": "IMM 136.4 (rule edition USPS-INTL-ENDS): e-cigarettes and vapes can't go by international mail"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "IMM 136.4 (rule edition USPS-INTL-ENDS): e-cigarettes and vapes can't go by international mail"
+      }
+    },
+    "i08": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Aerosols'; Pub 52 623 (Class 2); IMM Canada CA-P-03 (label: 'DANGER: EXTREMELY FLAMMABLE')"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Aerosols'; Pub 52 623 (Class 2)"
+      }
+    },
+    "i09": {
+      "CA": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Aerosols'; Pub 52 623 (Class 2)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "usps.com/international/shipping-restrictions.htm (read 2026-11-18): 'Aerosols'; Pub 52 623 (Class 2)"
+      }
+    },
+    "i10": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 623 and Packaging Instruction 3C (rule edition USPS-INTL-MATCHES-LIGHTERS); IMM Canada CA-P-02 (no lighters with fuel in them)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 623 and Packaging Instruction 3C (rule edition USPS-INTL-MATCHES-LIGHTERS)"
+      }
+    },
+    "i11": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 623 and Packaging Instruction 3C (rule edition USPS-INTL-MATCHES-LIGHTERS)"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 623 and Packaging Instruction 3C (rule edition USPS-INTL-MATCHES-LIGHTERS)"
+      }
+    },
+    "i12": {
+      "CA": {
+        "expected": "take_out",
+        "section": "Pub 52 623 (Class 3 flammable liquids; label: '62% Organic Fair Trade Ethyl Alcohol')"
+      },
+      "PH": {
+        "expected": "take_out",
+        "section": "Pub 52 623 (Class 3 flammable liquids; label: '62% Organic Fair Trade Ethyl Alcohol'); IMM Philippines PH-P-01 (liquids)"
+      }
+    },
+    "i13": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a T-shirt"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a T-shirt"
+      }
+    },
+    "i14": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a knitted sweater"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a knitted sweater"
+      }
+    },
+    "i15": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to socks"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to socks"
+      }
+    },
+    "i16": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to canvas sneakers"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to canvas sneakers"
+      }
+    },
+    "i17": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a printed book (it is not a reprint of a work under Canadian copyright)"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a printed book (it is not a reprint of a work under Canadian copyright)"
+      }
+    },
+    "i18": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a stuffed toy"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a stuffed toy"
+      }
+    },
+    "i19": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a plastic toy car (not a toy gun)"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a plastic toy car (not a toy gun)"
+      }
+    },
+    "i20": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a ceramic mug"
+      },
+      "PH": {
+        "expected": "check",
+        "section": "IMM Philippines PH-P-01 (liquids, easily liquefiable items, and glass)",
+        "evidence": "the Philippines bars glass; ceramic is not named"
+      }
+    },
+    "i21": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a paper notebook"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a paper notebook"
+      }
+    },
+    "i22": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a wool scarf"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a wool scarf"
+      }
+    },
+    "i23": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to an empty plastic phone case"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to an empty plastic phone case"
+      }
+    },
+    "i24": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to wired earphones with no battery"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to wired earphones with no battery"
+      }
+    },
+    "i25": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a sealed chocolate bar"
+      },
+      "PH": {
+        "expected": "check",
+        "section": "IMM Philippines PH-P-01 (nothing that turns runny easily); rule edition: easily liquefiable items are Check this",
+        "evidence": "chocolate melts in heat; whether a solid bar counts as easily liquefiable is the sender's call"
+      }
+    },
+    "i26": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a sealed bag of coffee beans"
+      },
+      "PH": {
+        "expected": "check",
+        "section": "IMM Philippines PH-R-01 (coffee for personal use only, up to 2 kg of beans or ground coffee)",
+        "evidence": "the photo shows neither the use nor a weight; the sender must confirm both"
+      }
+    },
+    "i27": {
+      "CA": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a sealed dried-fruit snack"
+      },
+      "PH": {
+        "expected": "ok",
+        "section": "No USPS export rule and no line of this destination in the rule edition applies to a sealed dried-fruit snack"
+      }
+    }
+  }
+}

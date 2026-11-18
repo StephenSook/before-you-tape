@@ -30,3 +30,5 @@ export interface ItemModels {
 export type GateState = "available" | "downloadable" | "downloading" | "unavailable" | "no_api";
 
 export type ReadRoute = "device_only" | "hybrid" | "cloud_only" | "blocked";
+// How an image reached the read: the camera saw an item sit still, the sender pressed Check now, or added a photo.
+export type ImageHow = "steady" | "check_now" | "upload";

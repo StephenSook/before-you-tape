@@ -69,9 +69,12 @@ jobs:
           sys.exit(0 if v["sha"] == os.environ["SHA"] and v["dirty"] is False else 1)
           EOF
 
+      # Only the browser itself: the runner image already has its system libraries, and the apt step behind
+      # --with-deps hung three runs on 2026-11-18. The time limit stays, so any hang fails fast.
       - name: Install the test browser
         if: steps.head.outputs.current == 'true'
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 6
+        run: npx playwright install chromium
 
       # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
       - name: The built app starts

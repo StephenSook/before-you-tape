@@ -17,6 +17,9 @@ describe("jpegMetadataBlocks", () => {
     expect(jpegMetadataBlocks(jpeg(jfif, exif, xmp, iptc))).toEqual(["Exif", "XMP", "IPTC"]);
   });
 
+  it("finds a comment block, which can carry a name", () =>
+    expect(jpegMetadataBlocks(jpeg(jfif, seg(0xfe, Buffer.from("Taken by someone", "latin1"))))).toEqual(["Comment"]));
+
   it("refuses a file that is not a JPEG", () => expect(() => jpegMetadataBlocks(Buffer.from("not a jpeg"))).toThrow(/not a JPEG/));
 
   it("reads a real JPEG from the repository", () => expect(jpegMetadataBlocks(readFileSync("tests/e2e/fixtures/lotion-label.jpg"))).toEqual([]));

@@ -1,7 +1,7 @@
 // Where a read may run (spec 5.3). One cloudAllowed check serves reads, second looks, descriptions and
 // the live listing read.
 import type { ReadOutcome } from "../ai/itemRead";
-import type { GateState, ReadRoute } from "../ai/port";
+import type { GateState, ImageHow, ReadRoute } from "../ai/port";
 import type { ItemFacts } from "../engine/types";
 
 export interface CloudInputs {
@@ -19,6 +19,14 @@ export function chooseReadRoute(i: CloudInputs & { gate: GateState }): ReadRoute
   const cloud = cloudAllowed(i);
   if (i.gate === "available") return cloud ? "hybrid" : "device_only";
   return cloud ? "cloud_only" : "blocked";
+}
+
+// A frame the camera read by itself, because an item sat still, never leaves this device: it is read on
+// the built-in model or not at all, even after the sender allowed cloud checks. Only a press (Check now,
+// or an added photo) may use the cloud.
+export function chooseImageRoute(how: ImageHow, i: CloudInputs & { gate: GateState }): ReadRoute | "skip" {
+  if (how === "steady") return i.gate === "available" ? "device_only" : "skip";
+  return chooseReadRoute(i);
 }
 
 // When an on-device read gets a cloud second look (spec 5.4). Each reason can be turned off by policy.
