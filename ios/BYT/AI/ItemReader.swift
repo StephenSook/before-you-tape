@@ -94,11 +94,23 @@ struct ItemReader: Sendable {
         return outcome
     }
 
+    /// The router's input for one read in this situation.
+    static func routeInput(_ kind: ReadInputKind, _ s: ReadSituation) -> RouteInput {
+        RouteInput(kind: kind, onDeviceAvailable: s.status.unavailable == nil,
+                   imageInput: ClaimTier.photoOnDevice && s.status.vision, localeSupported: s.status.localeSupported,
+                   online: s.online, cloudConsent: s.cloudConsent, killCloud: s.config.killCloud)
+    }
+
+    /// Whether a read of this kind can run only in the cloud, so the sender must be asked first.
+    static func needsCloud(_ kind: ReadInputKind, _ s: ReadSituation) -> Bool {
+        var input = routeInput(kind, s)
+        input.cloudConsent = true
+        input.online = true
+        return ReadRoutePolicy.decide(input).first == .cloud
+    }
+
     private func run(_ input: ItemInput, _ s: ReadSituation) async -> ReadOutcome {
-        let decision = ReadRoutePolicy.decide(RouteInput(
-            kind: input.kind, onDeviceAvailable: s.status.unavailable == nil,
-            imageInput: ClaimTier.photoOnDevice && s.status.vision, localeSupported: s.status.localeSupported,
-            online: s.online, cloudConsent: s.cloudConsent, killCloud: s.config.killCloud))
+        let decision = ReadRoutePolicy.decide(Self.routeInput(input.kind, s))
         guard var path = decision.first else {
             return ReadOutcome(read: nil, source: nil, route: decision.route, failure: nil, records: [])
         }

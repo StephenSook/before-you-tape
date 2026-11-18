@@ -18,5 +18,8 @@ struct CheckItemView: View {
             .padding()
         }
         .navigationTitle("Check an item")
+        .sheet(isPresented: Binding(get: { model.askingConsent }, set: { _ in })) {
+            ConsentSheet { allow in Task { await model.answerConsent(allow) } }
+        }
     }
 }

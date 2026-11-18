@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): ask once before the first cloud call, then read the waiting photo
+- What: when a read can run only in the cloud and the sender has not answered, the photo waits
+  and `ConsentSheet` asks the web app's sentence for this iPhone: "To check items when this
+  iPhone can't, a cropped photo of the item and the words on its label go to Google's Gemini.
+  Allow?" with "Allow" and "Keep everything on this iPhone". "Allow" reads the waiting photo in
+  the cloud; "Keep everything on this iPhone" sends nothing and says photos are not read yet.
+  The answer is kept with the box, so it is asked once. `ItemReader.routeInput` is now shared
+  by the reader and this check.
+- Source: iPhone client plan, task I-9 (consent before the first cloud call).
+- Verified: three tests (asks before any cloud call and reads after "Allow"; "Keep everything on
+  this iPhone" sends nothing and is not asked again; the sentence equals the web app's with
+  "iPhone") failed to compile, then passed; a mutant that skips the question fails the first;
+  63 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): look for a camera before asking to use it
 - What: `CameraSession.start` used to ask for camera permission before looking for a camera,
   so an iPhone with no usable camera (and the simulator) showed a permission prompt for nothing.

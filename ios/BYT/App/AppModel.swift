@@ -20,6 +20,9 @@ final class AppModel {
     /// The last read and the box item it made, for the line under the camera.
     private(set) var lastRead: ReadOutcome?
     private(set) var lastItemId: String?
+    /// True while the one-time cloud question is on screen; the photo waits for the answer.
+    private(set) var askingConsent = false
+    @ObservationIgnored private var pendingPhoto: Data?
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil) {
@@ -70,20 +73,40 @@ final class AppModel {
     func readPhoto(_ jpeg: Data) async {
         guard let reader, let box else { return }
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: .defaults)
+        // Asked once, before the first cloud call: nothing goes to the cloud until the sender picks.
+        if box.cloudConsent == nil, ItemReader.needsCloud(.photo, situation) {
+            pendingPhoto = jpeg
+            askingConsent = true
+            return
+        }
         let outcome = await reader.read(.photo(cropJPEG: jpeg), situation: situation)
         lastRead = outcome
         lastItemId = box.addRead(outcome, cropFile: nil)
     }
 
-    var readLine: String? { Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }) }
+    /// The sender's answer to the cloud question; a waiting photo is read after it.
+    func answerConsent(_ allow: Bool) async {
+        askingConsent = false
+        box?.setConsent(allow)
+        guard let photo = pendingPhoto else { return }
+        pendingPhoto = nil
+        await readPhoto(photo)
+    }
 
-    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?) -> String? {
+    var readLine: String? {
+        Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent)
+    }
+
+    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
             let name: String = if case let .string(n)? = read["itemName"], !n.isEmpty { n } else { "This item" }
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
         }
-        if outcome.route == .blocked { return "Checking a photo needs the cloud, and the cloud is not allowed yet." }
+        if outcome.route == .blocked {
+            return consent == false ? "You chose to keep everything on this iPhone, and this iPhone does not read photos yet."
+                                    : "Checking a photo needs the cloud, and the cloud is not allowed yet."
+        }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         return "That item could not be read. Try another photo."
     }
