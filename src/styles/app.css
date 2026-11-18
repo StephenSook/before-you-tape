@@ -66,3 +66,4 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 }
 .ran table { border-collapse: collapse; width: 100%; }
 .ran th, .ran td { border: var(--outline); padding: var(--space-2); text-align: left; vertical-align: top; }
+.ready { background: var(--holly); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); font-family: var(--font-display); font-weight: 700; }
