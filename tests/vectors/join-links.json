@@ -1,0 +1,12 @@
+[
+  { "name": "round_trip", "link": "https://before-you-tape-2026.web.app/?join=0b6c5c1e-4a2f-4e0e-9d55-2f3c1a7d9e10.ABCDEFGHJKMNPQRSTVWXYZ2345", "expect": { "boxId": "0b6c5c1e-4a2f-4e0e-9d55-2f3c1a7d9e10", "key": "ABCDEFGHJKMNPQRSTVWXYZ2345" } },
+  { "name": "lowercase_key_is_read_as_uppercase", "link": "https://before-you-tape-2026.web.app/?join=box1.abcdefghjkmnpqrstvwxyz2345", "expect": { "boxId": "box1", "key": "ABCDEFGHJKMNPQRSTVWXYZ2345" } },
+  { "name": "no_key", "link": "https://before-you-tape-2026.web.app/?join=box1", "expect": null },
+  { "name": "no_join", "link": "https://before-you-tape-2026.web.app/", "expect": null },
+  { "name": "key_too_short", "link": "https://before-you-tape-2026.web.app/?join=box1.ABCDEFGHJK", "expect": null },
+  { "name": "key_with_a_letter_base32_leaves_out", "link": "https://before-you-tape-2026.web.app/?join=box1.ABCDEFGHJKMNPQRSTVWXYZ234U", "expect": null },
+  { "name": "box_id_with_a_slash", "link": "https://before-you-tape-2026.web.app/?join=box%2F1.ABCDEFGHJKMNPQRSTVWXYZ2345", "expect": null },
+  { "name": "another_site", "link": "https://evil.example/?join=box1.ABCDEFGHJKMNPQRSTVWXYZ2345", "expect": null },
+  { "name": "the_other_hosting_domain_is_not_the_canonical_one", "link": "https://before-you-tape-2026.firebaseapp.com/?join=box1.ABCDEFGHJKMNPQRSTVWXYZ2345", "expect": null },
+  { "name": "not_a_url", "link": "join box1", "expect": null }
+]
