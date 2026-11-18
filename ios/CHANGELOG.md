@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): read Remote Config the way the web app does
+- What: `RemoteConfigValues.parse` reads model names only from the web app's allow-list (an empty
+  fallback turns the fallback off), `kill_cloud` with Remote Config's words for true, the
+  second-look policy only when it names all five reasons with true or false, a newer rule edition
+  only with a safe id and a 64-hex SHA-256, and the minimum iPhone version. Anything else keeps
+  the default. `isBelowMinimum` compares versions by number (0.10.0 is above 0.9.0), and a version
+  it cannot read never locks the app. The defaults still equal `remoteconfig.template.json`.
+- Source: iPhone client plan, task I-10 (the web app's remoteConfig and models).
+- Verified: five tests (bad values keep defaults, good values are read, the boolean words, the
+  model allow-list read from the web app's file, versions by number) failed to compile, then
+  passed, with the template test; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### test(ios): run the box loop on screen: a read, its verdict, and a country flip
 - What: a UI test target (`BYTUITests`) with `LoopUITests`. With the launch argument
   `-uiTestFakeReader`, a debug-only fixed reader returns a body lotion, the on-device model counts
