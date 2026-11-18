@@ -20,9 +20,18 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
   let known = new Set<string>();
   let queue: Promise<void> = Promise.resolve();
   let error: string | null = null;
+  let loading: Promise<unknown> | null = null;
 
   const write = async (s: BoxState) => {
     const box = doc(db, "boxes", s.boxId);
+    // The store saves as soon as it starts, often before its load has answered. A write must know whether
+    // the box exists (a new box is created with its owner; an existing one gets only its contents), so it
+    // waits for the load, or checks for itself when no load was made.
+    if (loading) await loading;
+    if (exists === null) {
+      const snap = await getDoc(box).catch(() => null);
+      if (snap) exists = snap.exists();
+    }
     const content = { destinationCode: s.destinationCode, editionId: edition(), cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs };
     if (exists === false) {
       await setDoc(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
@@ -42,24 +51,30 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     save(state) {
       queue = queue.then(() => write(state)).then(() => { error = null; }, (e: unknown) => { error = message(e); });
     },
-    async load(boxId) {
-      try {
-        const snap = await getDoc(doc(db, "boxes", boxId));
-        if (!snap.exists()) { exists = false; return null; }
-        exists = true;
-        const items = (await getDocs(collection(db, "boxes", boxId, "items"))).docs.map((d) => d.data() as BoxItem);
-        known = new Set(items.map((i) => i.itemId));
-        const d = snap.data() as Partial<BoxState>;
-        return { boxId, destinationCode: d.destinationCode, cloudConsent: d.cloudConsent, sources: d.sources, items };
-      } catch (e) {
-        // Not a member, or offline with nothing cached: there is no box to load.
-        error = message(e);
-        return null;
-      }
+    load(boxId) {
+      const run = loadBox(boxId);
+      loading = run;
+      return run;
     },
     idle: () => queue,
     lastError: () => error,
   };
+
+  async function loadBox(boxId: string): Promise<Partial<BoxState> | null> {
+    try {
+      const snap = await getDoc(doc(db, "boxes", boxId));
+      if (!snap.exists()) { exists = false; return null; }
+      exists = true;
+      const items = (await getDocs(collection(db, "boxes", boxId, "items"))).docs.map((d) => d.data() as BoxItem);
+      known = new Set(items.map((i) => i.itemId));
+      const d = snap.data() as Partial<BoxState>;
+      return { boxId, destinationCode: d.destinationCode, cloudConsent: d.cloudConsent, sources: d.sources, items };
+    } catch (e) {
+      // Not a member, or offline with nothing cached: there is no box to load.
+      error = message(e);
+      return null;
+    }
+  }
 }
 
 // Firestore needs a signed-in user. Until sign-in finishes, saves wait in order; if it fails (offline on a
