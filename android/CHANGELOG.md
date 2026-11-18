@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Unit tests re-run when a web file they read changes.** The engine and app unit tests read
+  web repo files that were not declared inputs of their Gradle tasks: the built bundle, the
+  shared vectors and the rule edition (engine), and the consent sentence, form labels, prompt,
+  crop limits, Remote Config template and box contract (app). After a change to one of those
+  files, Gradle kept the old test result. That is how a merge of main showed green locally
+  while the same commit failed in CI (`RcDefaultsTest`). Both test tasks now declare those
+  files. Source: the false green found by the first CI run of the Android job. Verified: before
+  the change, editing `remoteconfig.template.json` left `:app:testDebugUnitTest` UP-TO-DATE.
+  After it, an unchanged tree keeps both tasks UP-TO-DATE, and editing the template and a
+  vector file re-runs both. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The phone's second-look policy default matches the web template's.** The web Remote Config
   template gained the second-look policy, the rule edition id and its hash. The phone's
   defaults had the two edition keys equal and the policy empty, while the template's default is

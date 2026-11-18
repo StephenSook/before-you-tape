@@ -133,6 +133,19 @@ android {
     }
 }
 
+// The unit tests read these web repo files (the consent sentence, the item form's labels, the read
+// prompt, the crop limits, the Remote Config template, the box document contract). Declared as
+// inputs so a change there re-runs the tests instead of keeping an old result.
+val webFilesUnitTestsRead = rootProject.projectDir.parentFile.let { root ->
+    listOf(
+        "src/shared", "src/ai/prompts.ts", "src/ui/ConsentNotice.tsx", "src/ui/ReadFields.tsx", "src/ui/categoryLabels.ts",
+        "remoteconfig.template.json", "tests/contracts",
+    ).map { File(root, it) }
+}
+tasks.withType<Test>().configureEach {
+    inputs.files(webFilesUnitTestsRead).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("webFilesUnitTestsRead")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

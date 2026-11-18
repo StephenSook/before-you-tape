@@ -40,6 +40,11 @@ dependencies {
 
 tasks.test {
     dependsOn(buildEmbed)
+    // The tests read the built bundle, the shared vectors and the rule edition: declared, so a change
+    // to any of them re-runs the tests instead of keeping an old result.
+    inputs.dir(embedDir).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("embedBundle")
+    inputs.dir(File(repoRoot, "tests/vectors")).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("sharedVectors")
+    inputs.file(File(repoRoot, "rules/edition.json")).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("ruleEdition")
     systemProperty("byt.repoRoot", repoRoot.absolutePath)
     systemProperty("byt.embedDir", embedDir.get().asFile.absolutePath)
 }
