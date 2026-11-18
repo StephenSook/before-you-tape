@@ -46,7 +46,12 @@ jobs:
         run: npm run test
 
       - name: Firestore rules tests (local emulator)
-        run: npm run test:rules
+        # firebase-tools needs Java 21 or newer; the runner image ships one at JAVA_HOME_21_X64.
+        run: |
+          test -n "$JAVA_HOME_21_X64" || { echo "The runner has no Java 21."; exit 1; }
+          export JAVA_HOME="$JAVA_HOME_21_X64" PATH="$JAVA_HOME_21_X64/bin:$PATH"
+          java -version
+          npm run test:rules
 
       - name: Build
         run: npm run build
