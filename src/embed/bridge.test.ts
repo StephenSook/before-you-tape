@@ -117,6 +117,8 @@ describe("the JSON bridge for native clients", () => {
     const send = (items: unknown[]) => reply(BYT.evaluateBoxJson(JSON.stringify({ items, code: lotion.code, today: lotion.today })));
     expect(send([good]).ok).toBe(true);
     expect(send([{ ...good, overrides: { volts: "3.7" } }]).ok, "typed text in a number override is the engine's to judge").toBe(true);
+    expect(send([{ ...good, read: { ...good.read, labelText: "\u{1F600}".repeat(160) } }]).ok, "160 characters, counted as the parser counts them").toBe(true);
+    expect(send([{ ...good, overrides: { labelText: "y".repeat(400) } }]).ok, "a typed label has no length limit on the web either").toBe(true);
     const noEvidence: Record<string, unknown> = { ...good.read };
     delete noEvidence.evidence;
     const bad: Array<[string, unknown]> = [
@@ -131,6 +133,7 @@ describe("the JSON bridge for native clients", () => {
       ["text volts in the read itself", { ...good, read: { ...good.read, volts: "3.7" } }],
       ["a negative number in the read (the web parser refuses it)", { ...good, read: { ...good.read, wattHours: -150 } }],
       ["a negative number override", { ...good, overrides: { milliampHours: -4000 } }],
+      ["read label text past the contract's 160 characters", { ...good, read: { ...good.read, labelText: "x".repeat(160) + " ALCOHOL" } }],
     ];
     for (const [why, it] of bad) {
       const r = send([it]);

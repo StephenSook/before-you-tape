@@ -104,6 +104,12 @@ function checkItems(raw: unknown): BoxItemInput[] {
     ids.add(id);
     const read = plain(o.read, `${id}.read`);
     for (const f of ITEM_READ_FIELDS) checkField(f, read[f.name], `${id}.read`);
+    // A read's label text is at most LABEL_TEXT_MAX characters (the parser clips to it), and the
+    // engine tags whatever text it gets, so a longer read could earn tags the web app never sees.
+    // A label the sender typed (an override) has no such limit, on the web or here.
+    if (Array.from(read.labelText as string).length > LABEL_TEXT_MAX) {
+      throw new BadInputError(`${id}.read.labelText is longer than ${LABEL_TEXT_MAX} characters`);
+    }
     for (const [k, v] of Object.entries(plain(o.overrides, `${id}.overrides`))) {
       const f = FIELDS.get(k);
       if (!f) throw new BadInputError(`${id}.overrides.${k} is not an item-read field`);
