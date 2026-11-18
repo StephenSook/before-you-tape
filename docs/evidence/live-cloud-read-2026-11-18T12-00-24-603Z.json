@@ -1,0 +1,27 @@
+{
+  "ranAt": "2026-11-18T12:00:24.603Z",
+  "url": "https://before-you-tape-2026.web.app/",
+  "image": "tests/e2e/fixtures/lotion-label.jpg (a generated test label, not a photo of a real item)",
+  "modelCalls": 1,
+  "status": 200,
+  "latencyMs": 2521,
+  "modelVersion": "gemini-3.5-flash-lite",
+  "usage": {
+    "promptTokenCount": 1219,
+    "candidatesTokenCount": 165,
+    "thoughtsTokenCount": 0,
+    "totalTokenCount": 1384
+  },
+  "prices": {
+    "inputPerMillionUsd": 0.3,
+    "outputPerMillionUsd": 2.5,
+    "source": "https://ai.google.dev/gemini-api/docs/pricing (Gemini 3.5 Flash-Lite, Standard, paid tier, read 2026-11-18)"
+  },
+  "costUsd": {
+    "value": 0.0007782,
+    "tag": "MEASURED",
+    "how": "tokens from this response's usageMetadata times the published paid-tier price"
+  },
+  "verdict": "OK to pack",
+  "readSource": "Read in the cloud"
+}
