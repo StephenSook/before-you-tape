@@ -109,4 +109,79 @@ describe("the JSON bridge for native clients", () => {
       expect(value<string[]>(BYT.labelTagsJson(label)), label).toEqual(labelTagsOf(label, ed));
     }
   });
+
+  it("refuses a malformed item instead of judging it", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const lotion = (box as unknown as BoxVector[]).find((v) => v.name === "lotion_ca")!;
+    const good = item(lotion.items[0]!);
+    const send = (items: unknown[]) => reply(BYT.evaluateBoxJson(JSON.stringify({ items, code: lotion.code, today: lotion.today })));
+    expect(send([good]).ok).toBe(true);
+    expect(send([{ ...good, overrides: { volts: "3.7" } }]).ok, "typed text in a number override is the engine's to judge").toBe(true);
+    const noEvidence: Record<string, unknown> = { ...good.read };
+    delete noEvidence.evidence;
+    const bad: Array<[string, unknown]> = [
+      ["category typo", { ...good, read: { ...good.read, category: "lotion_creem" } }],
+      ["no evidence", { ...good, read: noEvidence }],
+      ["truthy identity", { ...good, identityConfirmedBy: true }],
+      ["text quantity", { ...good, quantity: "2" }],
+      ["tags not a list", { ...good, labelTags: "alcoholic_drink" }],
+      ["answer not text", { ...good, answers: { label_alcohol: 1 } }],
+      ["override of an unknown field", { ...good, overrides: { colour: "red" } }],
+      ["override with a bad value", { ...good, overrides: { category: "lotion_creem" } }],
+      ["text volts in the read itself", { ...good, read: { ...good.read, volts: "3.7" } }],
+    ];
+    for (const [why, it] of bad) {
+      const r = send([it]);
+      expect(r.ok, why).toBe(false);
+      if (!r.ok) expect(r.error.name, why).toBe("BadInputError");
+    }
+    // JSON text can carry a number too large for a double; JSON.parse makes it Infinity.
+    const huge = JSON.stringify({ items: [{ ...good, read: { ...good.read, volts: 7 } }], code: lotion.code, today: lotion.today })
+      .replace('"volts":7', '"volts":1e400');
+    const r = reply(BYT.evaluateBoxJson(huge));
+    expect(r.ok, "infinite volts").toBe(false);
+  });
+
+  it("refuses duplicate or reserved item ids", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const lotion = (box as unknown as BoxVector[]).find((v) => v.name === "lotion_ca")!;
+    const one = item(lotion.items[0]!);
+    for (const items of [[{ ...one, itemId: "x" }, { ...one, itemId: "x" }], [{ ...one, itemId: "__proto__" }], [{ ...one, itemId: "" }]]) {
+      const r = reply(BYT.evaluateBoxJson(JSON.stringify({ items, code: lotion.code, today: lotion.today })));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error.name).toBe("BadInputError");
+    }
+  });
+
+  it("the structuredClone stand-in keeps what the native clone keeps", async () => {
+    const data = JSON.parse('{"a":1,"b":[1,2],"c":{"__proto__":{"x":1}},"d":null}') as Record<string, unknown>;
+    Object.assign(data, { inf: Infinity, ninf: -Infinity, nan: NaN, undef: undefined, nested: { list: [Infinity, NaN] } });
+    const want = original(data);
+    delete (globalThis as { structuredClone?: unknown }).structuredClone;
+    vi.resetModules();
+    await import("./bridge");
+    const shim = globalThis.structuredClone;
+    expect(shim).not.toBe(original);
+    const got = shim(data);
+    expect(got).toStrictEqual(want);
+    expect(got).not.toBe(data);
+    expect(Object.prototype.hasOwnProperty.call(got.c, "__proto__")).toBe(true);
+  });
+
+  it("refuses destination facts whose tags or answers are not what the engine expects", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const facts = structuredClone(defaults.baseFacts);
+    const send = (input: unknown) => reply(BYT.destinationHitsJson(JSON.stringify(input)));
+    expect(send({ facts: { ...facts, tags: ["non_alcoholic_drink"] }, answers: {}, code: "CA" }).ok).toBe(true);
+    for (const [why, input] of [
+      ["tags as one string", { facts: { ...facts, tags: "non_alcoholic_drink" }, answers: {}, code: "CA" }],
+      ["a tag that is not text", { facts: { ...facts, tags: [7] }, answers: {}, code: "CA" }],
+      ["an answer that is not text", { facts: { ...facts, tags: [] }, answers: { label_alcohol: true }, code: "CA" }],
+      ["an unknown category", { facts: { ...facts, category: "lotion_creem" }, answers: {}, code: "CA" }],
+    ] as Array<[string, unknown]>) {
+      const r = send(input);
+      expect(r.ok, why).toBe(false);
+      if (!r.ok) expect(r.error.name, why).toBe("BadInputError");
+    }
+  });
 });

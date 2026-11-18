@@ -7,13 +7,37 @@ import { evaluateDestination } from "../engine/destination";
 import { labelTagsOf } from "../engine/facts";
 import type { BoxItemInput, DestinationEdition, ItemAnswers, ItemFacts, RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
-import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead } from "../shared/itemRead";
+import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
 
-// QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain JSON
-// data, so a JSON round trip gives the same result there.
+// QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
+// (objects, arrays, strings, numbers, booleans, null), so a recursive copy gives what the native
+// clone gives there. A JSON round trip would not: it turns Infinity and NaN into null and drops
+// keys whose value is undefined, which could change a rule. Anything that is not plain data is
+// refused rather than copied wrongly.
+function clonePlainData(value: unknown): unknown {
+  if (value === null || typeof value !== "object") {
+    if (typeof value === "function" || typeof value === "symbol") throw new TypeError("cannot clone a function or a symbol");
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(clonePlainData);
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) throw new TypeError("this structuredClone copies plain data only");
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value)) {
+    // defineProperty, so a key named "__proto__" stays an own key and never sets the prototype.
+    Object.defineProperty(out, key, {
+      value: clonePlainData((value as Record<string, unknown>)[key]),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return out;
+}
+
 const g = globalThis as { structuredClone?: <T>(value: T) => T };
 if (typeof g.structuredClone !== "function") {
-  g.structuredClone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+  g.structuredClone = <T>(value: T): T => clonePlainData(value) as T;
 }
 
 export const BRIDGE_VERSION = 1;
@@ -45,6 +69,58 @@ function object(text: string): Record<string, unknown> {
   const data: unknown = JSON.parse(text);
   if (typeof data !== "object" || data === null || Array.isArray(data)) throw new BadInputError("the input is not a JSON object");
   return data as Record<string, unknown>;
+}
+
+function plain(v: unknown, where: string): Record<string, unknown> {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) throw new BadInputError(`${where} must be an object`);
+  return v as Record<string, unknown>;
+}
+
+// typedText: an override a person typed may hold a number field as text; the engine itself
+// decides how much to trust typed text (it never takes nonsense as a reading).
+function checkField(f: ItemReadField, v: unknown, where: string, typedText = false): void {
+  const ok =
+    f.kind === "string" ? typeof v === "string"
+    : f.kind === "number" ? (typeof v === "number" && Number.isFinite(v)) || (typedText && typeof v === "string")
+    : f.kind === "boolean" ? typeof v === "boolean"
+    : typeof v === "string" && (f.values ?? []).includes(v);
+  if (!ok) throw new BadInputError(`${where}.${f.name} is not a valid ${f.kind}`);
+}
+
+const FIELDS = new Map<string, ItemReadField>(ITEM_READ_FIELDS.map((f) => [f.name, f]));
+const IDENTITY_SOURCES = new Set(["sender", "second_look"]);
+
+// The engine trusts its input types, so a malformed item could read as "OK to pack". Every item
+// is checked here first, and a bad one is refused as a whole request.
+function checkItems(raw: unknown): BoxItemInput[] {
+  if (!Array.isArray(raw)) throw new BadInputError("items must be an array");
+  const ids = new Set<string>();
+  raw.forEach((entry, i) => {
+    const o = plain(entry, `items[${i}]`);
+    const id = o.itemId;
+    if (typeof id !== "string" || id === "" || id in Object.prototype) throw new BadInputError(`items[${i}].itemId is not a usable id`);
+    if (ids.has(id)) throw new BadInputError(`item id ${id} appears twice`);
+    ids.add(id);
+    const read = plain(o.read, `${id}.read`);
+    for (const f of ITEM_READ_FIELDS) checkField(f, read[f.name], `${id}.read`);
+    for (const [k, v] of Object.entries(plain(o.overrides, `${id}.overrides`))) {
+      const f = FIELDS.get(k);
+      if (!f) throw new BadInputError(`${id}.overrides.${k} is not an item-read field`);
+      checkField(f, v, `${id}.overrides`, true);
+    }
+    for (const [k, v] of Object.entries(plain(o.answers, `${id}.answers`))) {
+      if (typeof v !== "string") throw new BadInputError(`${id}.answers.${k} must be a string`);
+    }
+    if (typeof o.quantity !== "number" || !Number.isFinite(o.quantity)) throw new BadInputError(`${id}.quantity must be a finite number`);
+    const by = o.identityConfirmedBy;
+    if (by !== null && !(typeof by === "string" && IDENTITY_SOURCES.has(by))) {
+      throw new BadInputError(`${id}.identityConfirmedBy must be "sender", "second_look" or null`);
+    }
+    if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
+      throw new BadInputError(`${id}.labelTags must be a list of strings`);
+    }
+  });
+  return raw as BoxItemInput[];
 }
 
 function str(o: Record<string, unknown>, key: string): string {
@@ -84,9 +160,9 @@ export function evaluateBoxJson(inputJson: string): string {
   return reply(() => {
     const e = current();
     const input = object(inputJson);
-    if (!Array.isArray(input.items)) throw new BadInputError("items must be an array");
-    const live = input.live as DestinationEdition | undefined;
-    return evaluateBox(input.items as BoxItemInput[], e, resolveDestination(e, str(input, "code"), live), str(input, "today"));
+    const items = checkItems(input.items);
+    const live = input.live === undefined ? undefined : (plain(input.live, "live") as unknown as DestinationEdition);
+    return evaluateBox(items, e, resolveDestination(e, str(input, "code"), live), str(input, "today"));
   });
 }
 
@@ -95,9 +171,16 @@ export function destinationHitsJson(inputJson: string): string {
   return reply(() => {
     const e = current();
     const input = object(inputJson);
-    if (typeof input.facts !== "object" || input.facts === null) throw new BadInputError("facts must be an object");
-    const answers = (input.answers ?? {}) as ItemAnswers;
-    return evaluateDestination(input.facts as ItemFacts, answers, resolveDestination(e, str(input, "code")));
+    const facts = plain(input.facts, "facts");
+    // The destination layer matches tags and reads the category; a string where a list belongs
+    // would be matched by substring, so both are checked first.
+    if (!Array.isArray(facts.tags) || !facts.tags.every((t) => typeof t === "string")) throw new BadInputError("facts.tags must be a list of strings");
+    checkField(FIELDS.get("category")!, facts.category, "facts");
+    const answers = plain(input.answers ?? {}, "answers");
+    for (const [k, v] of Object.entries(answers)) {
+      if (typeof v !== "string") throw new BadInputError(`answers.${k} must be a string`);
+    }
+    return evaluateDestination(facts as unknown as ItemFacts, answers as ItemAnswers, resolveDestination(e, str(input, "code")));
   });
 }
 

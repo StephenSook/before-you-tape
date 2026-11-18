@@ -9,8 +9,8 @@
 # { bridgeVersion, sha256, bytes, esbuild, commit, dirty, inputs[] }.
 # It calls the esbuild binary from node_modules directly, so it needs no node.
 # Exit 2: esbuild is missing. Exit 1: the build failed, an input is outside src/engine,
-# src/shared and src/embed, the bundle holds Firebase, DOM, WebCrypto or network code, or its
-# size is outside 20,000 to 300,000 bytes.
+# src/shared and src/embed, the bundle holds Firebase, DOM, WebCrypto, network or browser-storage
+# code, or its size is outside 20,000 to 300,000 bytes.
 set -eu
 
 if [ "$#" -lt 1 ]; then
@@ -61,22 +61,38 @@ allowed = ("src/engine/", "src/shared/", "src/embed/")
 for i in inputs:
     if not i.startswith(allowed):
         problems.append(f"input outside {', '.join(allowed)}: {i}")
-banned = re.findall(rb"firebase|document\.|window\.|crypto\.subtle|fetch\(", bundle)
+banned = re.findall(
+    rb"firebase|document\.|window\.|crypto\.subtle|fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.|"
+    rb"localStorage|sessionStorage|indexedDB|importScripts",
+    bundle,
+)
 if banned:
     problems.append("the bundle holds " + ", ".join(sorted({b.decode() for b in banned})))
 if not 20_000 <= len(bundle) <= 300_000:
     problems.append(f"bundle size {len(bundle)} bytes is outside 20,000 to 300,000")
-bridge = pathlib.Path("src/embed/bridge.ts").read_text()
-m = re.search(r"export const BRIDGE_VERSION = (\d+);", bridge)
+# The bundle itself must be the bridge: its export map names every bridge function, and its
+# version comes from the bundle, not from a source file the bundle may not contain.
+text = bundle.decode("utf-8")
+exports = ["BRIDGE_VERSION", "canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
+           "itemReadContract", "labelTagsJson", "parseItemReadJson", "setEdition"]
+missing = [n for n in exports if not re.search(r"\b" + n + r": \(\) => " + n + r"\b", text)]
+if missing:
+    problems.append("the bundle does not export the bridge (missing " + ", ".join(missing) + ")")
+m = re.search(r"\bvar BRIDGE_VERSION = (\d+);", text)
 if not m:
-    problems.append("no BRIDGE_VERSION in src/embed/bridge.ts")
+    problems.append("the bundle has no BRIDGE_VERSION")
 if problems:
     for p in problems:
         print(f"build-embed: {p}", file=sys.stderr)
     sys.exit(1)
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+    # A failed git command must fail the build: an empty commit and "not dirty" would be a false record.
+    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        print(f"build-embed: git {' '.join(args[:2])} failed: {r.stderr.strip()[:200]}", file=sys.stderr)
+        sys.exit(1)
+    return r.stdout.strip()
 
 manifest = {
     "bridgeVersion": int(m.group(1)),

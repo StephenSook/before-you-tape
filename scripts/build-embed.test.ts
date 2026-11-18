@@ -60,6 +60,7 @@ describe("scripts/build-embed.sh", () => {
       writeFileSync(join(dir, "planted.ts"), 'import "firebase/app";\nexport * from "../../../src/embed/bridge";\n');
       const r = build(out, "node_modules/.cache/byt-embed-test/planted.ts");
       expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/input outside .*@firebase\/app/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
       rmSync(out, { recursive: true, force: true });
@@ -72,6 +73,44 @@ describe("scripts/build-embed.sh", () => {
       const r = build(out, undefined, { ...process.env, BYT_ESBUILD: "/no/such/esbuild" });
       expect(r.status).toBe(2);
       expect(r.stdout + r.stderr).toMatch(/npm ci/);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("a bundle that can reach the network or browser storage fails the build", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    const planted = join(root, "src", "embed", ".planted-api.ts");
+    try {
+      for (const api of ["\"firebase\"", "new XMLHttpRequest()", "new WebSocket(\"wss://x\")", "navigator.userAgent", "localStorage.length", "indexedDB.open(\"x\")"]) {
+        writeFileSync(planted, `export * from "./bridge";\nexport const leak = () => ${api};\n`);
+        const r = build(out, "src/embed/.planted-api.ts");
+        expect(r.status, api).toBe(1);
+        expect(r.stderr, api).toMatch(/the bundle holds/);
+      }
+    } finally {
+      rmSync(planted, { force: true });
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("a bundle that is not the bridge fails the build", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    try {
+      const r = build(out, "src/engine/verdict.ts");
+      expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/does not export the bridge/);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("a git failure fails the build instead of writing an empty commit", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    try {
+      const r = build(out, undefined, { ...process.env, GIT_DIR: "/no/such/git-dir" });
+      expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/git/);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
