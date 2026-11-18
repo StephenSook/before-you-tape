@@ -55,9 +55,11 @@ export function deriveBattery(
   const milliampHours = printed(read.milliampHours);
   const whPrinted = printed(read.wattHours);
   const whComputed = volts !== null && milliampHours !== null ? round2((volts * milliampHours) / 1000) : null;
-  const liMetal = tags.includes("li_metal");
+  // Printed lithium grams are a lithium metal rating, checked against the per-cell and per-battery limits.
+  const lithiumGrams = printed(read.lithiumGrams);
+  const liMetal = tags.includes("li_metal") || lithiumGrams !== null;
   const liIon = tags.includes("li_ion");
-  const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null;
+  const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null || lithiumGrams !== null;
   // Label words count as battery evidence even when the model's batteryWords flag is false.
   const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
   // A battery number that is not a real number (text, NaN, negative) is a misread, never a pass.
@@ -94,5 +96,5 @@ export function deriveBattery(
   if (liMetal) chemistry = "li_metal";
   else if (liIon || anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
 
-  return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, countAs, units: quantity };
+  return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
 }

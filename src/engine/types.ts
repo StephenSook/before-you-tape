@@ -12,6 +12,7 @@ export interface BatteryFacts {
   whComputed: number | null;
   whStatus: "printed_matches" | "printed_mismatch" | "printed_only" | "computed_only" | "none" | "implausible";
   wh: number | null; // set only for printed_matches and printed_only
+  lithiumGrams: number | null; // printed lithium content (lithium metal), null when not printed
   countAs: "cell" | "battery" | "unknown";
   units: number;
 }

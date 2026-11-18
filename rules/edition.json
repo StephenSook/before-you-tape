@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-5c86170b7f94",
+  "editionId": "byt-2584ef017548",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -980,10 +980,105 @@
             "fact": "battery.chemistry",
             "op": "eq",
             "value": "li_metal"
+          },
+          {
+            "not": {
+              "fact": "battery.lithiumGrams",
+              "op": "gt",
+              "value": 0
+            }
           }
         ]
       },
       "outcome": "check"
+    },
+    {
+      "id": "USPS-INTL-LI-METAL-CELL-OVER",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.51",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "A lithium metal cell with more than 1 g of lithium can't go by international mail.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.countAs",
+            "op": "eq",
+            "value": "cell"
+          },
+          {
+            "fact": "battery.lithiumGrams",
+            "op": "gt",
+            "value": 1
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-METAL-BATTERY-OVER",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.51",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "A lithium metal battery with more than 2 g of lithium can't go by international mail.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.lithiumGrams",
+            "op": "gt",
+            "value": 2
+          }
+        ]
+      },
+      "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-LI-METAL-CLASS",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "Pub 52 622.51",
+      "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+      "basis": "summarized",
+      "ourWording": "Between 1 g and 2 g of lithium is allowed for a battery but not for a single cell. Say whether it has one cell or more.",
+      "when": {
+        "all": [
+          {
+            "fact": "battery.presence",
+            "op": "eq",
+            "value": "installed"
+          },
+          {
+            "fact": "battery.countAs",
+            "op": "eq",
+            "value": "unknown"
+          },
+          {
+            "fact": "battery.lithiumGrams",
+            "op": "gt",
+            "value": 1
+          },
+          {
+            "fact": "battery.lithiumGrams",
+            "op": "lte",
+            "value": 2
+          }
+        ]
+      },
+      "outcome": "check",
+      "askId": "cell_count"
     },
     {
       "id": "USPS-INTL-LI-BOX-COUNT",

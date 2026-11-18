@@ -21,7 +21,7 @@ export function withSuspended(e: RuleEdition, codes: string[]): RuleEdition {
 
 const noBattery: BatteryFacts = {
   presence: "none", chemistry: "unknown", volts: null, milliampHours: null, whPrinted: null, whComputed: null,
-  whStatus: "none", wh: null, countAs: "unknown", units: 1,
+  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1,
 };
 
 export function factsOf(patch: Omit<Partial<ItemFacts>, "battery"> & { battery?: Partial<BatteryFacts> }): ItemFacts {

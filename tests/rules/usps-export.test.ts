@@ -8,7 +8,7 @@ const ed = parseEdition(bundled);
 
 const noBattery: BatteryFacts = {
   presence: "none", chemistry: "unknown", volts: null, milliampHours: null, whPrinted: null, whComputed: null,
-  whStatus: "none", wh: null, countAs: "unknown", units: 1,
+  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1,
 };
 const f = (patch: Omit<Partial<ItemFacts>, "battery"> & { battery?: Partial<BatteryFacts> }): ItemFacts => ({
   category: "other", tags: [], evidence: "label_read", identity: "label", condition: "unknown", alcohol: "unknown",
@@ -106,17 +106,20 @@ describe("USPS export rule data", () => {
     }
   });
 
-  it("uses the edition limits in the Wh rules", () => {
-    const gtValue = (id: string): unknown => {
+  it("uses the edition limits in the Wh and lithium gram rules", () => {
+    const gtValue = (id: string, fact: string): unknown => {
       const find = (p: Predicate): unknown =>
         "all" in p ? p.all.map(find).find((v) => v !== undefined)
           : "any" in p ? p.any.map(find).find((v) => v !== undefined)
             : "not" in p ? find(p.not)
-              : p.fact === "battery.wh" && p.op === "gt" ? p.value : undefined;
+              : p.fact === fact && p.op === "gt" ? p.value : undefined;
       return find(ed.rules.find((r) => r.id === id)!.when);
     };
-    expect(gtValue("USPS-INTL-LI-CELL-OVER")).toBe(ed.limits.cellMaxWh);
-    expect(gtValue("USPS-INTL-LI-BATTERY-OVER")).toBe(ed.limits.batteryMaxWh);
+    expect(gtValue("USPS-INTL-LI-CELL-OVER", "battery.wh")).toBe(ed.limits.cellMaxWh);
+    expect(gtValue("USPS-INTL-LI-BATTERY-OVER", "battery.wh")).toBe(ed.limits.batteryMaxWh);
+    expect(gtValue("USPS-INTL-LI-METAL-CELL-OVER", "battery.lithiumGrams")).toBe(ed.limits.cellMaxLithiumG);
+    expect(gtValue("USPS-INTL-LI-METAL-BATTERY-OVER", "battery.lithiumGrams")).toBe(ed.limits.batteryMaxLithiumG);
+    expect(gtValue("USPS-INTL-LI-METAL-CLASS", "battery.lithiumGrams")).toBe(ed.limits.cellMaxLithiumG);
   });
 
   it("keeps the no-rating wording for sealed boxes", () =>

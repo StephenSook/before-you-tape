@@ -1,5 +1,34 @@
 [
   {
+    "name": "lithium_metal_cell_over_1g_is_taken_out", "source": "Codex M6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "LITHIUM METAL 1.2 G", "lithiumGrams": 1.2, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "toy": "take_out" }, "expectRules": { "toy": ["USPS-INTL-LI-METAL-CELL-OVER"] }
+  },
+  {
+    "name": "lithium_metal_battery_over_2g_is_taken_out", "source": "Codex M6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "cam", "read": { "category": "other_electronics", "labelText": "LITHIUM METAL 2.5 G", "lithiumGrams": 2.5, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "cam": "take_out" }, "expectRules": { "cam": ["USPS-INTL-LI-METAL-BATTERY-OVER"] }
+  },
+  {
+    "name": "lithium_metal_between_1g_and_2g_asks_the_cell_question", "source": "Codex M6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "cam", "read": { "category": "other_electronics", "labelText": "LITHIUM METAL 1.5 G", "lithiumGrams": 1.5, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "cam": "check" }, "expectQuestion": { "cam": "cell_count" }
+  },
+  {
+    "name": "lithium_metal_cell_with_known_small_grams_passes", "source": "Codex M6 control", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "LITHIUM METAL 0.5 G", "lithiumGrams": 0.5, "batteryWords": true },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "toy": "ok" }, "notRules": { "toy": ["USPS-INTL-LI-METAL-UNKNOWN"] }
+  },
+  {
+    "name": "printed_grams_alone_are_battery_evidence", "source": "Fable I11", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "robot", "read": { "category": "toy", "labelText": "TOY ROBOT", "lithiumGrams": 0.6 } }],
+    "expect": { "robot": "check" }, "expectQuestion": { "robot": "battery_installed" }
+  },
+  {
     "name": "typed_wh_as_text_is_never_trusted", "source": "Fable I1", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "laptop", "read": { "category": "laptop", "labelText": "LAPTOP", "batteryWords": true },
       "overrides": { "wattHours": "150" }, "answers": { "device_condition": "new_sealed" } }],
