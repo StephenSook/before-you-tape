@@ -3,6 +3,14 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The phone remembers its cloud consent and last destination.** `LocalStore` keeps the
+  consent choice per device (never synced) and the last destination code in app-private shared
+  preferences. Until a choice is made the consent is unanswered, and an unreadable stored value
+  also counts as unanswered, so nothing can read as consent by accident. Label text and crops
+  are not kept there. Source: Android plan Task 9 ("Consent is stored on the phone, per
+  device"). Verified: `LocalStoreTest` (4 tests, which failed to compile first) passes;
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A device test can run against the release build, to probe its App Check provider.**
   `-Pbyt.testBuildType=release` runs the device tests against the release build type, with its
   App Check provider and release signing; every other run tests debug. `ReleaseAppCheckProbeTest`
