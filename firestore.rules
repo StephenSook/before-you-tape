@@ -24,7 +24,7 @@ rules_version = '2';
 // Document ID: item id
 // Fields: itemId, read (the model read, labelText always ""), overrides (no labelText), answers,
 //   quantity (1 to 99), identityConfirmedBy, labelTags, readSource, readMs, secondLook, readFallback
-//   (optional), cropKey, customs.
+//   (optional), cropKey, customs, addedAt (optional: milliseconds since 1970, orders the box on reload).
 //
 // Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
 // signed-in user. blindSessions: opened by a reviewer's secret token, calls write-only (see below).
@@ -191,7 +191,7 @@ service cloud.firestore {
     function isValidItem(d) {
       return d.keys().hasAll(['read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags', 'readSource'])
         && d.keys().hasOnly(['itemId', 'read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags',
-                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs'])
+                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt'])
         && (!('itemId' in d) || isShortString(d.itemId, 64))
         && isValidRead(d.read)
         && isValidOverrides(d.overrides)
@@ -204,7 +204,8 @@ service cloud.firestore {
         && (!('secondLook' in d) || isValidSecondLook(d.secondLook))
         && (!('readFallback' in d) || isValidFallback(d.readFallback))
         && (!('cropKey' in d) || d.cropKey == null || isShortString(d.cropKey, 64))
-        && (!('customs' in d) || isValidCustoms(d.customs));
+        && (!('customs' in d) || isValidCustoms(d.customs))
+        && (!('addedAt' in d) || (d.addedAt is int && d.addedAt > 0));
     }
 
     // ---------------------------------------------------------------

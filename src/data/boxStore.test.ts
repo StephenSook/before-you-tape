@@ -45,6 +45,18 @@ describe("createBoxStore", () => {
     expect(s.getState().sources.rulesOnlyRechecks).toBe(1);
   });
 
+  it("keeps the re-check time only until the box changes, so it never describes a later read", () => {
+    const s = store();
+    s.addManual(liquidLotionRead);
+    s.setDestination("PH");
+    expect(s.getState().lastRecheckMs).not.toBeNull();
+    s.addRead(outcome(shirtRead, "in_cloud"), "crop-1");
+    expect(s.getState().lastRecheckMs).toBeNull();
+    s.setDestination("CA");
+    s.addManual(shirtRead);
+    expect(s.getState().lastRecheckMs).toBeNull();
+  });
+
   it("late read uses current destination", () => {
     const s = store();
     s.setDestination("PH");
@@ -88,6 +100,21 @@ describe("createBoxStore", () => {
     const saved = p.save.mock.calls.at(-1)![0].items[0]!;
     expect(saved.overrides.labelText).toBeUndefined();
     expect(saved.labelTags).toEqual(expect.arrayContaining(["alcohol", "liquid"]));
+  });
+
+  it("stamps each new item with the time it was added", () => {
+    let t = 1_795_000_000_000;
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, clock: () => t++ });
+    s.addManual(shirtRead);
+    s.addRead(outcome(liquidLotionRead, "in_cloud"), "crop-1");
+    expect(s.getState().items.map((i) => i.addedAt)).toEqual([1_795_000_000_000, 1_795_000_000_001]);
+  });
+
+  it("shows saved items in the order they were added, whatever order the server returns them in", async () => {
+    const at = (itemId: string, addedAt?: number): BoxItem => ({ ...phoneItem, itemId, ...(addedAt === undefined ? {} : { addedAt }) });
+    const s = store({ persistence: spyPersistence({ items: [at("c", 30), at("old"), at("a", 10), at("b", 20)] }) });
+    await s.ready;
+    expect(s.getState().items.map((i) => i.itemId)).toEqual(["a", "b", "c", "old"]);
   });
 
   it("merges a remote item once", () => {

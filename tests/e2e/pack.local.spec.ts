@@ -14,14 +14,23 @@ const modelReply = {
 
 test("upload, verdict, country flip", async ({ page }) => {
   let modelCalls = 0;
+  const sentImages: string[] = [];
   await page.route(/firebasevertexai\.googleapis\.com/, async (route) => {
     modelCalls++;
+    const body = route.request().postDataJSON() as { contents?: { parts?: { inlineData?: { data?: string } }[] }[] };
+    for (const c of body.contents ?? []) for (const part of c.parts ?? []) if (part.inlineData?.data) sentImages.push(part.inlineData.data);
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(modelReply) });
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Allow" }).click();
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
+  // The photo is never sent whole: the request carries exactly the part the crop step showed.
+  const send = page.getByRole("button", { name: "Check this part" });
+  await expect(send).toBeEnabled();
+  const shown = (await page.getByRole("img", { name: "The part that will be checked" }).getAttribute("src"))?.split(",")[1];
+  await send.click();
   await expect(page.getByTestId("verdict-chip")).toHaveText("OK to pack");
+  expect(sentImages).toEqual([shown]);
   await page.getByTestId("destination-picker").selectOption("PH");
   await expect(page.getByTestId("verdict-chip")).toHaveText("Take it out");
   await expect(page.getByTestId("recheck-line")).toContainText("0 model calls");

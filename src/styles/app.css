@@ -33,6 +33,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .stage video, .stage img { display: block; width: 100%; height: auto; border-radius: 12px; }
 .hold-zone { position: absolute; border: 3px dashed var(--paper); border-radius: 12px; pointer-events: none; }
 .stage-line { margin: var(--space-3) 0 0; font-size: 18px; }
+/* The crop box over an added photo: a two-tone edge so it shows on light and dark photos. */
+.crop-box { border: 3px dashed var(--paper); outline: 2px solid var(--night); cursor: move; }
+.crop-box:focus-visible { outline: 3px solid var(--amber); outline-offset: 0; }
+.crop-handle { position: absolute; right: -10px; bottom: -10px; width: 20px; height: 20px; background: var(--paper); border: 2px solid var(--night); border-radius: 4px; cursor: nwse-resize; }
+.crop-preview { margin: var(--space-3) 0 0; }
+.crop-preview img { display: block; max-width: 240px; height: auto; border-radius: 8px; }
 
 .card { border: var(--outline); border-radius: var(--radius-card); padding: var(--space-4); background: var(--paper); }
 .card + .card { margin-top: var(--space-3); }

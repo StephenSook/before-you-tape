@@ -41,6 +41,13 @@ function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "n
   return { models, makeModels, push: cfg.push };
 }
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
+// Adds a photo and presses "Check this part" on the crop step, as a sender does.
+const addPhoto = async () => {
+  await userEvent.upload(screen.getByTestId("upload-input"), photo);
+  const send = await screen.findByRole("button", { name: "Check this part" });
+  await waitFor(() => expect(send).toBeEnabled());
+  await userEvent.click(send);
+};
 
 describe("LivePack", () => {
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
@@ -50,7 +57,7 @@ describe("LivePack", () => {
   it("reads in the cloud with the model Remote Config names", async () => {
     const { models, makeModels } = setup({ cloudModelItem: "gemini-3.8-flash" });
     expect(makeModels).toHaveBeenCalledWith("gemini-3.8-flash", CONFIG_DEFAULTS.cloudModelItemFallback);
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await screen.findByTestId("item-card");
     expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
   });
@@ -59,7 +66,7 @@ describe("LivePack", () => {
     const { models, push } = setup();
     act(() => push({ killCloud: true }));
     expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused.");
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     const all = Object.values(models).flatMap((m) => [m.cloud.generate, m.hybrid.generate, m.device.generate, m.fallback.generate]);
     expect(all).toHaveLength(4);
@@ -69,7 +76,7 @@ describe("LivePack", () => {
   it("passes the second-look policy from Remote Config to the page", async () => {
     const { models, push } = setup({}, "available");
     act(() => push({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await screen.findByTestId("item-card");
     const m = Object.values(models)[0];
     expect(m?.hybrid.generate).toHaveBeenCalledTimes(1);
@@ -78,7 +85,7 @@ describe("LivePack", () => {
 
   it("runs the second look by default, as a control for the policy test", async () => {
     const { models } = setup({}, "available");
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await screen.findByTestId("second-look");
     expect(Object.values(models)[0]?.cloud.generate).toHaveBeenCalledTimes(1);
   });

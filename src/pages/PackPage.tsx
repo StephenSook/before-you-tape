@@ -10,9 +10,10 @@ import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
+import { rulesReadBy } from "../engine/layers";
 import type { ItemRead } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
-import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
+import { chooseImageRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
@@ -45,6 +46,15 @@ export interface PackPageProps {
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
+
+// Why a photo cannot be read right now, in the sender's situation.
+function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }): string {
+  if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
+  if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
+  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
+  return BLOCKED;
+}
+const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
 const FAILURE: Record<ReadFailureKind, string> = {
   blocked: BLOCKED,
   device_failed: "This laptop couldn't read that one. Try again, or type the item.",
@@ -84,6 +94,8 @@ export function PackPage(p: PackPageProps) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [crops, setCrops] = useState<Record<string, ImagePart>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  // Why the last photo could not be read, shown only while that situation still holds.
+  const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
@@ -96,6 +108,11 @@ export function PackPage(p: PackPageProps) {
   const waitingForOnline = useRef(new Set<string>());
 
   const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
+  // The switch and the connection as they are now, for a read that started earlier: before each further
+  // cloud call (a retry, the fallback model, a recovery) the read asks whether the cloud is still allowed.
+  const live = useRef({ killCloud: config.killCloud, online: p.online });
+  useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online }; });
+  const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, ...live.current });
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
@@ -108,7 +125,7 @@ export function PackPage(p: PackPageProps) {
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct);
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed);
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
     } catch (e) {
@@ -134,10 +151,11 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     const route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
-    if (route === "blocked") { setNotice(BLOCKED); return; }
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs()), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
+    setBlocked(null);
     try {
-      const outcome = await readItem(models, part, route, now);
+      const outcome = await readItem(models, part, route, now, stillAllowed);
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
@@ -156,22 +174,36 @@ export function PackPage(p: PackPageProps) {
     }
   };
 
-  const reviewed = index.filter((d) => resolveDestination(edition, d.code).reviewState === "reviewed").map((d) => d.code);
+  const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
+  const readBy = Object.fromEntries(index.flatMap((d) => {
+    const r = rulesReadBy(resolveDestination(edition, d.code));
+    return r ? [[d.code, r.by] as const] : [];
+  }));
   const dest = state.result.destination;
   // The suspension list decides whether anything can go at all, so its check date is always in view.
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
     <div>
       <div className="pack-top">
-        <DestinationPicker index={index} reviewed={reviewed} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+        <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} />
       </div>
       {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
+      {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
+      {state.cloudConsent !== null && (
+        <p data-testid="cloud-choice">
+          {state.cloudConsent ? "Cloud checks are on." : "Cloud checks are off. Photos and label words stay on this laptop."}{" "}
+          <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
+            {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
+          </button>
+        </p>
+      )}
       {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">Cloud checks are paused. Checks on this laptop still work.</p>}
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
+      {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}

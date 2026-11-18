@@ -120,6 +120,14 @@ describe("schema", () => {
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { secondLook: { ms: 900, reason: "The cloud looked again." }, readFallback: { after: "503", route: "cloud_only" } }));
   });
 
+  it("accepts an item's added time as a positive whole number of milliseconds, and nothing else", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i1"), { ...itemDoc, addedAt: 1795000000000 }));
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i2"), itemDoc));
+    await assertFails(setDoc(doc(alice, "boxes/b1/items/i3"), { ...itemDoc, addedAt: "2026-11-18" }));
+    await assertFails(setDoc(doc(alice, "boxes/b1/items/i3"), { ...itemDoc, addedAt: 1.5 }));
+    await assertFails(setDoc(doc(alice, "boxes/b1/items/i3"), { ...itemDoc, addedAt: 0 }));
+  });
+
   it("type-checks every read field and keeps tags, answers and categories to the edition's own words", async () => {
     const bad = [
       { read: { ...itemDoc.read, volts: "x".repeat(10000) } },

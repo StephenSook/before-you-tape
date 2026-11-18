@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -21,6 +21,13 @@ const newStore = () => createBoxStore({ edition: () => ed, persistence, now: () 
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
+// Adds a photo and presses "Check this part" on the crop step, as a sender does.
+const addPhoto = async () => {
+  await userEvent.upload(screen.getByTestId("upload-input"), photo);
+  const send = await screen.findByRole("button", { name: "Check this part" });
+  await waitFor(() => expect(send).toBeEnabled());
+  await userEvent.click(send);
+};
 
 function setup(over: Partial<PackPageProps> = {}, consent: boolean | null = true) {
   const store = over.store ?? newStore();
@@ -41,7 +48,7 @@ describe("PackPage", () => {
 
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true } });
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this laptop still work."));
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
@@ -75,7 +82,7 @@ describe("PackPage", () => {
 
   it("reads an added photo in the cloud and shows its verdict, then re-checks a country change with no model call", async () => {
     const { models } = setup();
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     const card = await screen.findByTestId("item-card");
     expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
@@ -91,15 +98,74 @@ describe("PackPage", () => {
     const nothing: ItemRead = { ...liquidLotionLabelRead, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
     const cloud = { generate: vi.fn(async () => ({ text: JSON.stringify(nothing), source: "in_cloud" as const })) };
     const { store } = setup({ models: { ...spyModels(), cloud } });
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);
   });
 
+  it("makes no further cloud call once cloud checks are switched off during a read, not even a retry", async () => {
+    const store = newStore();
+    store.setConsent(true);
+    let fail: (e: Error) => void = () => {};
+    const cloud = { generate: vi.fn(() => new Promise<never>((_r, reject) => { fail = reject; })) };
+    const fallback = { generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" as const })) };
+    const models = { ...spyModels(), cloud, fallback };
+    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, online: true };
+    const { rerender } = render(<PackPage {...props} config={{ killCloud: false }} />);
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    rerender(<PackPage {...props} config={{ killCloud: true }} />);
+    await act(async () => { fail(new Error("fetch-error 503")); await Promise.resolve(); });
+    await waitFor(() => expect(screen.queryByTestId("item-card")).toBeNull());
+    expect(cloud.generate).toHaveBeenCalledTimes(1);
+    expect(fallback.generate).not.toHaveBeenCalled();
+  });
+
+  it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
+    const { store, models } = setup({}, null);
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are on.");
+    await userEvent.click(screen.getByRole("button", { name: "Turn off cloud checks" }));
+    expect(store.getState().cloudConsent).toBe(false);
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off. Photos and label words stay on this laptop.");
+    await addPhoto();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Turn on cloud checks" }));
+    expect(store.getState().cloudConsent).toBeNull();
+    expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
+  });
+
+  it("shows no alert before the sender has done anything", async () => {
+    setup({}, null);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("asks for the cloud choice when nothing can read the photo yet, and clears that once the sender allows", async () => {
+    const { models } = setup({}, null);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("This laptop can't read photos on its own. Allow cloud checks above, or type the item.");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says why nothing can read the photo while offline, and clears it once back online", async () => {
+    const store = newStore();
+    store.setConsent(true);
+    const models = spyModels();
+    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {} };
+    const { rerender } = render(<PackPage {...props} online={false} />);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
+    rerender(<PackPage {...props} online />);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("says what to do when nothing can read the photo", async () => {
     const { models } = setup({}, false);
-    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
