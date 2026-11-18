@@ -12,6 +12,11 @@ import { pathToFileURL } from "node:url";
 // The smallest current model the Gemini Developer API serves through AI Logic, with a one-word reply.
 const MODEL = "gemini-3.5-flash-lite";
 
+// AI Logic enforces replay protection, so it accepts only limited-use App Check tokens.
+export function exchangeRequest(debugToken: string): { debug_token: string; limited_use: true } {
+  return { debug_token: debugToken, limited_use: true };
+}
+
 export function controlPassed(noTokenStatus: number | null, withTokenStatus: number | null): boolean {
   return noTokenStatus === 401 && withTokenStatus === 200;
 }
@@ -63,7 +68,7 @@ async function main(): Promise<void> {
   if (none.status === 401) {
     const exchange = await post(
       `https://content-firebaseappcheck.googleapis.com/v1/projects/${projectId}/apps/${appId}:exchangeDebugToken?key=${apiKey}`,
-      { debug_token: debugToken }, { Referer: referer });
+      exchangeRequest(debugToken), { Referer: referer });
     record.exchangeStatus = exchange.status;
     appCheckToken = typeof exchange.body.token === "string" ? exchange.body.token : "";
     if (appCheckToken) {

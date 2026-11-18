@@ -1,0 +1,26 @@
+{
+  "ranAt": "2026-11-18T19:59:25.980Z",
+  "url": "https://before-you-tape-2026.web.app/",
+  "steps": [
+    {
+      "at": "2026-11-18T19:59:26.665Z",
+      "step": "typed item added",
+      "cards": 1
+    },
+    {
+      "at": "2026-11-18T19:59:32.667Z",
+      "step": "firestore traffic before reload",
+      "requests": 8
+    },
+    {
+      "at": "2026-11-18T19:59:33.516Z",
+      "step": "after reload",
+      "cards": 1,
+      "names": [
+        "Wool scarf"
+      ]
+    }
+  ],
+  "modelCalls": 0,
+  "passed": true
+}

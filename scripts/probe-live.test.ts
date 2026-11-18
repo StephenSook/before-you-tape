@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
+import { appCheckRefusal, isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
 
 const page = [
   "| **Model** | **Gemini Developer API** | **Agent Platform Gemini API** |",
@@ -42,5 +42,21 @@ describe("probeRetired", () => {
     expect(PROBE_RETIRES_AFTER).toBe("2026-12-17");
     expect(probeRetired("2026-12-17")).toBe(false);
     expect(probeRetired("2026-12-18")).toBe(true);
+  });
+});
+
+describe("appCheckRefusal", () => {
+  const refusal = { error: { code: 401, status: "UNAUTHENTICATED", message: "Firebase App Check token is invalid." } };
+
+  it("passes only the App Check refusal: 401 with that exact message", () => {
+    expect(appCheckRefusal(401, refusal)).toEqual({ ok: true, detail: "HTTP 401: Firebase App Check token is invalid." });
+  });
+
+  it("fails an answer, a key problem, or any other refusal", () => {
+    expect(appCheckRefusal(200, { candidates: [] })).toMatchObject({ ok: false, detail: expect.stringMatching(/HTTP 200/) });
+    expect(appCheckRefusal(400, { error: { message: "API key not valid. Please pass a valid API key." } })).toMatchObject({ ok: false });
+    expect(appCheckRefusal(403, { error: { message: "Requests from referer <empty> are blocked." } })).toMatchObject({ ok: false });
+    expect(appCheckRefusal(401, { error: { message: "Request had invalid authentication credentials." } })).toMatchObject({ ok: false });
+    expect(appCheckRefusal(401, null)).toMatchObject({ ok: false });
   });
 });
