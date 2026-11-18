@@ -30,8 +30,8 @@ const values = (v: Record<string, string>) => (key: string) => ({ asString: () =
 
 describe("readConfig", () => {
   it("maps the Remote Config keys to the app's config", () => {
-    expect(readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-4-argon", cloud_model_text: "gemini-3.8-flash", kill_cloud: "true" })))
-      .toEqual({ cloudModelItem: "gemini-3.5-flash-lite", cloudModelItemFallback: "gemini-4-argon", cloudModelText: "gemini-3.8-flash", killCloud: true });
+    expect(readConfig(values({ cloud_model_item: "gemini-3.8-flash", cloud_model_item_fallback: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.8-flash", kill_cloud: "true" })))
+      .toEqual({ cloudModelItem: "gemini-3.8-flash", cloudModelItemFallback: "gemini-3.5-flash-lite", cloudModelText: "gemini-3.8-flash", killCloud: true, secondLook: CONFIG_DEFAULTS.secondLook, rulesEditionId: "", rulesEditionSha256: "" });
   });
 
   it("keeps the default model when a value is not a Gemini model name", () => {
@@ -39,11 +39,37 @@ describe("readConfig", () => {
       .toEqual({ ...CONFIG_DEFAULTS, killCloud: false });
   });
 
+  it("keeps the default for a Gemini model name that is not on the allow-list", () =>
+    expect(readConfig(values({ cloud_model_item: "gemini-2.5-flash", cloud_model_item_fallback: "gemini-4-argon", cloud_model_text: "gemini-3.5-flash", kill_cloud: "false" })))
+      .toEqual({ ...CONFIG_DEFAULTS, killCloud: false }));
+
+  it("reads the second-look policy from JSON, and keeps the default for anything incomplete or broken", () => {
+    const off = { whMismatch: false, batteryNumbers: false, notSure: true, hazardNoLabel: true, identity: false };
+    const withPolicy = (raw: string) => readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: "false", second_look_policy_json: raw })).secondLook;
+    expect(withPolicy(JSON.stringify(off))).toEqual(off);
+    for (const bad of ["", "not json", "[]", '{"whMismatch":false}', JSON.stringify({ ...off, identity: "no" }), "null"]) {
+      expect(withPolicy(bad), bad).toEqual(CONFIG_DEFAULTS.secondLook);
+    }
+  });
+
+  it("reads the rule edition id and SHA-256, and drops a hash that is not 64 hex characters", () => {
+    const sha = "a".repeat(64);
+    const edition = (id: string, hash: string) => readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: "false", rules_edition_id: id, rules_edition_sha256: hash }));
+    expect(edition(" byt-abc123 ", sha.toUpperCase())).toMatchObject({ rulesEditionId: "byt-abc123", rulesEditionSha256: sha });
+    expect(edition("byt-abc123", "not-a-hash")).toMatchObject({ rulesEditionId: "", rulesEditionSha256: "" });
+    expect(edition("", sha)).toMatchObject({ rulesEditionId: "", rulesEditionSha256: "" });
+    expect(edition("../../x", sha)).toMatchObject({ rulesEditionId: "", rulesEditionSha256: "" });
+  });
+
   it("turns the fallback off when its value is empty", () =>
     expect(readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: " ", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: "false" })).cloudModelItemFallback).toBe(""));
 
   it("gives Remote Config the in-app defaults under its own key names", () =>
-    expect(RC_DEFAULTS).toEqual({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-3.8-flash", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: false }));
+    expect(RC_DEFAULTS).toEqual({
+      cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-3.8-flash", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: false,
+      second_look_policy_json: '{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}',
+      rules_edition_id: "", rules_edition_sha256: "",
+    }));
 });
 
 describe("remoteConfigSource", () => {

@@ -1,13 +1,17 @@
 // The Pack page (plan Task 19): the camera on one side, the box on the other. Each photo is read by the
 // route the policy allows, added to the box, and judged by the rules; a country change re-checks the box
-// with no model call. Consent is asked once, before any cloud call.
-import { useState, useSyncExternalStore } from "react";
+// with no model call. Consent is asked once, before any cloud call. An on-device read the second-look
+// policy names is read again in the cloud (plan Task 21), only when the cloud is allowed.
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
+import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
-import { chooseReadRoute } from "../routing/policy";
+import { deriveFacts } from "../engine/facts";
+import type { ItemRead } from "../shared/itemRead";
+import { chooseReadRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
@@ -18,6 +22,7 @@ import { ReadyButton } from "../ui/ReadyButton";
 
 export interface PackConfig {
   killCloud: boolean;
+  secondLook?: SecondLookPolicy;
 }
 
 export interface PackPageProps {
@@ -34,6 +39,8 @@ export interface PackPageProps {
   onGetReady?: () => void;
   now?: () => number;
   newCropKey?: () => string;
+  // Why a newer rule edition could not be used, if one was named and failed.
+  editionNotice?: string | null;
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
@@ -45,6 +52,18 @@ const FAILURE: Record<ReadFailureKind, string> = {
   cloud_unreachable: "The cloud check could not connect. Check the internet and try again, or type the item.",
   invalid_output: "That read did not make sense. Try again with the label facing the camera.",
 };
+
+// A failed second look leaves the device read and its verdict in place.
+const SECOND_LOOK_FAILURE: Record<ReadFailureKind, string> = {
+  blocked: "Cloud checks are off right now, so this was not checked again.",
+  device_failed: "The cloud step did not run. Try again.",
+  leak_guard: "The cloud step did not run. Try again.",
+  cloud_refused: "The cloud step was refused. Try a normal browser window.",
+  cloud_unreachable: "No connection. This check will run when you are back online.",
+  invalid_output: "The second look did not make sense. Try again.",
+};
+
+interface PendingLook { reason: SecondLookReason; read: ItemRead; part: ImagePart }
 
 function countryName(code: string, index: readonly DestinationIndexEntry[]): string {
   const listed = index.find((d) => d.code === code)?.name;
@@ -65,6 +84,44 @@ export function PackPage(p: PackPageProps) {
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
+  const [checking, setChecking] = useState<Record<string, boolean>>({});
+  // What each item needs to be looked at again; kept in memory only, like its crop.
+  const looks = useRef(new Map<string, PendingLook>());
+  const waitingForOnline = useRef(new Set<string>());
+
+  const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
+
+  const secondLook = async (itemId: string) => {
+    const look = looks.current.get(itemId);
+    if (!look) return;
+    if (!shouldRunSecondLook(look.reason, cloudInputs())) {
+      if (!p.online) { waitingForOnline.current.add(itemId); store.setError(itemId, SECOND_LOOK_FAILURE.cloud_unreachable); }
+      else store.setError(itemId, SECOND_LOOK_FAILURE.blocked);
+      return;
+    }
+    setChecking((c) => ({ ...c, [itemId]: true }));
+    try {
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct);
+      store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
+      looks.current.delete(itemId);
+    } catch (e) {
+      const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
+      if (kind === "cloud_unreachable") waitingForOnline.current.add(itemId);
+      store.setError(itemId, SECOND_LOOK_FAILURE[kind]);
+    } finally {
+      setChecking((c) => ({ ...c, [itemId]: false }));
+    }
+  };
+
+  // Second looks that failed for no connection run again once the page is back online.
+  useEffect(() => {
+    if (!p.online) return;
+    const ids = [...waitingForOnline.current];
+    waitingForOnline.current.clear();
+    for (const id of ids) void secondLook(id);
+    // secondLook reads the latest props through this render; only coming back online should start it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.online]);
 
   const onImage = async (part: ImagePart) => {
     const route = chooseReadRoute({ gate, cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
@@ -75,6 +132,12 @@ export function PackPage(p: PackPageProps) {
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));
+      const added = store.getState().items.find((i) => i.itemId === itemId);
+      const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, config.secondLook ?? SECOND_LOOK_DEFAULT) : null;
+      if (reason && shouldRunSecondLook(reason, cloudInputs())) {
+        looks.current.set(itemId, { reason, read: outcome.read, part });
+        void secondLook(itemId);
+      }
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
     } catch (e) {
@@ -84,15 +147,19 @@ export function PackPage(p: PackPageProps) {
 
   const reviewed = index.filter((d) => resolveDestination(edition, d.code).reviewState === "reviewed").map((d) => d.code);
   const dest = state.result.destination;
+  // The suspension list decides whether anything can go at all, so its check date is always in view.
+  const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
     <div>
       <div className="pack-top">
         <DestinationPicker index={index} reviewed={reviewed} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+        <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} />
       </div>
       {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
       {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">Cloud checks are paused. Checks on this laptop still work.</p>}
-      {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended.</p>}
+      {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
+      {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       <div className="pack">
         <div>
@@ -110,7 +177,9 @@ export function PackPage(p: PackPageProps) {
             return verdict ? (
               <ItemCard key={item.itemId} item={item} verdict={verdict} crop={crops[item.itemId] ?? null}
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
-                onFix={(id, patch) => store.override(id, patch)} />
+                onFix={(id, patch) => store.override(id, patch)}
+                checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
+                onRetry={(id) => void secondLook(id)} />
             ) : null;
           })}
         </div>

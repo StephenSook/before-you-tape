@@ -1,0 +1,54 @@
+name: Live probe
+
+# Once a day through the judging window, with no credential: the site serves main, the page loads,
+# robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
+# shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
+# The probe reports itself retired after 2026-12-17; delete this file then.
+# A manual run can probe another site, so a wrong URL proves the probe fails.
+on:
+  schedule:
+    - cron: "23 13 * * *"
+  workflow_dispatch:
+    inputs:
+      site:
+        description: Site to probe
+        required: false
+        default: https://before-you-tape-2026.web.app
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Probe
+        env:
+          PROBE_SITE: ${{ inputs.site }}
+          # The public web key (it ships in every page); the call carries no App Check token and must be refused.
+          PROBE_API_KEY: ${{ vars.VITE_FB_API_KEY }}
+        run: |
+          MAIN_SHA=$(git ls-remote origin refs/heads/main | cut -f1)
+          export MAIN_SHA
+          npx tsx scripts/probe-live.ts
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      # The fetch checks above cannot see a page that failed to start; this one opens it like a visitor.
+      - name: The live app starts
+        env:
+          BYT_LIVE: "1"
+          BYT_LIVE_URL: ${{ inputs.site }}
+        run: npx playwright test --project=live tests/e2e/starts.spec.ts

@@ -1,0 +1,22 @@
+{
+  "ranAt": "2026-11-18T19:41:36Z",
+  "box": "rules-check-1795030896",
+  "ownerCreate": 200,
+  "memberRead": 200,
+  "nonMemberRead": 403,
+  "nonMemberStatus": "PERMISSION_DENIED",
+  "ownerAddsMember": 403,
+  "nonMemberDelete": 403,
+  "ownerDelete": 200,
+  "passed": true,
+  "deployedAt": "45a2d8b (Deploy live run 44382610450)",
+  "how": "Two anonymous users signed in over the Identity Toolkit REST API with the public web key and the site as referrer, then called the Firestore REST API with their own ID tokens, so the deployed security rules decided each call. The test box was deleted at the end; the two anonymous test users remain in the project.",
+  "expected": {
+    "ownerCreate": 200,
+    "memberRead": 200,
+    "nonMemberRead": 403,
+    "ownerAddsMember": 403,
+    "nonMemberDelete": 403,
+    "ownerDelete": 200
+  }
+}

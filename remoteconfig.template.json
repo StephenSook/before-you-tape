@@ -20,6 +20,11 @@
       "valueType": "BOOLEAN",
       "description": "true pauses every cloud call (reads, second looks, descriptions); checks on the device keep working."
     },
+    "second_look_policy_json": {
+      "defaultValue": { "value": "{\"whMismatch\":true,\"batteryNumbers\":true,\"notSure\":true,\"hazardNoLabel\":true,\"identity\":true}" },
+      "valueType": "JSON",
+      "description": "Which on-device reads get a cloud second look; every reason must be true or false, or the app keeps its default."
+    },
     "minimum_version_ios": {
       "defaultValue": { "value": "0.0.0" },
       "valueType": "STRING",
@@ -29,6 +34,16 @@
       "defaultValue": { "value": "0.0.0" },
       "valueType": "STRING",
       "description": "The lowest Android app version that may run; 0.0.0 asks no one to update."
+    },
+    "rules_edition_id": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "A newer published rule edition to use; empty uses the edition built into the app."
+    },
+    "rules_edition_sha256": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "The SHA-256 of that edition; the app uses it only when the fetched edition matches."
     }
   }
 }

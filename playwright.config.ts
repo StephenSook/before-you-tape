@@ -12,7 +12,8 @@ export default defineConfig({
   projects: [
     { name: "local", use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4173" } },
     // *.local.spec.ts stub the model endpoint, so they never run against the live site.
-    { name: "live", testIgnore: /\.local\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: "https://before-you-tape-2026.web.app" } },
+    // BYT_LIVE_URL lets the daily probe point the live checks elsewhere, so a wrong URL proves they fail.
+    { name: "live", testIgnore: /\.local\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: process.env.BYT_LIVE_URL?.trim() || "https://before-you-tape-2026.web.app" } },
   ],
   ...(live ? {} : {
     webServer: { command: "npm run preview -- --port 4173 --strictPort", url: "http://localhost:4173", reuseExistingServer: !process.env.CI },
