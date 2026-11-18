@@ -78,7 +78,7 @@ import Testing
         let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: TokenUse(input: 800, output: 90)))])
         let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
         let available = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: false)
-        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDevice: available,
+        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { available },
                              persistence: MemoryBoxPersistence(), reader: reader)
         await model.readWords("  EAU DE PARFUM ALCOHOL DENAT 50 ML  ")
         #expect(!model.askingConsent)
@@ -108,5 +108,29 @@ import Testing
         model.box?.override(id, patch: ["itemName": .string("Body lotion"), "category": .string("lotion_cream"),
                                         "labelText": .string("SHEA BODY LOTION 8 FL OZ")])
         #expect(model.readLine == "Body lotion: OK to pack. Read in the cloud.")
+    }
+
+    /// The on-device model's status is read again before each read and when the app comes back,
+    /// so a model that finished downloading is used without a relaunch.
+    @Test func aModelThatBecameReadyIsUsedByTheNextRead() async {
+        final class Status: @unchecked Sendable { var now = OnDeviceStatus(unavailable: .modelNotReady, localeSupported: true, contextSize: 4096, variant: "t", vision: false) }
+        let status = Status()
+        let j = FakeItemRunner.Journal()
+        let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { status.now },
+                             persistence: MemoryBoxPersistence(), reader: reader)
+        #expect(model.onDevice.unavailable == .modelNotReady)
+        status.now.unavailable = nil
+        model.becameActive()
+        #expect(model.onDevice.unavailable == nil)
+        // Not ready again at the moment of a read: the read sees it and does not use the model.
+        status.now.unavailable = .modelNotReady
+        await model.readWords("EAU DE PARFUM 50 ML")
+        #expect(j.events.isEmpty && model.askingConsent)
+        // Ready again: the waiting words are read on the iPhone after the answer.
+        status.now.unavailable = nil
+        await model.answerConsent(false)
+        #expect(j.events == ["device start", "device end"])
     }
 }

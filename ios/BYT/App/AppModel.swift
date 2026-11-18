@@ -28,10 +28,14 @@ final class AppModel {
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
-    init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
+    /// Reads Apple's model status now; asked again before each read and when the app comes back.
+    @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
+
+    init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard) {
         self.signIn = signIn
-        self.onDevice = onDevice
+        self.onDeviceStatus = onDeviceStatus
+        self.onDevice = onDeviceStatus()
         let engine = try? RulesEngine()
         let editionText = Bundle.main.url(forResource: "edition", withExtension: "json").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
         if let engine, let editionText { _ = try? engine.setEdition(editionText) }
@@ -70,11 +74,12 @@ final class AppModel {
     func start() async {
         network.start()
         signedIn = await signIn.ensure()
-        #if DEBUG
-        if !UITestSupport.active { onDevice = ModelSessionFactory.onDeviceStatus() }
-        #else
-        onDevice = ModelSessionFactory.onDeviceStatus()
-        #endif
+        onDevice = onDeviceStatus()
+    }
+
+    /// Back in the foreground: a model that finished downloading meanwhile counts at once.
+    func becameActive() {
+        onDevice = onDeviceStatus()
     }
 
     /// Reads one cropped photo on the router's path and adds what it read to the box. The cloud is
@@ -90,6 +95,7 @@ final class AppModel {
 
     private func read(_ input: ItemInput) async {
         guard let reader, let box else { return }
+        onDevice = onDeviceStatus()
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: .defaults)
         // Asked once, before the first cloud call: nothing goes to the cloud until the sender picks.
         if box.cloudConsent == nil, ItemReader.needsCloud(input.kind, situation) {

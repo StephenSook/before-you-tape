@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): read Apple's model status before each read and when the app comes back
+- What: the on-device model's status was read only at start, so a model that finished
+  downloading while the app stayed open kept being treated as not ready until a relaunch.
+  `AppModel` now asks for the status before every read and when the app becomes active
+  (`becameActive`, wired to the scene's active phase).
+- Source: review of the iPhone pull request (finding 7).
+- Verified: a test changes the status after start and sees the app pick it up on becoming active,
+  skip the model when it is not ready at the moment of a read, and read on the iPhone once it is
+  ready again; it failed to compile without the change, then passed; 84 app tests and the UI test
+  pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): name the item on the check screen as it is now
 - What: the line under the camera took the item's name from the model's first reply but its
   verdict from the box, so after a correction it could read "Perfume: OK to pack". The name now
