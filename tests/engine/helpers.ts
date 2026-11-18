@@ -1,5 +1,6 @@
 // Test-only helpers shared by the engine tests.
 import bundled from "../../rules/edition.json";
+import defaults from "../vectors/defaults.json";
 import { parseEdition } from "../../src/engine/edition";
 import type { BatteryFacts, ItemFacts, RuleEdition } from "../../src/engine/types";
 
@@ -19,14 +20,10 @@ export function withSuspended(e: RuleEdition, codes: string[]): RuleEdition {
   return copy;
 }
 
-const noBattery: BatteryFacts = {
-  presence: "none", chemistry: "unknown", volts: null, milliampHours: null, whPrinted: null, whComputed: null,
-  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1,
-};
+// The facts a test leaves out, shared with the native clients' vector runners.
+const baseFacts = defaults.baseFacts as ItemFacts;
 
 export function factsOf(patch: Omit<Partial<ItemFacts>, "battery"> & { battery?: Partial<BatteryFacts> }): ItemFacts {
-  return {
-    category: "other", tags: [], evidence: "label_read", identity: "label", condition: "unknown", alcohol: "unknown",
-    quantity: 1, ...patch, battery: { ...noBattery, ...patch.battery },
-  };
+  const base = structuredClone(baseFacts);
+  return { ...base, ...patch, battery: { ...base.battery, ...patch.battery } };
 }

@@ -12,6 +12,7 @@ service-account*.json
 # Dependencies and build output
 node_modules/
 dist/
+dist-embed/
 functions/lib/
 *.tsbuildinfo
 .vite/
