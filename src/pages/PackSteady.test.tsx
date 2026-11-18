@@ -26,6 +26,7 @@ const base: ItemRead = {
   lithiumGrams: 0, batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false, glassContainer: false,
   powder: false, retailBox: "cannot_tell", evidence: "label_read",
 };
+const roomFrame: ItemRead = { ...base, itemName: "unknown", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, batteryWords: false, evidence: "not_sure" };
 const port = (read: ItemRead, source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(read), source })) });
 const models = (read: ItemRead) => ({ device: port(read, "on_device"), hybrid: port(read, "on_device"), cloud: port(base, "in_cloud") }) satisfies ItemModels;
@@ -75,4 +76,11 @@ describe("PackPage when the camera reads by itself", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("drops a read of no item with a hint, and adds no card", async () => {
+    const { store } = setup("available", roomFrame);
+    await startCamera();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
+    expect(screen.queryByTestId("item-card")).toBeNull();
+    expect(store.getState().items).toHaveLength(0);
+  });
 });

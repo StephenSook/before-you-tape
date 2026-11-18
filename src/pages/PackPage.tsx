@@ -11,6 +11,7 @@ import type { BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
 import type { ItemRead } from "../shared/itemRead";
+import { isNoItem } from "../shared/noItem";
 import { chooseImageRoute, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
@@ -52,6 +53,9 @@ const FAILURE: Record<ReadFailureKind, string> = {
   cloud_unreachable: "The cloud check could not connect. Check the internet and try again, or type the item.",
   invalid_output: "That read did not make sense. Try again with the label facing the camera.",
 };
+
+// A read that found no item is dropped, never added as a card.
+const NO_ITEM = "Nothing to check there. Hold one item inside the box.";
 
 // A failed second look leaves the device read and its verdict in place.
 const SECOND_LOOK_FAILURE: Record<ReadFailureKind, string> = {
@@ -134,6 +138,7 @@ export function PackPage(p: PackPageProps) {
     setNotice(null);
     try {
       const outcome = await readItem(models, part, route, now);
+      if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));

@@ -87,6 +87,16 @@ describe("PackPage", () => {
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
+  it("drops an added photo that shows no item, with a hint, and adds no card", async () => {
+    const nothing: ItemRead = { ...liquidLotionLabelRead, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
+    const cloud = { generate: vi.fn(async () => ({ text: JSON.stringify(nothing), source: "in_cloud" as const })) };
+    const { store } = setup({ models: { ...spyModels(), cloud } });
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
+    expect(screen.queryByTestId("item-card")).toBeNull();
+    expect(store.getState().items).toHaveLength(0);
+  });
+
   it("says what to do when nothing can read the photo", async () => {
     const { models } = setup({}, false);
     await userEvent.upload(screen.getByTestId("upload-input"), photo);
