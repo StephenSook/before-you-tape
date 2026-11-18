@@ -36,6 +36,13 @@ describe("evaluateLithiumBox", () => {
     expect(r.text).toContain(TWO_BOX_NOTE);
   });
 
+  it("stays over when a box is over a limit and also has both kinds", () => {
+    const r = run([batt("a"), batt("b"), batt("c"), cell("phone")]);
+    expect(r.status).toBe("over");
+    expect(r.text).toContain("3 batteries and 1 cell in this box.");
+    expect(r.text).toContain(TWO_BOX_NOTE);
+  });
+
   it("counts quantity", () => {
     expect(run([cell("p", 3)]).cells).toEqual({ min: 3, max: 3 });
     expect(run([cell("p", 5)]).status).toBe("over");

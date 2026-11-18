@@ -49,7 +49,9 @@ export function evaluateLithiumBox(entries: LithiumEntry[], limits: LithiumLimit
     const cells = knownCells + s;
     const batteries = knownBatteries + unknownUnits - s;
     const ok = (batteries === 0 && cells <= limits.maxCells) || (cells === 0 && batteries <= limits.maxBatteries);
-    const kind: "ok" | "mixed" | "over" = ok ? "ok" : cells > 0 && batteries > 0 ? "mixed" : "over";
+    // Over a count limit is over under any reading of "not both", so it wins over mixed.
+    const over = cells > limits.maxCells || batteries > limits.maxBatteries;
+    const kind: "ok" | "mixed" | "over" = ok ? "ok" : over ? "over" : "mixed";
     return { cells, batteries, kind };
   });
 
@@ -73,6 +75,8 @@ export function evaluateLithiumBox(entries: LithiumEntry[], limits: LithiumLimit
     if (batteries.max === 0) text = `${plural(cells.max, "cell", "cells")} in this box. The limit is ${limits.maxCells}. ${TWO_BOX_NOTE}`;
     else if (cells.max === 0) {
       text = `${plural(batteries.max, "battery", "batteries")} in this box. The limit is ${limits.maxBatteries}. ${TWO_BOX_NOTE}`;
+    } else if (unknownUnits === 0) {
+      text = `${plural(batteries.max, "battery", "batteries")} and ${plural(cells.max, "cell", "cells")} in this box. The limit is ${rule}. ${TWO_BOX_NOTE}`;
     } else text = `Too many lithium batteries in this box. The limit is ${rule}. ${TWO_BOX_NOTE}`;
   } else if (status === "mixed") {
     text = `This box has both a battery and a cell. A box can hold ${rule}. ${TWO_BOX_NOTE}`;
