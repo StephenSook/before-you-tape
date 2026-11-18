@@ -124,6 +124,23 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(true);
   });
 
+  it("records a fallback model read on the item with its route, and counts it on the box", () => {
+    const s = store();
+    const a = s.addRead({ ...outcome(shirtSeenRead, "in_cloud"), route: "cloud_only", fallbackAfter: "503" }, "a");
+    const b = s.addRead(outcome(shirtSeenRead, "in_cloud"), "b");
+    const item = (id: string) => s.getState().items.find((i) => i.itemId === id);
+    expect(item(a)?.readFallback).toEqual({ after: "503", route: "cloud_only" });
+    expect(item(b)?.readFallback).toBeUndefined();
+    expect(s.getState().sources).toMatchObject({ inCloud: 2, cloudFallbacks: 1 });
+  });
+
+  it("starts the fallback count at 0 for a box saved before the count existed", async () => {
+    const s = store({ persistence: spyPersistence({ sources: { onDevice: 2, inCloud: 1, secondLooks: 0, rulesOnlyRechecks: 0 } as BoxState["sources"] }) });
+    await s.ready;
+    s.addRead({ ...outcome(shirtSeenRead, "in_cloud"), fallbackAfter: "500" }, "a");
+    expect(s.getState().sources).toEqual({ onDevice: 2, inCloud: 2, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 1 });
+  });
+
   it("counts reads by where they ran and tells subscribers about every change", () => {
     const s = store();
     const seen = vi.fn();
