@@ -37,6 +37,27 @@ describe("guardFiles", () => {
     expect(empty.messages.join("\n")).toMatch(/walked 0 files/);
   });
 
+  it("fails on a direct model host anywhere in source, tests or scripts", () => {
+    for (const bad of [
+      "fetch('https://api.openai.com/v1/chat/completions')",
+      "const base = 'http://localhost:11434/api/generate'",
+      "const base = 'http://127.0.0.1:11434'",
+      "import ollama from 'ollama'",
+      "await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`)",
+      "const u = 'https://us-central1-aiplatform.googleapis.com/v1/projects/p'",
+      "fetch('https://api.anthropic.com/v1/messages')",
+    ]) {
+      const r = guardFiles([...clean, file("tests/e2e/x.spec.ts", bad)], 2);
+      expect(r.ok, bad).toBe(false);
+      expect(r.messages[0], bad).toMatch(/^tests\/e2e\/x\.spec\.ts:1:\d+ .* is not allowed here$/);
+    }
+  });
+
+  it("does not flag the Firebase AI Logic host or a word that only contains a host name", () => {
+    const r = guardFiles([...clean, file("scripts/c.ts", "const svc = 'firebasevertexai.googleapis.com'; // aiplatform docs say\nconst llamas = 1;")], 2);
+    expect(r.messages).toEqual([]);
+  });
+
   it("allows availability only in gate.ts", () => {
     expect(guardFiles([...clean, file("src/ai/gate.ts", "await LanguageModel.availability(o)")], 2).ok).toBe(true);
     expect(guardFiles([...clean, file("src/ai/gate.test.ts", "LanguageModel.availability(o)")], 2).ok).toBe(true);
