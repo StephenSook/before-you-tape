@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `.gitignore`: ignores Python bytecode (`__pycache__/`, `*.py[cod]`), which compiling `scripts/eval-set-photos.py` leaves beside it. Source: an untracked `scripts/__pycache__/` after the photo build. Verified: `git status` stays clean after compiling the script; local CI mirror exit 0.
 - `src/eval/loadSet.ts`: joins `eval/set/manifest.json` and `eval/set/labels.json` into the `EvalSet` the metrics read. The hazard flag comes from the labels only: an item is a hazard item when its label is not "OK to pack" for at least one destination. It refuses labels for another set, and any item without labels. `src/eval/loadSet.test.ts` also checks the committed set in CI:
 - it passes every manifest check with 40 items;
 - every published photo exists with its manifest SHA-256 and no metadata block;
