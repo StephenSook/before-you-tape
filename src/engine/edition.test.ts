@@ -51,6 +51,14 @@ describe("rule edition", () => {
     expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, ask("no_such_question")] })).toThrow(EditionError);
   });
 
+  it("reads the edition's revision, a whole number from 1, and refuses any other", () => {
+    expect(parseEdition(bundled).revision).toBeGreaterThanOrEqual(1);
+    for (const bad of [0, 1.5, -2, "3"]) expect(() => parseEdition({ ...bundled, revision: bad })).toThrow(EditionError);
+    const { revision: _r, ...noRevision } = bundled;
+    void _r;
+    expect(parseEdition(noRevision).revision).toBeUndefined();
+  });
+
   it("rejects stored USPS wording fields, an unknown layer, an empty section", () => {
     expect(() => parseEdition(withRule({ shortQuote: "any text" }))).toThrow(EditionError);
     expect(() => parseEdition(withRule({ layer: "vibes" }))).toThrow(EditionError);

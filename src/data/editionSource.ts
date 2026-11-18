@@ -12,6 +12,7 @@ export interface EditionChoice { edition: RuleEdition; from: "bundled" | "remote
 const NOT_LOADED = "A newer rule edition could not be loaded. Using the built-in edition.";
 const FAILED_CHECK = "A newer rule edition failed its integrity check. Using the built-in edition.";
 const NOT_READ = "A newer rule edition could not be read. Using the built-in edition.";
+const OLDER = "The pinned rule edition is older than this build's. Using the built-in edition.";
 
 export async function chooseEdition(i: {
   bundled: RuleEdition;
@@ -34,11 +35,15 @@ export async function chooseEdition(i: {
   if (raw === null || raw === undefined) return keep(NOT_LOADED);
   const id = typeof raw === "object" ? (raw as { editionId?: unknown }).editionId : undefined;
   if (id !== wantId || (await sha256Hex(canonicalJson(raw))) !== wantSha) return keep(FAILED_CHECK);
+  let edition: RuleEdition;
   try {
-    return { edition: parseEdition(raw), from: "remote", notice: null };
+    edition = parseEdition(raw);
   } catch {
     return keep(NOT_READ);
   }
+  // A pin that is not newer than the build would bring back rules the build has fixed.
+  if ((edition.revision ?? 0) <= (i.bundled.revision ?? 0)) return keep(OLDER);
+  return { edition, from: "remote", notice: null };
 }
 
 // A published edition lives at ruleEditions/{id} as { json, sha256 }, where json is the edition's canonical
