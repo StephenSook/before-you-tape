@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import { PackRoute } from "./pages/PackRoute";
 
 interface PageRoute {
   path: string;
@@ -37,7 +38,7 @@ export function AppRoutes() {
   return (
     <Routes>
       {routeTable(import.meta.env.DEV).map((r) => (
-        <Route key={r.path} path={r.path} element={<h1>{r.title}</h1>} />
+        <Route key={r.path} path={r.path} element={r.path === "/" ? <PackRoute /> : <h1>{r.title}</h1>} />
       ))}
       <Route path="*" element={<h1>Page not found</h1>} />
     </Routes>
