@@ -24,6 +24,8 @@ import { ReadyButton } from "../ui/ReadyButton";
 
 export interface PackConfig {
   killCloud: boolean;
+  // Remote Config has not given the pause yet, so cloud checks are off until it does.
+  pauseUnknown?: boolean;
   secondLook?: SecondLookPolicy;
 }
 
@@ -50,8 +52,9 @@ export interface PackPageProps {
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
 
 // Why a photo cannot be read right now, in the sender's situation.
-function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }): string {
+function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }, pauseUnknown = false): string {
   if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
+  if (i.killCloud && pauseUnknown) return "Cloud checks are waiting for their settings, and this laptop can't read photos on its own. Type the item, or try again in a moment.";
   if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
   if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
   return BLOCKED;
@@ -174,7 +177,7 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     const route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
-    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs()), when: situationOf(cloudInputs()) }); return; }
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), config.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
     setBlocked(null);
     const work = cloudWork();
@@ -225,7 +228,7 @@ export function PackPage(p: PackPageProps) {
           </button>
         </p>
       )}
-      {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">Cloud checks are paused. Checks on this laptop still work.</p>}
+      {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">{config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."} Checks on this laptop still work.</p>}
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}

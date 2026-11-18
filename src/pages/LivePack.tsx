@@ -16,5 +16,5 @@ export function LivePack({ source, makeModels, ...page }: LivePackProps) {
     () => makeModels(config.cloudModelItem, config.cloudModelItemFallback),
     [makeModels, config.cloudModelItem, config.cloudModelItemFallback],
   );
-  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, secondLook: config.secondLook }} liveConfig={source} />;
+  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, pauseUnknown: config.pauseUnknown === true, secondLook: config.secondLook }} liveConfig={source} />;
 }

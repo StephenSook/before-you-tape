@@ -6,7 +6,8 @@ import { CONFIG_DEFAULTS } from "./defaults";
 import { isAllowedCloudModel } from "./models";
 import type { SecondLookPolicy } from "../routing/policy";
 
-export type AppConfig = typeof CONFIG_DEFAULTS;
+// pauseUnknown: Remote Config has not yet given a kill_cloud value of its own, so cloud checks stay off.
+export type AppConfig = typeof CONFIG_DEFAULTS & { pauseUnknown?: true };
 
 export const RC_KEYS = {
   cloudModelItem: "cloud_model_item",
@@ -81,9 +82,14 @@ export function remoteConfigSource(app: FirebaseApp, minimumFetchIntervalMillis 
   rc.settings.minimumFetchIntervalMillis = minimumFetchIntervalMillis;
   rc.settings.fetchTimeoutMillis = 10_000;
   const listeners = new Set<(c: AppConfig) => void>();
-  let current: AppConfig = { ...CONFIG_DEFAULTS };
+  // Cloud checks stay off until Remote Config has given a kill_cloud value of its own, fetched now or fetched
+  // before and cached. A fetch that fails or is blocked, with nothing cached, keeps them off; checks on the
+  // device still work. The in-app default never switches the cloud on.
+  const pausedUntilKnown = (c: AppConfig): AppConfig => ({ ...c, killCloud: true, pauseUnknown: true });
+  let current: AppConfig = pausedUntilKnown({ ...CONFIG_DEFAULTS });
   const refresh = () => {
-    current = readConfig((key) => getValue(rc, key));
+    const read = readConfig((key) => getValue(rc, key));
+    current = getValue(rc, RC_KEYS.killCloud).getSource() === "remote" ? read : pausedUntilKnown(read);
     for (const l of listeners) l(current);
   };
   // A failed fetch (offline, blocked) leaves the defaults in place.

@@ -9,7 +9,8 @@ const rcState = vi.hoisted(() => ({
 vi.mock("firebase/remote-config", () => {
   const value = (key: string) => {
     const raw = rcState.values[key] ?? String(rcState.rc.defaultConfig[key] ?? "");
-    return { asString: () => raw, asBoolean: () => raw === "true" };
+    // "remote" only for a value Remote Config itself gave (fetched now, or fetched before and cached).
+    return { asString: () => raw, asBoolean: () => raw === "true", getSource: () => (key in rcState.values ? "remote" : "default") };
   };
   return {
     getRemoteConfig: vi.fn(() => rcState.rc),
@@ -90,11 +91,28 @@ describe("remoteConfigSource", () => {
     expect(source.get().killCloud).toBe(true);
   });
 
-  it("keeps the defaults when the fetch fails, as when offline", async () => {
+  it("keeps cloud checks off until Remote Config has given a real kill_cloud value", async () => {
+    rcState.values = { kill_cloud: "false" };
+    const source = remoteConfigSource(app);
+    expect(source.get()).toMatchObject({ killCloud: true, pauseUnknown: true });
+    await source.ready;
+    expect(source.get().killCloud).toBe(false);
+    expect(source.get().pauseUnknown).toBeUndefined();
+  });
+
+  it("keeps the other defaults, and cloud checks off, when the fetch fails with nothing cached", async () => {
     rcState.fetchFails = true;
     const source = remoteConfigSource(app);
     await source.ready;
-    expect(source.get()).toEqual(CONFIG_DEFAULTS);
+    expect(source.get()).toEqual({ ...CONFIG_DEFAULTS, killCloud: true, pauseUnknown: true });
+  });
+
+  it("uses a cached kill_cloud value when the fetch fails", async () => {
+    rcState.fetchFails = true;
+    rcState.values = { kill_cloud: "false" };
+    const source = remoteConfigSource(app);
+    await source.ready;
+    expect(source.get().killCloud).toBe(false);
   });
 
   it("tells subscribers when a live update turns kill_cloud on", async () => {

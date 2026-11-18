@@ -92,6 +92,15 @@ describe("LivePack", () => {
     expect(abortedWhenAnnounced).toBe(true);
   });
 
+  it("says cloud checks wait for their settings while the pause is not known yet, and reads nothing in the cloud", async () => {
+    const { models, push } = setup();
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load. Checks on this laptop still work.");
+    await addPhoto();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are waiting for their settings"));
+    for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
   it("passes the second-look policy from Remote Config to the page", async () => {
     const { models, push } = setup({}, "available");
     act(() => push({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
