@@ -35,7 +35,7 @@
     "expect": { "car": "check", "robot": "check" }
   },
   {
-    "name": "loose_non_lithium_batteries_are_taken_out_without_the_lithium_reason", "source": "orchestrator follow-up on Fable I6 (NOT VERIFIED)", "code": "CA", "today": "2026-11-20",
+    "name": "loose_non_lithium_batteries_are_taken_out_without_the_lithium_reason", "source": "review follow-up on finding I6 (NOT VERIFIED)", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "aa", "read": { "category": "loose_battery", "labelText": "AA ALKALINE BATTERIES 8 PACK", "batteryWords": true },
       "answers": { "battery_installed": "not_lithium" } }],
     "expect": { "aa": "take_out" }, "expectRules": { "aa": ["USPS-INTL-LOOSE-NON-LITHIUM"] }, "notRules": { "aa": ["USPS-INTL-LI-LOOSE"] }

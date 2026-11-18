@@ -76,12 +76,13 @@ function plain(v: unknown, where: string): Record<string, unknown> {
   return v as Record<string, unknown>;
 }
 
-// typedText: an override a person typed may hold a number field as text; the engine itself
-// decides how much to trust typed text (it never takes nonsense as a reading).
+// The same rules as the web app's read parser: a number is finite and 0 or more (a value that is
+// not printed is 0). typedText: an override a person typed may hold a number field as text; the
+// engine itself decides how much to trust typed text (it never takes nonsense as a reading).
 function checkField(f: ItemReadField, v: unknown, where: string, typedText = false): void {
   const ok =
     f.kind === "string" ? typeof v === "string"
-    : f.kind === "number" ? (typeof v === "number" && Number.isFinite(v)) || (typedText && typeof v === "string")
+    : f.kind === "number" ? (typeof v === "number" && Number.isFinite(v) && v >= 0) || (typedText && typeof v === "string")
     : f.kind === "boolean" ? typeof v === "boolean"
     : typeof v === "string" && (f.values ?? []).includes(v);
   if (!ok) throw new BadInputError(`${where}.${f.name} is not a valid ${f.kind}`);
@@ -103,6 +104,12 @@ function checkItems(raw: unknown): BoxItemInput[] {
     ids.add(id);
     const read = plain(o.read, `${id}.read`);
     for (const f of ITEM_READ_FIELDS) checkField(f, read[f.name], `${id}.read`);
+    // A read's label text is at most LABEL_TEXT_MAX characters (the parser clips to it), and the
+    // engine tags whatever text it gets, so a longer read could earn tags the web app never sees.
+    // A label the sender typed (an override) has no such limit, on the web or here.
+    if (Array.from(read.labelText as string).length > LABEL_TEXT_MAX) {
+      throw new BadInputError(`${id}.read.labelText is longer than ${LABEL_TEXT_MAX} characters`);
+    }
     for (const [k, v] of Object.entries(plain(o.overrides, `${id}.overrides`))) {
       const f = FIELDS.get(k);
       if (!f) throw new BadInputError(`${id}.overrides.${k} is not an item-read field`);
