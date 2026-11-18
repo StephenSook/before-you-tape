@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.beforeyoutape.android",
+      "sha256_cert_fingerprints": ["7D:67:2A:F6:DD:84:C0:91:4B:F0:C7:75:CD:55:52:A3:2E:D2:CC:F0:1C:CE:9A:AA:AB:79:EE:9B:3F:63:6A:DA"]
+    }
+  }
+]

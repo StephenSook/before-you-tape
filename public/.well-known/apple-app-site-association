@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["Y8XVCMLQCZ.app.beforeyoutape.reader"],
+        "components": [{ "/": "/join/*", "comment": "A laptop's join link opens the iPhone app; nothing else on the site does." }]
+      }
+    ]
+  }
+}
