@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/ui/QuestionRow.tsx`: one question with its answers as buttons; the answer already given is marked pressed. Source: plan Task 19. Verified by `src/ui/QuestionRow.test.tsx` (2 tests), which failed before the component existed; local CI mirror exit 0.
 - `src/ui/ConsentNotice.tsx`: the consent notice with the full sentence from spec 5.3 ("To check items when this laptop can't, a cropped photo of the item and the words on its label go to Google's Gemini. Allow?") and two choices, "Allow" and "Keep everything on this laptop". Source: plan Task 19, spec 5.3. Verified by `src/ui/ConsentNotice.test.tsx`, which failed before the component existed; local CI mirror exit 0.
 - `src/ui/SourceGlyph.tsx`: says where a read ran, as a label screen readers read out: "Read on this laptop", "Read in the cloud", "Typed by you", "Read on your phone" and "Read in the cloud, from your phone". Source: plan Task 19, the phone lanes' read sources. Verified by `src/ui/SourceGlyph.test.tsx`, which failed before the component existed; local CI mirror exit 0.
 - `src/ui/VerdictChip.tsx`: the verdict chip shows its word ("OK to pack", "Check this", "Take it out") with its own icon (a check, a magnifier with a question mark, an X) and its own style, so a verdict never depends on colour alone. Source: plan Task 19, spec 5.13. Verified by `src/ui/VerdictChip.test.tsx` (2 tests), which failed before the component existed; local CI mirror exit 0.
