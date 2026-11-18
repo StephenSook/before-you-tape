@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): route each read by availability, consent and network, with no cloud after a block
+- What: `ReadRoutePolicy.decide` gives the route in the web app's words (hybrid, device_only,
+  cloud_only, blocked) and a reason; a photo needs the on-device model to take an image, label
+  words do not. `cloudAllowed` is the web rule (consent must be a yes, the cloud not paused,
+  online; unanswered counts as no). `afterFailure`: a guardrail block or refusal never leads to
+  the cloud, nor does a cancelled read; on-device unavailable, context, parse and timeout
+  failures retry in the cloud only on the hybrid route; network, rate limit and server errors
+  retry the cloud once; an App Check refusal goes to typed entry. `RouteRecord` writes `blocked`
+  as null when there was no block and never carries label text. `Timeout.run` limits every model
+  call.
+- Source: iPhone client plan, task I-6; the web rule in `src/routing/policy.ts`.
+- Verified: fourteen tests (the route table for both input kinds, image input, the device-only
+  and cloud-only reasons, consent, kill switch and offline, blocks and refusals on every route,
+  the retry rules, cancelled, the null block, the time limit) failed to compile without the
+  types, then passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): add the guided item-read type and prompts, checked against the web schema
 - What: the app links BYTCore. `ItemReadG` is the type the on-device model fills: the web app's
   16 read fields, the 37 categories and the two enums with the web wire values; `read` gives the
