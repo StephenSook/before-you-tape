@@ -4,6 +4,10 @@ All notable changes to this project are listed here.
 
 ## Unreleased
 
+### Fixed
+
+- `firebase.json`: Hosting names its site (`before-you-tape-2026`, the project's default site). Without it the deploy tool failed with "resolving hosting target of a site with no site name or target name". Source: first live deploy from main. Verified: the deploy from a clean checkout of main succeeds and the live `version.json` reports the main SHA with `dirty` false; local CI mirror exit 0.
+
 ### Added
 
 - `dist/version.json` now carries `dirty`: true when the tree had uncommitted or untracked changes at build time, so a deploy cannot claim a commit it does not match. The smoke test requires `dirty` to be false. Source: orchestrator (first live deploy must report the main SHA with dirty false). Verified: the smoke test failed on the missing field first; a build of an edited tree reads `dirty: true` and a build of the committed tree reads `false` and passes; local CI mirror exit 0.
