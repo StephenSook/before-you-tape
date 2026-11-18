@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Read routes that never send a photo without consent.** `ReadRoutes.choose` is the design
+  table's four rows: a ready on-device model with the cloud allowed is hybrid, without it
+  device-only; no model is cloud-only or blocked. `cloudAllowed` is true only with consent given,
+  online and `kill_cloud` off; unanswered consent counts as not given. Source: Android plan
+  Task 7, design section 5.3. Verified: `ReadRoutesTest` (3 tests, which failed to compile
+  first) passes; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Gate G-A0 re-run on the reviewed bridge.** The bridge's review fixes (every box item
   checked before the engine judges it, an exact `structuredClone` stand-in, stricter bundle
   checks) were merged into this branch; the bundle is now 48,234 bytes with SHA-256
