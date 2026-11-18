@@ -80,10 +80,11 @@ jobs:
             exit 1
           fi
 
-      # A hung system package install once held a run for 12 minutes; fail fast and rerun instead.
+      # Only the browser itself: the runner image already has its system libraries, and the apt step behind
+      # --with-deps hung three runs on 2026-11-18. The time limit stays, so any hang fails fast.
       - name: Install the test browser
         timeout-minutes: 6
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # The built app in a real browser: it starts, every camera-stage control is readable, and /judge works
       # with no request to a Google API. These need no App Check token.

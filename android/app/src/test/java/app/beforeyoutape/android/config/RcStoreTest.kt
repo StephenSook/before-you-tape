@@ -1,0 +1,31 @@
+package app.beforeyoutape.android.config
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class RcStoreTest {
+    private class FakeSource(var map: Map<String, String>) : RcSource {
+        var onChange: (() -> Unit)? = null
+        override fun snapshot() = map
+        override fun start(onChange: () -> Unit) {
+            this.onChange = onChange
+        }
+    }
+
+    /** Before Remote Config or its defaults load, no cloud model is set, so no cloud read can start. */
+    @Test fun beforeAnythingLoadsThereIsNoCloudModel() {
+        val store = RcStore(FakeSource(emptyMap()))
+        assertEquals("", store.current().cloudModelItem)
+    }
+
+    @Test fun aLiveUpdateIsPublished() {
+        val source = FakeSource(RcDefaultsTest.xmlDefaults())
+        val store = RcStore(source)
+        store.start()
+        assertEquals(false, store.current().killCloud)
+        source.map = source.map + ("kill_cloud" to "true")
+        source.onChange!!.invoke()
+        assertEquals(true, store.current().killCloud)
+        assertEquals(true, store.values.value.killCloud)
+    }
+}
