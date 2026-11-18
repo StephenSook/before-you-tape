@@ -50,6 +50,26 @@ describe("firestorePersistence", () => {
     expect(loaded?.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
   });
 
+  it("creates the box even when the first save comes before the load has answered, as the store does", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    const loading = p.load("b1");
+    p.save(state([item("i1")]));
+    await loading;
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
+    expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
+    expect((await firestorePersistence(db("alice"), "alice", "byt-test").load("b1"))?.items?.map((i) => i.itemId)).toEqual(["i1"]);
+  });
+
+  it("creates the box when a save comes with no load at all", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    p.save(state([item("i1")]));
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    expect((await admin((d) => getDoc(doc(d, "boxes/b1")))).exists()).toBe(true);
+  });
+
   it("never stores label text, and deletes items removed from the box", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
     await p.load("b1");
