@@ -3,6 +3,12 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Gate G-A0 recorded for the merged bridge.** After the bridge pull request merged (three
+  review rounds, ten fixes), the bundle is 48,417 bytes, SHA-256 `9887f1fa...`, rebuilt on a
+  clean tree (`dirty: false`); all 20 box, 64 guard and 21 destination vectors still pass in
+  QuickJS. `docs/evidence/android/G-A0.md` records it. Source: the bridge pull request's merge.
+  Verified: `:engine:buildEmbed` and `:engine:test` rerun (13 of 13); the root CI mirror exit 0.
+
 - **Live App Check and cloud-read checks, run only on request.** Tests marked `@Live` call the
   live project and are left out of the default device run (`notAnnotation`). Run them with
   `-Pandroid.testInstrumentationRunnerArguments.annotation=app.beforeyoutape.android.live.Live
