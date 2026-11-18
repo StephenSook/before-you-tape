@@ -1,0 +1,114 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { ed } from "../../tests/engine/helpers";
+import type { ItemModels, ModelPort } from "../ai/port";
+import { createBoxStore, type BoxPersistence } from "../data/boxStore";
+import type { ItemRead } from "../shared/itemRead";
+import { PackPage, type PackPageProps } from "./PackPage";
+
+const liquidLotionLabelRead: ItemRead = {
+  itemName: "Body lotion", category: "lotion_cream", labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0, milliampHours: 0, wattHours: 0,
+  lithiumGrams: 0, batteryWords: false, liquid: true, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
+  glassContainer: false, powder: false, retailBox: "cannot_tell", evidence: "label_read",
+};
+const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
+  ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
+const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
+const persistence: BoxPersistence = { save: () => {}, load: async () => null };
+let n = 0;
+const newStore = () => createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
+const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
+const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
+
+function setup(over: Partial<PackPageProps> = {}, consent: boolean | null = true) {
+  const store = over.store ?? newStore();
+  if (consent !== null) store.setConsent(consent);
+  const models = (over.models as ReturnType<typeof spyModels> | undefined) ?? spyModels();
+  render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
+    saveCrop={async () => {}} online {...over} />);
+  return { store, models };
+}
+
+describe("PackPage", () => {
+  beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
+  beforeEach(() => {
+    // A decodable stand-in for the picked photo.
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => { const c = document.createElement("canvas"); c.width = 640; c.height = 480; return c; }));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("makes no model call when the cloud is paused", async () => {
+    const { models } = setup({ config: { killCloud: true } });
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this laptop still work."));
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+  });
+
+  it("shows the suspended banner", () => {
+    const store = newStore();
+    store.setDestination("HT");
+    setup({ store });
+    expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Haiti is suspended.");
+  });
+
+  it("asks for consent before any cloud call and remembers the answer", async () => {
+    const { store } = setup({}, null);
+    expect(screen.getByText(/a cropped photo of the item and the words on its label go to Google's Gemini/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(store.getState().cloudConsent).toBe(true);
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+  });
+
+  it("reads an added photo in the cloud and shows its verdict, then re-checks a country change with no model call", async () => {
+    const { models } = setup();
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
+    expect(within(card).getByTestId("crop-image")).toHaveAttribute("src", expect.stringMatching(/^data:image\/jpeg/));
+    expect(models.cloud.generate).toHaveBeenCalledTimes(1);
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "PH");
+    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+    expect(screen.getByTestId("recheck-line")).toHaveTextContent("0 model calls");
+    expect(models.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("says what to do when nothing can read the photo", async () => {
+    const { models } = setup({}, false);
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("adds a typed item with no model call, and judges it", async () => {
+    const { models } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    const form = screen.getByTestId("add-by-hand");
+    await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
+    await userEvent.click(within(form).getByLabelText("It is a liquid"));
+    await userEvent.click(within(form).getByRole("button", { name: "Add" }));
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Typed by you");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+  });
+
+  it("applies a fixed reading to the verdict", async () => {
+    const { store } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    const form = screen.getByTestId("add-by-hand");
+    await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
+    await userEvent.click(within(form).getByRole("button", { name: "Add" }));
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    const fix = within(card).getByTestId("fix-reading");
+    await userEvent.click(within(fix).getByLabelText("The label says flammable"));
+    await userEvent.click(within(fix).getByRole("button", { name: "Save" }));
+    expect(store.getState().items[0]?.overrides).toEqual({ flammableOnLabel: true });
+    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+  });
+});

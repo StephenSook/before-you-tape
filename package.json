@@ -22,7 +22,8 @@
     "release:gate": "tsx scripts/release-gate.ts",
     "desk:apply": "tsx scripts/apply-desk-pass.ts",
     "appcheck:control": "tsx --env-file-if-exists=.env.local scripts/appcheck-control.ts",
-    "device:e2e": "tsx scripts/device-e2e.ts"
+    "device:e2e": "tsx scripts/device-e2e.ts",
+    "build:embed": "sh scripts/build-embed.sh dist-embed"
   },
   "dependencies": {
     "firebase": "13.4.0",
@@ -44,6 +45,7 @@
     "canvas": "3.2.3",
     "eslint": "10.14.0",
     "eslint-plugin-react-hooks": "7.1.1",
+    "fake-indexeddb": "6.2.7",
     "globals": "17.14.0",
     "jsdom": "29.1.1",
     "tsx": "4.23.15",

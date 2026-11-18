@@ -1,0 +1,50 @@
+/* Plain baseline styling on the spec 5.13 tokens. No drop shadows; depth comes from outlines. */
+@import "./tokens.css";
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button, input, select { font: inherit; color: inherit; }
+
+button {
+  border: var(--outline);
+  border-radius: var(--radius-button);
+  background: var(--paper);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--night); outline-offset: 2px; }
+
+.pack { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: var(--space-5); padding: var(--space-5); }
+@media (max-width: 700px) { .pack { grid-template-columns: 1fr; padding: var(--space-4); } }
+
+.stage { position: relative; background: var(--night); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-4); }
+.stage video, .stage img { display: block; width: 100%; height: auto; border-radius: 12px; }
+.hold-zone { position: absolute; border: 3px dashed var(--paper); border-radius: 12px; pointer-events: none; }
+.stage-line { margin: var(--space-3) 0 0; font-size: 18px; }
+
+.card { border: var(--outline); border-radius: var(--radius-card); padding: var(--space-4); background: var(--paper); }
+.card + .card { margin-top: var(--space-3); }
+.card .item-name { font-size: 20px; font-weight: 600; margin: 0; }
+.card img { width: 96px; height: auto; border-radius: 8px; border: var(--outline); }
+
+.chip { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3); border-radius: var(--radius-chip); font-weight: 700; }
+.chip svg { width: 18px; height: 18px; }
+.chip-ok { background: var(--holly); color: var(--paper); }
+.chip-take_out { background: var(--berry) repeating-linear-gradient(45deg, transparent 0 6px, rgb(0 0 0 / 12%) 6px 8px); color: var(--paper); }
+.chip-check { background: var(--amber); color: var(--ink); border: 2px dotted var(--ink); }
+
+.banner { border: var(--outline); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 150ms !important; transition-duration: 150ms !important; }
+}
