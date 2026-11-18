@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): save the box to a file this iPhone can read only when unlocked
+- What: `BoxFiles` keeps one JSON file per box in Application Support, written atomically with
+  complete file protection, and reports a failed save or load in words (`problem`) instead of
+  dropping it. A box id must be letters, digits, "-" or "_", so it cannot name a file elsewhere.
+  What is saved is the store's snapshot: no label text and no verdicts.
+- Source: iPhone client plan, task I-9 (`LocalFiles`).
+- Verified: three tests (round trip, the write options, unsafe ids refused) failed to compile
+  without the type, then passed; `bash ios/scripts/ci-local-ios.sh` exit 0. The simulator does
+  not report file protection, so the protection itself is read back on the iPhone.
+
 ### feat(ios): make every cloud read wait for the anonymous sign-in
 - What: `SignedInCloudRunner` awaits `SignIn.ensure()` before any cloud call and sends nothing
   when sign-in fails (`not_signed_in`). `AppModel` now owns the rules engine and the item
