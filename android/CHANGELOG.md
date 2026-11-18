@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Local gate and test counter.** `android/ci-local.sh` runs, each bare and stopping at the
+  first failure: `:engine:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`, then
+  `count-tests.py` over both modules' reports with a floor (1 for now; raised at each merge
+  point, never lowered), then `guard.sh`; its last line is "ci-local(android): all checks
+  passed". `count-tests.py` is copied from Point Last Seen and changed to take several report
+  folders. Source: Android plan Task 1. Verified: `bash android/ci-local.sh` exit 0
+  (tests=1); the counter exits 1 on a folder with no reports and on a total under `--min`;
+  the root CI mirror exit 0.
+
 - **Lane guard with a planted-violation proof.** `android/guard.sh` walks every tracked and
   untracked (not ignored) file under `android/`, prints the count, exits 2 under 10 files, and
   fails on: `Firebase.ai(` or `generativeModel(` outside `ai/AiClient.kt` and the live device
