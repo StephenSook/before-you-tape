@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **One shared sign-in, so two anonymous users can never race.** App start launched its own
+  anonymous sign-in without waiting, and a cloud read (or a box write) could start a second one
+  through `FirebaseSignIn` at the same time. Whichever finished last became the user, so a
+  request could go out as a different uid from the one the app held: the box rules refused a box
+  created that way. `SignIn` now serializes every call behind one lock, so callers that arrive
+  together share a single sign-in. App start, cloud reads and box writes all use the same
+  `FirebaseSignIn`. Source: a live box test against the deployed rules (a box create was refused
+  while the app's own start-up sign-in was still running). Verified: `SignInTest` (2 tests, which
+  failed to compile first) passes: three concurrent callers share one sign-in and the same uid,
+  and a signed-in user is returned with no new sign-in. `bash android/ci-local.sh` and the root
+  CI mirror exit 0.
+
 - **A release build cannot ship without the Firebase configuration.** The build applies the
   Google Services plugin only when `app/google-services.json` exists (CI has none), so a release
   build from a checkout without the file used to succeed with no Firebase app, and so no AI
