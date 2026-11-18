@@ -32,4 +32,8 @@ Copy `.env.example` to `.env.local` and fill in your own Firebase web config. Ne
 
 Apache License 2.0. See `LICENSE` and `NOTICE`.
 
+Third-party tools with a different licence, used only in development and tests and never shipped in the app:
+
+- `@axe-core/playwright` and `axe-core` (accessibility checks in the Playwright tests): Mozilla Public License 2.0.
+
 Not affiliated with or approved by the US Postal Service.

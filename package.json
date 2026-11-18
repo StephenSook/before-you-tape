@@ -20,15 +20,19 @@
     "edition": "tsx scripts/build-edition.ts",
     "edition:check": "tsx scripts/build-edition.ts --check",
     "release:gate": "tsx scripts/release-gate.ts",
-    "desk:apply": "tsx scripts/apply-desk-pass.ts"
+    "desk:apply": "tsx scripts/apply-desk-pass.ts",
+    "appcheck:control": "tsx --env-file-if-exists=.env.local scripts/appcheck-control.ts"
   },
   "dependencies": {
+    "firebase": "13.4.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router-dom": "7.18.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
