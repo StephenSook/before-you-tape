@@ -14,7 +14,8 @@ export interface FirestorePersistence extends BoxPersistence {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function firestorePersistence(db: Firestore, uid: string, editionId: string): FirestorePersistence {
+export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string)): FirestorePersistence {
+  const edition = () => (typeof editionId === "function" ? editionId() : editionId);
   let exists: boolean | null = null;
   let known = new Set<string>();
   let queue: Promise<void> = Promise.resolve();
@@ -22,7 +23,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
 
   const write = async (s: BoxState) => {
     const box = doc(db, "boxes", s.boxId);
-    const content = { destinationCode: s.destinationCode, editionId, cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs };
+    const content = { destinationCode: s.destinationCode, editionId: edition(), cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs };
     if (exists === false) {
       await setDoc(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
       exists = true;
@@ -58,5 +59,21 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     },
     idle: () => queue,
     lastError: () => error,
+  };
+}
+
+// Firestore needs a signed-in user. Until sign-in finishes, saves wait in order; if it fails (offline on a
+// first visit), the box stays in this browser's storage instead.
+export function persistenceAfterSignIn(
+  signIn: Promise<string>, make: (uid: string) => BoxPersistence, fallback: BoxPersistence,
+): BoxPersistence & { idle(): Promise<void> } {
+  const target = signIn.then(make, () => fallback);
+  let queue: Promise<void> = Promise.resolve();
+  return {
+    save(state) {
+      queue = queue.then(() => target).then((p) => p.save(state));
+    },
+    load: (boxId) => target.then((p) => p.load(boxId)),
+    idle: () => queue.then(() => target).then((p) => ("idle" in p && typeof p.idle === "function" ? (p.idle as () => Promise<void>)() : undefined)),
   };
 }
