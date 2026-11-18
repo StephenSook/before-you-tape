@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A written release gate: a real read on the judge path.** `android/RELEASE.md` says how to
+  build the release APK and what `release.sh` checks. An APK ships only after the release probe
+  passes on a real phone with the signed APK sideloaded, the way a judge installs it: a token
+  from the release App Check provider, a sign-in, and a cloud read of a known label through the
+  app's own reader. It also names what that depends on outside the repo: App Check's Play
+  Integrity settings must accept an app Google Play does not recognize, and emulators or phones
+  without the Play Store cannot pass. Source: review (second model) of the Android pull request,
+  finding 2. The provider choice itself waits for that run on a real phone. Verified: the command
+  in the file is the one run on the emulator today (it failed there at the App Check step, as the
+  file says it must); `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A phone that can download its own model is offered it, and readiness is checked again on
   return.** The app checked the on-device model once, at start, and treated anything but
   AVAILABLE as "no model". A phone that reported DOWNLOADABLE, where the person kept everything
