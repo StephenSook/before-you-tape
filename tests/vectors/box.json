@@ -114,5 +114,29 @@
     "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3850mV 4000mAh 15.4Wh", "volts": 3850, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-WH-MISMATCH"] }
+  },
+  {
+    "name": "chocolate_bar_to_philippines_is_check", "source": "IMM Philippines PH-P-01: liquids, easily liquefiable items, and glass",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "bar", "read": { "category": "chocolate", "labelText": "EXCELLENCE 85% CACAO RICH DARK" } }],
+    "expect": { "bar": "check" }, "expectRules": { "bar": ["PH-P-01"] }
+  },
+  {
+    "name": "chocolate_named_on_a_packaged_food_to_philippines_is_check", "source": "IMM Philippines PH-P-01",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "snack", "read": { "category": "food_packaged", "labelText": "MILK CHOCOLATE COVERED ALMONDS" } }],
+    "expect": { "snack": "check" }, "expectRules": { "snack": ["PH-P-01"] }
+  },
+  {
+    "name": "margarine_to_philippines_is_check", "source": "IMM Philippines PH-P-01",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "spread", "read": { "category": "food_packaged", "labelText": "MARGARINE SPREAD" } }],
+    "expect": { "spread": "check" }, "expectRules": { "spread": ["PH-P-01"] }
+  },
+  {
+    "name": "chocolate_bar_to_canada_stays_ok", "source": "no Canada line names chocolate",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "bar", "read": { "category": "chocolate", "labelText": "EXCELLENCE 85% CACAO RICH DARK" } }],
+    "expect": { "bar": "ok" }
   }
 ]
