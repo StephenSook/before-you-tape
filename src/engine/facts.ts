@@ -99,7 +99,11 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
     evidence: read.evidence,
     identity,
     battery: deriveBattery(read, input.answers, input.quantity, edition.limits, tagList),
-    condition: conditionOf(input.answers.device_condition),
+    // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
+    // the box reading (an override to "sealed") is how the sender clears it.
+    condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none"
+      ? "new_opened"
+      : conditionOf(input.answers.device_condition),
     alcohol,
     quantity: input.quantity,
   };
