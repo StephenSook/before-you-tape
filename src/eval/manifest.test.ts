@@ -3,7 +3,7 @@ import { creditLine, OWN_PHOTO_LICENSE, setProblems } from "./manifest";
 import type { EvalItem, EvalSet } from "./types";
 
 const open = (itemId: string, license: string, licenseUrl: string): EvalItem => ({
-  itemId, photo: `/eval/items/${itemId}.jpg`, photoSha256: "a".repeat(64), hazard: false, printed: null,
+  itemId, photo: `/eval/items/${itemId}.jpg`, photoSha256: "a".repeat(64), hazard: true, printed: null,
   truth: { CA: { expected: "ok", section: "IMM Canada" }, PH: { expected: "take_out", section: "IMM Philippines PH-P-01" } },
   provenance: { sourcePage: "https://commons.wikimedia.org/wiki/File:X.jpg", author: "Jane Roe", license, licenseUrl },
 });
@@ -36,6 +36,17 @@ describe("setProblems", () => {
     expect(problems).toMatch(/a: repeated item id/);
     expect(problems).toMatch(/b: photoSha256 is not a SHA-256/);
     expect(problems).toMatch(/b: no label for PH/);
+  });
+});
+
+describe("setProblems on the hazard flag", () => {
+  it("requires hazard exactly when some destination's label is not OK to pack", () => {
+    const lotion = open("lotion", "CC0 1.0", "https://creativecommons.org/publicdomain/zero/1.0/");
+    const shirt = { ...open("shirt", "CC0 1.0", "https://creativecommons.org/publicdomain/zero/1.0/"), hazard: false, truth: { CA: { expected: "ok" as const, section: "s" }, PH: { expected: "ok" as const, section: "s" } } };
+    expect(setProblems(setOf([lotion, shirt]), 2)).toEqual([]);
+    const problems = setProblems(setOf([{ ...lotion, hazard: false }, { ...shirt, hazard: true }]), 2).join("\n");
+    expect(problems).toMatch(/lotion: hazard must be true: a destination's label is not OK to pack/);
+    expect(problems).toMatch(/shirt: hazard must be false: every destination's label is OK to pack/);
   });
 });
 
