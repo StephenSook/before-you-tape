@@ -17,6 +17,12 @@ import app.beforeyoutape.android.ui.HomeView
 class MainActivity : ComponentActivity() {
     private val vm: BoxViewModel by viewModels()
 
+    override fun onResume() {
+        super.onResume()
+        // The on-device model may have finished downloading (or been removed) while the app was away.
+        vm.refreshModel()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

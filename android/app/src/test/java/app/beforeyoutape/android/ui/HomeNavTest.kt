@@ -1,12 +1,13 @@
 package app.beforeyoutape.android.ui
 
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.box.BoxLogic
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class HomeNavTest {
     private val ui = HomeUi(
-        loading = false, destinations = emptyList(), box = BoxLogic.empty("CA"), consent = true, deviceModelReady = false,
+        loading = false, destinations = emptyList(), box = BoxLogic.empty("CA"), consent = true, deviceModel = DeviceModelStatus.UNAVAILABLE,
         busy = true, message = null, view = HomeView.CAMERA, fixRead = null,
     )
 

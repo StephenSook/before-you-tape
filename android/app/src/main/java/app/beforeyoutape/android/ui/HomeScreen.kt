@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.box.BoxState
 import app.beforeyoutape.android.capture.BitmapCrop
 import app.beforeyoutape.engine.DestinationName
@@ -34,7 +35,7 @@ data class HomeUi(
     val destinations: List<DestinationName>,
     val box: BoxState,
     val consent: Boolean?,
-    val deviceModelReady: Boolean,
+    val deviceModel: DeviceModelStatus,
     val busy: Boolean,
     val message: String?,
     val view: HomeView,
@@ -66,6 +67,9 @@ interface HomeActions {
     fun remove(itemId: String)
     /** One tap: 1 for one more, -1 for one fewer. */
     fun quantity(itemId: String, step: Int)
+
+    /** Download the on-device model. */
+    fun getModel()
 }
 
 /**
@@ -83,7 +87,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 ui.loading -> Text(Copy.LOADING, style = MaterialTheme.typography.bodyLarge)
-                ui.consent == null -> ConsentScreen(null, ui.deviceModelReady, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
+                ui.consent == null -> ConsentScreen(null, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
                 ui.view == HomeView.TYPE -> ReadForm(null, ReadCopy.NAME_OPTIONAL, ReadCopy.ADD, actions::typed)
                 ui.view == HomeView.FIX && ui.fixItemId != null ->
                     ReadForm(ui.fixRead, ReadCopy.NAME, ReadCopy.SAVE, { actions.fixed(ui.fixItemId, it) })
@@ -92,8 +96,8 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
                 chosen == null -> Text(Copy.CHOOSE_DESTINATION_FIRST, style = MaterialTheme.typography.bodyLarge)
-                ui.consent == false && !ui.deviceModelReady ->
-                    ConsentScreen(false, false, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
+                ui.consent == false && ui.deviceModel != DeviceModelStatus.AVAILABLE ->
+                    ConsentScreen(false, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) }, onGetModel = actions::getModel)
                 else -> camera()
             }
         }

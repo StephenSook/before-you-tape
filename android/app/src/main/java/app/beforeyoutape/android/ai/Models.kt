@@ -8,6 +8,14 @@ enum class Source { ON_DEVICE, IN_CLOUD }
 enum class DeviceModelStatus { AVAILABLE, DOWNLOADABLE, DOWNLOADING, UNAVAILABLE, UNKNOWN }
 
 /** The three SDK modes the app uses. PREFER_IN_CLOUD is never used. */
+/** The on-device model's download, as the app reports it. */
+sealed interface ModelDownload {
+    data class Started(val bytesToDownload: Long) : ModelDownload
+    data class Progress(val bytesDownloaded: Long) : ModelDownload
+    data object Done : ModelDownload
+    data class Failed(val message: String?) : ModelDownload
+}
+
 enum class SdkMode { PREFER_ON_DEVICE, ONLY_ON_DEVICE, ONLY_IN_CLOUD }
 
 /** A model's reply: the read (null when the model gave nothing usable), where it ran, and how long it took. */

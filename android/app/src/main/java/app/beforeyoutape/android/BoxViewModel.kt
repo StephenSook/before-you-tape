@@ -10,6 +10,7 @@ import app.beforeyoutape.android.ai.CloudState
 import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.ai.FailReason
 import app.beforeyoutape.android.ai.ItemReader
+import app.beforeyoutape.android.ai.ModelDownload
 import app.beforeyoutape.android.ai.Prompts
 import app.beforeyoutape.android.ai.ReadOutcome
 import app.beforeyoutape.android.box.BoxController
@@ -89,7 +90,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     private val state = MutableStateFlow(
         HomeUi(
-            loading = true, destinations = emptyList(), box = box.state, consent = store.cloudConsent(), deviceModelReady = false,
+            loading = true, destinations = emptyList(), box = box.state, consent = store.cloudConsent(), deviceModel = DeviceModelStatus.UNKNOWN,
             busy = false, message = null, view = HomeView.CAMERA, fixRead = null,
         ),
     )
@@ -107,10 +108,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
                 it.copy(loading = false, destinations = loaded?.second.orEmpty(), box = box.state, message = if (loaded == null) Copy.RULES_NOT_LOADED else null)
             }
         }
-        viewModelScope.launch {
-            val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
-            state.update { it.copy(deviceModelReady = status == DeviceModelStatus.AVAILABLE) }
-        }
+        refreshModel()
     }
 
     private fun online(): Boolean {
@@ -192,6 +190,31 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun quantity(itemId: String, step: Int) = onWorker {
         box.stepQuantity(itemId, step)
         publish()
+    }
+
+    /** Re-checks the on-device model: at start and whenever the app comes back to the front. */
+    fun refreshModel() {
+        viewModelScope.launch {
+            val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
+            state.update { it.copy(deviceModel = status) }
+        }
+    }
+
+    override fun getModel() {
+        val client = ai ?: return
+        if (state.value.deviceModel == DeviceModelStatus.DOWNLOADING) return
+        viewModelScope.launch {
+            client.downloadModel().collect { step ->
+                when (step) {
+                    is ModelDownload.Started, is ModelDownload.Progress -> state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
+                    ModelDownload.Done -> refreshModel()
+                    is ModelDownload.Failed -> {
+                        state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
+                        refreshModel()
+                    }
+                }
+            }
+        }
     }
 
     override fun remove(itemId: String) = onWorker {

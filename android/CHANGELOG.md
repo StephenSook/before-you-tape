@@ -3,6 +3,25 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A phone that can download its own model is offered it, and readiness is checked again on
+  return.** The app checked the on-device model once, at start, and treated anything but
+  AVAILABLE as "no model". A phone that reported DOWNLOADABLE, where the person kept everything
+  on the phone, could only type, even after the model arrived.
+  - Now, with consent declined, DOWNLOADABLE offers "Get the model on this phone" (the SDK's
+    `OnDeviceExtension.download()`), and DOWNLOADING says the model is on its way and offers
+    typing.
+  - Each download step is mapped to the app's own `ModelDownload`. A finished or failed download
+    re-checks the status; a failed one also says so.
+  - `MainActivity.onResume` re-checks the model's status, and `HomeUi` carries that status
+    instead of a yes or no.
+
+  Source: review (second model) of the Android pull request, finding 4. Verified:
+  `AiMappingTest.everySdkDownloadEventMapsToOurs` and two new `ConsentScreenTest` cases (the
+  offer and its button; typing while it downloads) failed to compile first, then pass. The UI
+  device tests pass 20 of 20 on the emulator (whose model status is UNAVAILABLE, so the
+  download itself waits for a supported phone). `bash android/ci-local.sh` and the root CI
+  mirror exit 0.
+
 - **The release probe now proves a real read, not just a reply.** The probe passed whenever the
   App Check call and the model call returned, even when the reply could not be decoded (no read)
   and even when sign-in failed (only logged). It now runs the app's production read path: the
