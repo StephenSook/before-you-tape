@@ -64,10 +64,11 @@ describe("createItemModels", () => {
     expect(hybrid.generateContent).toHaveBeenCalledWith(["read it", { type: "inlineData", inlineData: { mimeType: "image/jpeg", data: "AAAA" } }]);
   });
 
-  it("never reports on_device unless the SDK says so", async () => {
-    spy.mockReturnValueOnce(fakeModel({ text: "" })).mockReturnValueOnce(fakeModel({ text: "{}" })).mockReturnValueOnce(fakeModel({ text: "" }));
+  it("never reports on_device unless the SDK says so, and marks a reply that names no route", async () => {
+    spy.mockReturnValueOnce(fakeModel({ text: "" })).mockReturnValueOnce(fakeModel({ text: "{}" })).mockReturnValueOnce(fakeModel({ text: "{}", inferenceSource: "in_cloud" }));
     const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm);
-    await expect(m.hybrid.generate("p", img)).resolves.toMatchObject({ source: "in_cloud" });
+    await expect(m.hybrid.generate("p", img)).resolves.toEqual({ text: "{}", source: "in_cloud", unreported: true });
+    await expect(m.cloud.generate("p", img)).resolves.toEqual({ text: "{}", source: "in_cloud" });
   });
 
   it("checks the on-device model again at call time and makes no SDK call when it is gone", async () => {
@@ -87,7 +88,7 @@ describe("createTextCloudModel", () => {
   beforeEach(() => { spy.mockClear(); });
 
   it("calls only the cloud with the given schema and no image", async () => {
-    const model = fakeModel({ text: "{\"lines\":[]}" });
+    const model = fakeModel({ text: "{\"lines\":[]}", inferenceSource: "in_cloud" });
     spy.mockReturnValueOnce(model);
     const schema = Schema.object({ properties: { lines: Schema.array({ items: Schema.string() }) } });
     const port = createTextCloudModel(fakeAi(), "gemini-3.5-flash-lite", schema);

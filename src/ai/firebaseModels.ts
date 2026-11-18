@@ -10,7 +10,8 @@ import type { ItemModels, ModelPort } from "./port";
 import { ITEM_READ_SYSTEM } from "./prompts";
 
 // Sends the prompt, plus the photo when there is one, and reports where the SDK says it ran. A reply
-// without an inference source is counted as cloud, so nothing is ever claimed on-device by default.
+// without an inference source is counted as cloud, so nothing is ever claimed on-device by default,
+// and is marked unreported so the card does not claim the cloud either.
 function portFor(model: GenerativeModel, withImage: boolean): ModelPort {
   return {
     async generate(prompt, image) {
@@ -18,7 +19,10 @@ function portFor(model: GenerativeModel, withImage: boolean): ModelPort {
         ? [prompt, { type: "inlineData", inlineData: { mimeType: image.mimeType, data: image.base64 } }]
         : [prompt];
       const { response } = await model.generateContent(parts);
-      return { text: response.text(), source: response.inferenceSource === "on_device" ? "on_device" : "in_cloud" };
+      const where = response.inferenceSource;
+      if (where === "on_device") return { text: response.text(), source: "on_device" };
+      if (where === "in_cloud") return { text: response.text(), source: "in_cloud" };
+      return { text: response.text(), source: "in_cloud", unreported: true };
     },
   };
 }

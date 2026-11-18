@@ -10,6 +10,8 @@ export interface ImagePart {
 export interface ModelReply {
   text: string;
   source: InferenceSourceName;
+  // The SDK named no route: the reply counts as cloud, and the card says the route was not reported.
+  unreported?: true;
 }
 
 export interface ModelPort {
