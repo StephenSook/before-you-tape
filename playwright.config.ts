@@ -11,7 +11,8 @@ export default defineConfig({
   reporter: process.env.CI ? "list" : "line",
   projects: [
     { name: "local", use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4173" } },
-    { name: "live", use: { ...devices["Desktop Chrome"], baseURL: "https://before-you-tape-2026.web.app" } },
+    // *.local.spec.ts stub the model endpoint, so they never run against the live site.
+    { name: "live", testIgnore: /\.local\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: "https://before-you-tape-2026.web.app" } },
   ],
   ...(live ? {} : {
     webServer: { command: "npm run preview -- --port 4173 --strictPort", url: "http://localhost:4173", reuseExistingServer: !process.env.CI },
