@@ -50,6 +50,8 @@ export interface BoxPersistence {
 export interface BoxStore {
   ready: Promise<void>;
   getState(): BoxState;
+  // The edition the verdicts come from, for its limits and its reviewed countries.
+  edition(): RuleEdition;
   subscribe(listener: (s: BoxState) => void): () => void;
   addRead(outcome: ReadOutcome, cropKey: string): string;
   addManual(read: ItemRead): string;
@@ -132,6 +134,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   return {
     ready,
     getState: () => state,
+    edition: () => deps.edition(),
     subscribe(listener) {
       listeners.add(listener);
       return () => { listeners.delete(listener); };

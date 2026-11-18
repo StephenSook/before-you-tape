@@ -151,4 +151,6 @@ describe("createBoxStore", () => {
     expect(s.getState().items).toHaveLength(0);
     expect(s.getState().result.items[id]).toBeUndefined();
   });
+
+  it("gives the edition its verdicts come from, for its limits and reviewed countries", () => expect(store().edition()).toBe(ed));
 });
