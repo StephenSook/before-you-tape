@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-1686d7e1c4cf",
+  "editionId": "byt-1b7282bc745f",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -208,7 +208,11 @@
       "tag": "alcoholic_drink"
     },
     {
-      "pattern": "lighters?",
+      "pattern": "(?:butane|cigarette|cigar|pocket|disposable|refillable|torch|jet|gas|electric|windproof|flint|candle) lighters?",
+      "tag": "lighter"
+    },
+    {
+      "pattern": "lighter refills?",
       "tag": "lighter"
     },
     {
