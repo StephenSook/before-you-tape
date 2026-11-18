@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): say on the box when a change could not be saved
+- What: a save the file store refused (a box over 2 MB, a write error) was noted privately and
+  dropped, so the screen showed a change that reopening the app would lose. Saving now throws its
+  reason, and the box shows it under "Your box" ("This change is not saved: the box is too large.
+  The last saved box is kept.") until a later save works. The last good file is still never
+  replaced by one the loader would refuse.
+- Source: review.
+- Verified: a box whose saves fail keeps the change on screen and shows the reason, which clears
+  after a save works; an oversized snapshot throws and leaves the good file. The tests failed to
+  compile, then passed; 114 app unit tests pass; the CI mirror exit 0, with the secret scan
+  limited to this branch's history (another branch's test vectors trip the full scan; that is
+  being fixed on that branch).
+
 ### fix(ios): a cleared item name reads as "This item", never the first read's name
 - What: the line under the camera took the item's current name, but fell back to the name the
   model first read when the current name was blank. A perfume corrected to body lotion, with its

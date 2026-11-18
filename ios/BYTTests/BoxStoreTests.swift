@@ -51,7 +51,7 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         return String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
     }
 
-    func store(_ p: MemoryBoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil) throws -> BoxStore {
+    func store(_ p: BoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil) throws -> BoxStore {
         let engine = try engine ?? Self.bundledEngine()
         var n = 0
         return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "id-\(n)" }, now: { 1000 })
@@ -96,6 +96,25 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         s.reevaluate()
         #expect(s.items[0].labelTags.contains("alcohol") && s.items[0].tagsEdition == "byt-more-words")
         #expect(s.result?.items[id]?.level != "ok" && s.result?.items[id]?.hits.first?.text != BoxStore.rulesChanged)
+    }
+
+    final class FailingPersistence: BoxPersistence, @unchecked Sendable {
+        var failing = true
+        func save(_ snapshot: BoxSnapshot) throws { if failing { throw BoxFiles.SaveError(BoxFiles.tooLarge) } }
+        func load(boxId: String) -> BoxSnapshot? { nil }
+    }
+
+    /// A change the iPhone could not save is still on screen, and the box says it is not saved
+    /// until a later save works.
+    @Test func aChangeThatCannotBeSavedSaysSo() throws {
+        let p = FailingPersistence()
+        let s = try store(p)
+        #expect(s.saveProblem == nil)
+        let id = s.addManual(Self.lotion)
+        #expect(s.items.count == 1 && s.saveProblem == BoxFiles.tooLarge)
+        p.failing = false
+        s.setQuantity(id, 2)
+        #expect(s.saveProblem == nil)
     }
 
     @Test func reChecksOnACountryChangeWithNoModelCall() throws {

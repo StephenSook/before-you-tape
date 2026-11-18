@@ -14,6 +14,15 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     /// A saved box is a few kilobytes; a larger file is damaged and is not read.
     static let maxFileBytes = 2_000_000
 
+    /// Why a save did not happen, in the words the box shows.
+    struct SaveError: Error, Equatable, LocalizedError {
+        let message: String
+        init(_ message: String) { self.message = message }
+        var errorDescription: String? { message }
+    }
+
+    static let tooLarge = "This change is not saved: the box is too large. The last saved box is kept."
+
     /// Atomic, and readable only while the iPhone is unlocked.
     static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
 
@@ -26,21 +35,28 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         return folder.appendingPathComponent(boxId + ".json")
     }
 
-    func save(_ snapshot: BoxSnapshot) {
-        guard let url = url(boxId: snapshot.boxId) else { problem = "The box id is not a safe file name."; return }
+    /// Writes the box, or throws why not, so the change on screen is never silently unsaved.
+    func save(_ snapshot: BoxSnapshot) throws {
+        func fail(_ message: String) -> SaveError {
+            problem = message
+            return SaveError(message)
+        }
+        guard let url = url(boxId: snapshot.boxId) else { throw fail("This change is not saved: the box id is not a safe file name.") }
+        let data: Data
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(snapshot)
-            // Never replace the last good file with one the loader would refuse.
-            guard data.count <= Self.maxFileBytes else {
-                problem = "The box is too large to save (\(data.count) bytes). The last saved box is kept."
-                return
-            }
-            try data.write(to: url, options: Self.writeOptions)
-            problem = nil
+            data = try JSONEncoder().encode(snapshot)
         } catch {
-            problem = "The box could not be saved: \(error.localizedDescription)"
+            throw fail("This change is not saved: \(error.localizedDescription)")
         }
+        // Never replace the last good file with one the loader would refuse.
+        guard data.count <= Self.maxFileBytes else { throw fail(Self.tooLarge) }
+        do {
+            try data.write(to: url, options: Self.writeOptions)
+        } catch {
+            throw fail("This change is not saved: \(error.localizedDescription)")
+        }
+        problem = nil
     }
 
     func load(boxId: String) -> BoxSnapshot? {

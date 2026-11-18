@@ -82,7 +82,8 @@ struct BoxSnapshot: Codable, Equatable, Sendable {
 }
 
 protocol BoxPersistence {
-    func save(_ snapshot: BoxSnapshot)
+    /// Throws when the box could not be saved; the error's description is shown to the sender.
+    func save(_ snapshot: BoxSnapshot) throws
     func load(boxId: String) -> BoxSnapshot?
 }
 
@@ -154,6 +155,8 @@ final class BoxStore {
     private(set) var lastRecheckMs: Double?
     /// The engine's own error when it could not evaluate the box; the screens say so plainly.
     private(set) var engineProblem: String?
+    /// Why the last change is not saved on this iPhone; nil once a save works.
+    private(set) var saveProblem: String?
 
     @ObservationIgnored private let engine: RulesEngine
     @ObservationIgnored private let persistence: BoxPersistence
@@ -281,8 +284,13 @@ final class BoxStore {
 
     private func commit(_ fresh: BoxResult?? = nil) {
         result = fresh ?? evaluate()
-        persistence.save(BoxSnapshot(boxId: boxId, destinationCode: destinationCode, items: items.map(\.forStorage),
-                                     cloudConsent: cloudConsent, sources: sources))
+        do {
+            try persistence.save(BoxSnapshot(boxId: boxId, destinationCode: destinationCode, items: items.map(\.forStorage),
+                                             cloudConsent: cloudConsent, sources: sources))
+            saveProblem = nil
+        } catch {
+            saveProblem = (error as? LocalizedError)?.errorDescription ?? "This change is not saved on this iPhone."
+        }
     }
 
     private func evaluate() -> BoxResult? {

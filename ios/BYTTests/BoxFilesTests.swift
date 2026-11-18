@@ -11,7 +11,7 @@ import Testing
         let files = BoxFiles(folder: folder())
         let item = BoxItem(itemId: "i1", read: .object(["labelText": .string("")]), labelTags: ["alcohol"], readSource: "phone_cloud", readMs: 900)
         let snap = BoxSnapshot(boxId: "b1", destinationCode: "PH", items: [item], cloudConsent: true, sources: BoxSources(inCloud: 1))
-        files.save(snap)
+        try files.save(snap)
         #expect(files.load(boxId: "b1") == snap)
         #expect(files.load(boxId: "other") == nil)
     }
@@ -43,11 +43,13 @@ import Testing
     @Test func aSnapshotTooLargeToReopenNeverReplacesTheGoodFile() throws {
         let files = BoxFiles(folder: folder())
         let good = BoxSnapshot(boxId: "b3", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources())
-        files.save(good)
+        try files.save(good)
         let huge = BoxItem(itemId: "i1", read: .object(["itemName": .string(String(repeating: "x", count: BoxFiles.maxFileBytes))]),
                            readSource: "manual", readMs: 0)
-        files.save(BoxSnapshot(boxId: "b3", destinationCode: "PH", items: [huge], cloudConsent: nil, sources: BoxSources()))
-        #expect(files.problem != nil)
+        // The save says so: the change on screen is not on disk.
+        #expect(throws: BoxFiles.SaveError(BoxFiles.tooLarge)) {
+            try files.save(BoxSnapshot(boxId: "b3", destinationCode: "PH", items: [huge], cloudConsent: nil, sources: BoxSources()))
+        }
         #expect(files.load(boxId: "b3") == good)
     }
 }
