@@ -68,11 +68,17 @@ jobs:
         env:
           GITLEAKS_VERSION: 8.30.1
         run: |
-          curl -sSfL -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -sSfL -o checksums.txt "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" checksums.txt | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
-          ./gitleaks git --redact --exit-code 1 .
+          set -o pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          cd "$RUNNER_TEMP"
+          # Keep the release file name: the checksum list refers to it by that name.
+          curl -sSfL -o "$tarball" "$base/$tarball"
+          curl -sSfL -o checksums.txt "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${tarball}$" checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" gitleaks
+          cd "$GITHUB_WORKSPACE"
+          "$RUNNER_TEMP/gitleaks" git --redact --exit-code 1 .
 
       - name: No co-author trailers in commit messages
         run: |
