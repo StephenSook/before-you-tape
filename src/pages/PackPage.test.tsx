@@ -47,6 +47,11 @@ describe("PackPage", () => {
     expect(models.hybrid.generate).not.toHaveBeenCalled();
   });
 
+  it("says when a newer rule edition could not be used", () => {
+    setup({ editionNotice: "A newer rule edition failed its integrity check. Using the built-in edition." });
+    expect(screen.getByTestId("edition-notice")).toHaveTextContent("A newer rule edition failed its integrity check. Using the built-in edition.");
+  });
+
   it("shows the suspended banner", () => {
     const store = newStore();
     store.setDestination("HT");

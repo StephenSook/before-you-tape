@@ -4,7 +4,9 @@ import { getAI, GoogleAIBackend, type AI } from "firebase/ai";
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { connectAuthEmulator, getAuth, signInAnonymously, type Auth } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
+import {
+  connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore,
+} from "firebase/firestore";
 
 export interface FirebaseEnv {
   VITE_FB_API_KEY: string;
@@ -54,7 +56,12 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
   initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
 
   const auth = getAuth(app);
-  const db = getFirestore(app);
+  // The box stays readable offline and in sync across tabs; a browser without IndexedDB keeps it in memory.
+  const db = initializeFirestore(app, {
+    localCache: typeof indexedDB !== "undefined" && indexedDB
+      ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      : memoryLocalCache(),
+  });
   if (env.VITE_USE_EMULATORS === "true") {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);

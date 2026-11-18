@@ -34,6 +34,16 @@
       "defaultValue": { "value": "0.0.0" },
       "valueType": "STRING",
       "description": "The lowest Android app version that may run; 0.0.0 asks no one to update."
+    },
+    "rules_edition_id": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "A newer published rule edition to use; empty uses the edition built into the app."
+    },
+    "rules_edition_sha256": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "The SHA-256 of that edition; the app uses it only when the fetched edition matches."
     }
   }
 }

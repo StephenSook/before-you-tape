@@ -1,10 +1,256 @@
 rules_version = '2';
 
-// Deny all reads and writes until the app's own rules land with the history feature.
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Every visitor signs in anonymously, so "signed in" is not a trust level: anything readable by any
+// signed-in user is public. Label text never goes to Firestore; it stays on the device with the crop.
+//
+// Collection: boxes
+// Document ID: random box id
+// Fields:
+//   - ownerUid: string (required, immutable) - who started the box
+//   - memberUids: list of uid strings (required, 1 to 4, immutable from clients) - who may read and write
+//   - joinKeyHash: string (required, empty at creation, immutable from clients) - set by the join function
+//   - destinationCode: string (required, 2 letters) - the destination country
+//   - editionId: string (required, up to 64) - the rule edition the box was judged with
+//   - cloudConsent: bool or null (required) - the sender's cloud answer
+//   - sources: map of counts (optional) - onDevice, inCloud, secondLooks, rulesOnlyRechecks, cloudFallbacks
+//   - lastRecheckMs: number or null (optional) - time of the last rules-only re-check
+//   - updatedAt: timestamp (optional)
+//
+// Collection: boxes/{boxId}/items
+// Document ID: item id
+// Fields: itemId, read (the model read, labelText always ""), overrides (no labelText), answers,
+//   quantity (1 to 99), identityConfirmedBy, labelTags, readSource, readMs, secondLook, readFallback
+//   (optional), cropKey, customs.
+//
+// Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
+// signed-in user. Everything else (evalRuns, senderSessions, blindSessions, listingQuota): admin only.
+// Membership and join keys change only through the Admin SDK, which these rules do not govern.
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // ---------------------------------------------------------------
+    // Helper Functions
+    // ---------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
+
+    function isMemberOf(box) {
+      return isAuthenticated() && box != null && request.auth.uid in box.data.memberUids;
+    }
+
+    function isShortString(v, maxLen) {
+      return v is string && v.size() <= maxLen;
+    }
+
+    function isNumberOrNull(v) {
+      return v == null || v is number;
+    }
+
+    function isCount(v) {
+      return v is int && v >= 0;
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ---------------------------------------------------------------
+    // Fixed vocabularies, copied from the rule edition and the read contract.
+    // tests/firestore-vocab.test.ts fails if any list here differs from its source.
+    // ---------------------------------------------------------------
+
+    // vocab:categories
+    function categories() {
+      return [
+        'perfume_fragrance', 'nail_polish', 'aerosol_spray', 'hand_sanitizer', 'lotion_cream', 'liquid_toiletry',
+        'makeup', 'powder', 'medicine', 'alcohol_drink', 'food_packaged', 'chocolate', 'coffee', 'cooking_oil',
+        'meat_product', 'phone', 'tablet', 'laptop', 'smartwatch', 'earbuds', 'power_bank', 'loose_battery',
+        'battery_toy', 'musical_card', 'other_electronics', 'lighter_matches', 'e_cigarette', 'glue_paint',
+        'knife_tool', 'toy_gun', 'candle', 'jewelry_watch', 'clothing', 'shoes', 'book_paper', 'toy', 'other'
+      ];
+    }
+
+    // vocab:tags
+    function knownTags() {
+      return [
+        'alcohol', 'alcohol_flag', 'alcohol_free_unsure', 'alcoholic_drink', 'battery_label', 'bullion', 'chocolate',
+        'christmas_cracker', 'cigar', 'clothing', 'coffee', 'cosmetic', 'dry_ice', 'easily_liquefiable',
+        'edible_oil', 'electronics', 'explosive', 'flammable', 'food', 'fragrance', 'glass_fragile',
+        'hardware_tools', 'hemp', 'hemp_maybe', 'jewelry_valuables', 'knife', 'label_text', 'li_ion', 'li_metal',
+        'lighter', 'liquid', 'magnet', 'margarine', 'matches', 'meat', 'mercury', 'pet_food', 'pharmaceutical',
+        'plant', 'pork_meat', 'powder', 'power_bank_label', 'pressurized', 'reprint', 'sanitizer', 'tobacco', 'toy',
+        'toy_gun', 'vaping'
+      ];
+    }
+
+    // vocab:answers
+    function isValidAnswers(a) {
+      return a is map
+        && a.keys().hasOnly(['battery_installed', 'cell_count', 'device_condition', 'label_alcohol', 'label_alcohol_free'])
+        && a.get('battery_installed', 'installed') in ['installed', 'loose', 'packed_beside', 'none', 'not_lithium']
+        && a.get('cell_count', 'one') in ['one', 'more_than_one', 'not_sure']
+        && a.get('device_condition', 'new_sealed') in ['new_sealed', 'new_opened', 'used', 'refurbished_certified']
+        && a.get('label_alcohol', 'yes') in ['yes', 'no', 'cannot_tell']
+        && a.get('label_alcohol_free', 'yes') in ['yes', 'no', 'cannot_tell'];
+    }
+
+    // ---------------------------------------------------------------
+    // Domain Validators (used on create and on update)
+    // ---------------------------------------------------------------
+
+    function isValidSources(s) {
+      return s is map
+        && s.keys().hasOnly(['onDevice', 'inCloud', 'secondLooks', 'rulesOnlyRechecks', 'cloudFallbacks'])
+        && isCount(s.get('onDevice', 0)) && isCount(s.get('inCloud', 0)) && isCount(s.get('secondLooks', 0))
+        && isCount(s.get('rulesOnlyRechecks', 0)) && isCount(s.get('cloudFallbacks', 0));
+    }
+
+    function isValidBox(d) {
+      return d.keys().hasAll(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent'])
+        && d.keys().hasOnly(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent',
+                             'sources', 'lastRecheckMs', 'updatedAt'])
+        && isShortString(d.ownerUid, 128)
+        && d.memberUids is list && d.memberUids.size() >= 1 && d.memberUids.size() <= 4
+        && isShortString(d.joinKeyHash, 128)
+        && d.destinationCode is string && d.destinationCode.matches('^[A-Z]{2}$')
+        && isShortString(d.editionId, 64)
+        && (d.cloudConsent == null || d.cloudConsent is bool)
+        && (!('sources' in d) || isValidSources(d.sources))
+        && (!('lastRecheckMs' in d) || isNumberOrNull(d.lastRecheckMs))
+        && (!('updatedAt' in d) || d.updatedAt is timestamp);
+    }
+
+    function isNonNegative(v) {
+      return v is number && v >= 0;
+    }
+
+    // Types of every read field that is present; shared by the read and the sender's corrections.
+    function readFieldsTyped(r) {
+      return isShortString(r.get('itemName', ''), 120)
+        && r.get('category', 'other') in categories()
+        && isNonNegative(r.get('volts', 0)) && isNonNegative(r.get('milliampHours', 0))
+        && isNonNegative(r.get('wattHours', 0)) && isNonNegative(r.get('lithiumGrams', 0))
+        && r.get('batteryWords', false) is bool && r.get('liquid', false) is bool && r.get('pressurized', false) is bool
+        && r.get('alcoholOnLabel', false) is bool && r.get('flammableOnLabel', false) is bool
+        && r.get('glassContainer', false) is bool && r.get('powder', false) is bool
+        && r.get('retailBox', 'cannot_tell') in ['sealed', 'open_or_none', 'cannot_tell']
+        && r.get('evidence', 'not_sure') in ['label_read', 'item_seen', 'not_sure'];
+    }
+
+    // The model read, with its label text emptied before saving.
+    function isValidRead(r) {
+      return r is map
+        && r.keys().hasOnly(['itemName', 'category', 'labelText', 'volts', 'milliampHours', 'wattHours', 'lithiumGrams',
+                             'batteryWords', 'liquid', 'pressurized', 'alcoholOnLabel', 'flammableOnLabel', 'glassContainer',
+                             'powder', 'retailBox', 'evidence'])
+        && r.keys().hasAll(['itemName', 'category', 'labelText', 'evidence'])
+        && r.labelText == ''
+        && readFieldsTyped(r);
+    }
+
+    // A sender's corrections: any read field except the label text.
+    function isValidOverrides(o) {
+      return o is map && !('labelText' in o)
+        && o.keys().hasOnly(['itemName', 'category', 'volts', 'milliampHours', 'wattHours', 'lithiumGrams',
+                             'batteryWords', 'liquid', 'pressurized', 'alcoholOnLabel', 'flammableOnLabel', 'glassContainer',
+                             'powder', 'retailBox', 'evidence'])
+        && readFieldsTyped(o);
+    }
+
+    function isValidSecondLook(v) {
+      return v == null
+        || (v is map && v.keys().hasOnly(['ms', 'reason']) && v.ms is number && isShortString(v.reason, 200));
+    }
+
+    function isValidFallback(v) {
+      return v is map && v.keys().hasOnly(['after', 'route'])
+        && v.after in ['500', '503', '404']
+        && v.route in ['device_only', 'hybrid', 'cloud_only', 'blocked'];
+    }
+
+    function isValidCustoms(c) {
+      return c is map
+        && c.keys().hasOnly(['description', 'lintOk', 'weightOz', 'valueUsd', 'countryOfOrigin', 'upc'])
+        && isShortString(c.get('description', ''), 200)
+        && c.get('lintOk', false) is bool
+        && isNumberOrNull(c.get('weightOz', null)) && isNumberOrNull(c.get('valueUsd', null))
+        && (c.get('countryOfOrigin', null) == null || isShortString(c.countryOfOrigin, 2))
+        && (c.get('upc', null) == null || isShortString(c.upc, 20));
+    }
+
+    function isValidItem(d) {
+      return d.keys().hasAll(['read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags', 'readSource'])
+        && d.keys().hasOnly(['itemId', 'read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags',
+                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs'])
+        && (!('itemId' in d) || isShortString(d.itemId, 64))
+        && isValidRead(d.read)
+        && isValidOverrides(d.overrides)
+        && isValidAnswers(d.answers)
+        && d.quantity is int && d.quantity >= 1 && d.quantity <= 99
+        && (d.identityConfirmedBy == null || d.identityConfirmedBy in ['sender', 'second_look'])
+        && d.labelTags is list && d.labelTags.size() <= 40 && d.labelTags.hasOnly(knownTags())
+        && d.readSource in ['on_device', 'in_cloud', 'cloud_unreported', 'manual', 'phone_on_device', 'phone_cloud']
+        && (!('readMs' in d) || d.readMs is number)
+        && (!('secondLook' in d) || isValidSecondLook(d.secondLook))
+        && (!('readFallback' in d) || isValidFallback(d.readFallback))
+        && (!('cropKey' in d) || d.cropKey == null || isShortString(d.cropKey, 64))
+        && (!('customs' in d) || isValidCustoms(d.customs));
+    }
+
+    // ---------------------------------------------------------------
+    // Boxes and their items: members only
+    // ---------------------------------------------------------------
+
+    match /boxes/{boxId} {
+      // Members read the box. Reading an id with no box only says the id is free, so a new box can start.
+      allow read: if isMemberOf(resource) || (isAuthenticated() && resource == null);
+      // A new box has one member, its owner, and no join key yet.
+      allow create: if isAuthenticated()
+        && isValidBox(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.joinKeyHash == '';
+      // Members change the box contents, never who belongs to it.
+      allow update: if isMemberOf(resource)
+        && isValidBox(request.resource.data)
+        && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash']);
+      allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+
+      match /items/{itemId} {
+        function parentBox() {
+          return get(/databases/$(database)/documents/boxes/$(boxId));
+        }
+        allow read, delete: if isMemberOf(parentBox());
+        allow create, update: if isMemberOf(parentBox()) && isValidItem(request.resource.data);
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Public data, written only by admin scripts
+    // ---------------------------------------------------------------
+
+    match /ruleEditions/{id} {
+      allow read: if isAuthenticated();
+    }
+    match /evalSets/{id} {
+      allow read: if isAuthenticated();
+    }
+    match /evalPublic/{id} {
+      allow read: if isAuthenticated();
+    }
+    match /publicStats/{id} {
+      allow read: if isAuthenticated();
+    }
+
+    // Everything else, including evalRuns, senderSessions, blindSessions and listingQuota, is denied.
   }
 }

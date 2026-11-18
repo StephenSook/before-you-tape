@@ -1,6 +1,7 @@
 // Builds the Pack page's real parts once: Firebase with App Check, Remote Config, the item-read models for
-// the model it names, the box in this browser's storage, the bundled rule edition and the destination
-// index. A build without its Firebase settings says so plainly instead of breaking.
+// the model it names, the box in Firestore after anonymous sign-in (in this browser's storage if sign-in
+// fails), the rule edition Remote Config pins (the bundled one unless a published one verifies), and the
+// destination index. A build without its Firebase settings says so plainly instead of breaking.
 import { useEffect, useState } from "react";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
@@ -11,14 +12,23 @@ import type { GateState, ItemModels } from "../ai/port";
 import { openCamera } from "../capture/camera";
 import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
+import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
+import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
 import { saveCrop } from "../data/crops";
 import { currentBoxId, localPersistence } from "../data/localPersistence";
-import { parseEdition } from "../engine/edition";
-import { FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
+import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
+import { ensureSignedIn, FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
 import type { AI } from "firebase/ai";
 import { LivePack } from "./LivePack";
 
-interface PackDeps { ai: AI; makeModels: (cloudModelItem: string, cloudModelItemFallback: string) => ItemModels; source: ConfigSource; store: BoxStore; lm: unknown }
+interface PackDeps {
+  ai: AI;
+  makeModels: (cloudModelItem: string, cloudModelItemFallback: string) => ItemModels;
+  source: ConfigSource;
+  store: BoxStore;
+  lm: unknown;
+  followEdition: (onNotice: (notice: string | null) => void) => () => void;
+}
 
 let built: PackDeps | Error | null = null;
 
@@ -30,9 +40,14 @@ function buildDeps(): PackDeps | Error {
     const lm = (globalThis as { LanguageModel?: unknown }).LanguageModel;
     const edition = parseEdition(bundledEdition);
     const newId = () => crypto.randomUUID();
-    const store = createBoxStore({
+    const signIn = ensureSignedIn(fb.auth);
+    // Saves record the edition in use when they are written, so a switch to a newer edition is kept.
+    let store: BoxStore | null = null;
+    const editionId = () => (store ?? { edition: () => edition }).edition().editionId;
+    const persistence = persistenceAfterSignIn(signIn, (uid) => firestorePersistence(fb.db, uid, editionId), localPersistence(localStorage));
+    store = createBoxStore({
       edition: () => edition,
-      persistence: localPersistence(localStorage),
+      persistence,
       now: () => Date.now(),
       // The device's own local calendar date, which counts the rule layers' age (docs/LIMITS.md).
       today: () => new Date().toLocaleDateString("en-CA"),
@@ -47,7 +62,20 @@ function buildDeps(): PackDeps | Error {
       if (!m) { m = createItemModels(ai, name, lm, fallback); byName.set(key, m); }
       return m;
     };
-    built = { ai, makeModels, source: remoteConfigSource(fb.app), store, lm };
+    const source = remoteConfigSource(fb.app);
+    // Published editions are readable by signed-in users, so a fetch waits for sign-in.
+    const fetchEdition = firestoreEditionFetcher(fb.db);
+    const fetchRemote = (id: string) => signIn.then(() => fetchEdition(id));
+    const box = store;
+    const followEdition = (onNotice: (notice: string | null) => void) => {
+      let stop = () => {};
+      let alive = true;
+      void sha256Hex(canonicalJson(bundledEdition)).then((bundledSha) => {
+        if (alive) stop = followEditionPin({ source, store: box, bundled: edition, bundledSha, fetchRemote, onNotice });
+      });
+      return () => { alive = false; stop(); };
+    };
+    built = { ai, makeModels, source, store: box, lm, followEdition };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
   }
@@ -59,6 +87,9 @@ export function PackRoute() {
   const [gate, setGate] = useState<GateState>("no_api");
   const [progress, setProgress] = useState<number | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [editionNotice, setEditionNotice] = useState<string | null>(null);
+
+  useEffect(() => (deps instanceof Error ? undefined : deps.followEdition(setEditionNotice)), [deps]);
 
   useEffect(() => {
     if (deps instanceof Error) return;
@@ -92,6 +123,6 @@ export function PackRoute() {
 
   return (
     <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera}
-      index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} />
+      index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
   );
 }

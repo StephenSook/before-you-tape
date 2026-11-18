@@ -14,6 +14,8 @@ export const RC_KEYS = {
   cloudModelText: "cloud_model_text",
   killCloud: "kill_cloud",
   secondLook: "second_look_policy_json",
+  rulesEditionId: "rules_edition_id",
+  rulesEditionSha256: "rules_edition_sha256",
 } as const;
 
 export const RC_DEFAULTS: Record<string, string | boolean> = {
@@ -22,6 +24,8 @@ export const RC_DEFAULTS: Record<string, string | boolean> = {
   [RC_KEYS.cloudModelText]: CONFIG_DEFAULTS.cloudModelText,
   [RC_KEYS.killCloud]: CONFIG_DEFAULTS.killCloud,
   [RC_KEYS.secondLook]: JSON.stringify(CONFIG_DEFAULTS.secondLook),
+  [RC_KEYS.rulesEditionId]: CONFIG_DEFAULTS.rulesEditionId,
+  [RC_KEYS.rulesEditionSha256]: CONFIG_DEFAULTS.rulesEditionSha256,
 };
 
 type Read = (key: string) => { asString(): string; asBoolean(): boolean };
@@ -44,6 +48,13 @@ function policy(raw: string): SecondLookPolicy {
   }
 }
 
+// A newer rule edition needs both a safe id and a 64-hex SHA-256; otherwise the built-in edition is used.
+function editionPin(id: string, sha: string): { rulesEditionId: string; rulesEditionSha256: string } {
+  const i = id.trim();
+  const h = sha.trim().toLowerCase();
+  return /^[a-z0-9-]{1,64}$/.test(i) && /^[0-9a-f]{64}$/.test(h) ? { rulesEditionId: i, rulesEditionSha256: h } : { rulesEditionId: "", rulesEditionSha256: "" };
+}
+
 export function readConfig(get: Read): AppConfig {
   return {
     cloudModelItem: model(get(RC_KEYS.cloudModelItem).asString(), CONFIG_DEFAULTS.cloudModelItem),
@@ -54,6 +65,7 @@ export function readConfig(get: Read): AppConfig {
     cloudModelText: model(get(RC_KEYS.cloudModelText).asString(), CONFIG_DEFAULTS.cloudModelText),
     killCloud: get(RC_KEYS.killCloud).asBoolean(),
     secondLook: policy(get(RC_KEYS.secondLook).asString()),
+    ...editionPin(get(RC_KEYS.rulesEditionId).asString(), get(RC_KEYS.rulesEditionSha256).asString()),
   };
 }
 

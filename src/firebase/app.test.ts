@@ -10,7 +10,13 @@ vi.mock("firebase/auth", async (orig) => ({
   signInAnonymously: vi.fn(async () => ({ user: { uid: "anon-uid" } })),
 }));
 
+vi.mock("firebase/firestore", async (orig) => {
+  const real = await orig<typeof import("firebase/firestore")>();
+  return { ...real, initializeFirestore: vi.fn(real.initializeFirestore), persistentMultipleTabManager: vi.fn(real.persistentMultipleTabManager) };
+});
+
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { initializeFirestore, persistentMultipleTabManager } from "firebase/firestore";
 import { signInAnonymously, type Auth } from "firebase/auth";
 import { ensureSignedIn, initFirebase, type FirebaseEnv } from "./app";
 
@@ -49,6 +55,21 @@ describe("initFirebase", () => {
     const fb = fresh();
     expect(fb.getAi(true)).toBe(fb.getAi(true));
     expect(() => fb.getAi(false)).toThrow(/useLimitedUseAppCheckTokens/);
+  });
+
+  it("keeps Firestore in a cache shared by every tab when the browser has IndexedDB, and in memory when not", () => {
+    vi.stubGlobal("indexedDB", {});
+    fresh();
+    const persistent = vi.mocked(initializeFirestore).mock.calls.at(-1)?.[1] as { localCache?: { kind: string } };
+    expect(persistent.localCache?.kind).toBe("persistent");
+    expect(persistentMultipleTabManager).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+    vi.stubGlobal("indexedDB", undefined);
+    fresh();
+    const memory = vi.mocked(initializeFirestore).mock.calls.at(-1)?.[1] as { localCache?: { kind: string } };
+    expect(memory.localCache?.kind).toBe("memory");
+    expect(persistentMultipleTabManager).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 
   it("starts when the optional measurement id is missing entirely, as in a build without that setting", () => {

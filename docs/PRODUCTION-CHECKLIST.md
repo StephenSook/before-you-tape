@@ -12,6 +12,10 @@ Use the smallest switch that stops it, and say what you did.
 
 The $25 Gemini spend cap stays in place under all three; its enforcement is not instant.
 
+## Publishing the Remote Config template
+
+Only through `ACCESS_TOKEN="$(gcloud auth print-access-token)" npm run rc:publish -- --dry-run`, then again without `--dry-run`. It reads the live template first and refuses to change or drop a live value, such as a `kill_cloud` an operator turned on, unless that key is named with `--allow KEY`. `firebase.json` does not name the template, so no plain `firebase deploy` can publish it.
+
 ## After every deploy
 
 A matching `version.json` does not mean the app works: on 2026-11-18 it matched for almost an hour while every visitor saw "The checker could not start." Only a check of the started screen shows that the app works.

@@ -39,6 +39,8 @@ export interface PackPageProps {
   onGetReady?: () => void;
   now?: () => number;
   newCropKey?: () => string;
+  // Why a newer rule edition could not be used, if one was named and failed.
+  editionNotice?: string | null;
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
@@ -153,6 +155,7 @@ export function PackPage(p: PackPageProps) {
       </div>
       {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
       {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">Cloud checks are paused. Checks on this laptop still work.</p>}
+      {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       <div className="pack">
