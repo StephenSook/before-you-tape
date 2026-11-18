@@ -19,7 +19,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,7 +53,16 @@ jobs:
           java -version
           npm run test:rules
 
+      # The public Firebase web config (it ships in every page anyway), so the built app starts as
+      # it does live and the browser checks below can see its screens.
       - name: Build
+        env:
+          VITE_FB_API_KEY: ${{ vars.VITE_FB_API_KEY }}
+          VITE_FB_AUTH_DOMAIN: ${{ vars.VITE_FB_AUTH_DOMAIN }}
+          VITE_FB_PROJECT_ID: ${{ vars.VITE_FB_PROJECT_ID }}
+          VITE_FB_APP_ID: ${{ vars.VITE_FB_APP_ID }}
+          VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
+          VITE_USE_EMULATORS: "false"
         run: npm run build
 
       - name: Build serves this commit
@@ -70,6 +79,14 @@ jobs:
             echo "The desk routes reached the production bundle."
             exit 1
           fi
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      # The built app in a real browser: it starts, and every camera-stage control is readable.
+      # These need no App Check token; the specs that do wait for a CI debug token.
+      - name: Browser checks on the built app
+        run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts
 
       - name: Tone check
         run: npm run tone
