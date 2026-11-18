@@ -135,6 +135,17 @@ describe("deriveFacts", () => {
     expect(facts({ read: r({ labelText: "" }), labelTags: ["alcohol", "pressurized"] }).tags)
       .toEqual(expect.arrayContaining(["alcohol", "pressurized"])));
 
+  it("uses a corrected label instead of the tags saved from the old one", () => {
+    const corrected = facts({
+      read: r({ category: "lotion_cream", labelText: "ALCOHOL LOTION 100 mL", liquid: true, evidence: "label_read" }),
+      overrides: { labelText: "ALCOHOL-FREE LOTION 100 mL" },
+      labelTags: ["alcohol", "label_text", "liquid"],
+    });
+    expect(corrected.tags).not.toContain("alcohol");
+    expect(corrected.tags).toEqual(expect.arrayContaining(["label_text", "liquid"]));
+    expect(corrected.alcohol).toBe("unknown");
+  });
+
   it("reads alcohol from label, then answer", () => {
     expect(facts({ read: r({ labelText: "ALCOHOL DENAT. 50 ML" }) }).alcohol).toBe("yes");
     expect(facts({ read: r({ alcoholOnLabel: true }) }).alcohol).toBe("unknown");

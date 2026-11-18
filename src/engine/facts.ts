@@ -70,7 +70,9 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   const tags = new Set<string>(edition.categoryTags[read.category]);
   for (const [flag, tag] of FLAG_TAGS) if (read[flag]) tags.add(tag);
   for (const t of labelTagsOf(read.labelText, edition)) tags.add(t);
-  for (const t of input.labelTags) tags.add(t);
+  // Saved tags stand in for label text that stayed on the laptop. A label the sender corrected
+  // replaces the old label, so the tags saved from the old one no longer apply.
+  if (input.overrides.labelText === undefined) for (const t of input.labelTags) tags.add(t);
   const tagList = [...tags].sort();
 
   // Alcohol in the label words or the category wins over a "no". The model's flag alone does not:
