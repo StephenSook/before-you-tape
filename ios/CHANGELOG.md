@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): classify which cloud failures get the fallback model
+- What: `CloudFailure.fallbackAfter(statusCode:message:)` gives 500, 503, or 404 when the message
+  holds one of the web app's "model gone" phrases (`modelGonePhrases`, case-insensitive), and
+  nothing else. `httpStatus(inNetworkFailure:)` reads the status from the SDK's text for an HTTP
+  error with no JSON body.
+- Source: review (web parity with the web app's item read).
+- Verified: four tests failed to compile without the members, then passed; one of them reads the
+  web app's own phrase list from its source file and compares; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### refactor(ios): make the reader's parser a required argument
 - What: `ItemReader` no longer defaults its parser to "accept the answer as is". Every caller
   must pass the web app's parser, so a forgotten argument fails to compile instead of skipping

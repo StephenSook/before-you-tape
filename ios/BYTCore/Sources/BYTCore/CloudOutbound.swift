@@ -38,3 +38,30 @@ public enum CloudFailure {
         }
     }
 }
+
+/// Why a read moved to the fallback model, in the web app's words (src/ai/itemRead.ts).
+public enum FallbackAfter: String, Codable, Sendable { case status500 = "500", status503 = "503", status404 = "404" }
+
+extension CloudFailure {
+    /// A 404 means the model is gone only when the message says so; any other 404 just fails.
+    /// Word for word from the web app's MODEL_GONE list (a test compares them).
+    public static let modelGonePhrases = ["no longer available", "is not found for API version", "not supported for generateContent"]
+
+    /// After the retry, an overloaded or failing server (500 or 503), or a model the API says is
+    /// gone, gets one try on the fallback model. Nothing else does.
+    public static func fallbackAfter(statusCode: Int?, message: String) -> FallbackAfter? {
+        switch statusCode {
+        case 500?: return .status500
+        case 503?: return .status503
+        case 404? where modelGonePhrases.contains(where: { message.range(of: $0, options: .caseInsensitive) != nil }):
+            return .status404
+        default: return nil
+        }
+    }
+
+    /// The SDK reports an HTTP error that has no JSON body as "Gemini HTTP error (status N): ...".
+    public static func httpStatus(inNetworkFailure text: String) -> Int? {
+        guard let r = text.range(of: #"\(status (\d{3})\)"#, options: .regularExpression) else { return nil }
+        return Int(text[r].dropFirst("(status ".count).prefix(3))
+    }
+}
