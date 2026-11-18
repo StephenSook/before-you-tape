@@ -117,6 +117,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let destinationCode = DEFAULT_DESTINATION;
   let liveRead: { code: string; edition: DestinationEdition } | null = null;
   let cloudConsent: boolean | null = null;
+  // Any consent choice made on this page, even one that asks again, wins over a saved answer that loads later.
+  let consentChosenHere = false;
   let sources: BoxSources = { ...NO_SOURCES };
   let lastRecheckMs: number | null = null;
   const clock = deps.clock ?? (() => Date.now());
@@ -148,7 +150,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const known = new Set(items.map((i) => i.itemId));
     items = [...inAddedOrder((saved.items ?? []).filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
-    if (saved.cloudConsent !== undefined && cloudConsent === null) cloudConsent = saved.cloudConsent;
+    if (saved.cloudConsent !== undefined && !consentChosenHere) cloudConsent = saved.cloudConsent;
     // A box saved before a count existed starts that count at 0.
     if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
     commit();
@@ -250,6 +252,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit();
     },
     setConsent(v) {
+      consentChosenHere = true;
       cloudConsent = v;
       commit(state.result);
     },

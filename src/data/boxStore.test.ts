@@ -210,6 +210,26 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(false);
   });
 
+  it("lets a consent choice made before the saved box arrives win over the saved one, even when it reopens the question", async () => {
+    const late = () => {
+      let arrive!: (saved: Partial<BoxState>) => void;
+      const persistence: BoxPersistence = { save: () => {}, load: () => new Promise((r) => { arrive = r; }) };
+      return { s: store({ persistence }), arrive: (saved: Partial<BoxState>) => arrive(saved) };
+    };
+    // The sender chose "Keep everything on this laptop", then "Turn on cloud checks", which asks again.
+    const asked = late();
+    asked.s.setConsent(false);
+    asked.s.setConsent(null);
+    asked.arrive({ cloudConsent: true });
+    await asked.s.ready;
+    expect(asked.s.getState().cloudConsent).toBeNull();
+    // With no choice made yet, the saved answer applies.
+    const untouched = late();
+    untouched.arrive({ cloudConsent: true });
+    await untouched.s.ready;
+    expect(untouched.s.getState().cloudConsent).toBe(true);
+  });
+
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
     const s = store();
     expect(s.getState().destinationCode).toBe("CA");
