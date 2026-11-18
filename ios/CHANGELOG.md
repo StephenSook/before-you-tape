@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): add the not-signed-in read failure
+- What: `ReadFailure.notSignedIn` ("not_signed_in") for a read that made no cloud call because
+  the sign-in failed. It always goes to typed entry: there is nothing to retry until sign-in works.
+- Source: review (Firebase AI Logic is moving to signed-in users only).
+- Verified: a router test failed to compile without the case, then passed (30 core tests);
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): keep the box with verdicts the rules engine derives after every change
 - What: `BoxStore` holds the box (items, country, consent answer, counts of where reads ran)
   and asks the web app's rules engine for the box result after every change, so a verdict is

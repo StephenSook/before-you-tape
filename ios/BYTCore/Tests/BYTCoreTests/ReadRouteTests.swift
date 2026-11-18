@@ -68,6 +68,14 @@ import Testing
         #expect(ReadRoutePolicy.afterFailure(.appCheckRefused, route: .cloudOnly, ran: .cloud, cloudRetries: 0) == .typedEntry)
     }
 
+    @Test func aReadThatCouldNotSignInGoesToTypedEntry() {
+        // AI Logic serves signed-in users only, so there is nothing to retry until sign-in works.
+        for route in [ReadRoute.hybrid, .cloudOnly] {
+            #expect(ReadRoutePolicy.afterFailure(.notSignedIn, route: route, ran: .cloud, cloudRetries: 0) == .typedEntry)
+        }
+        #expect(ReadFailure.notSignedIn.rawValue == "not_signed_in")
+    }
+
     @Test func cancelledNeverRetries() {
         #expect(ReadRoutePolicy.afterFailure(.cancelled, route: .hybrid, ran: .onDevice, cloudRetries: 0) == .typedEntry)
         #expect(ReadRoutePolicy.afterFailure(.cancelled, route: .cloudOnly, ran: .cloud, cloudRetries: 0) == .typedEntry)
