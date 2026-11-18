@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Ledger: the release certificate and Play Integrity are registered.** The release
+  certificate's SHA-256 is on the Firebase Android app (SHA id `c7055e329b4b2a52`), and the
+  Play Integrity App Check provider is registered for it (token TTL 3600 s, minimum device
+  recognition NO_INTEGRITY, the default). App Check is not enforced for the Android app until
+  a real release APK passes with a Play Integrity token. Still pending and Stephen's: the Play
+  Console app, linking the Cloud project under App integrity, and the setting that recognizes
+  installs from outside Google Play. Source: the Android app's Firebase registration. Verified:
+  both read back in Firebase when they were set; the root CI mirror exit 0.
+
 - **The Android app's Firebase config and release key are in the secrets ledger.**
   `docs/secrets-ledger.md` gains three rows: the Android Firebase config (app id
   `1:481254717481:android:d6d36d3b475193c2740438`, on the build machine only and gitignored),
