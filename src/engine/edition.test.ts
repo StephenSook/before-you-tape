@@ -72,6 +72,15 @@ describe("rule edition", () => {
   it("accepts a valid destination edition", () =>
     expect(parseEdition({ ...bundled, destinations: { XX: testDest() } }).destinations.XX?.name).toBe("Testland"));
 
+  it("rejects an edition that has lost its export rules", () =>
+    expect(() => parseEdition({ ...bundled, rules: [] })).toThrow(/rules/));
+
+  it("rejects a reviewed listing with no lines, unless the listing gives no list", () => {
+    expect(() => parseEdition({ ...bundled, destinations: { XX: testDest({ lines: [] }) } })).toThrow(/lines/);
+    expect(parseEdition({ ...bundled, destinations: { XX: testDest({ lines: [], noListFurnished: true }) } }).destinations.XX?.lines)
+      .toEqual([]);
+  });
+
   it("rejects a quote field on a destination line", () =>
     expect(() => parseEdition({ ...bundled, destinations: { XX: testDest({}, { verbatim: "copied text" }) } })).toThrow(EditionError));
 

@@ -102,6 +102,10 @@ function checkDestination(code: string, v: unknown, questionIds: Set<string>): v
   bool(d.noListFurnished, `${where}.noListFurnished`);
   bool(d.customsChecked, `${where}.customsChecked`);
   list(d.customsNotes, `${where}.customsNotes`).forEach((n, i) => str(n, `${where}.customsNotes[${i}]`));
+  // A reviewed listing with no lines would report the destination as checked while checking nothing.
+  if (d.reviewed && !d.noListFurnished && list(d.lines, `${where}.lines`).length === 0) {
+    fail(`${where}.lines`, "a reviewed listing needs its lines, or noListFurnished");
+  }
   list(d.lines, `${where}.lines`).forEach((x, i) => {
     const lw = `${where}.lines[${i}]`;
     const line = obj(x, lw);
@@ -210,6 +214,10 @@ export function parseEdition(json: unknown): RuleEdition {
     oneOf(r.outcome, ["take_out", "check", "note"] as const, `${w}.outcome`);
     if (r.askId !== undefined && !questionIds.has(str(r.askId, `${w}.askId`))) fail(`${w}.askId`, "not a known question");
   });
+  // An edition with no export rules would report the export layer as checked while checking nothing.
+  if (!(e.rules as Obj[]).some((r) => r.layer === "usps_export" && r.scope === "item")) {
+    fail("rules", "the edition has no USPS export item rules");
+  }
 
   const dests = obj(e.destinations, "destinations");
   for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questionIds);
