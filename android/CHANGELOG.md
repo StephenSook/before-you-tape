@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The release probe takes the cloud route on any phone.** The probe asked the phone for its
+  on-device model status. On a phone with a ready model the reader chose hybrid inference, the
+  phone answered on its own, and the probe (which requires a cloud read) failed though App Check
+  and sign-in had worked. The probe now pins the reader's gate to "no model on the phone", so it
+  always exercises the cloud route through the same reader and parser. Source: review (second
+  model) of the Android pull request, round 2, finding 2. Verified: the device tests compile;
+  the probe is a live release-only test and runs on the judge phone (`android/RELEASE.md`);
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The saved box never goes back in time.** The view model saved the box in `publish`, which
   also runs on the UI thread. A UI-thread save could take an older box while the worker saved a
   newer one, then write the older one over it, so the next start restored a stale item or
