@@ -17,6 +17,8 @@ export default defineConfig({
     { name: "live", testIgnore: /\.local\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: process.env.BYT_LIVE_URL?.trim() || "https://before-you-tape-2026.web.app" } },
   ],
   ...(live ? {} : {
-    webServer: { command: "npm run preview -- --port 4173 --strictPort", url: "http://localhost:4173", reuseExistingServer: !process.env.CI },
+    // Never reuse a server already on 4173: another project on this machine once had its preview there, and the
+    // checks tested that app instead of this one. 4173 itself is fixed, because the browser key allows only it.
+    webServer: { command: "npm run preview -- --port 4173 --strictPort", url: "http://localhost:4173", reuseExistingServer: false },
   }),
 });

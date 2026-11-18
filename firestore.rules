@@ -76,14 +76,14 @@ service cloud.firestore {
         'makeup', 'powder', 'medicine', 'alcohol_drink', 'food_packaged', 'chocolate', 'coffee', 'cooking_oil',
         'meat_product', 'phone', 'tablet', 'laptop', 'smartwatch', 'earbuds', 'power_bank', 'loose_battery',
         'battery_toy', 'musical_card', 'other_electronics', 'lighter_matches', 'e_cigarette', 'glue_paint',
-        'knife_tool', 'toy_gun', 'candle', 'jewelry_watch', 'clothing', 'shoes', 'book_paper', 'toy', 'other'
+        'knife_tool', 'toy_gun', 'candle', 'jewelry_watch', 'clothing', 'shoes', 'book_paper', 'toy', 'ceramic', 'other'
       ];
     }
 
     // vocab:tags
     function knownTags() {
       return [
-        'alcohol', 'alcohol_flag', 'alcohol_free_unsure', 'alcoholic_drink', 'battery_label', 'bullion', 'chocolate',
+        'alcohol', 'alcohol_flag', 'alcohol_free_unsure', 'alcoholic_drink', 'battery_label', 'bullion', 'ceramic', 'chocolate',
         'christmas_cracker', 'cigar', 'clothing', 'coffee', 'cosmetic', 'dry_ice', 'easily_liquefiable',
         'edible_oil', 'electronics', 'explosive', 'flammable', 'food', 'fragrance', 'glass_fragile',
         'hardware_tools', 'hemp', 'hemp_maybe', 'jewelry_valuables', 'knife', 'label_text', 'li_ion', 'li_metal',

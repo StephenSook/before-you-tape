@@ -35,10 +35,12 @@ describe("item read contract", () => {
       "powder", "retailBox", "evidence",
     ]));
 
-  it("has the 37 spec categories", () => {
-    expect(ITEM_CATEGORIES).toHaveLength(37);
+  // The spec's 37 categories plus "ceramic", added after the eval review (a mug had nowhere to go but "other").
+  it("has the 37 spec categories and ceramic", () => {
+    expect(ITEM_CATEGORIES).toHaveLength(38);
+    expect(ITEM_CATEGORIES).toContain("ceramic");
     expect(ITEM_CATEGORIES[0]).toBe("perfume_fragrance");
-    expect(ITEM_CATEGORIES[36]).toBe("other");
+    expect(ITEM_CATEGORIES.at(-1)).toBe("other");
   });
 
   it("builds a strict schema", () => {
@@ -48,7 +50,7 @@ describe("item read contract", () => {
       properties: Record<string, { type: string; enum?: string[] }>;
     };
     expect(s.required).toHaveLength(16);
-    expect(s.properties.category?.enum).toHaveLength(37);
+    expect(s.properties.category?.enum).toHaveLength(38);
     expect(s.additionalProperties).toBe(false);
     expect(s.properties.volts?.type).toBe("number");
     expect(s.properties.liquid?.type).toBe("boolean");

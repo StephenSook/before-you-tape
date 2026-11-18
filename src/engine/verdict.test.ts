@@ -122,6 +122,9 @@ describe("evaluateBox", () => {
       "perfume_alcohol", "aerosol", "power_bank", "lotion_ca", "lotion_ph", "phone_ok", "laptop_plus_phone", "three_unknown_phones",
       "five_cells", "three_laptops", "used_phone", "wh_mismatch_exact", "coin_cell_toy", "unsure", "identity_unconfirmed",
       "unreviewed_country", "suspended_country", "stale_layer", "quantity_three", "millivolt_misread",
+      "chocolate_bar_to_philippines_is_check", "chocolate_named_on_a_packaged_food_to_philippines_is_check",
+      "margarine_to_philippines_is_check", "chocolate_bar_to_canada_stays_ok",
+      "ceramic_mug_to_canada_is_ok", "ceramic_mug_to_philippines_is_check", "porcelain_named_on_the_label_to_philippines_is_check",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
