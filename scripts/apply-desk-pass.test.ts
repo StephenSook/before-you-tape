@@ -16,7 +16,7 @@ async function resultsFor(edition = ed, patch: (r: DeskPassResults) => void = ()
 
 describe("deskLineHash", () => {
   it("matches the desk-pass sheet generator's fingerprint for known lines", async () => {
-    // Taken from research/build/desk-pass/gen.py's own h() on these two lines, so the two cannot drift.
+    // Taken from the desk-pass generator's own h() on these two lines, so the two cannot drift.
     const line = (code: string, id: string) => ed.destinations[code]!.lines.find((l) => l.lineId === id)!;
     expect(await deskLineHash(line("PH", "PH-P-01"))).toBe("2595f9264b858e10abb98291d3cc9ccd393dd1119e3fd05d5e0c59d85e2f3593");
     expect(await deskLineHash(line("CA", "CA-P-04"))).toBe("64d281f6463e8b51cb9c6024a878ec103b709842db60447f1429f7ab4736d089");
