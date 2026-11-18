@@ -1,0 +1,5 @@
+# Each line below was checked by hand: the made-up join key ABCDEFGHJKMNPQRSTVWXYZ2345 (the Crockford
+# base32 alphabet in order) in the join-link tests and shared vectors. It is a test value, not a secret.
+dfb14b387313487c76a36d835aa5016e12083463:src/shared/joinLink.test.ts:generic-api-key:9
+dfb14b387313487c76a36d835aa5016e12083463:tests/vectors/join-links.json:generic-api-key:2
+dfb14b387313487c76a36d835aa5016e12083463:tests/vectors/join-links.json:generic-api-key:3
