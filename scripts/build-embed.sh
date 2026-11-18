@@ -9,8 +9,8 @@
 # { bridgeVersion, sha256, bytes, esbuild, commit, dirty, inputs[] }.
 # It calls the esbuild binary from node_modules directly, so it needs no node.
 # Exit 2: esbuild is missing. Exit 1: the build failed, an input is outside src/engine,
-# src/shared and src/embed, the bundle holds Firebase, DOM, WebCrypto or network code, or its
-# size is outside 20,000 to 300,000 bytes.
+# src/shared and src/embed, the bundle holds Firebase, DOM, WebCrypto, network or browser-storage
+# code, or its size is outside 20,000 to 300,000 bytes.
 set -eu
 
 if [ "$#" -lt 1 ]; then
@@ -61,7 +61,11 @@ allowed = ("src/engine/", "src/shared/", "src/embed/")
 for i in inputs:
     if not i.startswith(allowed):
         problems.append(f"input outside {', '.join(allowed)}: {i}")
-banned = re.findall(rb"firebase|document\.|window\.|crypto\.subtle|fetch\(", bundle)
+banned = re.findall(
+    rb"firebase|document\.|window\.|crypto\.subtle|fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.|"
+    rb"localStorage|sessionStorage|indexedDB|importScripts",
+    bundle,
+)
 if banned:
     problems.append("the bundle holds " + ", ".join(sorted({b.decode() for b in banned})))
 if not 20_000 <= len(bundle) <= 300_000:

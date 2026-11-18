@@ -76,4 +76,20 @@ describe("scripts/build-embed.sh", () => {
       rmSync(out, { recursive: true, force: true });
     }
   });
+
+  it("a bundle that can reach the network or browser storage fails the build", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    const planted = join(root, "src", "embed", ".planted-api.ts");
+    try {
+      for (const api of ["new XMLHttpRequest()", "new WebSocket(\"wss://x\")", "navigator.userAgent", "localStorage.length", "indexedDB.open(\"x\")"]) {
+        writeFileSync(planted, `export * from "./bridge";\nexport const leak = () => ${api};\n`);
+        const r = build(out, "src/embed/.planted-api.ts");
+        expect(r.status, api).toBe(1);
+        expect(r.stderr, api).toMatch(/the bundle holds/);
+      }
+    } finally {
+      rmSync(planted, { force: true });
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
 });
