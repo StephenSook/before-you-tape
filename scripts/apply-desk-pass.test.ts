@@ -18,7 +18,7 @@ describe("deskLineHash", () => {
   it("matches the desk-pass sheet generator's fingerprint for known lines", async () => {
     // Taken from the desk-pass generator's own h() on these two lines, so the two cannot drift.
     const line = (code: string, id: string) => ed.destinations[code]!.lines.find((l) => l.lineId === id)!;
-    expect(await deskLineHash(line("PH", "PH-P-01"))).toBe("2ad274d5328b3cb2c4ccc34fb5c7a02a3bca70ddd5b660158309f1d379f91ad8");
+    expect(await deskLineHash(line("PH", "PH-P-01"))).toBe("32896f6a429fd3e25f33486234e0fc7c118a3869e068cf9297259527ad1b4572");
     expect(await deskLineHash(line("CA", "CA-P-04"))).toBe("64d281f6463e8b51cb9c6024a878ec103b709842db60447f1429f7ab4736d089");
   });
 });

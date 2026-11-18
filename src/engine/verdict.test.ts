@@ -123,7 +123,8 @@ describe("evaluateBox", () => {
       "five_cells", "three_laptops", "used_phone", "wh_mismatch_exact", "coin_cell_toy", "unsure", "identity_unconfirmed",
       "unreviewed_country", "suspended_country", "stale_layer", "quantity_three", "millivolt_misread",
       "chocolate_bar_to_philippines_is_check", "chocolate_named_on_a_packaged_food_to_philippines_is_check",
-      "margarine_to_philippines_is_check", "chocolate_bar_to_canada_stays_ok",
+      "margarine_to_philippines_is_check", "saved_chocolate_with_only_its_old_tag_to_philippines_is_check",
+      "saved_margarine_with_only_its_old_tag_to_philippines_is_check", "chocolate_bar_to_canada_stays_ok",
       "ceramic_mug_to_canada_is_ok", "ceramic_mug_to_philippines_is_check", "porcelain_named_on_the_label_to_philippines_is_check",
     ]);
     for (const v of vectors) {
