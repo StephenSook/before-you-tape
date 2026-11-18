@@ -109,4 +109,47 @@ describe("the JSON bridge for native clients", () => {
       expect(value<string[]>(BYT.labelTagsJson(label)), label).toEqual(labelTagsOf(label, ed));
     }
   });
+
+  it("refuses a malformed item instead of judging it", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const lotion = (box as unknown as BoxVector[]).find((v) => v.name === "lotion_ca")!;
+    const good = item(lotion.items[0]!);
+    const send = (items: unknown[]) => reply(BYT.evaluateBoxJson(JSON.stringify({ items, code: lotion.code, today: lotion.today })));
+    expect(send([good]).ok).toBe(true);
+    expect(send([{ ...good, overrides: { volts: "3.7" } }]).ok, "typed text in a number override is the engine's to judge").toBe(true);
+    const noEvidence: Record<string, unknown> = { ...good.read };
+    delete noEvidence.evidence;
+    const bad: Array<[string, unknown]> = [
+      ["category typo", { ...good, read: { ...good.read, category: "lotion_creem" } }],
+      ["no evidence", { ...good, read: noEvidence }],
+      ["truthy identity", { ...good, identityConfirmedBy: true }],
+      ["text quantity", { ...good, quantity: "2" }],
+      ["tags not a list", { ...good, labelTags: "alcoholic_drink" }],
+      ["answer not text", { ...good, answers: { label_alcohol: 1 } }],
+      ["override of an unknown field", { ...good, overrides: { colour: "red" } }],
+      ["override with a bad value", { ...good, overrides: { category: "lotion_creem" } }],
+      ["text volts in the read itself", { ...good, read: { ...good.read, volts: "3.7" } }],
+    ];
+    for (const [why, it] of bad) {
+      const r = send([it]);
+      expect(r.ok, why).toBe(false);
+      if (!r.ok) expect(r.error.name, why).toBe("BadInputError");
+    }
+    // JSON text can carry a number too large for a double; JSON.parse makes it Infinity.
+    const huge = JSON.stringify({ items: [{ ...good, read: { ...good.read, volts: 7 } }], code: lotion.code, today: lotion.today })
+      .replace('"volts":7', '"volts":1e400');
+    const r = reply(BYT.evaluateBoxJson(huge));
+    expect(r.ok, "infinite volts").toBe(false);
+  });
+
+  it("refuses duplicate or reserved item ids", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const lotion = (box as unknown as BoxVector[]).find((v) => v.name === "lotion_ca")!;
+    const one = item(lotion.items[0]!);
+    for (const items of [[{ ...one, itemId: "x" }, { ...one, itemId: "x" }], [{ ...one, itemId: "__proto__" }], [{ ...one, itemId: "" }]]) {
+      const r = reply(BYT.evaluateBoxJson(JSON.stringify({ items, code: lotion.code, today: lotion.today })));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error.name).toBe("BadInputError");
+    }
+  });
 });
