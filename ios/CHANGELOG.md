@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### docs(ios): record the iPhone's box documents checked against the Firestore rules
+- What: `ios/docs/evidence/rules-check.md` records five checks of documents made by the iPhone
+  app's own code against `firestore.rules` in the Firestore emulator: the owner's box and a
+  member's item are accepted; an item with label text, a stranger's item and a fractional quantity
+  are refused.
+- Source: iPhone client plan, task I-11 (the rules check).
+- Verified: the five results above, read from the check's output; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### feat(ios): sync the box through Firestore, listening once the box exists
 - What: `FirestoreBoxRemote` puts each write into Firestore's offline cache and returns at once,
   so a phone out of signal never waits (the cache sends it when the network returns); a write the
