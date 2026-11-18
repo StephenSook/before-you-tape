@@ -3,6 +3,7 @@
 import type { FirebaseApp } from "firebase/app";
 import { activate, fetchAndActivate, getRemoteConfig, getValue, onConfigUpdate } from "firebase/remote-config";
 import { CONFIG_DEFAULTS } from "./defaults";
+import { isAllowedCloudModel } from "./models";
 
 export type AppConfig = typeof CONFIG_DEFAULTS;
 
@@ -22,14 +23,13 @@ export const RC_DEFAULTS: Record<string, string | boolean> = {
 
 type Read = (key: string) => { asString(): string; asBoolean(): boolean };
 
-// A model name must look like a Gemini model, so a stray value can never be sent as one.
-const MODEL_NAME = /^gemini-[a-z0-9][a-z0-9.-]*$/;
-const model = (raw: string, fallback: string) => (MODEL_NAME.test(raw.trim()) ? raw.trim() : fallback);
+// A model name must be on the allow-list, so a stray value or a shut-down model is never sent.
+const model = (raw: string, fallback: string) => (isAllowedCloudModel(raw.trim()) ? raw.trim() : fallback);
 
 export function readConfig(get: Read): AppConfig {
   return {
     cloudModelItem: model(get(RC_KEYS.cloudModelItem).asString(), CONFIG_DEFAULTS.cloudModelItem),
-    // Empty turns the fallback off; anything else must look like a Gemini model.
+    // Empty turns the fallback off; anything else must be on the allow-list.
     cloudModelItemFallback: get(RC_KEYS.cloudModelItemFallback).asString().trim() === ""
       ? ""
       : model(get(RC_KEYS.cloudModelItemFallback).asString(), CONFIG_DEFAULTS.cloudModelItemFallback),

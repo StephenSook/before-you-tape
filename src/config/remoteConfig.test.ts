@@ -30,14 +30,18 @@ const values = (v: Record<string, string>) => (key: string) => ({ asString: () =
 
 describe("readConfig", () => {
   it("maps the Remote Config keys to the app's config", () => {
-    expect(readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-4-argon", cloud_model_text: "gemini-3.8-flash", kill_cloud: "true" })))
-      .toEqual({ cloudModelItem: "gemini-3.5-flash-lite", cloudModelItemFallback: "gemini-4-argon", cloudModelText: "gemini-3.8-flash", killCloud: true });
+    expect(readConfig(values({ cloud_model_item: "gemini-3.8-flash", cloud_model_item_fallback: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.8-flash", kill_cloud: "true" })))
+      .toEqual({ cloudModelItem: "gemini-3.8-flash", cloudModelItemFallback: "gemini-3.5-flash-lite", cloudModelText: "gemini-3.8-flash", killCloud: true });
   });
 
   it("keeps the default model when a value is not a Gemini model name", () => {
     expect(readConfig(values({ cloud_model_item: "", cloud_model_item_fallback: "drop table", cloud_model_text: "drop table", kill_cloud: "false" })))
       .toEqual({ ...CONFIG_DEFAULTS, killCloud: false });
   });
+
+  it("keeps the default for a Gemini model name that is not on the allow-list", () =>
+    expect(readConfig(values({ cloud_model_item: "gemini-2.5-flash", cloud_model_item_fallback: "gemini-4-argon", cloud_model_text: "gemini-3.5-flash", kill_cloud: "false" })))
+      .toEqual({ ...CONFIG_DEFAULTS, killCloud: false }));
 
   it("turns the fallback off when its value is empty", () =>
     expect(readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: " ", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: "false" })).cloudModelItemFallback).toBe(""));
