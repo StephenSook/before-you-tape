@@ -10,7 +10,8 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? "list" : "line",
   projects: [
-    { name: "local", use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4173" } },
+    // *.live.spec.ts write to the live project's database, so they never run against a local build.
+    { name: "local", testIgnore: /\.live\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4173" } },
     // *.local.spec.ts stub the model endpoint, so they never run against the live site.
     // BYT_LIVE_URL lets the daily probe point the live checks elsewhere, so a wrong URL proves they fail.
     { name: "live", testIgnore: /\.local\.spec\.ts$/, use: { ...devices["Desktop Chrome"], baseURL: process.env.BYT_LIVE_URL?.trim() || "https://before-you-tape-2026.web.app" } },
