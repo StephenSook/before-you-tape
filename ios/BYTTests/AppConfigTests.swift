@@ -59,6 +59,43 @@ import Testing
         #expect(m.editionNotice == "A newer rule edition failed its integrity check. Using the built-in edition.")
     }
 
+    /// Holds a fetch open until the test lets it finish.
+    final class Gate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var waiter: CheckedContinuation<Void, Never>?
+        private var open = false
+        var isWaiting: Bool { lock.withLock { waiter != nil } }
+        func wait() async {
+            await withCheckedContinuation { c in
+                lock.lock()
+                if open { lock.unlock(); c.resume() } else { waiter = c; lock.unlock() }
+            }
+        }
+        func release() {
+            let c = lock.withLock { () -> CheckedContinuation<Void, Never>? in open = true; defer { waiter = nil }; return waiter }
+            c?.resume()
+        }
+    }
+
+    /// A request that finishes late (here its fetch fails) never replaces the edition a newer pin installed.
+    @Test func anOlderEditionRequestNeverReplacesTheCurrentRules() async throws {
+        let current = try EditionSourceTests.newer(id: "byt-current")
+        let gate = Gate()
+        let m = model(Models(), fetchEdition: { id in
+            if id == "byt-late" { await gate.wait(); return nil }
+            return current.text
+        })
+        let late = Task { await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-late", "rules_edition_sha256": current.sha])) }
+        for _ in 0..<1000 where !gate.isWaiting { await Task.yield() }
+        #expect(gate.isWaiting)
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-current", "rules_edition_sha256": current.sha]))
+        #expect(m.box?.result?.editionId == "byt-current")
+        gate.release()
+        await late.value
+        m.box?.reevaluate()
+        #expect(m.box?.result?.editionId == "byt-current" && m.editionNotice == nil)
+    }
+
     final class Holder: @unchecked Sendable { var model: AppModel? }
 
     /// Pauses the cloud while the on-device read runs, then fails it so the read would fall to the cloud.

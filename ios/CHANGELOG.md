@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): install a rule edition only from the latest request
+- What: choosing an edition loaded it into the shared engine before the app checked that the
+  request was still the latest, so a late answer (or a late failed fetch, which loaded the built-in
+  edition) could replace the rules a newer pin had installed. `EditionSource.choose` now only
+  checks and returns the edition text; `AppModel` counts requests and installs the text, and
+  derives the verdicts again, only for the latest one.
+- Source: review.
+- Verified: a test holds one request's fetch open, installs a newer pin, then lets the late fetch
+  fail; on the old code the box then evaluated with the built-in edition (failed), now it keeps the
+  newer one (passes). The edition tests now check the returned text. 106 app unit tests pass; the
+  CI mirror exit 0, with the secret scan limited to this branch's history (another branch's test
+  vectors trip the full scan; that is being fixed on that branch).
+
 ### fix(ios): read the pause switch again after sign-in, right before a cloud upload
 - What: a cloud read checked the pause switch, then waited for anonymous sign-in, then sent the
   photo. A pause applied while sign-in was still running did not stop it. `SignedInCloudRunner`

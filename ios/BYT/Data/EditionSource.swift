@@ -5,11 +5,14 @@ import Foundation
 /// Which rule edition the box uses (the web app's src/data/editionSource.ts). The built-in edition
 /// ships with the app; Remote Config can name a newer one by id and SHA-256, and it is used only
 /// when the fetched edition has exactly that id and hash and loads. Anything else keeps the
-/// built-in edition and says so.
+/// built-in edition and says so. Choosing only checks: the caller installs the chosen text, after it
+/// knows no newer request has started, so a late answer never replaces the current rules.
 enum EditionSource {
     struct Choice: Equatable, Sendable {
         var from: String
         var notice: String?
+        /// The edition to install: the checked remote document, or the built-in one.
+        var text: String
     }
 
     static let notLoaded = "A newer rule edition could not be loaded. Using the built-in edition."
@@ -29,13 +32,10 @@ enum EditionSource {
         return (loaded.editionId, sha256Hex(canonical))
     }
 
-    /// Loads the chosen edition into `engine` and says where it came from.
-    static func choose(engine: RulesEngine, bundledText: String, wantId: String, wantSha: String,
+    /// Picks the edition to use and says where it came from; changes no engine.
+    static func choose(bundledText: String, wantId: String, wantSha: String,
                        fetchRemote: @Sendable (String) async -> String?) async -> Choice {
-        func keep(_ notice: String?) -> Choice {
-            _ = try? engine.setEdition(bundledText)
-            return Choice(from: "bundled", notice: notice)
-        }
+        func keep(_ notice: String?) -> Choice { Choice(from: "bundled", notice: notice, text: bundledText) }
         let id = wantId.trimmingCharacters(in: .whitespaces)
         let sha = wantSha.trimmingCharacters(in: .whitespaces).lowercased()
         if id.isEmpty { return keep(nil) }
@@ -46,7 +46,7 @@ enum EditionSource {
             // The engine refused it, so its hash cannot be taken: a wrong id is a failed check, the right id unreadable.
             return keep((raw as? [String: Any])?["editionId"] as? String == id ? notRead : failedCheck)
         }
-        guard remote.id == id, remote.sha == sha, (try? engine.setEdition(text)) != nil else { return keep(failedCheck) }
-        return Choice(from: "remote", notice: nil)
+        guard remote.id == id, remote.sha == sha else { return keep(failedCheck) }
+        return Choice(from: "remote", notice: nil, text: text)
     }
 }

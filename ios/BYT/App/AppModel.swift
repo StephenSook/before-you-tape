@@ -39,6 +39,8 @@ final class AppModel {
     @ObservationIgnored private let fetchEdition: @Sendable (String) async -> String?
     @ObservationIgnored private let bundledEditionText: String?
     @ObservationIgnored private let pause: PauseSwitch
+    /// Counts edition requests; only the latest one installs its answer.
+    @ObservationIgnored private var editionRequest = 0
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
@@ -188,11 +190,18 @@ final class AppModel {
         config = values
         pause.paused = values.killCloud
         guard pinChanged, let engine, let bundledEditionText else { return }
-        let choice = await EditionSource.choose(engine: engine, bundledText: bundledEditionText, wantId: values.rulesEditionId,
+        editionRequest += 1
+        let request = editionRequest
+        let choice = await EditionSource.choose(bundledText: bundledEditionText, wantId: values.rulesEditionId,
                                                 wantSha: values.rulesEditionSha256, fetchRemote: fetchEdition)
-        // A newer pin may have arrived while this one was checked; only the latest counts.
-        guard values.rulesEditionId == config.rulesEditionId, values.rulesEditionSha256 == config.rulesEditionSha256 else { return }
-        editionNotice = choice.notice
+        // A newer request may have started while this one was checked: only the latest installs anything.
+        guard request == editionRequest else { return }
+        if (try? engine.setEdition(choice.text)) != nil {
+            editionNotice = choice.notice
+        } else {
+            _ = try? engine.setEdition(bundledEditionText)
+            editionNotice = EditionSource.notRead
+        }
         box?.reevaluate()
     }
 
