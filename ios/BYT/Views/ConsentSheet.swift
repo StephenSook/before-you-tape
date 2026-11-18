@@ -24,6 +24,7 @@ struct ConsentSheet: View {
         .padding(24)
         .presentationDetents([.medium])
         .interactiveDismissDisabled()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("consent-sheet")
     }
 }

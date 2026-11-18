@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): keep each line's own accessibility id inside a group
+- What: the summary, the consent sheet, the layer list and the question row set an id on their
+  group, which SwiftUI passed down over their children's own ids, so "recheck-line" and the
+  consent buttons could not be found by VoiceOver tools or tests. Each group now contains its
+  children (`accessibilityElement(children: .contain)`) and keeps their ids.
+- Source: the box loop UI test, which could not find the re-check line.
+- Verified: the UI test finds "recheck-line" after the change and not before;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): find the same box again after the app is reopened
 - What: each launch made a new random box id, so the saved box file was never found and the box
   came back empty. The current box id is now kept in the app's settings (`currentBoxId`) and the

@@ -13,6 +13,7 @@ struct LayerList: View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(layers, id: \.id) { Text(Self.row($0)) }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("layer-list")
     }
 }
@@ -33,6 +34,7 @@ struct QuestionRow: View {
                     .accessibilityAddTraits(value == a.id ? .isSelected : [])
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("question-row")
     }
 }

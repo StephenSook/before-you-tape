@@ -24,6 +24,7 @@ struct BoxSummaryView: View {
             if let problem = box.engineProblem { Text("The rules could not run: \(problem)") }
         }
         .font(.title3)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("box-summary")
     }
 }
