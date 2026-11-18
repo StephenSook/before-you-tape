@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Consent before any photo leaves the phone.** `ConsentScreen` asks once, with the consent
+  sentence and its two choices. Declining with a model on the phone says labels are read on
+  this phone only. Declining with no model on the phone says nothing can read a label here
+  without the user's OK, and offers "Type it". Source: Android plan Task 9. Verified:
+  `ConsentScreenTest` (3 tests, which failed to compile first) passes on the emulator: both
+  choices show and "Allow" reports true; declining with no model shows the blocked line and a
+  working "Type it", and "Allow" is gone; declining with a model shows the on-phone line;
+  `bash android/ci-local.sh` and the root CI mirror exit 0. Storing the choice on the phone
+  comes with the local store.
+
 - **Pack screen with verdicts, reasons and questions.** `PackScreen` shows one `ItemCard` per
   item, then the box's lithium line, its notes and the footer that disclaims the Postal Service.
   Each card shows the item's name, the engine's own headline and first reason, where the read

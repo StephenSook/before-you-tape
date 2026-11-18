@@ -17,6 +17,7 @@ object Copy {
     const val RETAKE = "Take the photo again"
     const val FIX_READING = "Fix this reading"
     const val RULES_NOT_LOADED = "The rules could not be loaded, so nothing is checked yet."
+    const val KEPT_ON_PHONE = "Labels are read on this phone only."
     const val NO_ITEMS = "Nothing in the box yet."
 
     /** Where an item's read ran. Web values are the laptop's own reads, seen from this phone. */
@@ -45,6 +46,6 @@ object Copy {
     }
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        NO_ITEMS) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
+        KEPT_ON_PHONE, NO_ITEMS) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
 }
