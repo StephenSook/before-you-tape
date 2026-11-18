@@ -7,6 +7,7 @@ struct ItemCardView: View {
     let item: BoxItem
     let verdict: ItemVerdict
     let box: BoxStore
+    @State private var fixing = false
 
     private var name: String {
         if case let .string(n)? = item.overrides["itemName"] ?? item.read["itemName"], !n.isEmpty { return n }
@@ -27,8 +28,11 @@ struct ItemCardView: View {
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("confirm-identity")
             }
+            Button("Fix this reading") { fixing = true }
+                .buttonStyle(.borderless)
             DisclosureGroup("What we checked") { LayerList(layers: verdict.layers) }
         }
         .padding(.vertical, 6)
+        .sheet(isPresented: $fixing) { FixReadingView(item: item, box: box) }
     }
 }

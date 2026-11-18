@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): let the sender fix a reading or type an item
+- What: each item card has "Fix this reading", a sheet with the reading's fields (what it is,
+  name, label words, the printed numbers, what it is like, its box) that saves only the changed
+  fields on top of the read; Save is off while a number is negative or not a number. "Type it" on
+  the box adds an item the sender typed, confirmed by the sender, once they say what it is.
+- Source: iPhone client plan, task I-9 (the web app's FixReading and AddByHand).
+- Verified: a test fixes the 2500 mAh misread to 2600 through the draft, and the store keeps only
+  that override and drops the mismatch hit; 79 app tests pass; on the simulator "Type it" shows
+  the form with "Add" off until a category is picked; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): add the rules for the sender's own edits to a reading
 - What: `ReadDraft` holds a reading as the sender edits it, with the web app's rules: numbers are
   kept as typed text, an empty number means 0 (not printed), a negative or non-number blocks

@@ -3,6 +3,7 @@ import SwiftUI
 /// The box: where it goes, the summary, and every item with its verdict.
 struct BoxView: View {
     let model: AppModel
+    @State private var typing = false
 
     var body: some View {
         List {
@@ -20,6 +21,10 @@ struct BoxView: View {
             }
         }
         .navigationTitle("Your box")
-        .toolbar { NavigationLink("Check an item") { CheckItemView(model: model) } }
+        .toolbar {
+            NavigationLink("Check an item") { CheckItemView(model: model) }
+            Button("Type it") { typing = true }.disabled(model.box == nil)
+        }
+        .sheet(isPresented: $typing) { if let box = model.box { TypedEntryView(box: box) } }
     }
 }

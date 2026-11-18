@@ -54,4 +54,19 @@ import Testing
         #expect(pairs.map(\.0) == ReadDraft.categories.map(\.id))
         #expect(pairs.map(\.1) == ReadDraft.categories.map(\.label))
     }
+
+    /// Fixing the misread mAh saves only that field and the rules re-check the item at once.
+    @Test func fixingTheMisreadNumberReChecksTheItem() throws {
+        let s = try BoxStoreTests().store()
+        let misread = BoxStoreTests.read(["itemName": .string("Phone"), "category": .string("phone"), "labelText": .string("3.7V 2500mAh 9.62Wh"),
+                                          "volts": .number(3.7), "milliampHours": .number(2500), "wattHours": .number(9.62), "batteryWords": .bool(true)])
+        let id = s.addManual(misread)
+        #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "USPS-INTL-LI-WH-MISMATCH" } == true)
+        let item = try #require(s.items.first)
+        var d = ReadDraft.of(FixReadingView.current(item))
+        d.numbers["milliampHours"] = "2600"
+        s.override(id, patch: d.changed(from: FixReadingView.current(item)))
+        #expect(s.items.first?.overrides == ["milliampHours": .number(2600)])
+        #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "USPS-INTL-LI-WH-MISMATCH" } == false)
+    }
 }
