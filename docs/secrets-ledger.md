@@ -12,6 +12,8 @@ States: VERIFIED (read back from the service), PENDING (not done or not yet conf
 | reCAPTCHA Enterprise site key (`VITE_RECAPTCHA_SITE_KEY`) | App Check attestation on the web | Stephen | `.env.local` (public value, kept beside the config) | VERIFIED: score key allowed only on the two hosting domains | 2026-11-18 |
 | App Check debug token, local | Passes App Check from this Mac in development | Stephen | macOS Keychain, item `byt-appcheck-debug-local` | VERIFIED: registered in App Check, Keychain read-back matches | 2026-11-18 |
 | App Check debug token, CI | Passes App Check in GitHub Actions tests | Stephen | macOS Keychain, item `byt-appcheck-debug-ci`; GitHub secret `APPCHECK_DEBUG_TOKEN_CI` | Keychain VERIFIED; GitHub secret PENDING (set with the deploy workflow) | 2026-11-18 |
+| Firebase Android config (`android/app/google-services.json`) | Identifies the native Android app `app.beforeyoutape.android`, app id `1:481254717481:android:d6d36d3b475193c2740438`; not a secret on its own | Stephen | On the build machine only (gitignored by `android/.gitignore`) | VERIFIED: file holds that app id and package; `git status` shows nothing | 2026-11-18 |
+| Android release keystore | Signs the native app's release APK | Stephen | `~/.byt-keys/byt-android-release.jks`, outside the repo; its password in the macOS Keychain, item `byt-android-release` | VERIFIED: created; certificate SHA-256 (public) `7D:67:2A:F6:DD:84:C0:91:4B:F0:C7:75:CD:55:52:A3:2E:D2:CC:F0:1C:CE:9A:AA:AB:79:EE:9B:3F:63:6A:DA` | 2026-11-18 |
 | Deploy credential (`FIREBASE_SERVICE_ACCOUNT`) | Deploys hosting and rules from CI | Stephen | Not created yet | PENDING | 2026-11-18 |
 
 ## Controls
@@ -23,6 +25,7 @@ States: VERIFIED (read back from the service), PENDING (not done or not yet conf
 | App Check on Firebase AI Logic | ENFORCED at 08:08 UTC (App Check lists the service as `firebaseml.googleapis.com`) | VERIFIED: a call with no token got 401 and a call with a debug token got 200, `evidence/appcheck-control/2026-11-18T08-23-23-453Z.json` | 2026-11-18 |
 | AI Logic per-user limit | Generate content requests: 20 a minute per user (default 100), set with the narrowest safety-check bypass the API accepts for a cut over 10 percent | VERIFIED: all 44 region buckets read back 20 | 2026-11-18 |
 | Dependency audit | `npm audit`: 18 findings (7 moderate, 11 high). The high ones that came with `firebase` are in `@grpc/grpc-js`, which Firestore uses only under Node, not in the browser bundle; the rest are in build and test tools (vite, vitest, eslint and their glob libraries) | Recorded; browser bundle unaffected | 2026-11-18 |
+| App Check for the Android app | Play Integrity provider with the release certificate's SHA-256 | PENDING: to be registered in Firebase; linking the app in Play Console is Stephen's step | 2026-11-18 |
 | Anonymous sign-in | Enabled; authorized domains are the two hosting domains | VERIFIED | 2026-11-18 |
 | Firestore rules | Deny all reads and writes | VERIFIED (deployed rules read back) | 2026-11-18 |
 

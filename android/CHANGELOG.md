@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The Android app's Firebase config and release key are in the secrets ledger.**
+  `docs/secrets-ledger.md` gains three rows: the Android Firebase config (app id
+  `1:481254717481:android:d6d36d3b475193c2740438`, on the build machine only and gitignored),
+  the release keystore (outside the repo, its password in the macOS Keychain; the certificate's
+  public SHA-256 is listed), and App Check for the Android app (Play Integrity, pending). No
+  secret value is written. Source: the Android app's registration in Firebase. Verified: the
+  config file holds that app id and package and `git status` shows it ignored; the keystore's
+  fingerprint was read back with keytool; the root CI mirror exit 0.
+
 - **Firebase AI Logic failures are classified for the read rules.** `AiClient` wraps every
   failed call in a `ModelCallException` with the app's own kind (`AiMapping.failure`): a server
   error, quota (429), timeout or network error is transient and retried once; a blocked prompt,
