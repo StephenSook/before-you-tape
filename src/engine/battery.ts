@@ -29,10 +29,12 @@ export function crossCheckWh(
   return diffPct > tolerancePct ? "printed_mismatch" : "printed_matches";
 }
 
-function presenceOf(read: ItemRead, answers: ItemAnswers, hasEvidence: boolean): BatteryFacts["presence"] {
+function presenceOf(read: ItemRead, answers: ItemAnswers, hasEvidence: boolean, tags: string[]): BatteryFacts["presence"] {
   // A power bank or a loose battery is never installed in a device, whatever an answer saved
-  // under an earlier reading says, so the category is checked before the answer.
+  // under an earlier reading says, so the category comes first. A label that says power bank or
+  // battery pack also means loose, except on a device that holds its own pack (a laptop sticker).
   if (LOOSE_CATEGORIES.has(read.category)) return "loose";
+  if (tags.includes("power_bank_label") && !BATTERY_DEVICES.has(read.category)) return "loose";
   const answer = answers.battery_installed;
   if (answer === "installed" || answer === "loose" || answer === "packed_beside") return answer;
   if (BATTERY_DEVICES.has(read.category)) return "installed";
@@ -52,8 +54,11 @@ export function deriveBattery(
   const whPrinted = printed(read.wattHours);
   const whComputed = volts !== null && milliampHours !== null ? round2((volts * milliampHours) / 1000) : null;
   const liMetal = tags.includes("li_metal");
+  const liIon = tags.includes("li_ion");
   const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null;
-  const hasEvidence = read.batteryWords || anyNumber || liMetal;
+  // Label words count as battery evidence even when the model's batteryWords flag is false.
+  const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
+  const hasEvidence = read.batteryWords || anyNumber || labelEvidence;
 
   let whStatus: BatteryFacts["whStatus"];
   if (!inRange(volts, RANGE.volts) || !inRange(milliampHours, RANGE.milliampHours) || !inRange(whPrinted, RANGE.wattHours)) {
@@ -80,10 +85,10 @@ export function deriveBattery(
     }
   }
 
-  const presence = presenceOf(read, answers, hasEvidence);
+  const presence = presenceOf(read, answers, hasEvidence, tags);
   let chemistry: BatteryFacts["chemistry"] = "unknown";
   if (liMetal) chemistry = "li_metal";
-  else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
+  else if (liIon || anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
 
   return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, countAs, units: quantity };
 }

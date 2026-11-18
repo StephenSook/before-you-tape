@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-5175c4d86013",
+  "editionId": "byt-5c86170b7f94",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -208,6 +208,42 @@
     {
       "pattern": "lithium metal",
       "tag": "li_metal"
+    },
+    {
+      "pattern": "power ?banks?",
+      "tag": "power_bank_label"
+    },
+    {
+      "pattern": "portable chargers?",
+      "tag": "power_bank_label"
+    },
+    {
+      "pattern": "battery packs?",
+      "tag": "power_bank_label"
+    },
+    {
+      "pattern": "li-ion",
+      "tag": "li_ion"
+    },
+    {
+      "pattern": "lithium[- ]ion",
+      "tag": "li_ion"
+    },
+    {
+      "pattern": "lithium polymer",
+      "tag": "li_ion"
+    },
+    {
+      "pattern": "li-po",
+      "tag": "li_ion"
+    },
+    {
+      "pattern": "lipo",
+      "tag": "li_ion"
+    },
+    {
+      "pattern": "rechargeable",
+      "tag": "battery_label"
     },
     {
       "pattern": "fl\\.? ?oz",
