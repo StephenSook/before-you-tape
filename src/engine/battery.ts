@@ -35,10 +35,11 @@ function presenceOf(
   read: ItemRead, answers: ItemAnswers, hasEvidence: boolean, lithiumEvidence: boolean, tags: string[],
 ): BatteryFacts["presence"] {
   // A power bank or a loose battery is never installed in a device, whatever an answer saved
-  // under an earlier reading says, so the category comes first. A label that says power bank or
-  // battery pack also means loose, except on a device that holds its own pack (a laptop sticker).
+  // under an earlier reading says, so the category comes first. A label that says "power bank" or
+  // "portable charger" means loose whatever category the model picked. "Battery pack" is only
+  // battery evidence: laptop and camera stickers say it about the pack inside the device.
   if (LOOSE_CATEGORIES.has(read.category)) return "loose";
-  if (tags.includes("power_bank_label") && !BATTERY_DEVICES.has(read.category)) return "loose";
+  if (tags.includes("power_bank_label")) return "loose";
   const answer = answers.battery_installed;
   if (answer === "loose" || answer === "packed_beside") return answer;
   // A phone, tablet, laptop, smartwatch or earbuds always hold a lithium battery: a saved

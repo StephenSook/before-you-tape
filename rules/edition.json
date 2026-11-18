@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-ec26e9381da7",
+  "editionId": "byt-1686d7e1c4cf",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -257,7 +257,7 @@
     },
     {
       "pattern": "battery packs?",
-      "tag": "power_bank_label"
+      "tag": "battery_label"
     },
     {
       "pattern": "li-ion",
