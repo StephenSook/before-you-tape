@@ -42,6 +42,17 @@ data class HomeUi(
     val fixItemId: String? = null,
 )
 
+/** Where the screen goes when a read finishes. */
+object HomeNav {
+    /**
+     * A read that lands while the person is still on the camera shows the box. If they have moved
+     * on (typing an item, fixing one, looking at the box), they stay where they are, so a slow read
+     * never closes a form they are filling in. A failed read keeps them where they are and says why.
+     */
+    fun afterCheck(ui: HomeUi, message: String?): HomeUi =
+        ui.copy(busy = false, message = message, view = if (message == null && ui.view == HomeView.CAMERA) HomeView.BOX else ui.view)
+}
+
 interface HomeActions {
     fun destination(code: String)
     fun consent(allowed: Boolean)

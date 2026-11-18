@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A slow read no longer closes a form the person is filling in.** When a read finished, the
+  screen always switched to the box, even if the person had meanwhile opened "Type it" and was
+  entering another item, which threw that draft away. `HomeNav.afterCheck` now shows the box only
+  if the person is still on the camera; otherwise they stay where they are. A failed read also
+  keeps them in place and says why. Source: review (second model) of the Android pull request,
+  finding 7. Verified: `HomeNavTest` (3 tests, which failed to compile first) passes: a read on
+  the camera shows the box; a read while typing leaves the form open; a failed read stays put
+  with its message. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Fast quantity taps add up instead of overwriting each other.** Each card sent an absolute
   quantity (the shown number plus or minus one). Two fast taps on "One more" before the card
   redrew both sent 2, so the engine judged two phones when the sender meant three. A tap now

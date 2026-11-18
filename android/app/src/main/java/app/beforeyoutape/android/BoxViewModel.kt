@@ -25,6 +25,7 @@ import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
 import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeActions
+import app.beforeyoutape.android.ui.HomeNav
 import app.beforeyoutape.android.ui.HomeUi
 import app.beforeyoutape.android.ui.HomeView
 import app.beforeyoutape.android.ui.ReadDraft
@@ -132,7 +133,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish { it.copy(busy = true, message = null) }
         onWorker {
             val message = session.check(crop)
-            publish { it.copy(busy = false, message = message, view = if (message == null) HomeView.BOX else it.view) }
+            publish { HomeNav.afterCheck(it, message) }
         }
     }
 
