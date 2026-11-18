@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Crop math that keeps only the hold zone.** `Crop.zoneRect` turns the hold zone (fractions
+  of the upright frame) into pixels clipped to the frame; `scaleToMaxSide` brings the longest
+  side down to the shared limit and never enlarges; `centerToAspect` cuts a picked photo to the
+  zone's shape, centred. `CropLimits` are the web app's own numbers from
+  `src/shared/cropLimits.ts` (768 px longest side, JPEG quality 0.85, 500,000 bytes); the plan's
+  1024 px was an estimate made before that file existed. App unit tests now get the repo root as
+  a system property. Source: Android plan Task 8. Verified: `CropTest` (6 tests, which failed to
+  compile first) passes, including a 4000x3000 frame with zone 0.1/0.3/0.8/0.4 giving 3200x1200
+  at 400,900, 3200x1200 scaled to 768x288, a small crop left as it is, and the limits read from
+  the TypeScript file; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Ledger: the emulator's App Check debug token.** One debug token for the debug build on
   this Mac's emulator is registered for the Android app; its value is only in the macOS Keychain
   (`byt-appcheck-debug-android-emulator`) and the gitignored `local.properties`, never printed,

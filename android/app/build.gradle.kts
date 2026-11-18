@@ -63,6 +63,8 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = false
+        // Unit tests read the web repo's shared files (for example src/shared/cropLimits.ts).
+        unitTests.all { it.systemProperty("byt.repoRoot", rootProject.projectDir.parentFile.absolutePath) }
     }
 }
 
