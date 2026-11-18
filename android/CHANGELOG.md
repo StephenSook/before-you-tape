@@ -3,6 +3,23 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Item reader with the device guard and one cloud retry.** `ItemReader.read` checks the
+  on-device model's status immediately before every read and picks the route from it and the
+  cloud state. A blocked read says why (no model and no consent, offline, or cloud paused) and
+  makes no call. A device-only read uses `ONLY_ON_DEVICE` and discards a reply whose source is
+  the cloud. A hybrid failure other than a refusal is retried once in the cloud, and only if the
+  cloud is still allowed at that moment; a network error, 429 or 5xx on a cloud read is retried
+  once. A refusal is never retried, and three in a row pause the run until it is reset. Every
+  reply goes through the web app's parser; a missing object or a parser rejection is
+  "unreadable" and nothing is added. The failure kinds (`CallFailure`) are the app's own, so
+  the reader needs no Firebase classes. The plan's reasons gained `CLOUD_ERROR` (a cloud failure
+  such as a refused App Check token) and a `REFUSALS_PAUSED` block. Source: Android plan Task 7,
+  design sections 5.3 and 5.4. Verified: `ItemReaderTest` (10 tests, which failed to compile
+  first) passes: nothing is called with no model and no consent, only `ONLY_ON_DEVICE` is used
+  with a model and no consent, a device-only reply from the cloud is discarded, the gate is
+  read before every call, the retry rules, the refusal pause and the parser check; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Read routes that never send a photo without consent.** `ReadRoutes.choose` is the design
   table's four rows: a ready on-device model with the cloud allowed is hybrid, without it
   device-only; no model is cloud-only or blocked. `cloudAllowed` is true only with consent given,

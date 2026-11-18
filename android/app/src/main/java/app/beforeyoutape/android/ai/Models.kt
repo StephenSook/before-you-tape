@@ -20,3 +20,17 @@ fun interface LabelModel {
 
 /** kill_cloud is on, or Remote Config gave no cloud model: no cloud call may start. */
 class CloudPausedException : Exception("cloud reads are paused")
+
+/** How a model call failed, in the app's own terms: what the read rules need to decide on a retry. */
+enum class CallFailure {
+    /** Network error, 429 or 5xx: retried once. */
+    TRANSIENT,
+    /** The model or its safety filters refused: never retried; three in a row pause the run. */
+    REFUSED,
+    /** The on-device model failed or is not there. */
+    DEVICE,
+    /** Anything else (for example App Check refused): not retried. */
+    OTHER,
+}
+
+class ModelCallException(val failure: CallFailure, cause: Throwable?) : Exception(cause)
