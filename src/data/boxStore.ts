@@ -2,7 +2,7 @@
 // a verdict is never read back from storage. Label text stays in memory and with the crop on this device;
 // the copy handed to persistence carries only the tags found in it.
 import type { ReadOutcome } from "../ai/itemRead";
-import type { InferenceSourceName } from "../ai/port";
+import type { InferenceSourceName, ReadRoute } from "../ai/port";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import type { BoxItemInput, DestinationEdition, RuleEdition } from "../engine/types";
@@ -10,7 +10,8 @@ import { evaluateBox, type BoxResult } from "../engine/verdict";
 import type { ItemRead } from "../shared/itemRead";
 
 // Where an item's read came from. The phones use one name each for both of them.
-export type ReadSource = InferenceSourceName | "manual" | "phone_on_device" | "phone_cloud";
+// cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
+export type ReadSource = InferenceSourceName | "cloud_unreported" | "manual" | "phone_on_device" | "phone_cloud";
 
 export interface CustomsLine {
   description: string;
@@ -25,11 +26,15 @@ export interface BoxItem extends BoxItemInput {
   readSource: ReadSource;
   readMs: number;
   secondLook: { ms: number; reason: string } | null;
+  // Set only when the fallback cloud model made the read, with the status that sent it there.
+  readFallback?: { after: "500" | "503"; route: ReadRoute };
   cropKey: string | null;
   customs: CustomsLine;
 }
 
-export interface BoxSources { onDevice: number; inCloud: number; secondLooks: number; rulesOnlyRechecks: number }
+export interface BoxSources { onDevice: number; inCloud: number; secondLooks: number; rulesOnlyRechecks: number; cloudFallbacks: number }
+
+const NO_SOURCES: BoxSources = { onDevice: 0, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 };
 
 export interface BoxState {
   boxId: string;
@@ -96,7 +101,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let destinationCode = DEFAULT_DESTINATION;
   let liveRead: { code: string; edition: DestinationEdition } | null = null;
   let cloudConsent: boolean | null = null;
-  let sources: BoxSources = { onDevice: 0, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0 };
+  let sources: BoxSources = { ...NO_SOURCES };
   let lastRecheckMs: number | null = null;
   let errors: Record<string, string> = {};
   const boxId = deps.boxId ?? deps.newId();
@@ -127,7 +132,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     items = [...(saved.items ?? []).filter((i) => !known.has(i.itemId)), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
     if (saved.cloudConsent !== undefined && cloudConsent === null) cloudConsent = saved.cloudConsent;
-    if (saved.sources) sources = { ...saved.sources };
+    // A box saved before a count existed starts that count at 0.
+    if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
     commit();
   });
 
@@ -141,12 +147,19 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     addRead(outcome, cropKey) {
       const itemId = deps.newId();
-      items = [...items, {
+      const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
-        labelTags: tagsOf(outcome.read.labelText), readSource: outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
+        labelTags: tagsOf(outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
         customs: { ...EMPTY_CUSTOMS },
-      }];
-      sources = { ...sources, onDevice: sources.onDevice + (outcome.source === "on_device" ? 1 : 0), inCloud: sources.inCloud + (outcome.source === "in_cloud" ? 1 : 0) };
+      };
+      if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
+      items = [...items, item];
+      sources = {
+        ...sources,
+        onDevice: sources.onDevice + (outcome.source === "on_device" ? 1 : 0),
+        inCloud: sources.inCloud + (outcome.source === "in_cloud" ? 1 : 0),
+        cloudFallbacks: sources.cloudFallbacks + (outcome.fallbackAfter ? 1 : 0),
+      };
       commit();
       return itemId;
     },

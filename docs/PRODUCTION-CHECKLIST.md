@@ -6,7 +6,7 @@ What to do, in order, when the live site needs protecting or checking.
 
 Use the smallest switch that stops it, and say what you did.
 
-1. **`kill_cloud` in Remote Config.** Set it to `true` and publish. Every cloud read, second look and description stops; reads on the device keep working, and the page says "Cloud checks are paused. Checks on this laptop still work." Not live yet: the app reads Remote Config from the next release.
+1. **`kill_cloud` in Remote Config.** Set it to `true` and publish. Every cloud read, second look and description stops; reads on the device keep working, and the page says "Cloud checks are paused. Checks on this laptop still work." Live since `901ecb3`: open pages pick it up in a few seconds with no reload (see `docs/evidence/kill-cloud-flip-*.json`).
 2. **The per-user quota.** Lower "Generate content requests per minute per project per user" on the Firebase AI Logic API from 20 toward 0 (a consumer override; the API asks for the narrow safety-check bypass `LIMIT_DECREASE_PERCENTAGE_TOO_HIGH` for a cut of more than 10 percent). It can be raised again at once.
 3. **Turn off the Firebase AI Logic API** (`firebasevertexai.googleapis.com`) on the project. This stops every cloud read at once and also breaks the App Check control test. Ask before doing this.
 

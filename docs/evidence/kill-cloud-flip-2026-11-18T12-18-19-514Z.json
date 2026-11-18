@@ -1,0 +1,85 @@
+{
+  "url": "https://before-you-tape-2026.web.app/",
+  "image": "tests/e2e/fixtures/lotion-label.jpg (a generated test label, not a photo of a real item)",
+  "steps": [
+    {
+      "at": "2026-11-18T12:18:19.514Z",
+      "step": "template before",
+      "version": "1",
+      "updateTime": "2026-11-18T12:13:14.642259Z",
+      "kill_cloud": "false"
+    },
+    {
+      "at": "2026-11-18T12:18:23.925Z",
+      "step": "page A open, banner visible",
+      "visible": false
+    },
+    {
+      "at": "2026-11-18T12:18:25.316Z",
+      "step": "set kill_cloud true",
+      "version": "2",
+      "updateTime": "2026-11-18T12:18:25.090442Z",
+      "kill_cloud": "true"
+    },
+    {
+      "at": "2026-11-18T12:18:28.115Z",
+      "step": "page A shows the paused banner without a reload",
+      "secondsAfterFlip": 2.798,
+      "text": "Cloud checks are paused. Checks on this laptop still work."
+    },
+    {
+      "at": "2026-11-18T12:18:29.171Z",
+      "step": "fresh page B shows the paused banner on load"
+    },
+    {
+      "at": "2026-11-18T12:18:29.205Z",
+      "step": "read attempted on page A while paused",
+      "alert": "This device can't read photos on its own, and cloud checks are off. Type the item instead."
+    },
+    {
+      "at": "2026-11-18T12:18:29.235Z",
+      "step": "read attempted on page B while paused",
+      "alert": "This device can't read photos on its own, and cloud checks are off. Type the item instead."
+    },
+    {
+      "at": "2026-11-18T12:18:39.236Z",
+      "step": "model requests while paused",
+      "count": 0
+    },
+    {
+      "at": "2026-11-18T12:18:40.685Z",
+      "step": "set kill_cloud false",
+      "version": "3",
+      "updateTime": "2026-11-18T12:18:40.454568Z",
+      "kill_cloud": "false"
+    },
+    {
+      "at": "2026-11-18T12:18:43.984Z",
+      "step": "page A banner gone without a reload",
+      "secondsAfterFlip": 3.299
+    },
+    {
+      "at": "2026-11-18T12:18:46.784Z",
+      "step": "read after resume",
+      "verdict": "OK to pack",
+      "source": "Read in the cloud",
+      "modelRequests": [
+        200
+      ]
+    },
+    {
+      "at": "2026-11-18T12:18:47.521Z",
+      "step": "template after",
+      "version": "3",
+      "updateTime": "2026-11-18T12:18:40.454568Z",
+      "kill_cloud": "false"
+    }
+  ],
+  "modelRequests": [
+    {
+      "at": "2026-11-18T12:18:46.731Z",
+      "page": "A",
+      "status": 200
+    }
+  ]
+}

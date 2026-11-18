@@ -5,6 +5,11 @@
       "valueType": "STRING",
       "description": "The cloud model for item reads (Firebase AI Logic, Gemini Developer API)."
     },
+    "cloud_model_item_fallback": {
+      "defaultValue": { "value": "gemini-3.8-flash" },
+      "valueType": "STRING",
+      "description": "Tried once when the item model still answers 500 or 503 after its retry; empty turns it off."
+    },
     "cloud_model_text": {
       "defaultValue": { "value": "gemini-3.5-flash-lite" },
       "valueType": "STRING",

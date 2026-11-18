@@ -6,10 +6,16 @@ import { CONFIG_DEFAULTS } from "./defaults";
 
 export type AppConfig = typeof CONFIG_DEFAULTS;
 
-export const RC_KEYS = { cloudModelItem: "cloud_model_item", cloudModelText: "cloud_model_text", killCloud: "kill_cloud" } as const;
+export const RC_KEYS = {
+  cloudModelItem: "cloud_model_item",
+  cloudModelItemFallback: "cloud_model_item_fallback",
+  cloudModelText: "cloud_model_text",
+  killCloud: "kill_cloud",
+} as const;
 
 export const RC_DEFAULTS: Record<string, string | boolean> = {
   [RC_KEYS.cloudModelItem]: CONFIG_DEFAULTS.cloudModelItem,
+  [RC_KEYS.cloudModelItemFallback]: CONFIG_DEFAULTS.cloudModelItemFallback,
   [RC_KEYS.cloudModelText]: CONFIG_DEFAULTS.cloudModelText,
   [RC_KEYS.killCloud]: CONFIG_DEFAULTS.killCloud,
 };
@@ -23,6 +29,10 @@ const model = (raw: string, fallback: string) => (MODEL_NAME.test(raw.trim()) ? 
 export function readConfig(get: Read): AppConfig {
   return {
     cloudModelItem: model(get(RC_KEYS.cloudModelItem).asString(), CONFIG_DEFAULTS.cloudModelItem),
+    // Empty turns the fallback off; anything else must look like a Gemini model.
+    cloudModelItemFallback: get(RC_KEYS.cloudModelItemFallback).asString().trim() === ""
+      ? ""
+      : model(get(RC_KEYS.cloudModelItemFallback).asString(), CONFIG_DEFAULTS.cloudModelItemFallback),
     cloudModelText: model(get(RC_KEYS.cloudModelText).asString(), CONFIG_DEFAULTS.cloudModelText),
     killCloud: get(RC_KEYS.killCloud).asBoolean(),
   };
