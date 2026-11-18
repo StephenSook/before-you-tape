@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): read the cloud pause again before every cloud call
+- What: `ItemReader.cloudOpen` is asked before each cloud call (the first, a retry, the fallback
+  model). When the cloud was paused since the read began, no cloud call is made and the read ends
+  with the new `cloud_paused` failure, which goes to typed entry.
+- Source: review of the iPhone pull request (finding 2; the live Remote Config wiring follows).
+- Verified: a router test and two reader tests (a pause before the cloud fallback stops it; a
+  pause between a cloud call and its retry stops the retry) failed to compile, then passed; 31
+  core and 82 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### test(ios): run the box loop on screen: a read, its verdict, and a country flip
 - What: a UI test target (`BYTUITests`) with `LoopUITests`. With the launch argument
   `-uiTestFakeReader`, a debug-only fixed reader returns a body lotion, the on-device model counts

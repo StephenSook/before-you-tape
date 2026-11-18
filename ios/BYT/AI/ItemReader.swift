@@ -76,6 +76,9 @@ struct ItemReader: Sendable {
     /// The web app's own parser (the rules engine's parseItemRead); nil means it refused the answer.
     /// Required, so no caller can skip it.
     var parse: @Sendable (JSONValue) -> JSONValue?
+    /// Read again before every cloud call (the first, a retry, the fallback): false when the cloud
+    /// was paused since the read began, and then no cloud call is made.
+    var cloudOpen: @Sendable @MainActor () -> Bool = { true }
     var deviceSeconds: Double = 30
     var cloudSeconds: Double = 45
     private let gate = ReadGate()
@@ -129,6 +132,10 @@ struct ItemReader: Sendable {
             case .onDevice:
                 (runner, model, seconds) = (device, Self.deviceModelName, deviceSeconds)
             case .cloud:
+                guard await cloudOpen() else {
+                    return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .cloudPaused, records: records,
+                                       fallbackAfter: fallbackAfter)
+                }
                 let made = cloud ?? makeCloud(cloudModel)
                 cloud = made
                 (runner, model, seconds) = (made, cloudModel, cloudSeconds)

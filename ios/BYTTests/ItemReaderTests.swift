@@ -199,6 +199,30 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         #expect(o.records.count == 2)
     }
 
+    /// The pause switch is read again before every cloud attempt, the retry and the fallback included.
+    @Test func aCloudPausedDuringAReadStopsBeforeTheNextCloudCall() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        var r = reader(device: FakeItemRunner("device", journal: j, results: [.failure(ReadError(.unavailable))]),
+                       cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]), built: built)
+        r.cloudOpen = { false }
+        let o = await r.read(words, situation: situation())
+        #expect(o.read == nil && o.failure == .cloudPaused && built.models.isEmpty)
+        #expect(j.events == ["device start", "device end"])
+    }
+
+    @Test func aPauseBetweenTheCloudCallAndItsRetryStopsTheRetry() async {
+        let j = FakeItemRunner.Journal()
+        final class Gate: @unchecked Sendable { var calls = 0 }
+        let gate = Gate()
+        var r = reader(device: FakeItemRunner("device", journal: j, results: []),
+                       cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.server, fallbackAfter: .status503)),
+                                                                             .success(ItemReply(read: read, tokens: nil))]))
+        r.cloudOpen = { gate.calls += 1; return gate.calls == 1 }
+        let o = await r.read(words, situation: situation(available: false))
+        #expect(o.failure == .cloudPaused && o.records.count == 1)
+        #expect(j.events == ["cloud start", "cloud end"])
+    }
+
     @Test func theDeviceRunnerHoldsNoFirebaseAI() {
         #expect(Mirror(reflecting: DeviceRunner()).children.isEmpty)
     }

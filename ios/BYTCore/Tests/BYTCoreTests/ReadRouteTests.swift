@@ -76,6 +76,11 @@ import Testing
         #expect(ReadFailure.notSignedIn.rawValue == "not_signed_in")
     }
 
+    @Test func aCloudPausedMidReadGoesToTypedEntry() {
+        #expect(ReadRoutePolicy.afterFailure(.cloudPaused, route: .hybrid, ran: .cloud, cloudRetries: 0) == .typedEntry)
+        #expect(ReadFailure.cloudPaused.rawValue == "cloud_paused")
+    }
+
     @Test func cancelledNeverRetries() {
         #expect(ReadRoutePolicy.afterFailure(.cancelled, route: .hybrid, ran: .onDevice, cloudRetries: 0) == .typedEntry)
         #expect(ReadRoutePolicy.afterFailure(.cancelled, route: .cloudOnly, ran: .cloud, cloudRetries: 0) == .typedEntry)

@@ -52,7 +52,9 @@ public enum ReadFailure: String, Codable, Sendable, CaseIterable, Error {
          contextExceeded = "context_exceeded", timeout, network, appCheckRefused = "app_check_refused",
          rateLimited = "rate_limited", server, cancelled, other,
          /// The anonymous sign-in failed, so no cloud call was made (AI Logic serves signed-in users only).
-         notSignedIn = "not_signed_in"
+         notSignedIn = "not_signed_in",
+         /// The cloud was paused (Remote Config `kill_cloud`) before the next cloud call, so none was made.
+         cloudPaused = "cloud_paused"
 }
 
 public enum NextStep: Equatable, Sendable { case retryInCloud, retryCloudOnce, typedEntry }
@@ -87,7 +89,7 @@ public enum ReadRoutePolicy {
     /// blocked item elsewhere would go around the guardrail. A cancelled read never retries.
     public static func afterFailure(_ f: ReadFailure, route: ReadRoute, ran: ReadPath, cloudRetries: Int) -> NextStep {
         switch f {
-        case .guardrailBlock, .refusal, .cancelled, .appCheckRefused, .notSignedIn, .other:
+        case .guardrailBlock, .refusal, .cancelled, .appCheckRefused, .notSignedIn, .cloudPaused, .other:
             return .typedEntry
         case .unavailable, .contextExceeded, .parseFailed, .timeout:
             return ran == .onDevice && route == .hybrid ? .retryInCloud : .typedEntry
