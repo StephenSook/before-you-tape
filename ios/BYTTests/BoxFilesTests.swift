@@ -29,4 +29,13 @@ import Testing
         #expect(files.url(boxId: "") == nil)
         #expect(files.url(boxId: "a1-B2_c3") != nil)
     }
+
+    @Test func anOversizedFileIsRefusedAndSaid() throws {
+        let dir = folder()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(count: BoxFiles.maxFileBytes + 1).write(to: dir.appendingPathComponent("big.json"))
+        let files = BoxFiles(folder: dir)
+        #expect(files.load(boxId: "big") == nil)
+        #expect(files.problem != nil)
+    }
 }

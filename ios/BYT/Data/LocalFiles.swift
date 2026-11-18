@@ -11,6 +11,9 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("boxes")
     }
 
+    /// A saved box is a few kilobytes; a larger file is damaged and is not read.
+    static let maxFileBytes = 2_000_000
+
     /// Atomic, and readable only while the iPhone is unlocked.
     static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
 
@@ -37,6 +40,11 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     func load(boxId: String) -> BoxSnapshot? {
         guard let url = url(boxId: boxId), FileManager.default.fileExists(atPath: url.path) else { return nil }
         do {
+            let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
+            guard size <= Self.maxFileBytes else {
+                problem = "The saved box is too large to be a box (\(size) bytes), so it was not read."
+                return nil
+            }
             let snapshot = try JSONDecoder().decode(BoxSnapshot.self, from: Data(contentsOf: url))
             problem = nil
             return snapshot

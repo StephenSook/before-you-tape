@@ -173,4 +173,17 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         after.load()
         #expect(after.result?.items["r1"] == s.result?.items["r1"])
     }
+
+    @Test func aDamagedSavedBoxCannotCrashOrBreakTheBox() throws {
+        let json = #"{"onDevice":9223372036854775807,"rulesOnlyRechecks":9223372036854775807,"inCloud":-5}"#
+        let counts = try JSONDecoder().decode(BoxSources.self, from: Data(json.utf8))
+        #expect(counts.onDevice == BoxSources.maxCount && counts.rulesOnlyRechecks == BoxSources.maxCount && counts.inCloud == 0)
+        let twin = BoxItem(itemId: "same", read: Self.shirt, readSource: "phone_on_device", readMs: 1)
+        let p = MemoryBoxPersistence(stored: BoxSnapshot(boxId: "b", destinationCode: "CA", items: [twin, twin], cloudConsent: nil, sources: counts))
+        let s = try store(p)
+        s.load()
+        #expect(s.items.count == 1 && s.result != nil)
+        s.setDestination("PH")
+        #expect(s.sources.rulesOnlyRechecks == BoxSources.maxCount)
+    }
 }

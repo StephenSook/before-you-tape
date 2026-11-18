@@ -15,14 +15,19 @@ struct BoxSources: Codable, Equatable, Sendable {
             (onDevice, inCloud, secondLooks, rulesOnlyRechecks, cloudFallbacks)
     }
 
-    /// A box saved before a count existed starts that count at 0.
+    /// No count goes past this, so a damaged saved file can never make an addition overflow.
+    static let maxCount = 1_000_000
+
+    /// A box saved before a count existed starts that count at 0; every count is kept in 0...maxCount.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(onDevice: try c.decodeIfPresent(Int.self, forKey: .onDevice) ?? 0,
-                  inCloud: try c.decodeIfPresent(Int.self, forKey: .inCloud) ?? 0,
-                  secondLooks: try c.decodeIfPresent(Int.self, forKey: .secondLooks) ?? 0,
-                  rulesOnlyRechecks: try c.decodeIfPresent(Int.self, forKey: .rulesOnlyRechecks) ?? 0,
-                  cloudFallbacks: try c.decodeIfPresent(Int.self, forKey: .cloudFallbacks) ?? 0)
+        func count(_ key: CodingKeys) throws -> Int { min(Self.maxCount, max(0, try c.decodeIfPresent(Int.self, forKey: key) ?? 0)) }
+        self.init(onDevice: try count(.onDevice), inCloud: try count(.inCloud), secondLooks: try count(.secondLooks),
+                  rulesOnlyRechecks: try count(.rulesOnlyRechecks), cloudFallbacks: try count(.cloudFallbacks))
+    }
+
+    mutating func add(_ key: WritableKeyPath<BoxSources, Int>, _ n: Int = 1) {
+        self[keyPath: key] = min(Self.maxCount, self[keyPath: key] + n)
     }
 }
 
@@ -164,8 +169,10 @@ final class BoxStore {
     /// Merges a saved box under any items already added, then derives the verdicts afresh.
     func load() {
         guard let saved = persistence.load(boxId: boxId) else { return }
-        let known = Set(items.map(\.itemId))
-        items = saved.items.filter { !known.contains($0.itemId) } + items
+        // An item id appears once: a damaged file with duplicate ids would make the engine refuse the box.
+        var known = Set(items.map(\.itemId))
+        let restored = saved.items.filter { known.insert($0.itemId).inserted }
+        items = restored + items
         destinationCode = saved.destinationCode
         if cloudConsent == nil { cloudConsent = saved.cloudConsent }
         sources = saved.sources
@@ -179,9 +186,9 @@ final class BoxStore {
         items.append(BoxItem(itemId: itemId, read: read, labelTags: tags(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
                              readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile))
-        sources.onDevice += source == .onDevice ? 1 : 0
-        sources.inCloud += source == .cloud ? 1 : 0
-        sources.cloudFallbacks += outcome.fallbackAfter == nil ? 0 : 1
+        sources.add(\.onDevice, source == .onDevice ? 1 : 0)
+        sources.add(\.inCloud, source == .cloud ? 1 : 0)
+        sources.add(\.cloudFallbacks, outcome.fallbackAfter == nil ? 0 : 1)
         commit()
         return itemId
     }
@@ -234,7 +241,7 @@ final class BoxStore {
         let start = now()
         let fresh = evaluate()
         lastRecheckMs = now() - start
-        sources.rulesOnlyRechecks += 1
+        sources.add(\.rulesOnlyRechecks)
         commit(fresh)
     }
 

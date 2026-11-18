@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): survive a damaged saved box without crashing or losing the box
+- What: every count read from a saved box is kept in 0 to 1,000,000 and additions stop there,
+  so a damaged file can no longer make a count overflow and stop the app. Duplicate item ids in a
+  saved box are kept once, so the engine no longer refuses the whole box. A saved box file over
+  2,000,000 bytes is not read, and the reason is reported. The saved cloud answer is still
+  restored, as on the web app; changing it needs write access to the app's own files.
+- Source: security review of the box store change.
+- Verified: two tests (huge and negative counts are clamped and a country change does not crash;
+  duplicate ids load once with a result; an oversized file is refused with a reason) failed to
+  compile without the limits, then passed; 66 app tests pass; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### fix(ios): keep a remote item's label tags so its verdict survives a relaunch
 - What: `mergeRemote` stored a remote item's tags as given. The engine reads tags from the label
   text in memory, but the saved copy drops that text, so an item with label text and no tags could
