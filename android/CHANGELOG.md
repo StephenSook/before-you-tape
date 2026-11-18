@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The read with the sender's fixes applied.** `BoxLogic.effectiveRead` applies each
+  override to the read, so "Fix this reading" opens the form at what the sender last saw. An
+  override the read type cannot take (typed text in a number field) is left out of the form;
+  the engine still judges it. Source: Android plan Task 12. Verified: two `OverridesTest`
+  cases (a number and a category applied, an untakeable value left out), which failed to
+  compile first, pass; `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Home screen: destination, consent, camera or typing, and the box.** `HomeScreen` is
   stateless, drawn from `HomeUi`, with every action going through `HomeActions`. It shows where
   the box is going (a picker over the edition's destinations), then the consent question once.

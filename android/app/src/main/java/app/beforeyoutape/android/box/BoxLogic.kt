@@ -5,8 +5,10 @@ import app.beforeyoutape.engine.BoxItemInput
 import app.beforeyoutape.engine.BoxResult
 import app.beforeyoutape.engine.EngineError
 import app.beforeyoutape.engine.ItemReadWire
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 /** The rules engine as the box sees it. */
 fun interface BoxEngine {
@@ -66,6 +68,19 @@ object BoxLogic {
     fun withResult(s: BoxState, result: BoxResult): BoxState = s.copy(result = result, engineError = null)
 
     fun withEngineError(s: BoxState, name: String): BoxState = s.copy(result = null, engineError = name)
+
+    /**
+     * The read with the sender's fixes applied, as the form shows it. An override the read type
+     * cannot take (typed text in a number field) is left out here; the engine still judges it.
+     */
+    fun effectiveRead(input: BoxItemInput): ItemReadWire {
+        var obj = Json.encodeToJsonElement(ItemReadWire.serializer(), input.read).jsonObject
+        for ((k, v) in input.overrides) {
+            val next = JsonObject(obj + (k to v))
+            if (runCatching { Json.decodeFromJsonElement(ItemReadWire.serializer(), next) }.isSuccess) obj = next
+        }
+        return Json.decodeFromJsonElement(ItemReadWire.serializer(), obj)
+    }
 
     /** The item as it may leave the phone: the label text, read or typed, stays here; its tags travel instead. */
     fun forSync(input: BoxItemInput): BoxItemInput =

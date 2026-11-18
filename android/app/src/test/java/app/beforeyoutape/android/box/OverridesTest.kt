@@ -77,6 +77,21 @@ class OverridesTest {
         assertEquals(listOf("c"), e.seen.last().map { it.itemId })
     }
 
+    @Test fun aFixStartsFromTheReadWithTheSendersFixesApplied() {
+        val c = withBank(Recorder(result))
+        c.override("b", mapOf("wattHours" to JsonPrimitive(18.5), "category" to JsonPrimitive("phone")), labelTags = null)
+        val r = BoxLogic.effectiveRead(c.state.items.single().input)
+        assertEquals(18.5, r.wattHours, 0.0)
+        assertEquals(ItemCategoryWire.phone, r.category)
+        assertEquals(3.7, r.volts, 0.0)
+    }
+
+    @Test fun anOverrideTheReadCannotTakeLeavesTheReadAsItIs() {
+        val c = withBank(Recorder(result))
+        c.override("b", mapOf("volts" to JsonPrimitive("about four")), labelTags = null)
+        assertEquals(3.7, BoxLogic.effectiveRead(c.state.items.single().input).volts, 0.0)
+    }
+
     @Test fun aTypedLabelStaysOffTheSyncedItemToo() {
         val c = withBank(Recorder(result))
         c.override("b", mapOf("labelText" to JsonPrimitive("SHEA LOTION"), "wattHours" to JsonPrimitive(18.5)), labelTags = listOf("liquid"))
