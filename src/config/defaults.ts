@@ -14,4 +14,7 @@ export const CONFIG_DEFAULTS = {
   killCloud: false,
   // second_look_policy_json: which on-device reads get a cloud second look.
   secondLook: SECOND_LOOK_DEFAULT,
+  // rules_edition_id and rules_edition_sha256: a newer published rule edition; empty uses the built-in one.
+  rulesEditionId: "",
+  rulesEditionSha256: "",
 };
