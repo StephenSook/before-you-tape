@@ -69,6 +69,15 @@ jobs:
           sys.exit(0 if v["sha"] == os.environ["SHA"] and v["dirty"] is False else 1)
           EOF
 
+      - name: Install the test browser
+        if: steps.head.outputs.current == 'true'
+        run: npx playwright install --with-deps chromium
+
+      # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
+      - name: The built app starts
+        if: steps.head.outputs.current == 'true'
+        run: npx playwright test --project=local tests/e2e/starts.spec.ts
+
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         if: steps.head.outputs.current == 'true'
         with:
@@ -97,3 +106,9 @@ jobs:
               time.sleep(5)
           sys.exit(1)
           EOF
+
+      - name: The live app starts
+        if: steps.head.outputs.current == 'true'
+        env:
+          BYT_LIVE: "1"
+        run: npx playwright test --project=live tests/e2e/starts.spec.ts
