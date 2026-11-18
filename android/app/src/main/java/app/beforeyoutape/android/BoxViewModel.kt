@@ -10,6 +10,8 @@ import app.beforeyoutape.android.ai.CloudState
 import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.ai.FailReason
 import app.beforeyoutape.android.ai.ItemReader
+import app.beforeyoutape.android.ai.LatestCheck
+import app.beforeyoutape.android.ai.ModelReadiness
 import app.beforeyoutape.android.ai.ModelDownload
 import app.beforeyoutape.android.ai.Prompts
 import app.beforeyoutape.android.ai.ReadOutcome
@@ -57,6 +59,9 @@ import java.util.UUID
 class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val store = LocalStore(SharedPrefs(app))
     private val persistence = BoxPersistence(SharedPrefs(app))
+
+    private val modelChecks = LatestCheck()
+    @Volatile private var downloadActive = false
 
     // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
     @Volatile private var restored = false
@@ -202,25 +207,28 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     /** Re-checks the on-device model: at start and whenever the app comes back to the front. */
     fun refreshModel() {
+        // Only the most recently started check may update the screen: an older one finishing last
+        // (say, a resume check during a download) would otherwise put back a stale status.
+        val check = modelChecks.begin()
         viewModelScope.launch {
             val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
-            state.update { it.copy(deviceModel = status) }
+            if (modelChecks.isLatest(check)) state.update { it.copy(deviceModel = ModelReadiness.shown(status, downloadActive)) }
         }
     }
 
     override fun getModel() {
         val client = ai ?: return
-        if (state.value.deviceModel == DeviceModelStatus.DOWNLOADING) return
+        if (downloadActive) return
+        downloadActive = true
+        state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
         viewModelScope.launch {
-            client.downloadModel().collect { step ->
-                when (step) {
-                    is ModelDownload.Started, is ModelDownload.Progress -> state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
-                    ModelDownload.Done -> refreshModel()
-                    is ModelDownload.Failed -> {
-                        state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
-                        refreshModel()
-                    }
+            try {
+                client.downloadModel().collect { step ->
+                    if (step is ModelDownload.Failed) state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
                 }
+            } finally {
+                downloadActive = false
+                refreshModel()
             }
         }
     }

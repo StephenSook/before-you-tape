@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **An older model check can no longer put a stale status back.** Every model status check wrote
+  its result when it finished. If the app went to the background and back during a download, the
+  resume check could finish after the post-download check and set the status back to
+  "downloading", hiding the camera until the next refresh. Now `LatestCheck` lets only the most
+  recently started check update the screen. While the app's own download runs, a status below
+  AVAILABLE shows "downloading" (`ModelReadiness.shown`), so the download offer cannot come back
+  and start a second download. When the download ends, either way, the status is checked again.
+  Source: review (second model) of the Android pull request, round 2, finding 4. Verified:
+  `ModelReadinessTest` (2 tests, which failed to compile first) passes; `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A cancelled sign-in waiter can no longer start a second anonymous user.** The shared sign-in
   serialized callers with a lock, but the Firebase sign-in ran inside the caller. If that caller
   was cancelled while waiting (its screen closed), the lock was released while the Firebase
