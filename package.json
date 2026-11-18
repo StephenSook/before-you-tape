@@ -19,7 +19,8 @@
     "guard": "tsx scripts/model-guard.ts",
     "edition": "tsx scripts/build-edition.ts",
     "edition:check": "tsx scripts/build-edition.ts --check",
-    "release:gate": "tsx scripts/release-gate.ts"
+    "release:gate": "tsx scripts/release-gate.ts",
+    "desk:apply": "tsx scripts/apply-desk-pass.ts"
   },
   "dependencies": {
     "react": "19.3.1",
