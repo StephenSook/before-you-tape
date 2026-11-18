@@ -29,7 +29,7 @@ final class AppModel {
     static let maxWords = 500
 
     init(signIn: SignIn = .firebase(), onDevice: OnDeviceStatus = ModelSessionFactory.onDeviceStatus(),
-         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil) {
+         persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard) {
         self.signIn = signIn
         self.onDevice = onDevice
         let engine = try? RulesEngine()
@@ -38,10 +38,13 @@ final class AppModel {
         self.destinations = editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
+        let boxId = Self.currentBoxId(defaults)
         self.box = engine.map {
             BoxStore(engine: $0, persistence: persistence, today: { AppModel.localDate(Date()) }, newId: { UUID().uuidString },
-                     now: { Date().timeIntervalSince1970 * 1000 })
+                     now: { Date().timeIntervalSince1970 * 1000 }, boxId: boxId)
         }
+        // The saved box comes back before anything is added.
+        box?.load()
     }
 
     /// The iPhone's own calendar date, YYYY-MM-DD, which the rule layers' freshness is checked against.
@@ -66,7 +69,6 @@ final class AppModel {
 
     func start() async {
         network.start()
-        box?.load()
         signedIn = await signIn.ensure()
         onDevice = ModelSessionFactory.onDeviceStatus()
     }
@@ -127,6 +129,16 @@ final class AppModel {
         }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         return "That item could not be read. Try another photo."
+    }
+
+    nonisolated static let boxIdKey = "currentBoxId"
+
+    /// The box this iPhone is filling: the same id every launch, so its saved file is found again.
+    nonisolated static func currentBoxId(_ defaults: UserDefaults) -> String {
+        if let id = defaults.string(forKey: boxIdKey), !id.isEmpty { return id }
+        let id = UUID().uuidString
+        defaults.set(id, forKey: boxIdKey)
+        return id
     }
 
     /// The edition's countries, by code.

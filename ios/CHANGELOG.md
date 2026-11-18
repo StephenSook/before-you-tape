@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): find the same box again after the app is reopened
+- What: each launch made a new random box id, so the saved box file was never found and the box
+  came back empty. The current box id is now kept in the app's settings (`currentBoxId`) and the
+  saved box is loaded when the app starts, before anything is added.
+- Source: the simulator check of the box screen (an item read in one launch was gone in the next).
+- Verified: a test builds the app twice on the same settings and folder and gets the same box id,
+  the saved item and its verdict back; it failed to compile without the change, then passed; 80
+  app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): let the sender fix a reading or type an item
 - What: each item card has "Fix this reading", a sheet with the reading's fields (what it is,
   name, label words, the printed numbers, what it is like, its box) that saves only the changed

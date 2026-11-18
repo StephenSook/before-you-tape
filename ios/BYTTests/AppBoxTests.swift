@@ -23,4 +23,17 @@ import Testing
         let instant = Date(timeIntervalSince1970: 1_763_692_200)
         #expect(AppModel.localDate(instant, calendar: calendar) == "2025-11-20")
     }
+
+    /// The box is the same box after a relaunch: its id is kept, and its saved items come back.
+    @Test func theBoxSurvivesARelaunch() throws {
+        let defaults = try #require(UserDefaults(suiteName: "box-relaunch-\(UUID().uuidString)"))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("relaunch-\(UUID().uuidString)")
+        let signIn = SignIn(isSignedIn: { false }, attempt: { false })
+        let first = AppModel(signIn: signIn, persistence: BoxFiles(folder: folder), defaults: defaults)
+        let id = try #require(first.box).addManual(BoxStoreTests.lotion)
+        let second = AppModel(signIn: signIn, persistence: BoxFiles(folder: folder), defaults: defaults)
+        #expect(second.box?.boxId == first.box?.boxId)
+        #expect(second.box?.items.map(\.itemId) == [id])
+        #expect(second.box?.result?.items[id]?.headline == "OK to pack")
+    }
 }
