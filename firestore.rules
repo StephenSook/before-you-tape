@@ -27,7 +27,8 @@ rules_version = '2';
 //   (optional), cropKey, customs.
 //
 // Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
-// signed-in user. Everything else (evalRuns, senderSessions, blindSessions, listingQuota): admin only.
+// signed-in user. blindSessions: opened by a reviewer's secret token, calls write-only (see below).
+// Everything else (evalRuns, senderSessions, listingQuota): admin only.
 // Membership and join keys change only through the Admin SDK, which these rules do not govern.
 //
 // ===============================================================
@@ -235,6 +236,37 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // The private blind check. A session is made by an admin script; its id is the reviewer's secret token.
+    // A signed-in reviewer may open it by that token (never list sessions), save calls while it is unlocked,
+    // and lock it once. No client can ever read a call.
+    // ---------------------------------------------------------------
+
+    function isValidBlindCall(d, callId) {
+      return d.keys().hasAll(['itemId', 'destination', 'call'])
+        && d.keys().hasOnly(['itemId', 'destination', 'call', 'at'])
+        && isShortString(d.itemId, 64)
+        && d.destination is string && d.destination.matches('^[A-Z]{2}$')
+        && callId == d.itemId + '_' + d.destination
+        && d.call in ['ship', 'dont_ship', 'depends']
+        && (!('at' in d) || d.at == request.time);
+    }
+
+    match /blindSessions/{token} {
+      allow get: if isAuthenticated();
+      // Locking sets lockedAt to the server's time, once, and changes nothing else.
+      allow update: if isAuthenticated()
+        && resource.data.lockedAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lockedAt'])
+        && request.resource.data.lockedAt == request.time;
+
+      match /calls/{callId} {
+        allow create, update: if isAuthenticated()
+          && get(/databases/$(database)/documents/blindSessions/$(token)).data.lockedAt == null
+          && isValidBlindCall(request.resource.data, callId);
+      }
+    }
+
+    // ---------------------------------------------------------------
     // Public data, written only by admin scripts
     // ---------------------------------------------------------------
 
@@ -251,6 +283,6 @@ service cloud.firestore {
       allow read: if isAuthenticated();
     }
 
-    // Everything else, including evalRuns, senderSessions, blindSessions and listingQuota, is denied.
+    // Everything else, including evalRuns, senderSessions and listingQuota, is denied.
   }
 }
