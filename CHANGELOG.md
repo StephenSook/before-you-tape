@@ -6,6 +6,11 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `eval/set/labels.json`: draft labels for set `eval-v1`, written from the rule sources before any model run. Each of the 40 items has an expected verdict and its section for Canada and the Philippines: 80 rows, 47 Take it out, 29 OK to pack, 4 Check this, and 28 hazard items.
+- Sources: USPS Pub 52 622.5, 623 and 424; the USPS international restrictions page read 2026-11-18 ("Aerosols", "Nail Polish", "Perfumes (containing alcohol)", "Alcoholic Beverages", and the lithium sentence); IMM 136.4; and the edition's Canada and Philippines lines.
+- Where a row rests on more than the photo, it says so: back-label photos for the lotions, the owner's statement for the perfumes, the phone's unknown condition, and the sender's call on chocolate and coffee for the Philippines.
+- The status stays draft until the blind check; then the file is frozen by hash before the first run.
+Source: plan Task 29 and the label reviews. Verified: every manifest item has labels for both destinations; local CI mirror exit 0.
 - `public/eval/items/*.jpg` and `eval/set/manifest.json`, the output of `scripts/eval-set-photos.py` for set `eval-v1`. 40 published photos, 11 MB, 1600 px on the long side.
 - 13 are the project owner's and 27 are public photos: 22 from Wikimedia Commons (CC BY-SA 3.0 or 4.0, CC BY 2.0, CC0 1.0, public domain) and 5 from Open Food Facts or Open Beauty Facts (CC BY-SA 3.0).
 - Each manifest item carries the published and the original SHA-256, size, alt text, printed battery numbers where a label prints them, and provenance with source page, file URL, author, license, license link and changes.
