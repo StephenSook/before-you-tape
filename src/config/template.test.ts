@@ -11,7 +11,9 @@ const PLATFORM = /_(ios|android)$/;
 describe("remoteconfig.template.json", () => {
   const params = Object.entries(template.parameters);
 
-  it("is the template firebase.json deploys", () => expect(firebaseJson.remoteconfig?.template).toBe("remoteconfig.template.json"));
+  // A bare `firebase deploy` must never publish the template over live values such as kill_cloud;
+  // the template goes out only through scripts/rc-publish.ts, which reads live first.
+  it("is not named in firebase.json, so no plain deploy can publish it", () => expect(firebaseJson.remoteconfig).toBeUndefined());
 
   it("names every key in lower snake case, with a description", () => {
     for (const [key, p] of params) {

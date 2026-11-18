@@ -24,8 +24,5 @@
     "providers": {
       "anonymous": true
     }
-  },
-  "remoteconfig": {
-    "template": "remoteconfig.template.json"
   }
 }
