@@ -87,13 +87,36 @@ describe("CameraStage", () => {
     await waitFor(() => expect(onImage).toHaveBeenCalledTimes(2));
   });
 
-  it("turns an added photo into a JPEG for the read", async () => {
+  it("opens a crop step for an added photo, turns the camera off, and sends only the part the sender checks", async () => {
     const onImage = vi.fn();
-    const readFile = vi.fn(async () => part);
-    render(<CameraStage openCamera={okCamera} onImage={onImage} readFile={readFile} />);
+    const stop = vi.fn();
+    const source = document.createElement("canvas");
+    source.width = 400;
+    source.height = 300;
+    const decodeFile = vi.fn(async () => source);
+    const cropPart = vi.fn(async () => part);
+    render(<CameraStage openCamera={async () => ({ stream: fakeStream, stop })} onImage={onImage} decodeFile={decodeFile} cropPart={cropPart} />);
+    await start();
+    await act(async () => { await Promise.resolve(); });
     await userEvent.upload(screen.getByTestId("upload-input"), photo);
-    await waitFor(() => expect(onImage).toHaveBeenCalledWith(part, "upload"));
-    expect(readFile).toHaveBeenCalledWith(photo);
+    expect(await screen.findByRole("img", { name: "The part that will be checked" })).toBeInTheDocument();
+    expect(decodeFile).toHaveBeenCalledWith(photo);
+    expect(stop).toHaveBeenCalled();
+    expect(cropPart).toHaveBeenCalledWith(source, { x: 0.25, y: 0.15, w: 0.5, h: 0.7 });
+    expect(onImage).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
+    expect(onImage).toHaveBeenCalledWith(part, "upload");
+    expect(screen.queryByTestId("photo-crop")).toBeNull();
+  });
+
+  it("sends nothing when the sender cancels the crop", async () => {
+    const onImage = vi.fn();
+    const source = document.createElement("canvas");
+    render(<CameraStage openCamera={okCamera} onImage={onImage} decodeFile={async () => source} cropPart={async () => part} />);
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(onImage).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start camera" })).toBeInTheDocument();
   });
 
   it("stops the camera when the stage goes away", async () => {

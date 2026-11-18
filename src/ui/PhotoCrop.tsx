@@ -46,15 +46,19 @@ export function PhotoCrop({ source, initialBox, cropPart, onSend, onCancel, onEr
     c.getContext("2d")?.drawImage(source, 0, 0, c.width, c.height);
   }, [source]);
 
+  // The latest callbacks, so a parent re-render never restarts the preview.
+  const latest = useRef({ cropPart, onError });
+  useEffect(() => { latest.current = { cropPart, onError }; });
+
   // The preview is the exact part that would be sent for this box.
   useEffect(() => {
     let current = true;
     const t = setTimeout(() => {
-      cropPart(source, box).then((part) => { if (current) setPreview({ box, part }); })
-        .catch((e: unknown) => { if (current) onError?.(e instanceof Error ? e.message : String(e)); });
+      latest.current.cropPart(source, box).then((part) => { if (current) setPreview({ box, part }); })
+        .catch((e: unknown) => { if (current) latest.current.onError?.(e instanceof Error ? e.message : String(e)); });
     }, 120);
     return () => { current = false; clearTimeout(t); };
-  }, [source, box, cropPart, onError]);
+  }, [source, box]);
 
   const onKey = (e: KeyboardEvent) => {
     const d = { ArrowLeft: [-STEP, 0], ArrowRight: [STEP, 0], ArrowUp: [0, -STEP], ArrowDown: [0, STEP] }[e.key];

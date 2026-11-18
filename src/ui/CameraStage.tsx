@@ -6,9 +6,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageHow, ImagePart } from "../ai/port";
 import { CameraError, type CameraErrorKind, type openCamera as openCameraFn } from "../capture/camera";
-import { cropToJpeg, fileToJpeg } from "../capture/crop";
+import { cropToJpeg, decodePhoto } from "../capture/crop";
 import { SteadyDetector, type Box, type SteadyConfig, type SteadyEvent } from "../capture/steady";
 import { CROP_LIMITS } from "../shared/cropLimits";
+import { PhotoCrop, type CropSource } from "./PhotoCrop";
 
 export const HOLD_ZONE: Box = { x: 0.25, y: 0.15, w: 0.5, h: 0.7 };
 // Starting values; Task 17 Step 4 tunes them on the packing clip.
@@ -29,7 +30,9 @@ export interface CameraStageProps {
   // On a phone: the rear camera, and the photo picker opens the camera.
   phone?: boolean;
   capture?: (box: Box) => Promise<ImagePart>;
-  readFile?: (file: File) => Promise<ImagePart>;
+  // An added photo is decoded, then cropped to the box the sender places; only that part is sent.
+  decodeFile?: (file: File) => Promise<CropSource>;
+  cropPart?: (source: CropSource, box: Box) => Promise<ImagePart>;
   onUsePhone?: () => void;
   onTypeIt?: () => void;
   onError?: (text: string) => void;
@@ -37,17 +40,22 @@ export interface CameraStageProps {
   autoRead?: boolean;
 }
 
+const cropWithLimits = (source: CropSource, box: Box) => cropToJpeg(source, box, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality);
+const release = (s: CropSource) => (s as Partial<ImageBitmap>).close?.();
+
 const CAMERA_TEXT: Record<CameraErrorKind, string> = {
   denied: "Camera is off. Add a photo instead.",
   none: "No camera found. Add a photo instead.",
   busy: "The camera is in use by another app. Add a photo instead.",
 };
 
-export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, readFile, onUsePhone, onTypeIt, onError, autoRead = false }: CameraStageProps) {
+export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false }: CameraStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const [started, setStarted] = useState(false);
   const [cameraError, setCameraError] = useState<CameraErrorKind | null>(null);
+  // A photo the sender added, waiting for them to place the box and press Check this part.
+  const [picked, setPicked] = useState<CropSource | null>(null);
   const [event, setEvent] = useState<SteadyEvent | null>(null);
 
   // The latest callbacks, kept in refs so a parent re-render never restarts the frame watch: a fresh
@@ -122,14 +130,28 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     return () => window.removeEventListener("keydown", onKey);
   }, [read]);
 
+  // An added photo turns the camera off and opens the crop step; nothing is read yet.
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     try {
-      onImage(await (readFile ?? ((f: File) => fileToJpeg(f, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality)))(file), "upload");
+      const source = await (decodeFile ?? decodePhoto)(file);
+      setStarted(false);
+      setEvent(null);
+      setPicked((old) => { if (old) release(old); return source; });
     } catch (e) {
       onError?.(e instanceof Error ? e.message : String(e));
     }
   };
+  const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
+
+  if (picked) {
+    return (
+      <section data-testid="stage" className="stage" aria-label="Camera">
+        <PhotoCrop source={picked} initialBox={HOLD_ZONE} cropPart={cropPart ?? cropWithLimits} onError={onError}
+          onSend={(part) => { closePicked(); onImage(part, "upload"); }} onCancel={closePicked} />
+      </section>
+    );
+  }
 
   const shown = forcedEvent ?? event;
   return (

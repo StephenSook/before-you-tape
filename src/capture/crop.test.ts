@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ImagePart } from "../ai/port";
 import { CROP_LIMITS } from "../shared/cropLimits";
-import { cropPlan, cropToJpeg, fileToJpeg } from "./crop";
+import { createCanvas, loadImage } from "canvas";
+import { cropPlan, cropToJpeg, decodePhoto } from "./crop";
 
 // A real canvas (jsdom draws with the canvas package) with a pattern, so the JPEG is not trivial.
 function canvas(w: number, h: number): HTMLCanvasElement {
@@ -66,13 +67,37 @@ describe("cropToJpeg", () => {
   });
 });
 
-describe("fileToJpeg", () => {
+describe("what leaves the device", () => {
+  // A red frame (an address at the edge of a photo) around a blue item. Only the item may reach a model.
+  it("sends only the pixels inside the box: the decoded JPEG of a centre crop has no red pixel", async () => {
+    const c = document.createElement("canvas");
+    c.width = 400;
+    c.height = 400;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#ff0000";
+    ctx.fillRect(0, 0, 400, 400);
+    ctx.fillStyle = "#0000ff";
+    ctx.fillRect(100, 100, 200, 200);
+    const part = await cropToJpeg(c, { x: 0.25, y: 0.25, w: 0.5, h: 0.5 }, 768, 0.85);
+    const img = await loadImage(Buffer.from(part.base64, "base64"));
+    const out = createCanvas(img.width, img.height);
+    const o = out.getContext("2d");
+    o.drawImage(img, 0, 0);
+    const d = o.getImageData(0, 0, img.width, img.height).data;
+    let red = 0;
+    for (let i = 0; i < d.length; i += 4) if ((d[i] as number) > 128 && (d[i + 2] as number) < 128) red++;
+    expect({ w: img.width, h: img.height }).toEqual({ w: 200, h: 200 });
+    expect(red).toBe(0);
+  });
+});
+
+describe("decodePhoto", () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it("decodes any image the browser can read and outputs a whole-frame JPEG", async () => {
-    vi.stubGlobal("createImageBitmap", vi.fn(async () => canvas(2000, 1000)));
-    const p = await fileToJpeg(new Blob(["x"], { type: "image/png" }), 768, 0.85);
-    expect(jpegSize(p)).toEqual({ w: 768, h: 384 });
+  it("decodes any image the browser can read, for the crop step; it never makes a part by itself", async () => {
+    const decoded = canvas(2000, 1000);
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => decoded));
+    expect(await decodePhoto(new Blob(["x"], { type: "image/png" }))).toBe(decoded);
   });
 });
 

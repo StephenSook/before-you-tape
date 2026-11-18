@@ -59,12 +59,8 @@ export async function cropToJpeg(source: Source, box: Box, maxSide: number, qual
   throw new CropError(`the crop is ${size} bytes, over the ${maxBytes}-byte cap`);
 }
 
-// A photo the sender picked (any format the browser can decode), as one whole-frame JPEG.
-export async function fileToJpeg(file: Blob, maxSide: number, quality: number): Promise<ImagePart> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    return await cropToJpeg(bitmap, { x: 0, y: 0, w: 1, h: 1 }, maxSide, quality);
-  } finally {
-    (bitmap as Partial<ImageBitmap>).close?.();
-  }
+// A photo the sender picked (any format the browser can decode), decoded for the crop step. It is never
+// sent whole: only the part inside the box the sender places is cropped and sent.
+export async function decodePhoto(file: Blob): Promise<ImageBitmap> {
+  return createImageBitmap(file);
 }
