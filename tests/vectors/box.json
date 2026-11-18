@@ -114,5 +114,11 @@
     "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "3850mV 4000mAh 15.4Wh", "volts": 3850, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-WH-MISMATCH"] }
+  },
+  {
+    "name": "sender_ticked_alcohol_settles_it", "source": "a typed item or a fix: the sender's own word that the label lists alcohol",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "perfume", "identityConfirmedBy": "sender", "read": { "category": "perfume_fragrance", "liquid": true }, "overrides": { "alcoholOnLabel": true } }],
+    "expect": { "perfume": "take_out" }, "expectRules": { "perfume": ["USPS-INTL-FLAMMABLE-LIQUID"] }
   }
 ]

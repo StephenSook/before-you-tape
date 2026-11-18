@@ -176,6 +176,12 @@ describe("deriveFacts", () => {
     expect(corrected.alcohol).toBe("unknown");
   });
 
+  it("takes the sender's own word that the label lists alcohol as settled, and still only asks on the model's flag", () => {
+    expect(facts({ read: r({ category: "perfume_fragrance" }), overrides: { alcoholOnLabel: true } }).alcohol).toBe("yes");
+    expect(facts({ read: r({ category: "perfume_fragrance", alcoholOnLabel: true }) }).alcohol).toBe("unknown");
+    expect(facts({ read: r({ category: "perfume_fragrance", alcoholOnLabel: true }), overrides: { alcoholOnLabel: false } }).alcohol).toBe("unknown");
+  });
+
   it("reads alcohol from label, then answer", () => {
     expect(facts({ read: r({ labelText: "ALCOHOL DENAT. 50 ML" }) }).alcohol).toBe("yes");
     expect(facts({ read: r({ alcoholOnLabel: true }) }).alcohol).toBe("unknown");
