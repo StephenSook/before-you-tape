@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `public/llms.txt` lists /ran now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/RanPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /ran page, "What ran where". A table gives, for each thing a sender can do, where it runs and what leaves the device:
 - typing an item (no model);
 - holding an item still (the built-in model, never the cloud);
