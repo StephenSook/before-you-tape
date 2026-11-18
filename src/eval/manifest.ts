@@ -23,6 +23,7 @@ export function setProblems(set: EvalSet, expectedItems: number): string[] {
     if (i.hazard && !notOk) out.push(`${i.itemId}: hazard must be false: every destination's label is OK to pack`);
     if (!i.hazard && notOk) out.push(`${i.itemId}: hazard must be true: a destination's label is not OK to pack`);
     const p = i.provenance;
+    if (!p.changes?.trim()) out.push(`${i.itemId}: provenance needs changes (how the published copy differs from the original)`);
     if (isOwn(i)) {
       if (!p.author.trim()) out.push(`${i.itemId}: an owner's photo needs its author`);
     } else if (/project owner/i.test(p.author)) {
@@ -46,5 +47,5 @@ function hostOf(url: string): string {
 
 export function creditLine(i: EvalItem): string {
   if (isOwn(i)) return "Photo by the project owner";
-  return `Photo: ${i.provenance.author}, ${i.provenance.license}, ${hostOf(i.provenance.sourcePage)}`;
+  return `Photo: ${i.provenance.author}, ${i.provenance.license}, ${hostOf(i.provenance.sourcePage)} (${i.provenance.changes})`;
 }
