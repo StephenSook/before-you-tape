@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-f9ffa49f49ae",
+  "editionId": "byt-0de5174a6358",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -1262,30 +1262,6 @@
         "value": "installed"
       },
       "outcome": "note"
-    },
-    {
-      "id": "DATA-UNSURE",
-      "layer": "data",
-      "scope": "item",
-      "section": "Before You Tape: reading check",
-      "url": "https://before-you-tape-2026.web.app/rules",
-      "basis": "inference",
-      "ourWording": "We're not sure what this is. Fix the reading or type what it is.",
-      "when": {
-        "any": [
-          {
-            "fact": "evidence",
-            "op": "eq",
-            "value": "not_sure"
-          },
-          {
-            "fact": "category",
-            "op": "eq",
-            "value": "other"
-          }
-        ]
-      },
-      "outcome": "check"
     },
     {
       "id": "DATA-NEEDS-ANSWER",

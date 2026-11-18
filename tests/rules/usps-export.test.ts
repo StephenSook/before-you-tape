@@ -82,10 +82,8 @@ describe("USPS export rule data", () => {
     expect(asks(okPhone)).toEqual([]);
   });
 
-  it("flags an unsure read and an item it cannot name", () => {
-    expect(hit(f({ evidence: "not_sure", category: "toy", tags: ["toy"] }))).toContain("DATA-UNSURE:check");
-    expect(hit(f({ category: "other" }))).toContain("DATA-UNSURE:check");
-  });
+  it("leaves the unsure-read check to the engine code, where no edition can drop it", () =>
+    expect(ed.rules.some((r) => r.id === "DATA-UNSURE")).toBe(false));
 
   it("finds nothing on a new phone with a confirmed rating, or on plain clothing", () => {
     expect(hit(okPhone)).toEqual([]);

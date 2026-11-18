@@ -14,7 +14,8 @@ const validRule = {
   outcome: "take_out",
 };
 
-const withRule = (patch: Record<string, unknown>) => ({ ...bundled, rules: [{ ...validRule, ...patch }] });
+// The test rule is added to the real rules, so the edition keeps the rules a parse requires.
+const withRule = (patch: Record<string, unknown>) => ({ ...bundled, rules: [...bundled.rules, { ...validRule, ...patch }] });
 
 // Reverse every object's key order, deeply, to prove the hash ignores key order.
 function reorderKeys(value: unknown): unknown {
@@ -39,14 +40,15 @@ describe("rule edition", () => {
     expect(t).toBeLessThan(3.8);
   });
 
-  it("accepts a valid rule", () => expect(parseEdition(withRule({})).rules).toHaveLength(1));
+  it("accepts a valid rule", () => expect(parseEdition(withRule({})).rules).toHaveLength(bundled.rules.length + 1));
 
   it("lets one rule id ask different questions, but refuses an exact duplicate", () => {
     const ask = (askId: string) => ({ ...validRule, id: "DATA-NEEDS-ANSWER", outcome: "check", askId });
-    expect(parseEdition({ ...bundled, rules: [ask("label_alcohol"), ask("device_condition")] }).rules).toHaveLength(2);
-    expect(() => parseEdition({ ...bundled, rules: [ask("label_alcohol"), ask("label_alcohol")] })).toThrow(EditionError);
-    expect(() => parseEdition({ ...bundled, rules: [validRule, validRule] })).toThrow(EditionError);
-    expect(() => parseEdition({ ...bundled, rules: [ask("no_such_question")] })).toThrow(EditionError);
+    expect(parseEdition(bundled).rules.filter((r) => r.id === "DATA-NEEDS-ANSWER").map((r) => r.askId).sort())
+      .toEqual(["battery_installed", "device_condition", "label_alcohol"]);
+    expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, ask("label_alcohol")] })).toThrow(EditionError);
+    expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, validRule, validRule] })).toThrow(EditionError);
+    expect(() => parseEdition({ ...bundled, rules: [...bundled.rules, ask("no_such_question")] })).toThrow(EditionError);
   });
 
   it("rejects stored USPS wording fields, an unknown layer, an empty section", () => {
@@ -60,6 +62,31 @@ describe("rule edition", () => {
       expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, checkedOn: bad } }), bad).toThrow(/checkedOn/);
     }
     expect(parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, checkedOn: "2028-02-29" } }).suspensions.checkedOn).toBe("2028-02-29");
+  });
+
+  it("rejects a rule on a fact that does not exist", () => {
+    expect(() => parseEdition(withRule({ when: { fact: "tagz", op: "has", value: "liquid" } }))).toThrow(/fact/);
+    expect(() => parseEdition(withRule({ when: { fact: "battery.watts", op: "gt", value: 1 } }))).toThrow(/fact/);
+  });
+
+  it("rejects a tag the edition can never produce", () => {
+    expect(() => parseEdition(withRule({ when: { fact: "tags", op: "has", value: "liquids" } }))).toThrow(/tag/);
+    const pl = structuredClone(bundled.destinations.PH);
+    pl.lines[0]!.matches = [{ tag: "liquids", effect: "take_out" }];
+    expect(() => parseEdition({ ...bundled, destinations: { ...bundled.destinations, PH: pl } })).toThrow(/tag/);
+  });
+
+  it("rejects an exception answer the question does not offer", () => {
+    const pl = structuredClone(bundled.destinations.PH);
+    (pl.lines[0]!.matches as unknown[]) = [{ tag: "liquid", effect: "take_out", unlessAnswer: { questionId: "label_alcohol", answerId: "maybe" } }];
+    expect(() => parseEdition({ ...bundled, destinations: { ...bundled.destinations, PH: pl } })).toThrow(/answerId/);
+  });
+
+  it("requires the questions the OK check depends on", () => {
+    for (const askId of ["label_alcohol", "device_condition", "battery_installed"]) {
+      const rules = bundled.rules.filter((r) => (r as { askId?: string }).askId !== askId || r.id !== "DATA-NEEDS-ANSWER");
+      expect(() => parseEdition({ ...bundled, rules }), askId).toThrow(new RegExp(askId));
+    }
   });
 
   it("rejects a bad predicate, a non-https url and a tolerance at the misread", () => {

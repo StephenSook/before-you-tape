@@ -28,6 +28,12 @@ const IDENTITY_HIT: RuleHit = {
   text: "Confirm what this is. We only saw it, so we can't be sure from the picture alone.",
 };
 
+// OK precondition 2 lives in code, so no edition can remove it.
+const UNSURE_HIT: RuleHit = {
+  ruleId: "DATA-UNSURE", layer: "data", level: "check", section: "Before You Tape: reading check", url: RULES_PAGE,
+  text: "We're not sure what this is. Fix the reading or type what it is.",
+};
+
 const BAD_QUANTITY_HIT: RuleHit = {
   ruleId: "DATA-BAD-QUANTITY", layer: "data", level: "check", section: "Before You Tape: item count", url: RULES_PAGE,
   text: "The count for this item must be a whole number, 1 or more. Fix the count.",
@@ -63,6 +69,7 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
     const hits: RuleHit[] = [];
     if (!goodQuantity) hits.push(BAD_QUANTITY_HIT);
     if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
+    if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
     hits.push(...evaluateItemRules(facts, edition.rules));
     hits.push(...evaluateDestination(facts, input.answers, dest));
     if (layerHit) hits.push(layerHit);

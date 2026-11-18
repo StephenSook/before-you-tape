@@ -1,6 +1,7 @@
 // Loads and checks a rule edition. Strict on purpose: unknown keys on rules and destination
 // lines are refused, so no field holding USPS wording can enter an edition.
 import { ITEM_CATEGORIES } from "../shared/itemRead";
+import { ENGINE_TAGS } from "./facts";
 import type { DestinationContext, DestinationEdition, RuleEdition } from "./types";
 
 export class EditionError extends Error {
@@ -73,29 +74,43 @@ function sha(v: unknown, where: string): void {
   if (!/^[0-9a-f]{64}$/.test(str(v, where))) fail(where, "expected a sha256 hex digest");
 }
 
-function checkPredicate(v: unknown, where: string): void {
+const REQUIRED_QUESTIONS = ["label_alcohol", "device_condition", "battery_installed"] as const;
+
+// Every fact path a predicate may read. A typo here would make a rule that never fires.
+const KNOWN_FACTS: ReadonlySet<string> = new Set([
+  "category", "tags", "evidence", "identity", "condition", "alcohol", "quantity",
+  "battery.presence", "battery.chemistry", "battery.volts", "battery.milliampHours", "battery.whPrinted",
+  "battery.whComputed", "battery.whStatus", "battery.wh", "battery.lithiumGrams", "battery.countAs", "battery.units",
+]);
+
+function checkPredicate(v: unknown, where: string, producible: ReadonlySet<string>): void {
   const p = obj(v, where);
   if ("all" in p || "any" in p) {
     const k = "all" in p ? "all" : "any";
     keys(p, [k], [], where);
     const items = list(p[k], `${where}.${k}`);
     if (items.length === 0) fail(`${where}.${k}`, "empty");
-    items.forEach((x, i) => checkPredicate(x, `${where}.${k}[${i}]`));
+    items.forEach((x, i) => checkPredicate(x, `${where}.${k}[${i}]`, producible));
     return;
   }
   if ("not" in p) {
     keys(p, ["not"], [], where);
-    checkPredicate(p.not, `${where}.not`);
+    checkPredicate(p.not, `${where}.not`, producible);
     return;
   }
   keys(p, ["fact", "op", "value"], [], where);
-  str(p.fact, `${where}.fact`);
+  if (!KNOWN_FACTS.has(str(p.fact, `${where}.fact`))) fail(`${where}.fact`, `no such fact: ${String(p.fact)}`);
   const op = oneOf(p.op, ["eq", "in", "has", "gt", "lte"] as const, `${where}.op`);
   if (op === "in") list(p.value, `${where}.value`);
   if ((op === "gt" || op === "lte") && typeof p.value !== "number") fail(`${where}.value`, "expected a number");
+  if (p.fact === "tags" && op === "has" && !producible.has(String(p.value))) {
+    fail(`${where}.value`, `no category, label word or engine rule produces the tag ${String(p.value)}`);
+  }
 }
 
-function checkDestination(code: string, v: unknown, questionIds: Set<string>): void {
+function checkDestination(
+  code: string, v: unknown, questions: ReadonlyMap<string, ReadonlySet<string>>, producible: ReadonlySet<string>,
+): void {
   const where = `destinations.${code}`;
   const d = obj(v, where);
   keys(d, ["code", "name", "immUrl", "immEdition", "pageSha256", "reviewed", "checkedOn", "personReviewedOn",
@@ -139,15 +154,18 @@ function checkDestination(code: string, v: unknown, questionIds: Set<string>): v
       const mw = `${lw}.matches[${j}]`;
       const m = obj(y, mw);
       keys(m, ["tag", "effect"], ["unlessAnswer"], mw);
-      str(m.tag, `${mw}.tag`);
+      if (!producible.has(str(m.tag, `${mw}.tag`))) {
+        fail(`${mw}.tag`, `no category, label word or engine rule produces the tag ${String(m.tag)}`);
+      }
       oneOf(m.effect, ["take_out", "check"] as const, `${mw}.effect`);
       if (m.unlessAnswer !== undefined) {
         const u = obj(m.unlessAnswer, `${mw}.unlessAnswer`);
         keys(u, ["questionId", "answerId"], [], `${mw}.unlessAnswer`);
-        if (!questionIds.has(str(u.questionId, `${mw}.unlessAnswer.questionId`))) {
-          fail(`${mw}.unlessAnswer.questionId`, "not a known question");
+        const answers = questions.get(str(u.questionId, `${mw}.unlessAnswer.questionId`));
+        if (!answers) fail(`${mw}.unlessAnswer.questionId`, "not a known question");
+        if (!answers?.has(str(u.answerId, `${mw}.unlessAnswer.answerId`))) {
+          fail(`${mw}.unlessAnswer.answerId`, "not an answer that question offers");
         }
-        str(u.answerId, `${mw}.unlessAnswer.answerId`);
       }
     });
   });
@@ -198,20 +216,26 @@ export function parseEdition(json: unknown): RuleEdition {
     str(w.tag, `labelWords[${i}].tag`);
   });
 
-  const questionIds = new Set<string>();
+  // Every tag an item can carry: category tags, label word tags and the tags the engine adds itself.
+  const producible = new Set<string>(ENGINE_TAGS);
+  for (const c of ITEM_CATEGORIES) for (const t of ct[c] as string[]) producible.add(t);
+  for (const w of e.labelWords as Obj[]) producible.add(w.tag as string);
+
+  const questions = new Map<string, Set<string>>();
   list(e.questions, "questions").forEach((x, i) => {
     const q = obj(x, `questions[${i}]`);
     keys(q, ["id", "text", "answers"], [], `questions[${i}]`);
     const id = str(q.id, `questions[${i}].id`);
-    if (questionIds.has(id)) fail(`questions[${i}].id`, "duplicate");
-    questionIds.add(id);
+    if (questions.has(id)) fail(`questions[${i}].id`, "duplicate");
+    const answerIds = new Set<string>();
+    questions.set(id, answerIds);
     str(q.text, `questions[${i}].text`);
     const answers = list(q.answers, `questions[${i}].answers`);
     if (answers.length < 2) fail(`questions[${i}].answers`, "needs at least two answers");
     answers.forEach((y, j) => {
       const a = obj(y, `questions[${i}].answers[${j}]`);
       keys(a, ["id", "label"], [], `questions[${i}].answers[${j}]`);
-      str(a.id, `questions[${i}].answers[${j}].id`);
+      answerIds.add(str(a.id, `questions[${i}].answers[${j}].id`));
       str(a.label, `questions[${i}].answers[${j}].label`);
     });
   });
@@ -231,17 +255,23 @@ export function parseEdition(json: unknown): RuleEdition {
     https(r.url, `${w}.url`);
     oneOf(r.basis, ["summarized", "inference", "estimate"] as const, `${w}.basis`);
     str(r.ourWording, `${w}.ourWording`);
-    checkPredicate(r.when, `${w}.when`);
+    checkPredicate(r.when, `${w}.when`, producible);
     oneOf(r.outcome, ["take_out", "check", "note"] as const, `${w}.outcome`);
-    if (r.askId !== undefined && !questionIds.has(str(r.askId, `${w}.askId`))) fail(`${w}.askId`, "not a known question");
+    if (r.askId !== undefined && !questions.has(str(r.askId, `${w}.askId`))) fail(`${w}.askId`, "not a known question");
   });
   // An edition with no export rules would report the export layer as checked while checking nothing.
   if (!(e.rules as Obj[]).some((r) => r.layer === "usps_export" && r.scope === "item")) {
     fail("rules", "the edition has no USPS export item rules");
   }
+  // "Every required question is answered" is an OK precondition, so its question rules cannot be dropped.
+  for (const askId of REQUIRED_QUESTIONS) {
+    if (!(e.rules as Obj[]).some((r) => r.id === "DATA-NEEDS-ANSWER" && r.askId === askId)) {
+      fail("rules", `the edition must ask ${askId} through DATA-NEEDS-ANSWER`);
+    }
+  }
 
   const dests = obj(e.destinations, "destinations");
-  for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questionIds);
+  for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questions, producible);
 
   const s = obj(e.suspensions, "suspensions");
   keys(s, ["updated", "checkedOn", "url", "codes"], [], "suspensions");

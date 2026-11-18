@@ -50,6 +50,16 @@ describe("evaluateBox", () => {
     expect(run([shirtConfirmed], "CA").items.shirt?.level).toBe("ok");
   });
 
+  it("never says OK for an unsure read or an unnamed item, even with no data rules in the edition", () => {
+    const noDataRules: RuleEdition = { ...ed, rules: ed.rules.filter((r) => r.layer !== "data") };
+    for (const read of [{ category: "toy" as const, evidence: "not_sure" as const }, { category: "other" as const, evidence: "item_seen" as const }]) {
+      const thing = input({ itemId: "thing", read, identityConfirmedBy: "sender" });
+      const v = run([thing], "CA", "2026-11-20", noDataRules).items.thing;
+      expect(v?.level, read.category).toBe("check");
+      expect(v?.hits.map((h) => h.ruleId)).toContain("DATA-UNSURE");
+    }
+  });
+
   it("checks a laptop with a single-cell phone and says the two-box limit", () => {
     const r = run([sealedLaptop, sealedPhoneOneCell], "CA");
     expect(r.lithium.status).toBe("mixed");

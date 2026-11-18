@@ -17,6 +17,9 @@ const FLAG_TAGS = [
   ["powder", "powder"],
 ] as const;
 
+// Tags this file adds on its own, beside the edition's category tags and label words.
+export const ENGINE_TAGS: readonly string[] = [LABEL_TEXT_TAG, ...FLAG_TAGS.map(([, tag]) => tag)];
+
 const patternCache = new Map<string, RegExp>();
 function wholeWord(pattern: string): RegExp {
   let re = patternCache.get(pattern);
