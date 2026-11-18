@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Firebase project config for `before-you-tape-2026`: `firebase.json` (Hosting serves `dist` as a single-page app, Firestore in `nam5`, anonymous sign-in), `.firebaserc`, `firestore.rules` (deny all reads and writes until the app's own rules land) and an empty `firestore.indexes.json`. Source: plan Task 5. Verified: the rules and the auth config were deployed and read back (deployed rules match the file; anonymous sign-in reads enabled); local CI mirror exit 0.
 - Web app shell: Vite, React and strict TypeScript, with the routes `/`, `/judge`, `/measured`, `/rules`, `/ran`, `/about`, `/worksheet` and `/blind/:token`. The `/desk/listing` and `/desk/eval` routes exist in development builds only. Verified by `src/App.test.tsx`.
 - `dist/version.json` with the commit SHA and build time, written at build.
 - `scripts/tone-check.ts`: fails on long dashes and curly quotes in user-facing text, and fails when it walks fewer files than its floor. Verified by `scripts/tone-check.test.ts`.
