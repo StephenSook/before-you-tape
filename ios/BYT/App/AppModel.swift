@@ -1,4 +1,5 @@
 import BYTCore
+import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 import Observation
@@ -41,6 +42,14 @@ final class AppModel {
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
+    /// Keeps the shared box in step; nil when the app runs with no remote (tests).
+    let sync: BoxSync?
+    @ObservationIgnored private let remote: BoxRemote?
+    @ObservationIgnored private var stopWatching: (() -> Void)?
+    @ObservationIgnored private var watching = false
+    /// A change the shared box refused, in words.
+    private(set) var syncProblem: String?
+
     /// Reads Apple's model status now; asked again before each read and when the app comes back.
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
 
@@ -48,7 +57,8 @@ final class AppModel {
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
          today: @escaping () -> String = { AppModel.localDate(Date()) },
          appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
-         fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition) {
+         fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition,
+         remote: BoxRemote? = nil, uid: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
         self.appVersion = appVersion
         self.fetchEdition = fetchEdition
         self.signIn = signIn
@@ -62,12 +72,35 @@ final class AppModel {
         self.engine = engine
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
         let boxId = Self.currentBoxId(defaults)
+        let sync = remote.map { BoxSync(remote: $0, uid: uid) }
+        self.sync = sync
+        self.remote = remote
+        let saving: BoxPersistence = sync.map { SyncingPersistence(local: persistence, sync: $0) } ?? persistence
         self.box = engine.map {
-            BoxStore(engine: $0, persistence: persistence, today: today, newId: { UUID().uuidString },
+            BoxStore(engine: $0, persistence: saving, today: today, newId: { UUID().uuidString },
                      now: { Date().timeIntervalSince1970 * 1000 }, boxId: boxId)
         }
         // The saved box comes back before anything is added.
         box?.load()
+        sync?.editionId = { [weak self] in self?.box?.result?.editionId ?? "" }
+        sync?.onPending = { [weak self] in Task { await self?.syncNow() } }
+        (remote as? FirestoreBoxRemote)?.onProblem = { [weak self] text in self?.syncProblem = text }
+    }
+
+    /// Sends whatever waits for the shared box, then listens for other devices once the box exists
+    /// (the rules let only members read a box, so an earlier listener would be refused and stop).
+    func syncNow() async {
+        await sync?.flush()
+        if sync?.boxReady == true { watchSharedBox() }
+    }
+
+    /// Listens for items other devices add to this box.
+    private func watchSharedBox() {
+        guard !watching, let remote, let sync, let box else { return }
+        watching = true
+        stopWatching = remote.watch(boxId: box.boxId) { [weak box] doc in
+            if let box { sync.receive(doc, into: box) }
+        }
     }
 
     /// The iPhone's own calendar date, YYYY-MM-DD, which the rule layers' freshness is checked against.
@@ -96,6 +129,7 @@ final class AppModel {
         remoteConfig.start()
         signedIn = await signIn.ensure()
         onDevice = onDeviceStatus()
+        if signedIn { await syncNow() }
     }
 
     /// Back in the foreground: a model that finished downloading meanwhile counts at once, and every

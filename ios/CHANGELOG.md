@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): sync the box through Firestore, listening once the box exists
+- What: `FirestoreBoxRemote` puts each write into Firestore's offline cache and returns at once,
+  so a phone out of signal never waits (the cache sends it when the network returns); a write the
+  server refuses is shown as a problem. Whole numbers go to Firestore as integers, which the rules
+  require for the quantity. `AppModel` syncs after every change and at start once signed in, and
+  starts listening for other devices' items only once its box exists, because the rules let only
+  members read a box and an earlier listener would be refused and stop. The app syncs only with a
+  remote: the real app passes Firestore, while the unit tests' host app and the tests pass none or
+  a fake, so tests never touch the shared box.
+- Source: iPhone client plan, task I-11.
+- Verified: three tests (a change reaches the shared box with no extra step and whole numbers are
+  integers; with no remote the box stays on the iPhone; listening starts once, after the box is
+  created) failed to compile or failed, then passed; 112 app tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0. The check against the rules in the emulators is still
+  to do.
+
 ### feat(ios): keep the shared box in step with this iPhone's box
 - What: `BoxSync` takes every saved snapshot (through `SyncingPersistence`, after the local file)
   and writes each changed item once under its own id as the shared document, deletes an item that

@@ -10,7 +10,9 @@ struct RootView: View {
             return AppModel(onDeviceStatus: { UITestSupport.onDevice }, persistence: UITestSupport.MemoryBox(), reader: UITestSupport.reader())
         }
         #endif
-        return AppModel()
+        // As the host app of the unit tests it never touches the shared box.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return AppModel() }
+        return AppModel(remote: FirestoreBoxRemote())
     }
 
     var body: some View {

@@ -10,6 +10,8 @@ protocol BoxRemote: AnyObject {
     func createBox(boxId: String, doc: JSONValue) async throws
     /// Updates the box's own fields (country, cloud answer, counts), never who owns it.
     func updateBox(boxId: String, fields: JSONValue) async throws
+    /// Calls `onItem` with every item another device writes; the result stops listening.
+    func watch(boxId: String, onItem: @escaping @MainActor (JSONValue) -> Void) -> (() -> Void)?
 }
 
 extension BoxItem {
@@ -63,6 +65,8 @@ final class BoxSync {
     private let uid: () -> String?
     /// The rule edition the box's verdicts come from, written with the box.
     var editionId: () -> String = { "" }
+    /// Called when something new waits to be sent.
+    var onPending: (() -> Void)?
 
     private var boxId: String?
     private var boxFields: [String: JSONValue] = [:]
@@ -78,6 +82,8 @@ final class BoxSync {
     }
 
     var pendingCount: Int { pending.count }
+    /// True once the box exists in the shared store (created by this iPhone).
+    var boxReady: Bool { createdBox }
 
     func snapshotSaved(_ s: BoxSnapshot) {
         boxId = s.boxId
@@ -93,6 +99,7 @@ final class BoxSync {
         for id in Set(written.keys).union(pending.keys) where current[id] == nil {
             if written[id] != nil { pending[id] = .some(nil) } else { pending[id] = nil }
         }
+        if !pending.isEmpty || writtenBoxFields != .object(boxFields) { onPending?() }
     }
 
     /// Sends what is waiting. Stops at the first failure, keeping the rest for the next flush.

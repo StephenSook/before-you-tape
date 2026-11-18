@@ -23,6 +23,11 @@ final class FakeBoxRemote: BoxRemote {
         if failing { throw Offline() }
         boxUpdates.append(fields)
     }
+    var watchCalls = 0
+    func watch(boxId: String, onItem: @escaping @MainActor (JSONValue) -> Void) -> (() -> Void)? {
+        watchCalls += 1
+        return nil
+    }
 }
 
 @MainActor
@@ -107,5 +112,38 @@ final class FakeBoxRemote: BoxRemote {
         #expect(SourceGlyph.text(s.items[0].readSource) == "Read on a laptop")
         // Received, not written back.
         #expect(sync.pendingCount == 0)
+    }
+
+    /// In the app, a change to the box reaches the shared box with no extra step, and whole numbers
+    /// are sent as integers (the rules want an integer quantity).
+    @Test func theAppSyncsItsBoxAfterEachChange() async throws {
+        let remote = FakeBoxRemote()
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(),
+                             remote: remote, uid: { "u1" })
+        let id = try #require(model.box).addManual(BoxStoreTests.lotion)
+        await model.syncNow()
+        #expect(remote.writes.map(\.path).contains { $0.hasSuffix("/items/\(id)") })
+        #expect(JSONValue.number(3).firestoreValue as? Int64 == 3 && JSONValue.number(2.5).firestoreValue as? Double == 2.5)
+    }
+
+    @Test func withNoRemoteTheBoxStaysOnThisIPhone() async throws {
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence())
+        model.box?.addManual(BoxStoreTests.lotion)
+        await model.syncNow()
+        #expect(model.syncProblem == nil)
+    }
+
+    /// The rules let only members read a box, so the app listens only once its box exists.
+    @Test func theAppListensForOtherDevicesOnlyOnceItsBoxExists() async throws {
+        let remote = FakeBoxRemote()
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(),
+                             remote: remote, uid: { "u1" })
+        await model.syncNow()
+        #expect(remote.boxes.isEmpty && remote.watchCalls == 0)
+        model.box?.addManual(BoxStoreTests.lotion)
+        await model.syncNow()
+        #expect(remote.boxes.count == 1 && remote.watchCalls == 1)
+        await model.syncNow()
+        #expect(remote.watchCalls == 1)
     }
 }
