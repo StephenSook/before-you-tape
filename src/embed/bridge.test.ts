@@ -152,4 +152,19 @@ describe("the JSON bridge for native clients", () => {
       if (!r.ok) expect(r.error.name).toBe("BadInputError");
     }
   });
+
+  it("the structuredClone stand-in keeps what the native clone keeps", async () => {
+    const data = JSON.parse('{"a":1,"b":[1,2],"c":{"__proto__":{"x":1}},"d":null}') as Record<string, unknown>;
+    Object.assign(data, { inf: Infinity, ninf: -Infinity, nan: NaN, undef: undefined, nested: { list: [Infinity, NaN] } });
+    const want = original(data);
+    delete (globalThis as { structuredClone?: unknown }).structuredClone;
+    vi.resetModules();
+    await import("./bridge");
+    const shim = globalThis.structuredClone;
+    expect(shim).not.toBe(original);
+    const got = shim(data);
+    expect(got).toStrictEqual(want);
+    expect(got).not.toBe(data);
+    expect(Object.prototype.hasOwnProperty.call(got.c, "__proto__")).toBe(true);
+  });
 });

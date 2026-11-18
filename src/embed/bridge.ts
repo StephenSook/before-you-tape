@@ -9,11 +9,35 @@ import type { BoxItemInput, DestinationEdition, ItemAnswers, ItemFacts, RuleEdit
 import { evaluateBox } from "../engine/verdict";
 import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
 
-// QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain JSON
-// data, so a JSON round trip gives the same result there.
+// QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
+// (objects, arrays, strings, numbers, booleans, null), so a recursive copy gives what the native
+// clone gives there. A JSON round trip would not: it turns Infinity and NaN into null and drops
+// keys whose value is undefined, which could change a rule. Anything that is not plain data is
+// refused rather than copied wrongly.
+function clonePlainData(value: unknown): unknown {
+  if (value === null || typeof value !== "object") {
+    if (typeof value === "function" || typeof value === "symbol") throw new TypeError("cannot clone a function or a symbol");
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(clonePlainData);
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) throw new TypeError("this structuredClone copies plain data only");
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value)) {
+    // defineProperty, so a key named "__proto__" stays an own key and never sets the prototype.
+    Object.defineProperty(out, key, {
+      value: clonePlainData((value as Record<string, unknown>)[key]),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return out;
+}
+
 const g = globalThis as { structuredClone?: <T>(value: T) => T };
 if (typeof g.structuredClone !== "function") {
-  g.structuredClone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+  g.structuredClone = <T>(value: T): T => clonePlainData(value) as T;
 }
 
 export const BRIDGE_VERSION = 1;
