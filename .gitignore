@@ -30,3 +30,7 @@ test-results/
 .vscode/
 .idea/
 *.swp
+
+# Python bytecode from operator scripts
+__pycache__/
+*.py[cod]
