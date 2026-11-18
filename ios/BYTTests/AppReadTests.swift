@@ -63,6 +63,11 @@ import Testing
         let failed = ReadOutcome(read: nil, source: nil, route: .cloudOnly, failure: .server, records: [])
         #expect(AppModel.readLine(failed, verdict: nil) == "That item could not be read. Try another photo.")
         #expect(AppModel.readLine(nil, verdict: nil) == nil)
+        // The name comes from the item as it is now: a name the sender cleared reads as "This item",
+        // never as the name the model first read.
+        #expect(AppModel.readLine(read, verdict: ok, name: "") == "This item: OK to pack. Read on this iPhone.")
+        #expect(AppModel.readLine(read, verdict: ok, name: "  ") == "This item: OK to pack. Read on this iPhone.")
+        #expect(AppModel.readLine(read, verdict: ok, name: "Hand cream") == "Hand cream: OK to pack. Read on this iPhone.")
     }
 
     @Test func theConsentQuestionIsTheWebAppsSentenceForThisIPhone() throws {

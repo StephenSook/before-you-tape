@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a cleared item name reads as "This item", never the first read's name
+- What: the line under the camera took the item's current name, but fell back to the name the
+  model first read when the current name was blank. A perfume corrected to body lotion, with its
+  name then cleared, could read "Perfume: OK to pack." The item's current name now always wins;
+  a blank name reads "This item". The model's name is used only when there is no item.
+- Source: review.
+- Verified: the line test now covers a cleared name, a blank name and a corrected name; it failed
+  on the old code (2 issues), then passed; 113 app unit tests pass; the CI mirror exit 0, with
+  the secret scan limited to this branch's history (another branch's test vectors trip the full
+  scan; that is being fixed on that branch).
+
 ### fix(ios): a new name alone no longer clears "We're not sure what this is"
 - What: "Fix this reading" counted a changed item name as a statement about what the item is, so
   renaming an unsure "Shirt" to "My shirt" set the sender's evidence, confirmed the item and

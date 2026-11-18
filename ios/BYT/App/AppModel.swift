@@ -182,8 +182,10 @@ final class AppModel {
                          name current: String? = nil) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
-            let readName = read.text("itemName")
-            let name = [current, readName].compactMap { $0 }.first { !$0.isEmpty } ?? "This item"
+            // The item's current name wins, even when the sender cleared it; the model's first name
+            // is used only when there is no item to ask.
+            let chosen = (current ?? read.text("itemName") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let name = chosen.isEmpty ? "This item" : chosen
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
         }
         if outcome.route == .blocked, kind == .labelWords {
