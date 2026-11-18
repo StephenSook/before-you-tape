@@ -106,6 +106,30 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
 
     /// A change the iPhone could not save is still on screen, and the box says it is not saved
     /// until a later save works.
+    /// Coming back to the foreground or a new day derives the verdicts again and writes nothing, so
+    /// a saved box that could not be read is never replaced by an empty one.
+    @Test func aLifecycleRecheckWritesNothing() throws {
+        let p = MemoryBoxPersistence()
+        let s = try store(p)
+        s.load()
+        s.reevaluate()
+        #expect(p.saved.isEmpty && s.result != nil)
+    }
+
+    /// Except when a label still in memory was read again under a new edition: its new tags are saved.
+    @Test func aRecheckThatReadALabelAgainSavesItsTags() throws {
+        let p = MemoryBoxPersistence()
+        let engine = try Self.bundledEngine()
+        let s = try store(p, engine: engine)
+        s.addManual(Self.markedLotion)
+        let saves = p.saved.count
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        s.reevaluate()
+        #expect(p.saved.count == saves + 1 && p.saved.last?.items.first?.tagsEdition == "byt-more-words")
+        s.reevaluate()
+        #expect(p.saved.count == saves + 1)
+    }
+
     @Test func aChangeThatCannotBeSavedSaysSo() throws {
         let p = FailingPersistence()
         let s = try store(p)

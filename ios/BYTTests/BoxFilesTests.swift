@@ -39,6 +39,21 @@ import Testing
         #expect(files.problem != nil)
     }
 
+    /// A saved box that cannot be read is moved aside, whole, so a later save never replaces it.
+    @Test func anUnreadableBoxIsKeptAsideForRecovery() throws {
+        let dir = folder()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let damaged = Data("{ not a box".utf8)
+        try damaged.write(to: dir.appendingPathComponent("b4.json"))
+        let files = BoxFiles(folder: dir)
+        #expect(files.load(boxId: "b4") == nil && files.problem != nil)
+        let aside = dir.appendingPathComponent("b4.unreadable.json")
+        #expect(try Data(contentsOf: aside) == damaged)
+        try files.save(BoxSnapshot(boxId: "b4", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources()))
+        #expect(try Data(contentsOf: aside) == damaged)
+        #expect(files.load(boxId: "b4")?.destinationCode == "CA")
+    }
+
     /// A snapshot too large to load again is not written, so the last good file stays.
     @Test func aSnapshotTooLargeToReopenNeverReplacesTheGoodFile() throws {
         let files = BoxFiles(folder: folder())

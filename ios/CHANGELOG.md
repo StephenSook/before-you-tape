@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a foreground or day recheck writes nothing, and an unreadable box is kept aside
+- What: re-deriving the verdicts on return to the foreground or on a new day also saved the box,
+  so when the saved file could not be read (the box loaded empty), that recheck replaced it with
+  an empty box with no edit at all. A recheck now writes nothing, except the new tags of a label
+  still in memory that a new rule edition read again. A saved box file that cannot be read is
+  moved, whole, to `<box id>.unreadable.json`, so no later save replaces it and it can be
+  recovered.
+- Source: review.
+- Verified: three tests (a recheck writes nothing; a recheck that read a label again saves its new
+  tags once; a damaged file is kept aside byte for byte while a new box saves beside it) failed on
+  the old code, then passed; 117 app unit tests pass; the CI mirror exit 0, with the secret scan
+  limited to this branch's history (another branch's test vectors trip the full scan; that is
+  being fixed on that branch).
+
 ### fix(ios): say on the box when a change could not be saved
 - What: a save the file store refused (a box over 2 MB, a write error) was noted privately and
   dropped, so the screen showed a change that reopening the app would lose. Saving now throws its

@@ -267,7 +267,11 @@ final class BoxStore {
     }
 
     /// Derives every verdict again with nothing changed in the box: the day or the edition moved.
-    func reevaluate() { commit() }
+    /// It writes nothing, so a saved box that could not be read is never replaced; only tags read
+    /// again from a label still in memory are saved.
+    func reevaluate() {
+        if refreshStaleTags() { commit() } else { result = evaluate() }
+    }
 
     func setConsent(_ value: Bool?) {
         cloudConsent = value
@@ -319,12 +323,17 @@ final class BoxStore {
     }
 
     /// Another edition is in force: a label still in memory is read again with its label words.
-    private func refreshStaleTags() {
+    /// True when any item's tags changed.
+    @discardableResult
+    private func refreshStaleTags() -> Bool {
+        var changed = false
         for i in items.indices where isStale(items[i]) {
             guard let label = labelInMemory(items[i]) else { continue }
             items[i].labelTags = tags(.string(label))
             items[i].tagsEdition = engine.editionId
+            changed = true
         }
+        return changed
     }
 
     /// A saved item whose tags another edition found, with its label gone, is never OK: the sender

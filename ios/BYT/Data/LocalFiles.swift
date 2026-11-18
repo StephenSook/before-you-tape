@@ -64,15 +64,25 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         do {
             let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
             guard size <= Self.maxFileBytes else {
-                problem = "The saved box is too large to be a box (\(size) bytes), so it was not read."
+                problem = "The saved box is too large to be a box (\(size) bytes), so it was not read. It is kept aside."
+                keepAside(url, boxId: boxId)
                 return nil
             }
             let snapshot = try JSONDecoder().decode(BoxSnapshot.self, from: Data(contentsOf: url))
             problem = nil
             return snapshot
         } catch {
-            problem = "The saved box could not be read: \(error.localizedDescription)"
+            problem = "The saved box could not be read: \(error.localizedDescription) It is kept aside."
+            keepAside(url, boxId: boxId)
             return nil
         }
+    }
+
+    /// Moves a box file that could not be read to `<id>.unreadable.json` (a box id has no dot, so
+    /// that name is never a box), so no later save replaces it and it can still be recovered.
+    private func keepAside(_ url: URL, boxId: String) {
+        let aside = folder.appendingPathComponent(boxId + ".unreadable.json")
+        try? FileManager.default.removeItem(at: aside)
+        try? FileManager.default.moveItem(at: url, to: aside)
     }
 }
