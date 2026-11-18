@@ -1,0 +1,28 @@
+/* Spec 5.13 baseline tokens. The palette is ours; src/styles/tokens.test.ts pins its measured contrast. */
+:root {
+  --paper: #fff3e6;
+  --ink: #1d1712;
+  --kraft: #c98d4f; /* decoration only, never behind small text */
+  --night: #262465; /* camera stage surround */
+  --holly: #17784a; /* "OK to pack" */
+  --berry: #c4203a; /* "Take it out" */
+  --amber: #f4c542; /* "Check this", always with an ink border */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-chip: 999px;
+  --radius-button: 24px;
+  --radius-card: 16px;
+  --outline: 1.5px solid var(--ink);
+
+  /* System fonts until the self-hosted families land with the full visual system (plan Task 53). */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
