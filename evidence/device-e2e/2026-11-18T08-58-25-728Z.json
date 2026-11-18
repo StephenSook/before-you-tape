@@ -1,0 +1,42 @@
+{
+  "ranAt": "2026-11-18T08:58:25.728Z",
+  "sha": "57be5b73f4946cc629d904a631486ac2383cad69",
+  "dirty": false,
+  "route": "device_only",
+  "gate": "available",
+  "photos": "three generated label images (text drawn on a plain background), not photos of real items",
+  "reads": [
+    {
+      "file": "01-lotion.jpg",
+      "source": "on_device",
+      "ms": 6854,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "SHEA BODY LOTION",
+      "category": "lotion_cream",
+      "evidence": "label_read"
+    },
+    {
+      "file": "02-speaker.jpg",
+      "source": "on_device",
+      "ms": 2840,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "WIRELESS SPEAKER",
+      "category": "other_electronics",
+      "evidence": "label_read"
+    },
+    {
+      "file": "03-scarf.jpg",
+      "source": "on_device",
+      "ms": 2858,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "Scarf",
+      "category": "clothing",
+      "evidence": "label_read"
+    }
+  ],
+  "cloudRequestsToAiLogic": 0,
+  "passed": true
+}

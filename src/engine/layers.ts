@@ -1,5 +1,6 @@
 // The four rule layers behind every verdict, each with its edition and check date.
-// The caller passes today's date; the engine never reads a clock.
+// The caller passes today's date; the engine never reads a clock. Every client passes the device's own
+// local calendar date (YYYY-MM-DD in its own time zone), so staleness is counted in the sender's days.
 import { isCalendarDate } from "./edition";
 import type { DestinationContext, LayerStatus, RuleEdition } from "./types";
 
