@@ -1,6 +1,7 @@
 // Which rule edition the app uses. The built-in edition ships with the build; Remote Config can name a
 // newer one by id and SHA-256, and it is used only when the fetched document has exactly that id and hash
 // and parses. Anything else keeps the built-in edition and says so.
+import { doc, getDoc, type Firestore } from "firebase/firestore";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import type { RuleEdition } from "../engine/types";
 
@@ -36,4 +37,20 @@ export async function chooseEdition(i: {
   } catch {
     return keep(NOT_READ);
   }
+}
+
+// A published edition lives at ruleEditions/{id} as { json, sha256 }, where json is the edition's canonical
+// JSON text, so Firestore's own types can never change the bytes the hash covers. Missing or malformed: null.
+export function firestoreEditionFetcher(db: Firestore): (id: string) => Promise<unknown | null> {
+  return async (id) => {
+    const snap = await getDoc(doc(db, "ruleEditions", id));
+    if (!snap.exists()) return null;
+    const json = (snap.data() as { json?: unknown }).json;
+    if (typeof json !== "string") return null;
+    try {
+      return JSON.parse(json) as unknown;
+    } catch {
+      return null;
+    }
+  };
 }
