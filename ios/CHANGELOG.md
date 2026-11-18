@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### build(ios): rebuild the bundled rules engine from main's sources
+- What: main's engine now names who read a country's rules (a person or the USPS page) through
+  one helper, so the bundled `byt-engine.js` was stale after merging main. Rebuilt with
+  `scripts/build-embed.sh` and refreshed `byt-engine.sha256`. The full-history secret scan runs
+  unscoped again now that main carries `.gitleaks.toml`.
+- Source: merge of main into this branch.
+- Verified: `bash ios/scripts/check_engine_bundle.sh` reported the file stale, then fresh
+  (48718 bytes, sha256 e5320792486c); `bash ios/scripts/ci-local-ios.sh` exit 0 with the full
+  secret scan.
+
 ### fix(ios): a foreground or day recheck writes nothing, and an unreadable box is kept aside
 - What: re-deriving the verdicts on return to the foreground or on a new day also saved the box,
   so when the saved file could not be read (the box loaded empty), that recheck replaced it with

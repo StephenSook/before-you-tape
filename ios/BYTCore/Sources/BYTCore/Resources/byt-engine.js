@@ -760,15 +760,22 @@ var BYT = (() => {
     if (age !== null && age >= 0) state = age > staleDays ? "stale" : "checked";
     return { id, label, edition: edition2, checkedOn, state };
   }
+  function rulesReadBy(dest) {
+    const d = dest.edition;
+    if (dest.reviewState !== "reviewed" || d === null) return null;
+    if (d.personReviewedOn) return { by: "person", on: d.personReviewedOn };
+    return d.checkedOn ? { by: "usps_page", on: d.checkedOn } : null;
+  }
   function layerStatuses(edition2, dest, today) {
     const stale = edition2.limits.staleDays;
     const usps = edition2.sources.find((s) => s.id === "usps_export");
     const d = dest.edition;
     const reviewed = dest.reviewState === "reviewed" && d !== null;
     const immEdition = d ? `IMM ${d.immEdition}` : "not loaded";
+    const readBy = rulesReadBy(dest);
     let destLabel = `${dest.name} rules`;
-    if (reviewed && d.personReviewedOn) destLabel += `: checked by a person on ${d.personReviewedOn}`;
-    else if (reviewed && d.checkedOn) destLabel += `: read from the USPS page on ${d.checkedOn}, not yet checked by a person`;
+    if (readBy?.by === "person") destLabel += `: checked by a person on ${readBy.on}`;
+    else if (readBy?.by === "usps_page") destLabel += `: read from the USPS page on ${readBy.on}, not yet checked by a person`;
     return [
       layer("usps_export", "USPS export rules", usps?.edition ?? "not loaded", usps?.checkedOn ?? null, Boolean(usps), stale.usps_export, today),
       layer("destination", destLabel, immEdition, d?.checkedOn ?? null, reviewed, stale.destination, today),
