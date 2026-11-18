@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **One "Check now" from crop to box.** `BoxSession` sends a crop to the reader. A read is
+  added to the box with the engine's tags for its label text and a fresh item id, and the box
+  re-checks itself. A blocked or failed read adds nothing and returns the one line that says
+  why. Source: Android plan Task 9. Verified: `BoxSessionTest` (4 tests, which failed to compile
+  first) passes: a cloud read lands with its tags, its source ("phone_cloud") and its time; an
+  offline block and an unreadable label each add nothing and return their line; two reads get
+  two ids and are counted as on-device reads; `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
 - **The phone remembers its cloud consent and last destination.** `LocalStore` keeps the
   consent choice per device (never synced) and the last destination code in app-private shared
   preferences. Until a choice is made the consent is unanswered, and an unreadable stored value
