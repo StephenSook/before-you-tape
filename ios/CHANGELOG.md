@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios-core): encode and decode a box item as the shared Firestore document
+- What: `ItemDoc` is one box item as `boxes/{boxId}/items/{itemId}`, the shape in
+  `tests/contracts/box-docs.json` that the web app writes and the rules enforce: the read with its
+  label text emptied, corrections without a label text, answers, a whole-number quantity, the
+  identity confirmation, label tags, where the read ran and how long it took, the second look (or
+  null), the fallback model's status and route only when one was used, the crop key and the
+  customs line (the web app's empty line by default). Decoding refuses a wrong shape by field name.
+- Source: iPhone client plan, task I-11 (the shared box documents).
+- Verified: four tests (the shared fixture decodes and encodes back unchanged; no label text is
+  ever written; a fallback is written only when one happened; a fractional quantity or a non-text
+  read source is refused) failed to compile without the type, then passed; 35 core tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): make the live pause switch stop a read's next cloud call
 - What: each read now gives the reader a pause check that reads the app's live Remote Config, so a
   `kill_cloud` that turns on while a read is in progress stops that read before its next cloud
