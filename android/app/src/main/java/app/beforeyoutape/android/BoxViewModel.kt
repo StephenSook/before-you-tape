@@ -79,6 +79,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         reader = { crop -> reader?.read(crop) ?: ReadOutcome.Failed(FailReason.CLOUD_ERROR, retryable = false) },
         tags = { text -> host?.labelTags(text) ?: emptyList() },
         newId = { UUID.randomUUID().toString() },
+        resetRun = { reader?.resetRun() },
     )
 
     private val state = MutableStateFlow(
@@ -139,7 +140,12 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     override fun photoFailed() = publish { it.copy(message = Copy.PHOTO_FAILED) }
 
-    override fun show(view: HomeView) = publish { it.copy(view = view, message = null) }
+    override fun show(view: HomeView) {
+        // Going back to the camera starts a new scan session (lifts a refusal pause).
+        // On the worker, where reads count refusals.
+        if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) onWorker { session.startNewScan() }
+        publish { it.copy(view = view, message = null) }
+    }
 
     override fun typed(draft: ReadDraft) {
         val read = ReadDrafts.read(draft) ?: return

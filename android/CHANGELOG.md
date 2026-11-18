@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Going back to the camera lifts a refusal pause.** Three refusals in a row pause photo reads
+  for the run, but nothing ever started a new run, so after three refusals no photo could be read
+  again until the app was killed. `BoxSession.startNewScan` now resets the reader's run. The view
+  model calls it, on the box's worker thread, whenever the person goes back to the camera ("Add
+  another item"). Source: review (second model) of the Android pull request, finding 8. Verified:
+  `BoxSessionTest.aNewScanSessionLiftsTheRefusalPause` failed to compile first, then passes:
+  paused before, one reset, then a read is added. `bash android/ci-local.sh` and the root CI
+  mirror exit 0.
+
 - **A slow read no longer closes a form the person is filling in.** When a read finished, the
   screen always switched to the box, even if the person had meanwhile opened "Type it" and was
   entering another item, which threw that draft away. `HomeNav.afterCheck` now shows the box only

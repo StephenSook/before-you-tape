@@ -28,7 +28,7 @@ class BoxSessionTest {
     private fun box() = BoxController(BoxLogic.empty("CA"), { _, _, _ -> result }, today = { "2026-11-20" })
     private var ids = 0
     private fun session(box: BoxController, outcome: ReadOutcome, tags: (String) -> List<String> = { listOf("liquid") }) =
-        BoxSession(box, reader = { outcome }, tags = tags, newId = { "item-${++ids}" })
+        BoxSession(box, reader = { outcome }, tags = tags, newId = { "item-${++ids}" }, resetRun = {})
 
     @Test fun aReadIsAddedWithTheEngineTagsOfItsLabel() = runTest {
         val box = box()
@@ -55,6 +55,23 @@ class BoxSessionTest {
         val message = session(box, ReadOutcome.Failed(FailReason.UNREADABLE, retryable = true)).check(crop)
         assertEquals(Copy.failed(FailReason.UNREADABLE), message)
         assertTrue(box.state.items.isEmpty())
+    }
+
+    /** Three refusals pause photo reads; going back to the camera starts a new scan session, which lifts the pause. */
+    @Test fun aNewScanSessionLiftsTheRefusalPause() = runTest {
+        val box = box()
+        var paused = true
+        var resets = 0
+        val s = BoxSession(
+            box,
+            reader = { if (paused) ReadOutcome.Blocked(BlockReason.REFUSALS_PAUSED) else ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900) },
+            tags = { emptyList() }, newId = { "n" }, resetRun = { resets++; paused = false },
+        )
+        assertEquals(Copy.blocked(BlockReason.REFUSALS_PAUSED), s.check(crop))
+        s.startNewScan()
+        assertEquals(1, resets)
+        assertNull(s.check(crop))
+        assertEquals(1, box.state.items.size)
     }
 
     @Test fun eachReadGetsItsOwnId() = runTest {

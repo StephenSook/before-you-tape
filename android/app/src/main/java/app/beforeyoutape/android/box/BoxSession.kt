@@ -14,7 +14,14 @@ class BoxSession(
     private val reader: suspend (CropImage) -> ReadOutcome,
     private val tags: (String) -> List<String>,
     private val newId: () -> String,
+    private val resetRun: () -> Unit,
 ) {
+    /**
+     * A new scan session (the person went back to the camera): three refusals in a row pause photo
+     * reads for the session, and this lifts the pause.
+     */
+    fun startNewScan() = resetRun()
+
     /** null when the item was added, otherwise the line to show. */
     suspend fun check(crop: CropImage): String? = when (val out = reader(crop)) {
         is ReadOutcome.Read -> {
