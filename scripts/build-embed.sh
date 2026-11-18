@@ -87,7 +87,12 @@ if problems:
     sys.exit(1)
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+    # A failed git command must fail the build: an empty commit and "not dirty" would be a false record.
+    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        print(f"build-embed: git {' '.join(args[:2])} failed: {r.stderr.strip()[:200]}", file=sys.stderr)
+        sys.exit(1)
+    return r.stdout.strip()
 
 manifest = {
     "bridgeVersion": int(m.group(1)),

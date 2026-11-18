@@ -103,4 +103,15 @@ describe("scripts/build-embed.sh", () => {
       rmSync(out, { recursive: true, force: true });
     }
   });
+
+  it("a git failure fails the build instead of writing an empty commit", () => {
+    const out = mkdtempSync(join(tmpdir(), "byt-embed-"));
+    try {
+      const r = build(out, undefined, { ...process.env, GIT_DIR: "/no/such/git-dir" });
+      expect(r.status, r.stdout + r.stderr).toBe(1);
+      expect(r.stderr).toMatch(/git/);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
 });
