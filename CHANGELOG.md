@@ -6,6 +6,14 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/pages/RanPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /ran page, "What ran where". A table gives, for each thing a sender can do, where it runs and what leaves the device:
+- typing an item (no model);
+- holding an item still (the built-in model, never the cloud);
+- Check now or Check this part (built-in model first, the cloud only if allowed, only the cropped part and its label words);
+- a second look (only on the press, only with cloud checks on);
+- changing the country (0 model calls);
+- turning cloud checks off (later reads stay on the device; a running read makes no further cloud call).
+It follows `src/routing/policy.ts` and only describes paths that are wired. Source: P1 item 6 (/ran). Verified by `src/pages/RanPage.test.tsx` (the five rows' claims). A mutant weakening the camera row's "never the cloud" fails it; local CI mirror exit 0.
 - `public/llms.txt` lists /rules now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/RulesPage.tsx`, `src/pages/RulesRoute.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /rules page. It lists every USPS export rule the app applies, in our words, with its outcome and a link to its section, under the Publication 52 edition and check date. It gives each country's lines, saying who read them and when (from `rulesReadBy`, the same source as the picker and the card), with a link to the country's listing. It names the countries where mail service is suspended, with the list's dates. Everything is read from the rule edition the app runs, so the page and the verdicts cannot drift apart. Source: P1 item 6 (/rules). Verified by `src/pages/RulesPage.test.tsx`: every export rule listed once, the aerosol rule with its outcome and Pub 52 623 link, the Philippines lines with "not yet checked by a person", and the suspensions with Haiti and the check date. It failed before the page existed; local CI mirror exit 0.
 - `public/llms.txt` lists /about now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
