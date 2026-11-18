@@ -38,6 +38,10 @@
         {
           "tag": "jewelry_valuables",
           "effect": "take_out"
+        },
+        {
+          "tag": "bullion",
+          "effect": "take_out"
         }
       ]
     },
@@ -62,42 +66,66 @@
       "section": "prohibitions",
       "lineSha256": "89ffa1058001a2bfed3d5b0d4c2f157143b098b5cc9b1255d55a0017c08010a6",
       "ourWording": "No gambling devices.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Gambling devices such as slot machines; not something this app reads in a gift box."
+      }
     },
     {
       "lineId": "PH-P-05",
       "section": "prohibitions",
       "lineSha256": "d68dfca7e4c4d3112e583379fb9242b068bc5c87c5ae29d657932b88128620ca",
       "ourWording": "No lottery tickets or lottery advertising.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Lottery tickets and lottery advertising; not a gift category this app reads."
+      }
     },
     {
       "lineId": "PH-P-06",
       "section": "prohibitions",
       "lineSha256": "2e8c7d9e321db97e40d7640eec6a13c83a1970a83d9a6c9229f50feeb3b194fb",
       "ourWording": "No narcotics or similar drugs.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Controlled narcotics; ordinary medicines are tagged and checked by other rules."
+      }
     },
     {
       "lineId": "PH-P-07",
       "section": "prohibitions",
       "lineSha256": "ce96d1d57e6454f2824f22c0ab59fe71341c03e10bf6b489421af44732eee569",
       "ourWording": "No perishable biological material that can carry infection.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Infectious biological specimens such as lab samples; never a household gift."
+      }
     },
     {
       "lineId": "PH-P-08",
       "section": "prohibitions",
       "lineSha256": "62c33772603545c50f0fd48a2b88e292aa348b6cc642b6945b114928597a537a",
       "ourWording": "No other perishable biological material.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Other perishable biological specimens such as lab samples; never a household gift."
+      }
     },
     {
       "lineId": "PH-P-09",
       "section": "prohibitions",
       "lineSha256": "c1003e9690b6005d7d71cf6a831fb1b2d71f16b4d1dc308bd6a6862515f037dd",
       "ourWording": "No radioactive material.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Radioactive material; USPS already bars it from international mail."
+      }
     },
     {
       "lineId": "PH-R-01",
@@ -116,14 +144,23 @@
       "section": "restrictions",
       "lineSha256": "2f9175008a1aa2bf67e51c8f94b9bee7335ada1823285876b0462b456cf58efa",
       "ourWording": "Plants and similar items need import clearance and plant health certificates.",
-      "matches": []
+      "matches": [
+        {
+          "tag": "plant",
+          "effect": "check"
+        }
+      ]
     },
     {
       "lineId": "PH-O-01",
       "section": "observations",
       "lineSha256": "40a6ce26bf017c781b5e8a97653ae58fed5d61189ee696163a3b311e6599da1a",
       "ourWording": "An invoice with a duty value of 3,000 pesos or more may need the Philippine Consulate's stamp, for a $30 fee.",
-      "matches": []
+      "matches": [],
+      "noMatch": {
+        "decision": "observation",
+        "reason": "An invoice and duty note; shown to the sender as a customs note."
+      }
     }
   ],
   "customsChecked": true,

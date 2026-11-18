@@ -46,6 +46,16 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("Hand rolled cigars", ed)).not.toContain("tobacco");
   });
 
+  it("reads the gift words the destination lines need", () => {
+    expect(labelTagsOf("MARGARINE SPREAD", ed)).toContain("margarine");
+    expect(labelTagsOf("Chicken Dog Treats", ed)).toContain("pet_food");
+    expect(labelTagsOf("GOLD BAR 1 OZ", ed)).toContain("bullion");
+    expect(labelTagsOf("Heirloom Vegetable Seeds", ed)).toContain("plant");
+    expect(labelTagsOf("VAPE PEN", ed)).toContain("vaping");
+    expect(labelTagsOf("SESAME SEEDS", ed)).not.toContain("plant");
+    expect(labelTagsOf("LED LIGHT BULBS", ed)).not.toContain("plant");
+  });
+
   it("marks that label text was read, and returns nothing for no text", () => {
     expect(labelTagsOf("LOTION 8 FL OZ", ed)).toContain("label_text");
     expect(labelTagsOf("", ed)).toEqual([]);

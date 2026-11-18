@@ -34,10 +34,33 @@ describe("destination editions", () => {
         expect(l.lineSha256).toMatch(/^[0-9a-f]{64}$/);
         expect(l.lineId).toMatch(new RegExp(`^${d.code}-[PRO]-\\d{2}$`));
         expect(l.ourWording.length).toBeGreaterThan(5);
-        expect(Object.keys(l).sort()).toEqual(["lineId", "lineSha256", "matches", "ourWording", "section"]);
+        const keys = Object.keys(l).sort();
+        expect(keys).toEqual(l.matches.length
+          ? ["lineId", "lineSha256", "matches", "ourWording", "section"]
+          : ["lineId", "lineSha256", "matches", "noMatch", "ourWording", "section"]);
       }
       expect(new Set(d.lines.map((l) => l.lineId)).size).toBe(d.lines.length);
     }
+  });
+
+  it("gives every line a tag match or a recorded reason it matches nothing", () => {
+    for (const d of Object.values(ed.destinations)) {
+      for (const l of d.lines) {
+        if (l.matches.length) continue;
+        expect(l.noMatch?.reason.length, l.lineId).toBeGreaterThan(10);
+        if (l.section === "observations") expect(l.noMatch?.decision, l.lineId).toBe("observation");
+      }
+    }
+  });
+
+  it("maps the food and gift lines that a sender could pack", () => {
+    const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
+    expect(tagsOf("CA", "CA-P-08")).toContain("margarine");
+    expect(tagsOf("CA", "CA-P-06")).toContain("vaping");
+    expect(tagsOf("CA", "CA-P-07")).toContain("bullion");
+    expect(tagsOf("CA", "CA-R-08")).toContain("pet_food");
+    expect(tagsOf("PH", "PH-P-02")).toContain("bullion");
+    expect(tagsOf("PH", "PH-R-02")).toContain("plant");
   });
 
   it("maps the Philippines liquids and glass line", () =>

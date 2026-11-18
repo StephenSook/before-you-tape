@@ -118,12 +118,24 @@ function checkDestination(code: string, v: unknown, questionIds: Set<string>): v
   list(d.lines, `${where}.lines`).forEach((x, i) => {
     const lw = `${where}.lines[${i}]`;
     const line = obj(x, lw);
-    keys(line, ["lineId", "section", "lineSha256", "ourWording", "matches"], [], lw);
+    keys(line, ["lineId", "section", "lineSha256", "ourWording", "matches"], ["noMatch"], lw);
     str(line.lineId, `${lw}.lineId`);
     oneOf(line.section, ["prohibitions", "restrictions", "observations"] as const, `${lw}.section`);
     sha(line.lineSha256, `${lw}.lineSha256`);
     str(line.ourWording, `${lw}.ourWording`);
-    list(line.matches, `${lw}.matches`).forEach((y, j) => {
+    const matches = list(line.matches, `${lw}.matches`);
+    // Every line either matches item tags or records why it matches nothing; never neither, never both.
+    if (matches.length === 0) {
+      if (line.noMatch === undefined) fail(`${lw}.noMatch`, "a line with no matches needs a recorded decision");
+      const nm = obj(line.noMatch, `${lw}.noMatch`);
+      keys(nm, ["decision", "reason"], [], `${lw}.noMatch`);
+      oneOf(nm.decision, ["not_a_gift_item", "exception_to_line", "cannot_judge_from_photo", "observation"] as const,
+        `${lw}.noMatch.decision`);
+      str(nm.reason, `${lw}.noMatch.reason`);
+    } else if (line.noMatch !== undefined) {
+      fail(`${lw}.noMatch`, "a line that matches tags cannot also record no match");
+    }
+    matches.forEach((y, j) => {
       const mw = `${lw}.matches[${j}]`;
       const m = obj(y, mw);
       keys(m, ["tag", "effect"], ["unlessAnswer"], mw);

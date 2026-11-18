@@ -12,6 +12,12 @@
   { "name": "medicine_ca", "code": "CA", "tags": ["pharmaceutical"], "expect": [{ "ruleId": "CA-R-02", "level": "check" }] },
   { "name": "shirt_ca", "code": "CA", "tags": ["clothing"], "expect": [] },
   { "name": "shirt_ph", "code": "PH", "tags": ["clothing"], "expect": [] },
+  { "name": "margarine_ca", "code": "CA", "tags": ["food", "margarine"], "expect": [{ "ruleId": "CA-P-08", "level": "take_out" }] },
+  { "name": "pet_treats_ca", "code": "CA", "tags": ["food", "pet_food"], "expect": [{ "ruleId": "CA-R-08", "level": "check" }] },
+  { "name": "gold_bar_ca", "code": "CA", "tags": ["bullion"], "expect": [{ "ruleId": "CA-P-07", "level": "take_out" }] },
+  { "name": "gold_bar_ph", "code": "PH", "tags": ["bullion"], "expect": [{ "ruleId": "PH-P-02", "level": "take_out" }] },
+  { "name": "vape_ca", "code": "CA", "tags": ["electronics", "vaping"], "expect": [{ "ruleId": "CA-P-06", "level": "take_out" }] },
+  { "name": "flower_seeds_ph", "code": "PH", "tags": ["plant"], "expect": [{ "ruleId": "PH-R-02", "level": "check" }] },
   { "name": "shirt_unreviewed_country", "code": "ZZ", "tags": ["clothing"], "expect": [{ "ruleId": "DATA-DEST-UNREVIEWED", "level": "check" }] },
   { "name": "shirt_suspended_country", "code": "HT", "tags": ["clothing"], "expect": [{ "ruleId": "DEST-SUSPENDED", "level": "check" }, { "ruleId": "DATA-DEST-UNREVIEWED", "level": "check" }] }
 ]

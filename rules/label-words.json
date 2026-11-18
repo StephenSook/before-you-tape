@@ -47,5 +47,19 @@
   { "pattern": "parfum", "tag": "fragrance" },
   { "pattern": "eau de toilette", "tag": "fragrance" },
   { "pattern": "cologne", "tag": "fragrance" },
-  { "pattern": "perfume", "tag": "fragrance" }
+  { "pattern": "perfume", "tag": "fragrance" },
+  { "pattern": "margarine", "tag": "margarine" },
+  { "pattern": "oleomargarine", "tag": "margarine" },
+  { "pattern": "butter substitutes?", "tag": "margarine" },
+  { "pattern": "(?:pet|dog|cat) food", "tag": "pet_food" },
+  { "pattern": "(?:pet|dog|cat) (?:treats?|chews?)", "tag": "pet_food" },
+  { "pattern": "bullion", "tag": "bullion" },
+  { "pattern": "(?:gold|silver) bars?", "tag": "bullion" },
+  { "pattern": "seed packets?", "tag": "plant" },
+  { "pattern": "(?:flower|vegetable|herb|garden) seeds?", "tag": "plant" },
+  { "pattern": "flower bulbs?", "tag": "plant" },
+  { "pattern": "live plants?", "tag": "plant" },
+  { "pattern": "vape", "tag": "vaping" },
+  { "pattern": "vaping", "tag": "vaping" },
+  { "pattern": "e-liquids?", "tag": "vaping" }
 ]

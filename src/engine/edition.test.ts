@@ -79,6 +79,15 @@ describe("rule edition", () => {
   it("accepts a valid destination edition", () =>
     expect(parseEdition({ ...bundled, destinations: { XX: testDest() } }).destinations.XX?.name).toBe("Testland"));
 
+  it("needs every listing line to match tags or record why it matches nothing", () => {
+    const parse = (line: Record<string, unknown>) => () => parseEdition({ ...bundled, destinations: { XX: testDest({}, line) } });
+    expect(parse({ matches: [] })).toThrow(/noMatch/);
+    expect(parse({ matches: [], noMatch: { decision: "not_a_gift_item", reason: "" } })).toThrow(EditionError);
+    expect(parse({ matches: [], noMatch: { decision: "vibes", reason: "Prison-made goods for sale." } })).toThrow(EditionError);
+    expect(parse({ noMatch: { decision: "not_a_gift_item", reason: "Both is a contradiction." } })).toThrow(/noMatch/);
+    expect(parse({ matches: [], noMatch: { decision: "not_a_gift_item", reason: "Prison-made goods for sale." } })).not.toThrow();
+  });
+
   it("rejects an edition that has lost its export rules", () =>
     expect(() => parseEdition({ ...bundled, rules: [] })).toThrow(/rules/));
 

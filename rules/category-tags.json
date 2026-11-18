@@ -25,7 +25,7 @@
   "musical_card": ["electronics"],
   "other_electronics": ["electronics"],
   "lighter_matches": ["flammable"],
-  "e_cigarette": ["electronics"],
+  "e_cigarette": ["electronics", "vaping"],
   "glue_paint": ["liquid"],
   "knife_tool": ["knife", "hardware_tools"],
   "toy_gun": ["toy_gun", "toy"],

@@ -55,12 +55,17 @@ export interface DestinationLineMatch {
   unlessAnswer?: { questionId: string; answerId: string };
 }
 
+// Why a listing line maps to no item tag. Required whenever matches is empty, so every
+// line is either checked against items or carries a recorded, reviewable decision.
+export type NoMatchDecision = "not_a_gift_item" | "exception_to_line" | "cannot_judge_from_photo" | "observation";
+
 export interface DestinationLine {
   lineId: string;
   section: "prohibitions" | "restrictions" | "observations";
   lineSha256: string;
   ourWording: string;
   matches: DestinationLineMatch[];
+  noMatch?: { decision: NoMatchDecision; reason: string };
 }
 
 export interface DestinationEdition {
