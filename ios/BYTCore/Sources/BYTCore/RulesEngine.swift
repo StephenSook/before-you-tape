@@ -30,6 +30,12 @@ public final class RulesEngine: @unchecked Sendable {
     private let bridge: JSValue
     private let lock = NSLock()
     private let errors = ErrorBox()
+    private let loaded = LoadedBox()
+
+    final class LoadedBox: @unchecked Sendable { var id: String? }
+
+    /// The id of the edition in force: nil before the first edition loads; a refused edition leaves it as it was.
+    public var editionId: String? { lock.withLock { loaded.id } }
 
     final class ErrorBox: @unchecked Sendable { var last: String? }
 
@@ -63,6 +69,7 @@ public final class RulesEngine: @unchecked Sendable {
             throw EngineError.badReply("setEdition: \(v)")
         }
         let codes = destinations.compactMap { d -> String? in if case let .string(c)? = d["code"] { c } else { nil } }
+        lock.withLock { loaded.id = id }
         return LoadedEdition(editionId: id, destinationCodes: codes)
     }
 

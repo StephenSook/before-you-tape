@@ -36,9 +36,23 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
                              "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4),
                              "batteryWords": .bool(true), "retailBox": .string("sealed")])
 
-    func store(_ p: MemoryBoxPersistence = MemoryBoxPersistence()) throws -> BoxStore {
+    static func bundledEngine() throws -> RulesEngine {
         let engine = try RulesEngine()
         _ = try engine.setEdition(String(contentsOf: Self.repo.appendingPathComponent("rules/edition.json"), encoding: .utf8))
+        return engine
+    }
+
+    /// The bundled edition with one more label word, under its own id.
+    static func editionWithLabelWord(_ pattern: String, tag: String, id: String) throws -> String {
+        let text = try String(contentsOf: repo.appendingPathComponent("rules/edition.json"), encoding: .utf8)
+        var json = try JSONSerialization.jsonObject(with: Data(text.utf8)) as! [String: Any]
+        json["labelWords"] = (json["labelWords"] as! [[String: Any]]) + [["pattern": pattern, "tag": tag]]
+        json["editionId"] = id
+        return String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+    }
+
+    func store(_ p: MemoryBoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil) throws -> BoxStore {
+        let engine = try engine ?? Self.bundledEngine()
         var n = 0
         return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "id-\(n)" }, now: { 1000 })
     }
@@ -47,6 +61,41 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         ReadOutcome(read: read, source: source, route: .hybrid, failure: nil,
                     records: [RouteRecord(kind: .photo, path: source, model: "m", reason: .onDeviceDefault, latencyMs: 1200, blocked: nil)],
                     fallbackAfter: fallbackAfter)
+    }
+
+    static let markedLotion = read(["itemName": .string("Body lotion"), "category": .string("lotion_cream"),
+                                    "labelText": .string("BODY LOTION ZQXWORD"), "liquid": .bool(true)])
+
+    /// The saved copy keeps only the tags an edition found in the label. Under a newer edition with
+    /// other label words those tags may be wrong, and the label is gone: never OK, read it again.
+    @Test func aNewEditionNeverGivesARestoredItemOKFromTheOldTags() throws {
+        let p = MemoryBoxPersistence()
+        let first = try store(p)
+        let id = first.addManual(Self.markedLotion)
+        #expect(first.result?.items[id]?.level == "ok")
+        let engine = try Self.bundledEngine()
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        let restored = try store(MemoryBoxPersistence(stored: p.saved.last), engine: engine)
+        restored.load()
+        let verdict = try #require(restored.result?.items[id])
+        #expect(verdict.level == "check" && verdict.hits.first?.text == BoxStore.rulesChanged)
+        #expect(restored.result?.counts.ok == 0 && restored.result?.counts.check == 1)
+        // Under the edition that tagged it, the same restored item is OK as before.
+        let same = try store(MemoryBoxPersistence(stored: p.saved.last))
+        same.load()
+        #expect(same.result?.items[id]?.level == "ok")
+    }
+
+    /// While the label is still in memory, a newer edition reads it again, and its tags are saved.
+    @Test func aNewEditionReadsTheLabelAgainWhileItIsInMemory() throws {
+        let p = MemoryBoxPersistence()
+        let engine = try Self.bundledEngine()
+        let s = try store(p, engine: engine)
+        let id = s.addManual(Self.markedLotion)
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        s.reevaluate()
+        #expect(s.items[0].labelTags.contains("alcohol") && s.items[0].tagsEdition == "byt-more-words")
+        #expect(s.result?.items[id]?.level != "ok" && s.result?.items[id]?.hits.first?.text != BoxStore.rulesChanged)
     }
 
     @Test func reChecksOnACountryChangeWithNoModelCall() throws {

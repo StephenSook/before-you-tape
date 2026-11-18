@@ -42,6 +42,9 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// "sender" or "second_look"; nil until someone confirms what the item is.
     var identityConfirmedBy: String?
     var labelTags: [String] = []
+    /// The rule edition whose label words made `labelTags`; nil when there was no label text, so the
+    /// tags do not depend on the edition. Kept on this iPhone only.
+    var tagsEdition: String?
     /// "phone_on_device", "phone_cloud", "manual", or a value another device wrote.
     var readSource: String
     var readMs: Double
@@ -139,6 +142,8 @@ struct BoxResult: Decodable, Equatable, Sendable {
 @Observable
 final class BoxStore {
     static let defaultDestination = "CA"
+    /// Why a saved item is checked again: another edition read its label, and the label text was not kept.
+    static let rulesChanged = "The rules changed since this label was read. Photograph or type the label again."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -184,7 +189,7 @@ final class BoxStore {
     func addRead(_ outcome: ReadOutcome, cropFile: String?) -> String? {
         guard let read = outcome.read, let source = outcome.source else { return nil }
         let itemId = newId()
-        items.append(BoxItem(itemId: itemId, read: read, labelTags: tags(read["labelText"]),
+        items.append(BoxItem(itemId: itemId, read: read, labelTags: tags(read["labelText"]), tagsEdition: tagsEdition(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
                              readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile))
         sources.add(\.onDevice, source == .onDevice ? 1 : 0)
@@ -198,7 +203,7 @@ final class BoxStore {
     func addManual(_ read: JSONValue) -> String {
         let itemId = newId()
         items.append(BoxItem(itemId: itemId, read: read, identityConfirmedBy: "sender", labelTags: tags(read["labelText"]),
-                             readSource: "manual", readMs: 0))
+                             tagsEdition: tagsEdition(read["labelText"]), readSource: "manual", readMs: 0))
         commit()
         return itemId
     }
@@ -210,6 +215,7 @@ final class BoxStore {
         for tag in tags(item.read["labelText"]) + tags(item.overrides["labelText"]) where !item.labelTags.contains(tag) {
             item.labelTags.append(tag)
         }
+        if let label = labelInMemory(item) { item.tagsEdition = tagsEdition(.string(label)) }
         if let i = items.firstIndex(where: { $0.itemId == item.itemId }) { items[i] = item } else { items.append(item) }
         commit()
     }
@@ -222,7 +228,10 @@ final class BoxStore {
     func override(_ itemId: String, patch: [String: JSONValue]) {
         update(itemId) { item in
             item.overrides.merge(patch) { _, new in new }
-            if let label = patch["labelText"] { item.labelTags = tags(label) }
+            if let label = patch["labelText"] {
+                item.labelTags = tags(label)
+                item.tagsEdition = tagsEdition(label)
+            }
         }
     }
 
@@ -277,16 +286,60 @@ final class BoxStore {
     }
 
     private func evaluate() -> BoxResult? {
+        refreshStaleTags()
         let input: JSONValue = .object(["items": .array(items.map(\.engineInput)), "code": .string(destinationCode),
                                         "today": .string(today())])
         do {
             let value = try engine.evaluateBox(input)
             engineProblem = nil
-            return try value.decode(BoxResult.self)
+            return guardStaleTags(try value.decode(BoxResult.self))
         } catch {
             engineProblem = String(describing: error)
             return nil
         }
+    }
+
+    private func isStale(_ item: BoxItem) -> Bool {
+        guard let tagged = item.tagsEdition, let current = engine.editionId else { return false }
+        return tagged != current
+    }
+
+    /// The label text this iPhone still holds (a corrected label wins), if any.
+    private func labelInMemory(_ item: BoxItem) -> String? {
+        guard case let .string(text)? = item.overrides["labelText"] ?? item.read["labelText"], !text.isEmpty else { return nil }
+        return text
+    }
+
+    /// Another edition is in force: a label still in memory is read again with its label words.
+    private func refreshStaleTags() {
+        for i in items.indices where isStale(items[i]) {
+            guard let label = labelInMemory(items[i]) else { continue }
+            items[i].labelTags = tags(.string(label))
+            items[i].tagsEdition = engine.editionId
+        }
+    }
+
+    /// A saved item whose tags another edition found, with its label gone, is never OK: the sender
+    /// is asked to read the label again.
+    private func guardStaleTags(_ result: BoxResult) -> BoxResult {
+        var result = result
+        for item in items where isStale(item) {
+            guard var verdict = result.items[item.itemId], verdict.level == "ok" else { continue }
+            verdict.level = "check"
+            verdict.headline = "Check this"
+            verdict.hits.insert(RuleHit(ruleId: "DATA-LABEL-AGAIN", layer: "data", level: "check", text: Self.rulesChanged,
+                                        section: "Before You Tape: reading check", url: "https://before-you-tape-2026.web.app/rules"),
+                                at: 0)
+            result.items[item.itemId] = verdict
+            result.counts.ok -= 1
+            result.counts.check += 1
+        }
+        return result
+    }
+
+    private func tagsEdition(_ label: JSONValue?) -> String? {
+        guard case let .string(text)? = label, !text.isEmpty else { return nil }
+        return engine.editionId
     }
 
     private func tags(_ label: JSONValue?) -> [String] {

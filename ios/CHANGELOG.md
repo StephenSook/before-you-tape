@@ -5,6 +5,23 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): never give OK from label tags another rule edition found
+- What: the saved copy of an item keeps the tags an edition found in its label, not the label
+  text. After a newer edition with other label words, a restored item was judged on the old tags
+  alone and could show "OK to pack" while its label would now give "Check this". Each item now
+  records which edition made its tags (kept on this iPhone only). When another edition is in
+  force, a label still in memory is read again with the new label words, and its tags and edition
+  are updated; a restored item whose label is gone is never OK: it shows "Check this" with the
+  reason "The rules changed since this label was read. Photograph or type the label again."
+  The engine now says which edition is loaded (`RulesEngine.editionId`).
+- Source: review.
+- Verified: a restored item under an edition with one more label word was OK on the old code,
+  and is now "Check this" with that reason, while under its own edition it stays OK; a label in
+  memory is tagged again under the new edition; the engine reports the loaded edition and keeps
+  it when an edition is refused. The tests failed to compile, then passed; 32 core and 112 app
+  unit tests pass; the CI mirror exit 0, with the secret scan limited to this branch's history
+  (another branch's test vectors trip the full scan; that is being fixed on that branch).
+
 ### fix(ios): list the countries of the rule edition in force
 - What: the country picker was filled once from the built-in edition, so a newer edition that
   adds a country could judge it while the picker could not select it. The picker now takes its

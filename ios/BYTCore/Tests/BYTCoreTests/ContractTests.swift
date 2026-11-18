@@ -24,6 +24,16 @@ import Testing
         }
     }
 
+    @Test func theEngineSaysWhichEditionIsLoaded() throws {
+        let engine = try RulesEngine()
+        #expect(engine.editionId == nil)
+        let loaded = try engine.setEdition(editionText())
+        #expect(engine.editionId == loaded.editionId)
+        // A refused edition leaves the loaded one in force, and says so.
+        #expect(throws: (any Error).self) { try engine.setEdition("{}") }
+        #expect(engine.editionId == loaded.editionId)
+    }
+
     @Test func theBundledEditionLoadsWithItsId() throws {
         let engine = try RulesEngine()
         let loaded = try engine.setEdition(editionText())
