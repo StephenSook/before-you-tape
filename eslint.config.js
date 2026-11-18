@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
 export default defineConfig(
-  { ignores: ["dist/**", "node_modules/**", "coverage/**", "playwright-report/**", "test-results/**", ".superpowers/**"] },
+  { ignores: ["dist/**", "ios/**", "node_modules/**", "coverage/**", "playwright-report/**", "test-results/**", ".superpowers/**"] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
