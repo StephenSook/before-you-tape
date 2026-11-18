@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): name the item on the check screen as it is now
+- What: the line under the camera took the item's name from the model's first reply but its
+  verdict from the box, so after a correction it could read "Perfume: OK to pack". The name now
+  comes from the same box item as the verdict, with the sender's corrections on top.
+- Source: review of the iPhone pull request (finding 4).
+- Verified: a test reads a perfume, corrects it to a body lotion, and sees "Body lotion: OK to
+  pack. Read in the cloud."; it failed on the old name before the change and passes after; 83 app
+  tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): read the cloud pause again before every cloud call
 - What: `ItemReader.cloudOpen` is asked before each cloud call (the first, a retry, the fallback
   model). When the cloud was paused since the read began, no cloud call is made and the read ends

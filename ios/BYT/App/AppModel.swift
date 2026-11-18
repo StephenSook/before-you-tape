@@ -115,13 +115,18 @@ final class AppModel {
     private(set) var lastKind: ReadInputKind = .photo
 
     var readLine: String? {
-        Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind)
+        // The name and the verdict both come from the box item as it is now, corrections included.
+        let item = lastItemId.flatMap { id in box?.items.first { $0.itemId == id } }
+        return Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind,
+                             name: item.flatMap { FixReadingView.current($0).text("itemName") })
     }
 
-    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo) -> String? {
+    static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo,
+                         name current: String? = nil) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
-            let name: String = if case let .string(n)? = read["itemName"], !n.isEmpty { n } else { "This item" }
+            let readName = read.text("itemName")
+            let name = [current, readName].compactMap { $0 }.first { !$0.isEmpty } ?? "This item"
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
         }
         if outcome.route == .blocked, kind == .labelWords {

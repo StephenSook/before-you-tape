@@ -93,4 +93,20 @@ import Testing
         await model.readWords("   ")
         #expect(j.events.isEmpty && model.lastRead == nil)
     }
+
+    /// The line names the item as it is now, from the same box item its verdict comes from.
+    @Test func theLineFollowsTheSendersCorrection() async throws {
+        let j = FakeItemRunner.Journal()
+        let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        model.network.pathChanged(satisfied: true)
+        model.box?.setConsent(true)
+        await model.readPhoto(jpeg)
+        #expect(model.readLine == "Perfume: Take it out. Read in the cloud.")
+        let id = try #require(model.box?.items.first?.itemId)
+        model.box?.override(id, patch: ["itemName": .string("Body lotion"), "category": .string("lotion_cream"),
+                                        "labelText": .string("SHEA BODY LOTION 8 FL OZ")])
+        #expect(model.readLine == "Body lotion: OK to pack. Read in the cloud.")
+    }
 }
