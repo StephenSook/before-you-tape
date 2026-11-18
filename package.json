@@ -16,7 +16,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "tone": "tsx scripts/tone-check.ts",
-    "guard": "tsx scripts/model-guard.ts"
+    "guard": "tsx scripts/model-guard.ts",
+    "edition": "tsx scripts/build-edition.ts",
+    "edition:check": "tsx scripts/build-edition.ts --check"
   },
   "dependencies": {
     "react": "19.3.1",

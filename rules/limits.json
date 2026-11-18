@@ -1,0 +1,18 @@
+{
+  "maxCells": 4,
+  "maxBatteries": 2,
+  "cellMaxWh": 20,
+  "batteryMaxWh": 100,
+  "cellMaxLithiumG": 1,
+  "batteryMaxLithiumG": 2,
+  "seriesVoltsThreshold": 5,
+  "whTolerancePct": 3,
+  "mixedOutcome": "check",
+  "unknownCountPolicy": "ask",
+  "staleDays": {
+    "usps_export": 120,
+    "destination": 60,
+    "suspensions": 21,
+    "customs": 60
+  }
+}

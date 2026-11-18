@@ -1,0 +1,264 @@
+{
+  "editionId": "byt-05a3723970d5",
+  "service": "Priority Mail International",
+  "sources": [
+    {
+      "id": "usps_export",
+      "title": "Publication 52, Hazardous, Restricted, and Perishable Mail",
+      "edition": "August 2026 (web edition header)",
+      "url": "https://pe.usps.com/text/pub52/welcome.htm",
+      "checkedOn": "2026-11-17"
+    },
+    {
+      "id": "suspensions",
+      "title": "International Service Alerts",
+      "edition": "Updated 2026-11-06",
+      "url": "https://about.usps.com/newsroom/service-alerts/international/",
+      "checkedOn": "2026-11-17"
+    }
+  ],
+  "limits": {
+    "maxCells": 4,
+    "maxBatteries": 2,
+    "cellMaxWh": 20,
+    "batteryMaxWh": 100,
+    "cellMaxLithiumG": 1,
+    "batteryMaxLithiumG": 2,
+    "seriesVoltsThreshold": 5,
+    "whTolerancePct": 3,
+    "mixedOutcome": "check",
+    "unknownCountPolicy": "ask",
+    "staleDays": {
+      "usps_export": 120,
+      "destination": 60,
+      "suspensions": 21,
+      "customs": 60
+    }
+  },
+  "categoryTags": {
+    "perfume_fragrance": [
+      "liquid",
+      "fragrance",
+      "cosmetic"
+    ],
+    "nail_polish": [
+      "liquid",
+      "cosmetic",
+      "flammable"
+    ],
+    "aerosol_spray": [
+      "pressurized"
+    ],
+    "hand_sanitizer": [
+      "liquid",
+      "alcohol",
+      "flammable"
+    ],
+    "lotion_cream": [
+      "easily_liquefiable",
+      "cosmetic"
+    ],
+    "liquid_toiletry": [
+      "liquid",
+      "cosmetic"
+    ],
+    "makeup": [
+      "cosmetic"
+    ],
+    "powder": [
+      "powder"
+    ],
+    "medicine": [
+      "pharmaceutical"
+    ],
+    "alcohol_drink": [
+      "liquid",
+      "alcohol"
+    ],
+    "food_packaged": [
+      "food"
+    ],
+    "chocolate": [
+      "chocolate",
+      "food"
+    ],
+    "coffee": [
+      "coffee",
+      "food"
+    ],
+    "cooking_oil": [
+      "edible_oil",
+      "liquid",
+      "food"
+    ],
+    "meat_product": [
+      "meat",
+      "food"
+    ],
+    "phone": [
+      "electronics"
+    ],
+    "tablet": [
+      "electronics"
+    ],
+    "laptop": [
+      "electronics"
+    ],
+    "smartwatch": [
+      "electronics"
+    ],
+    "earbuds": [
+      "electronics"
+    ],
+    "power_bank": [
+      "electronics"
+    ],
+    "loose_battery": [
+      "electronics"
+    ],
+    "battery_toy": [
+      "toy",
+      "electronics"
+    ],
+    "musical_card": [
+      "electronics"
+    ],
+    "other_electronics": [
+      "electronics"
+    ],
+    "lighter_matches": [
+      "flammable"
+    ],
+    "e_cigarette": [
+      "electronics"
+    ],
+    "glue_paint": [
+      "liquid"
+    ],
+    "knife_tool": [
+      "knife",
+      "hardware_tools"
+    ],
+    "toy_gun": [
+      "toy_gun",
+      "toy"
+    ],
+    "candle": [],
+    "jewelry_watch": [
+      "jewelry_valuables"
+    ],
+    "clothing": [
+      "clothing"
+    ],
+    "shoes": [
+      "clothing"
+    ],
+    "book_paper": [],
+    "toy": [
+      "toy"
+    ],
+    "other": []
+  },
+  "labelWords": [],
+  "questions": [
+    {
+      "id": "battery_installed",
+      "text": "Where is the battery?",
+      "answers": [
+        {
+          "id": "installed",
+          "label": "Inside the device"
+        },
+        {
+          "id": "loose",
+          "label": "On its own, not in a device"
+        },
+        {
+          "id": "packed_beside",
+          "label": "In the box, next to the device"
+        }
+      ]
+    },
+    {
+      "id": "cell_count",
+      "text": "Does its battery have one cell or more?",
+      "answers": [
+        {
+          "id": "one",
+          "label": "One cell"
+        },
+        {
+          "id": "more_than_one",
+          "label": "More than one"
+        },
+        {
+          "id": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "device_condition",
+      "text": "Is it new?",
+      "answers": [
+        {
+          "id": "new_sealed",
+          "label": "New, still sealed"
+        },
+        {
+          "id": "new_opened",
+          "label": "New, box opened"
+        },
+        {
+          "id": "used",
+          "label": "Used"
+        },
+        {
+          "id": "refurbished_certified",
+          "label": "Refurbished by the maker"
+        }
+      ]
+    },
+    {
+      "id": "label_alcohol",
+      "text": "Does the label list alcohol?",
+      "answers": [
+        {
+          "id": "yes",
+          "label": "Yes"
+        },
+        {
+          "id": "no",
+          "label": "No"
+        },
+        {
+          "id": "cannot_tell",
+          "label": "Can't tell"
+        }
+      ]
+    }
+  ],
+  "rules": [],
+  "destinations": {},
+  "suspensions": {
+    "updated": "2026-11-06",
+    "checkedOn": "2026-11-17",
+    "url": "https://about.usps.com/newsroom/service-alerts/international/",
+    "codes": [
+      "AF",
+      "BT",
+      "CU",
+      "HT",
+      "IR",
+      "KI",
+      "CG",
+      "SC",
+      "SS",
+      "SD",
+      "TM",
+      "YE"
+    ]
+  },
+  "stopWords": [],
+  "worksheetFields": []
+}

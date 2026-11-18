@@ -1,0 +1,16 @@
+[
+  {
+    "id": "usps_export",
+    "title": "Publication 52, Hazardous, Restricted, and Perishable Mail",
+    "edition": "August 2026 (web edition header)",
+    "url": "https://pe.usps.com/text/pub52/welcome.htm",
+    "checkedOn": "2026-11-17"
+  },
+  {
+    "id": "suspensions",
+    "title": "International Service Alerts",
+    "edition": "Updated 2026-11-06",
+    "url": "https://about.usps.com/newsroom/service-alerts/international/",
+    "checkedOn": "2026-11-17"
+  }
+]

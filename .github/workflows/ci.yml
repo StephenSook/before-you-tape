@@ -31,6 +31,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Rule edition is up to date
+        run: npm run edition:check
+
       - name: Lint
         run: npm run lint
 

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "battery_installed",
+    "text": "Where is the battery?",
+    "answers": [
+      { "id": "installed", "label": "Inside the device" },
+      { "id": "loose", "label": "On its own, not in a device" },
+      { "id": "packed_beside", "label": "In the box, next to the device" }
+    ]
+  },
+  {
+    "id": "cell_count",
+    "text": "Does its battery have one cell or more?",
+    "answers": [
+      { "id": "one", "label": "One cell" },
+      { "id": "more_than_one", "label": "More than one" },
+      { "id": "not_sure", "label": "Not sure" }
+    ]
+  },
+  {
+    "id": "device_condition",
+    "text": "Is it new?",
+    "answers": [
+      { "id": "new_sealed", "label": "New, still sealed" },
+      { "id": "new_opened", "label": "New, box opened" },
+      { "id": "used", "label": "Used" },
+      { "id": "refurbished_certified", "label": "Refurbished by the maker" }
+    ]
+  },
+  {
+    "id": "label_alcohol",
+    "text": "Does the label list alcohol?",
+    "answers": [
+      { "id": "yes", "label": "Yes" },
+      { "id": "no", "label": "No" },
+      { "id": "cannot_tell", "label": "Can't tell" }
+    ]
+  }
+]
