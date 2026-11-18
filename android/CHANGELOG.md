@@ -3,6 +3,19 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Home screen: destination, consent, camera or typing, and the box.** `HomeScreen` is
+  stateless, drawn from `HomeUi`, with every action going through `HomeActions`. It shows where
+  the box is going (a picker over the edition's destinations), then the consent question once.
+  After that it shows the camera, or "Choose where the box is going first" until a destination
+  is set. With consent declined and no model on the phone, it shows the blocked line and "Type
+  it". Typing opens the item form, and the box view shows each item with "Fix this reading" and
+  "Remove". A fix opens the form at the current reading. Status lines are a polite live region.
+  `ItemCard` and `PackScreen` gain the fix, remove and bottom slots. Source: Android plan Task 9
+  (home screen) and Task 12 (typing and fixing). Verified: `HomeScreenTest` (7 tests, which
+  failed to compile first) passes on the emulator with a stand-in camera, together with the
+  pack, consent and form tests (17 of 17); `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
 - **Typed items, fixes, quantity and removal in the box, each re-checked.** `BoxLogic` and
   `BoxController` gain `addManual` (a typed item, read source "manual", identity confirmed by
   the sender), `override` (corrected fields kept as overrides on the read; a corrected label

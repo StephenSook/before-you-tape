@@ -18,7 +18,14 @@ import app.beforeyoutape.android.box.BoxState
  * the footer. With no engine result there is no verdict, only the line that says so.
  */
 @Composable
-fun PackScreen(state: BoxState, onAnswer: (itemId: String, questionId: String, answerId: String) -> Unit, modifier: Modifier = Modifier) {
+fun PackScreen(
+    state: BoxState,
+    onAnswer: (itemId: String, questionId: String, answerId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    onFix: ((itemId: String) -> Unit)? = null,
+    onRemove: ((itemId: String) -> Unit)? = null,
+    bottom: @Composable () -> Unit = {},
+) {
     val result = state.result
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -30,12 +37,13 @@ fun PackScreen(state: BoxState, onAnswer: (itemId: String, questionId: String, a
             result != null -> {
                 for (item in state.items) {
                     val verdict = result.items[item.input.itemId] ?: continue
-                    ItemCard(item, verdict, onAnswer)
+                    ItemCard(item, verdict, onAnswer, onFix, onRemove)
                 }
                 if (result.lithium.text.isNotEmpty()) Text(result.lithium.text, style = MaterialTheme.typography.bodyLarge)
                 for (note in result.notes) Text(note.text, style = MaterialTheme.typography.bodyMedium)
             }
         }
+        bottom()
         Text(Copy.FOOTER, style = MaterialTheme.typography.bodySmall)
     }
 }

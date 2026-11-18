@@ -22,6 +22,15 @@ object Copy {
     const val CAMERA_OFF = "Camera is off. Add a photo instead."
     const val PHOTO_FAILED = "That photo did not work. Take it again, or add a photo."
     const val HOLD_ZONE = "Hold the item's label inside this frame."
+    const val LOADING = "Loading the rules."
+    const val WHERE_TO = "Where is the box going?"
+    const val CHOOSE_DESTINATION_FIRST = "Choose where the box is going first."
+    const val ADD_ANOTHER = "Add another item"
+    const val REMOVE = "Remove"
+
+    fun sendingTo(name: String) = "Sending to $name"
+
+    fun seeTheBox(count: Int) = "See the box ($count)"
 
     /** Where an item's read ran. Web values are the laptop's own reads, seen from this phone. */
     fun source(readSource: String): String = when (readSource) {
@@ -49,6 +58,7 @@ object Copy {
     }
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
+        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE,
+        sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
 }
