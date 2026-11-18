@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): show the box with verdict chips, where each read ran, and a country picker
+- What: "Your box" lists every item with its name, a verdict chip (the word and its own icon,
+  never colour alone), the first reason, where it was read ("Read on this iPhone", "Read in the
+  cloud", "Typed by you"), the clerk's question as buttons, "Yes, this is ..." when the identity
+  needs confirming, and the four rule layers folded under "What we checked". The country picker
+  lists the edition's countries; a change shows "Re-checked N items for <country> in X ms. 0 model
+  calls." The summary counts items by verdict and shows the lithium line when it matters.
+- Source: iPhone client plan, task I-9 (the web app's ItemCard, VerdictChip, SourceGlyph,
+  QuestionRow, BoxSummary and DestinationPicker).
+- Verified: five view text tests (chip words and distinct icons, source wording, four layer rows,
+  the re-check line, the edition's countries) failed to compile, then passed; 71 app tests pass.
+  On the simulator, end to end: a picked photo of a perfume label asked the cloud question first,
+  "Allow" made one cloud read through Firebase AI Logic (signed in, App Check debug token), the
+  line read "Eau de Parfum: Take it out. Read in the cloud.", and "Your box" showed the card with
+  the flammable-liquids reason; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): survive a damaged saved box without crashing or losing the box
 - What: every count read from a saved box is kept in 0 to 1,000,000 and additions stop there,
   so a damaged file can no longer make a count overflow and stop the app. Duplicate item ids in a

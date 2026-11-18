@@ -9,6 +9,7 @@ struct ReadyCheckView: View {
             Label(model.signedIn ? "Signed in" : "Not signed in yet. Check the network.", systemImage: "person.badge.key")
             Label(ReadyCheck.modelLine(model.onDevice), systemImage: "iphone")
             Section {
+                NavigationLink("Your box") { BoxView(model: model) }
                 NavigationLink("Check an item") { CheckItemView(model: model) }
             }
         }

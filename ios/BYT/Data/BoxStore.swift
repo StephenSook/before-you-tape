@@ -107,6 +107,7 @@ struct ItemVerdict: Decodable, Equatable, Sendable {
     var hits: [RuleHit]
     var question: Question?
     var layers: [LayerStatus]
+    var service: String?
 }
 
 struct LithiumResult: Decodable, Equatable, Sendable {

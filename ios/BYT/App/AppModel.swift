@@ -15,6 +15,8 @@ final class AppModel {
     let reader: ItemReader?
     /// The box, with verdicts from the rule edition bundled with the app.
     let box: BoxStore?
+    /// The countries the bundled edition covers, for the country picker.
+    let destinations: [Destination]
     let network = NetworkStatus()
     let camera = CameraSession()
     /// The last read and the box item it made, for the line under the camera.
@@ -29,10 +31,9 @@ final class AppModel {
         self.signIn = signIn
         self.onDevice = onDevice
         let engine = try? RulesEngine()
-        if let engine, let url = Bundle.main.url(forResource: "edition", withExtension: "json"),
-           let text = try? String(contentsOf: url, encoding: .utf8) {
-            _ = try? engine.setEdition(text)
-        }
+        let editionText = Bundle.main.url(forResource: "edition", withExtension: "json").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+        if let engine, let editionText { _ = try? engine.setEdition(editionText) }
+        self.destinations = editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn) }
         self.box = engine.map {
@@ -110,4 +111,18 @@ final class AppModel {
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         return "That item could not be read. Try another photo."
     }
+
+    /// The edition's countries, by code.
+    nonisolated static func destinations(fromEdition text: String) -> [Destination] {
+        guard let edition = try? JSONDecoder().decode(JSONValue.self, from: Data(text.utf8)),
+              case let .object(all)? = edition["destinations"] else { return [] }
+        return all.compactMap { code, d in
+            if case let .string(name)? = d["name"] { Destination(code: code, name: name) } else { nil }
+        }.sorted { $0.code < $1.code }
+    }
+}
+
+struct Destination: Equatable, Sendable {
+    let code: String
+    let name: String
 }
