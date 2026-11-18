@@ -6,4 +6,5 @@ Before You Tape is a web app, in development, for people mailing gifts abroad fr
 
 ## Pages
 
+- [Try the sample box](https://before-you-tape-2026.web.app/judge): nine real items, judged by the app's rules in the browser, with no camera, model or sign-in; switch the country to see them re-checked.
 - [Pack your box](https://before-you-tape-2026.web.app/): check each item with the camera, a cropped photo, or by typing it, for the country you choose.

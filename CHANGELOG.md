@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `public/llms.txt` lists /judge, "Try the sample box", now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` (every listed page is built) passes; tone check clean; local CI mirror exit 0.
 - `src/pages/JudgePage.tsx`, `src/pages/JudgeRoute.tsx`, `src/routes.tsx` and `src/styles/app.css`: the page at /judge, "Try the sample box". The nine sample items show with their photo, label words, verdict, the rule text with a link to its section, any question, and the photo credit. They are judged by the app's own engine on the built-in edition, in the browser. It needs no camera, no built-in model and no sign-in; the page says so. The country picker re-checks the whole box ("Re-checked 9 items ... 0 model calls."), and the perfume's alcohol question can be answered. Source: P1 item 6. Verified by `src/pages/JudgePage.test.tsx`:
 - nine cards with photos and credits, judged for Canada;
 - the Philippines switch turns the lotion to Take it out and the chocolate, mug and coffee to Check this, with the re-check line;
