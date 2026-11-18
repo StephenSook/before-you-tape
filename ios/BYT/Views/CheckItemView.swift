@@ -9,6 +9,11 @@ struct CheckItemView: View {
             VStack(spacing: 16) {
                 CaptureView(camera: model.camera) { data, _ in await model.readPhoto(data) }
                 LabelWordsField(model: model)
+                if let crop = model.lastCrop, let image = UIImage(data: crop) {
+                    Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 180)
+                        .accessibilityLabel("The part of the photo that was read")
+                    Text("Only this part of the photo was read.").font(.callout)
+                }
                 if let line = model.readLine {
                     Text(line)
                         .font(.title3)
@@ -20,7 +25,7 @@ struct CheckItemView: View {
         }
         .navigationTitle("Check an item")
         .sheet(isPresented: Binding(get: { model.askingConsent }, set: { _ in })) {
-            ConsentSheet { allow in Task { await model.answerConsent(allow) } }
+            ConsentSheet(crop: model.pendingCrop) { allow in Task { await model.answerConsent(allow) } }
         }
     }
 }

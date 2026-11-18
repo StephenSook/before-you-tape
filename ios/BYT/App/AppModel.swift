@@ -24,7 +24,11 @@ final class AppModel {
     private(set) var lastItemId: String?
     /// True while the one-time cloud question is on screen; the read waits for the answer.
     private(set) var askingConsent = false
-    @ObservationIgnored private var pending: ItemInput?
+    private var pending: ItemInput?
+    /// The exact crop the last photo read used, shown to the sender under the line.
+    private(set) var lastCrop: Data?
+    /// The crop waiting for the cloud question, shown in it.
+    var pendingCrop: Data? { if case let .photo(crop)? = pending { crop } else { nil } }
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
@@ -112,6 +116,7 @@ final class AppModel {
             return
         }
         let outcome = await reader.read(input, situation: situation)
+        if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
         lastItemId = box.addRead(outcome, cropFile: nil)

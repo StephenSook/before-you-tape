@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): send only the hold zone of a picked photo, and show the sender that part
+- What: a photo from the library was sent whole, while the cloud question promises "a cropped
+  photo of the item", so anything else in the picture (an address on a parcel, a face) went too.
+  A picked photo is now cut to the same hold zone as a camera photo. The sender sees exactly that
+  crop: in the cloud question when a read waits for it, and under the result with "Only this part
+  of the photo was read."
+- Source: review of the iPhone pull request (finding 1; the web app's upload path has the same gap).
+- Verified: the picked-photo test now expects the hold-zone crop (274 by 768 from a 1000 by 2000
+  picture, upright, no location data), and a test checks the crop shown in the question and after
+  the read is the one sent; 90 app tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): let a fix that says what the item is clear an unsure reading
 - What: the rules keep "We're not sure what this is" while the reading's evidence is `not_sure` or
   its category is `other`, and "Fix this reading" never changed the evidence, so a corrected item

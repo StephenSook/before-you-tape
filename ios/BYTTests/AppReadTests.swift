@@ -133,4 +133,14 @@ import Testing
         await model.answerConsent(false)
         #expect(j.events == ["device start", "device end"])
     }
+
+    /// The sender sees exactly the part of the photo that is sent: in the cloud question, and after the read.
+    @Test func theSenderSeesTheExactCrop() async {
+        let j = FakeItemRunner.Journal()
+        let model = fakeModel(j)
+        await model.readPhoto(jpeg)
+        #expect(model.askingConsent && model.pendingCrop == jpeg && model.lastCrop == nil)
+        await model.answerConsent(true)
+        #expect(model.lastCrop == jpeg && model.pendingCrop == nil)
+    }
 }

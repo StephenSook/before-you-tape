@@ -109,9 +109,10 @@ enum Pictures {
         let src = try #require(CGImageSourceCreateWithData(out as CFData, nil))
         let props = try #require(CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any])
         #expect(props[kCGImagePropertyGPSDictionary] == nil)
-        #expect(props[kCGImagePropertyPixelWidth] as? Int == 384 && props[kCGImagePropertyPixelHeight] as? Int == 768)
+        // Cropped to the hold zone like a camera photo: only the middle of the picture is sent.
+        #expect(props[kCGImagePropertyPixelWidth] as? Int == 274 && props[kCGImagePropertyPixelHeight] as? Int == 768)
         let image = try #require(CGImageSourceCreateImageAtIndex(src, 0, nil))
-        #expect(Pictures.near(Pictures.pixel(image, x: 300, y: 10), Pictures.red))
-        #expect(Pictures.near(Pictures.pixel(image, x: 300, y: 760), Pictures.blue))
+        #expect(Pictures.near(Pictures.pixel(image, x: 0, y: 10), Pictures.red))
+        #expect(Pictures.near(Pictures.pixel(image, x: 0, y: 760), Pictures.blue))
     }
 }
