@@ -3,6 +3,12 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The local Android gate holds a floor of 90 unit tests and compiles the device tests.**
+  `android/ci-local.sh` raises its floor from 1 to 90 (92 tests now, rounded down to a ten, at
+  this merge point; the floor is never lowered) and compiles the device tests too, matching the
+  new CI workflow. Source: Android plan Task 15. Verified: `bash android/ci-local.sh` exit 0
+  (92 tests, guard clean); the root CI mirror exit 0.
+
 - **The APK scanner reads its tokens without putting them on a command line.** `scan-apk.sh`
   passed the Keychain debug tokens to its Python step as arguments, where any local process
   could read them during a scan. The Python step now reads them from the Keychain itself, and
