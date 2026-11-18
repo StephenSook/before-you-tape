@@ -3,6 +3,20 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Lane guard with a planted-violation proof.** `android/guard.sh` walks every tracked and
+  untracked (not ignored) file under `android/`, prints the count, exits 2 under 10 files, and
+  fails on: `Firebase.ai(` or `generativeModel(` outside `ai/AiClient.kt` and the live device
+  tests; `countTokens`; `com.google.mlkit`; the App Check debug provider outside
+  `app/src/debug`; a verdict headline, a `gemini-` model name (outside the Remote Config
+  defaults file) or approval wording in `app/src/main`; and any em dash, en dash or curly
+  quote. Code rules read code files only, so this changelog can name the terms. The required
+  footer "Not affiliated with or approved by the US Postal Service." is the one allowed use of
+  "approved". Source: Android plan Task 1. Verified: the first version printed each planted
+  violation but exited 0 (it set its failure flag inside a pipe's subshell); fixed with process
+  substitution, then a planted `generativeModel(` exits 1 and names the file, a planted verdict
+  headline, approval word and em dash each exit 1 and are named, and the clean tree exits 0;
+  the root CI mirror exit 0.
+
 - **Gradle scaffold for the native app.** Modules `:app` (Android application,
   `app.beforeyoutape.android`, minSdk 26, target 37, Compose) and `:engine` (plain Kotlin on
   the JVM, empty until the engine host lands). AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1 with the
