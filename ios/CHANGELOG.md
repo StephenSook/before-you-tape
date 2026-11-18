@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): keep the cloud paused when the pause value cannot be read
+- What: `kill_cloud` now fails closed. Only a clear false word ("0", "false", "f", "no", "n",
+  "off") opens the cloud; an empty or garbled value ("maybe", "tru") keeps every cloud call
+  paused. Before, any value that was not a true word reopened the cloud.
+- Source: review.
+- Verified: the boolean test now also requires empty and garbled values to pause; it failed
+  (5 issues), then passed; 103 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): make the live pause switch stop a read's next cloud call
 - What: each read now gives the reader a pause check that reads the app's live Remote Config, so a
   `kill_cloud` that turns on while a read is in progress stops that read before its next cloud

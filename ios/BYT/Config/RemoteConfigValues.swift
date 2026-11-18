@@ -48,14 +48,16 @@ struct RemoteConfigValues: Equatable, Sendable {
             cloudModelItem: model("cloud_model_item", d.cloudModelItem),
             cloudModelItemFallback: fallbackRaw.isEmpty ? "" : model("cloud_model_item_fallback", d.cloudModelItemFallback),
             cloudModelText: model("cloud_model_text", d.cloudModelText),
-            killCloud: isTrue(v["kill_cloud"] ?? ""),
+            killCloud: v["kill_cloud"].map(pauseCloud) ?? d.killCloud,
             minimumVersionIOS: minimum.isEmpty ? d.minimumVersionIOS : minimum,
             secondLookPolicyJSON: policy(v["second_look_policy_json"]) ?? d.secondLookPolicyJSON,
             rulesEditionId: pinOK ? id : "", rulesEditionSha256: pinOK ? sha : "")
     }
 
-    /// Remote Config's own words for true.
-    static func isTrue(_ s: String) -> Bool { ["1", "true", "t", "yes", "y", "on"].contains(s.trimmingCharacters(in: .whitespaces).lowercased()) }
+    /// The pause switch fails closed: only a clear "false" word opens the cloud; empty or garbled text keeps it paused.
+    static func pauseCloud(_ s: String) -> Bool {
+        !["0", "false", "f", "no", "n", "off"].contains(s.trimmingCharacters(in: .whitespaces).lowercased())
+    }
 
     /// The policy must name all five reasons with true or false; anything else keeps the default.
     static func policy(_ raw: String?) -> String? {

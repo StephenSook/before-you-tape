@@ -31,7 +31,11 @@ import Testing
 
     @Test func booleansReadLikeRemoteConfig() {
         for yes in ["1", "true", "TRUE", "t", "yes", "y", "on"] { #expect(RemoteConfigValues.parse(["kill_cloud": yes]).killCloud, "\(yes)") }
-        for no in ["0", "false", "no", "", "maybe"] { #expect(!RemoteConfigValues.parse(["kill_cloud": no]).killCloud, "\(no)") }
+        for no in ["0", "false", "FALSE", "f", "no", "n", "off", " false "] { #expect(!RemoteConfigValues.parse(["kill_cloud": no]).killCloud, "\(no)") }
+        // A value that cannot be read keeps the cloud paused: the switch fails closed.
+        for unreadable in ["", " ", "maybe", "2", "tru"] { #expect(RemoteConfigValues.parse(["kill_cloud": unreadable]).killCloud, "\(unreadable)") }
+        // No value at all (only in a test; the app always passes the template's default) is the default.
+        #expect(!RemoteConfigValues.parse([:]).killCloud)
     }
 
     @Test func theModelAllowListIsTheWebAppsList() throws {
