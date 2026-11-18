@@ -7,8 +7,8 @@ change to this file after the freeze fails the manifest test.
 
 - 40 items, about half hazard-relevant, each checked for two destinations: Canada (CA) and the
   Philippines (PH). Unit of analysis: the item, and the row (one item for one destination).
-- The photos are real photographs of real items. 13 were taken by the project owner, holding items he
-  owns, with every camera metadata field removed and anything private blurred. The other 27 are public
+- The photos are real photographs of real items. 13 were taken by the project owner, of the owner's own
+  items held in hand, with every camera metadata field removed and anything private blurred. The other 27 are public
   product photos under CC0, public domain, CC BY or CC BY-SA, credited on the About page and the blind
   check page. None was taken by a family mailing a box, and none is generated.
 - What that means for the measurement: these are reads of still photos. They are not live camera holds
