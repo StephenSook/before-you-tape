@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): choose the rule edition the way the web app does
+- What: `EditionSource.choose` keeps the built-in edition unless Remote Config names a newer one
+  by id and SHA-256; it is used only when the fetched edition has exactly that id and hash and
+  loads. Otherwise the built-in edition stays and the web app's notice says why ("could not be
+  loaded", "failed its integrity check", "could not be read"). The hash is the SHA-256 of the
+  engine's canonical JSON, which equals the web app's hash of the document. One difference,
+  both keeping the built-in edition: a document the engine refuses but that carries the right id
+  says "could not be read", where the web app would say "failed its integrity check".
+- Source: iPhone client plan, task I-10 (the web app's editionSource).
+- Verified: three tests (no pin keeps the built-in edition and fetches nothing; a remote edition is
+  used only when its hash matches; a wrong id, a missing document, text that is not JSON, and an
+  unreadable edition each keep the built-in one with the right notice) failed to compile, then
+  passed; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): read Remote Config the way the web app does
 - What: `RemoteConfigValues.parse` reads model names only from the web app's allow-list (an empty
   fallback turns the fallback off), `kill_cloud` with Remote Config's words for true, the
