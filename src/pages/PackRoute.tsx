@@ -18,7 +18,7 @@ import { FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase
 import type { AI } from "firebase/ai";
 import { LivePack } from "./LivePack";
 
-interface PackDeps { ai: AI; makeModels: (cloudModelItem: string) => ItemModels; source: ConfigSource; store: BoxStore; lm: unknown }
+interface PackDeps { ai: AI; makeModels: (cloudModelItem: string, cloudModelItemFallback: string) => ItemModels; source: ConfigSource; store: BoxStore; lm: unknown }
 
 let built: PackDeps | Error | null = null;
 
@@ -39,11 +39,12 @@ function buildDeps(): PackDeps | Error {
       newId,
       boxId: currentBoxId(localStorage, newId),
     });
-    // One set of models per model name, so a Remote Config change builds them once.
+    // One set of models per pair of model names, so a Remote Config change builds them once.
     const byName = new Map<string, ItemModels>();
-    const makeModels = (name: string) => {
-      let m = byName.get(name);
-      if (!m) { m = createItemModels(ai, name, lm); byName.set(name, m); }
+    const makeModels = (name: string, fallback: string) => {
+      const key = `${name}|${fallback}`;
+      let m = byName.get(key);
+      if (!m) { m = createItemModels(ai, name, lm, fallback); byName.set(key, m); }
       return m;
     };
     built = { ai, makeModels, source: remoteConfigSource(fb.app), store, lm };

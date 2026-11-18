@@ -69,6 +69,11 @@ jobs:
       - name: Model guard
         run: npm run guard
 
+      - name: Public hygiene (reports while private, fails once public)
+        env:
+          REPO_PRIVATE: ${{ github.event.repository.private }}
+        run: npm run hygiene
+
       - name: Secret scan (gitleaks, full history)
         env:
           GITLEAKS_VERSION: 8.30.1

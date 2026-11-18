@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { lineAndColumn, readFiles, type TextFile } from "./lib/files";
 
-// All inference goes through Firebase AI Logic. These names must not appear in shipped
+// All inference goes through Firebase AI Logic. These names and model hosts must not appear in shipped
 // code, tests or scripts, except where `allowIn` names the one file that owns the call.
 const RULES: ReadonlyArray<{ name: string; re: RegExp; allowIn?: readonly string[] }> = [
   { name: "Translator", re: /\bTranslator\b/g },
@@ -22,6 +22,13 @@ const RULES: ReadonlyArray<{ name: string; re: RegExp; allowIn?: readonly string
   { name: ".promptStreaming(", re: /\.promptStreaming\s*\(/g },
   { name: "countTokens", re: /\bcountTokens\b/g },
   { name: "availability(", re: /\bavailability\s*\(/g, allowIn: ["src/ai/gate.ts", "src/ai/gate.test.ts"] },
+  // Direct model hosts: a call to any of these would skip Firebase AI Logic and App Check.
+  { name: "api.openai.com", re: /api\.openai\.com/gi },
+  { name: "api.anthropic.com", re: /api\.anthropic\.com/gi },
+  { name: "generativelanguage.googleapis.com", re: /generativelanguage\.googleapis\.com/gi },
+  { name: "aiplatform.googleapis.com", re: /aiplatform\.googleapis\.com/gi },
+  { name: "a local Ollama port", re: /(?:localhost|127\.0\.0\.1|0\.0\.0\.0):11434/gi },
+  { name: "ollama", re: /\bollama\b/gi },
   {
     name: "getGenerativeModel",
     re: /\bgetGenerativeModel\b/g,
