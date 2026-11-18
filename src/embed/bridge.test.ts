@@ -129,6 +129,8 @@ describe("the JSON bridge for native clients", () => {
       ["override of an unknown field", { ...good, overrides: { colour: "red" } }],
       ["override with a bad value", { ...good, overrides: { category: "lotion_creem" } }],
       ["text volts in the read itself", { ...good, read: { ...good.read, volts: "3.7" } }],
+      ["a negative number in the read (the web parser refuses it)", { ...good, read: { ...good.read, wattHours: -150 } }],
+      ["a negative number override", { ...good, overrides: { milliampHours: -4000 } }],
     ];
     for (const [why, it] of bad) {
       const r = send([it]);

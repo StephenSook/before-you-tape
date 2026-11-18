@@ -76,12 +76,13 @@ function plain(v: unknown, where: string): Record<string, unknown> {
   return v as Record<string, unknown>;
 }
 
-// typedText: an override a person typed may hold a number field as text; the engine itself
-// decides how much to trust typed text (it never takes nonsense as a reading).
+// The same rules as the web app's read parser: a number is finite and 0 or more (a value that is
+// not printed is 0). typedText: an override a person typed may hold a number field as text; the
+// engine itself decides how much to trust typed text (it never takes nonsense as a reading).
 function checkField(f: ItemReadField, v: unknown, where: string, typedText = false): void {
   const ok =
     f.kind === "string" ? typeof v === "string"
-    : f.kind === "number" ? (typeof v === "number" && Number.isFinite(v)) || (typedText && typeof v === "string")
+    : f.kind === "number" ? (typeof v === "number" && Number.isFinite(v) && v >= 0) || (typedText && typeof v === "string")
     : f.kind === "boolean" ? typeof v === "boolean"
     : typeof v === "string" && (f.values ?? []).includes(v);
   if (!ok) throw new BadInputError(`${where}.${f.name} is not a valid ${f.kind}`);
