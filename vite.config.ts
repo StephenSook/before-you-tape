@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { versionInfo } from "./scripts/version-info";
@@ -14,6 +15,11 @@ function versionFile(): Plugin {
       const { sha, dirty } = versionInfo((args) =>
         execFileSync("git", [...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
       if (sha === "unknown") this.warn("no git history: dist/version.json records the commit as unknown");
+      this.emitFile({
+        type: "asset",
+        fileName: "edition.json",
+        source: readFileSync(new URL("./rules/edition.json", import.meta.url)),
+      });
       this.emitFile({
         type: "asset",
         fileName: "version.json",

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Before You Tape: check before you buy",
+  "version": "0.0.1",
+  "minimum_chrome_version": "138",
+  "permissions": ["sidePanel", "activeTab", "storage"],
+  "action": { "default_title": "Open Before You Tape" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "background": { "service_worker": "background.js", "type": "module" }
+}
