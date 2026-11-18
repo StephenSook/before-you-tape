@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-59c124f7eb8b",
+  "editionId": "byt-f9ffa49f49ae",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -516,6 +516,14 @@
         {
           "id": "packed_beside",
           "label": "In the box, next to the device"
+        },
+        {
+          "id": "none",
+          "label": "It has no battery"
+        },
+        {
+          "id": "not_lithium",
+          "label": "Not lithium (AA, AAA or alkaline)"
         }
       ]
     },

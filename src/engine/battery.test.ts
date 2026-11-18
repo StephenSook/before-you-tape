@@ -74,7 +74,12 @@ describe("deriveBattery", () => {
     expect(bat({ category: "laptop" }).presence).toBe("installed");
     expect(bat({ category: "laptop" }, { battery_installed: "packed_beside" }).presence).toBe("packed_beside");
     expect(bat({ category: "other_electronics" }).presence).toBe("unknown");
-    expect(bat({ category: "other_electronics", batteryWords: true }).presence).toBe("installed");
+    expect(bat({ category: "other_electronics", batteryWords: true }).presence).toBe("unknown");
+    expect(bat({ category: "other_electronics", batteryWords: true, milliampHours: 2000 }).presence).toBe("installed");
+    expect(bat({ category: "other_electronics", volts: 125 }).presence).toBe("unknown");
+    expect(bat({ category: "other_electronics" }, { battery_installed: "none" }).presence).toBe("none");
+    expect(bat({ category: "battery_toy", batteryWords: true }, { battery_installed: "not_lithium" }).presence).toBe("none");
+    expect(bat({ category: "phone" }, { battery_installed: "none" }).presence).toBe("installed");
     expect(bat({ category: "toy", batteryWords: true }).presence).toBe("unknown");
   });
 

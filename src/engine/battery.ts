@@ -31,16 +31,23 @@ export function crossCheckWh(
   return diffPct > tolerancePct ? "printed_mismatch" : "printed_matches";
 }
 
-function presenceOf(read: ItemRead, answers: ItemAnswers, hasEvidence: boolean, tags: string[]): BatteryFacts["presence"] {
+function presenceOf(
+  read: ItemRead, answers: ItemAnswers, hasEvidence: boolean, lithiumEvidence: boolean, tags: string[],
+): BatteryFacts["presence"] {
   // A power bank or a loose battery is never installed in a device, whatever an answer saved
   // under an earlier reading says, so the category comes first. A label that says power bank or
   // battery pack also means loose, except on a device that holds its own pack (a laptop sticker).
   if (LOOSE_CATEGORIES.has(read.category)) return "loose";
   if (tags.includes("power_bank_label") && !BATTERY_DEVICES.has(read.category)) return "loose";
   const answer = answers.battery_installed;
-  if (answer === "installed" || answer === "loose" || answer === "packed_beside") return answer;
+  if (answer === "loose" || answer === "packed_beside") return answer;
+  // A phone, tablet, laptop, smartwatch or earbuds always hold a lithium battery: a saved
+  // "no battery" or "not lithium" answer from an earlier reading cannot clear one.
   if (BATTERY_DEVICES.has(read.category)) return "installed";
-  if (MAYBE_BATTERY_DEVICES.has(read.category)) return hasEvidence ? "installed" : "unknown";
+  if (answer === "installed") return "installed";
+  if (answer === "none" || answer === "not_lithium") return "none";
+  // Volts alone (a mains appliance) or the word battery alone (AA, AAA) is not lithium evidence: ask.
+  if (MAYBE_BATTERY_DEVICES.has(read.category)) return lithiumEvidence ? "installed" : "unknown";
   return hasEvidence ? "unknown" : "none";
 }
 
@@ -65,6 +72,7 @@ export function deriveBattery(
   // A battery number that is not a real number (text, NaN, negative) is a misread, never a pass.
   const badNumber = [read.volts, read.milliampHours, read.wattHours, read.lithiumGrams].some((n) => !isNumber(n));
   const hasEvidence = read.batteryWords || anyNumber || labelEvidence || badNumber;
+  const lithiumEvidence = milliampHours !== null || whPrinted !== null || liMetal || liIon || tags.includes("power_bank_label");
 
   let whStatus: BatteryFacts["whStatus"];
   if (badNumber || !inRange(volts, RANGE.volts) || !inRange(milliampHours, RANGE.milliampHours) || !inRange(whPrinted, RANGE.wattHours)) {
@@ -91,7 +99,7 @@ export function deriveBattery(
     }
   }
 
-  const presence = presenceOf(read, answers, hasEvidence, tags);
+  const presence = presenceOf(read, answers, hasEvidence, lithiumEvidence, tags);
   let chemistry: BatteryFacts["chemistry"] = "unknown";
   if (liMetal) chemistry = "li_metal";
   else if (liIon || anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";

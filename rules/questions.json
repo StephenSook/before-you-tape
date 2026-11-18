@@ -5,7 +5,9 @@
     "answers": [
       { "id": "installed", "label": "Inside the device" },
       { "id": "loose", "label": "On its own, not in a device" },
-      { "id": "packed_beside", "label": "In the box, next to the device" }
+      { "id": "packed_beside", "label": "In the box, next to the device" },
+      { "id": "none", "label": "It has no battery" },
+      { "id": "not_lithium", "label": "Not lithium (AA, AAA or alkaline)" }
     ]
   },
   {

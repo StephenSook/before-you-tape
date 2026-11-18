@@ -1,5 +1,43 @@
 [
   {
+    "name": "usb_cable_with_no_battery_passes", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "cable", "read": { "category": "other_electronics", "labelText": "USB-C CABLE 2M" }, "answers": { "battery_installed": "none" } }],
+    "expect": { "cable": "ok" }
+  },
+  {
+    "name": "aaa_toys_are_not_counted_as_lithium", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "toys", "quantity": 5, "read": { "category": "battery_toy", "labelText": "REQUIRES 3 AAA BATTERIES NOT INCLUDED", "batteryWords": true } }],
+    "expect": { "toys": "check" }, "expectQuestion": { "toys": "battery_installed" }, "notRules": { "toys": ["USPS-INTL-LI-BOX-COUNT"] }
+  },
+  {
+    "name": "aaa_toys_answered_not_lithium_pass", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "toys", "quantity": 5, "read": { "category": "battery_toy", "labelText": "REQUIRES 3 AAA BATTERIES NOT INCLUDED", "batteryWords": true },
+      "answers": { "battery_installed": "not_lithium" } }],
+    "expect": { "toys": "ok" }
+  },
+  {
+    "name": "an_aa_toy_does_not_change_four_phones", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
+    "items": [
+      { "itemId": "toy", "read": { "category": "battery_toy", "labelText": "1.5V AA TOY", "volts": 1.5, "batteryWords": true } },
+      { "itemId": "p1", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p2", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p3", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p4", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } }
+    ],
+    "expect": { "p1": "ok", "p2": "ok", "p3": "ok", "p4": "ok", "toy": "check" }
+  },
+  {
+    "name": "mains_hair_dryer_asks_instead_of_a_battery_mismatch", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "dryer", "read": { "category": "other_electronics", "labelText": "HAIR DRYER 125V 1875W", "volts": 125 } }],
+    "expect": { "dryer": "check" }, "expectQuestion": { "dryer": "battery_installed" }, "notRules": { "dryer": ["USPS-INTL-LI-WH-MISMATCH"] }
+  },
+  {
+    "name": "a_saved_no_battery_answer_never_clears_a_phone", "source": "Fable I6 control (same class as Codex H2)", "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "phone", "read": { "category": "phone", "labelText": "PHONE", "batteryWords": true },
+      "answers": { "battery_installed": "none", "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-NO-WH"] }
+  },
+  {
     "name": "disposable_vape_read_as_electronics_is_taken_out", "source": "Fable I12", "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "vape", "read": { "category": "other_electronics", "labelText": "DISPOSABLE VAPE 5% NICOTINE 13Wh", "wattHours": 13,
       "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
