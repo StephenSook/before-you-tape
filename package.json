@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "tone": "tsx scripts/tone-check.ts",
-    "guard": "tsx scripts/model-guard.ts"
+    "guard": "tsx scripts/model-guard.ts",
+    "appcheck:control": "tsx --env-file-if-exists=.env.local scripts/appcheck-control.ts"
   },
   "dependencies": {
     "firebase": "13.4.0",
