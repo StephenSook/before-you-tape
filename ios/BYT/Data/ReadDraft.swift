@@ -86,8 +86,9 @@ struct ReadDraft: Equatable, Sendable {
         return patch
     }
 
-    /// The fields that say what the item is.
-    static let identityFields: Set<String> = ["category", "itemName", "labelText"]
+    /// The fields that say what the item is. A new name alone does not: renaming an unsure "Shirt"
+    /// to "My shirt" adds no evidence about what it is.
+    static let identityFields: Set<String> = ["category", "labelText"]
 
     /// A fix as saved: the changed fields, and when the sender changed what the item is, their word
     /// as the evidence (the label they typed, or what they say it is), so an unsure read is resolved.

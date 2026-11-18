@@ -94,6 +94,28 @@ import Testing
         #expect(BoxView.rows(items: s.items, result: s.result).first?.verdict != nil)
     }
 
+    /// A new name alone is not a statement about what the item is: "Check this" stays until the
+    /// sender changes the category or types the label words.
+    @Test func aRenameAloneKeepsTheUncertainty() throws {
+        let s = try BoxStoreTests().store()
+        let unsure = BoxStoreTests.read(["itemName": .string("Shirt"), "category": .string("clothing"), "evidence": .string("not_sure")])
+        let id = s.addRead(ReadOutcome(read: unsure, source: .onDevice, route: .hybrid, failure: nil, records: []), cropFile: nil)!
+        #expect(s.result?.items[id]?.level == "check")
+        let item = try #require(s.items.first)
+        var d = ReadDraft.of(FixReadingView.current(item))
+        d.itemName = "My shirt"
+        let patch = d.fixPatch(from: FixReadingView.current(item))
+        #expect(patch["evidence"] == nil && patch["itemName"] == .string("My shirt"))
+        s.applyFix(id, patch: patch)
+        #expect(s.items.first?.identityConfirmedBy == nil)
+        #expect(s.result?.items[id]?.level == "check" && s.result?.items[id]?.hits.contains { $0.ruleId == "DATA-UNSURE" } == true)
+        // Typing the label words does say what it is.
+        var l = ReadDraft.of(FixReadingView.current(s.items.first!))
+        l.labelText = "100% COTTON T-SHIRT"
+        s.applyFix(id, patch: l.fixPatch(from: FixReadingView.current(s.items.first!)))
+        #expect(s.result?.items[id]?.hits.contains { $0.ruleId == "DATA-UNSURE" } == false)
+    }
+
     /// A fix that says what the item is clears "We're not sure what this is": the sender's word is the evidence.
     @Test func aFixThatSaysWhatItIsClearsTheUncertainty() throws {
         let s = try BoxStoreTests().store()

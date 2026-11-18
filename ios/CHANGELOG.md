@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a new name alone no longer clears "We're not sure what this is"
+- What: "Fix this reading" counted a changed item name as a statement about what the item is, so
+  renaming an unsure "Shirt" to "My shirt" set the sender's evidence, confirmed the item and
+  turned "Check this" into "OK to pack" with nothing new known. Only a changed category or typed
+  label words count now; a rename is saved as a rename.
+- Source: review.
+- Verified: a test renames an unsure shirt (no evidence, not confirmed, still "Check this"), then
+  types its label words (uncertainty cleared); it failed on the old code (3 issues), then passed;
+  113 app unit tests pass; the CI mirror exit 0, with the secret scan limited to this branch's
+  history (another branch's test vectors trip the full scan; that is being fixed on that branch).
+
 ### fix(ios): never give OK from label tags another rule edition found
 - What: the saved copy of an item keeps the tags an edition found in its label, not the label
   text. After a newer edition with other label words, a restored item was judged on the old tags
