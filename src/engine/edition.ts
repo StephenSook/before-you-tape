@@ -259,14 +259,17 @@ export function parseEdition(json: unknown): RuleEdition {
     oneOf(r.outcome, ["take_out", "check", "note"] as const, `${w}.outcome`);
     if (r.askId !== undefined && !questions.has(str(r.askId, `${w}.askId`))) fail(`${w}.askId`, "not a known question");
   });
+  // A rule blocks "OK to pack" only as an item rule with a check or take-out outcome; a note or a
+  // box-scoped copy would load and then never stop anything.
+  const blocks = (r: Obj) => r.scope === "item" && (r.outcome === "check" || r.outcome === "take_out");
   // An edition with no export rules would report the export layer as checked while checking nothing.
-  if (!(e.rules as Obj[]).some((r) => r.layer === "usps_export" && r.scope === "item")) {
-    fail("rules", "the edition has no USPS export item rules");
+  if (!(e.rules as Obj[]).some((r) => r.layer === "usps_export" && blocks(r))) {
+    fail("rules", "the edition has no USPS export item rule that can block a verdict");
   }
   // "Every required question is answered" is an OK precondition, so its question rules cannot be dropped.
   for (const askId of REQUIRED_QUESTIONS) {
-    if (!(e.rules as Obj[]).some((r) => r.id === "DATA-NEEDS-ANSWER" && r.askId === askId)) {
-      fail("rules", `the edition must ask ${askId} through DATA-NEEDS-ANSWER`);
+    if (!(e.rules as Obj[]).some((r) => r.id === "DATA-NEEDS-ANSWER" && r.askId === askId && blocks(r))) {
+      fail("rules", `the edition must ask ${askId} through a DATA-NEEDS-ANSWER item rule that can block a verdict`);
     }
   }
 

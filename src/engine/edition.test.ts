@@ -89,6 +89,16 @@ describe("rule edition", () => {
     }
   });
 
+  it("requires the question rules and at least one export rule to be able to block a verdict", () => {
+    const rescope = (askId: string, patch: Record<string, unknown>) => bundled.rules.map((r) =>
+      r.id === "DATA-NEEDS-ANSWER" && (r as { askId?: string }).askId === askId ? { ...r, ...patch } : r);
+    expect(() => parseEdition({ ...bundled, rules: rescope("device_condition", { scope: "note" }) })).toThrow(/device_condition/);
+    expect(() => parseEdition({ ...bundled, rules: rescope("device_condition", { outcome: "note" }) })).toThrow(/device_condition/);
+    const onlyNoteExport = bundled.rules.filter((r) => r.layer !== "usps_export")
+      .concat([{ ...validRule, outcome: "note" }]);
+    expect(() => parseEdition({ ...bundled, rules: onlyNoteExport })).toThrow(/export/);
+  });
+
   it("rejects a bad predicate, a non-https url and a tolerance at the misread", () => {
     expect(() => parseEdition(withRule({ when: { fact: "category", op: "like", value: "x" } }))).toThrow(EditionError);
     expect(() => parseEdition(withRule({ url: "http://pe.usps.com/x" }))).toThrow(EditionError);
