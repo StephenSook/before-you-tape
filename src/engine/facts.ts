@@ -42,23 +42,26 @@ export function normalizeLabel(text: string): string {
 }
 
 // A word is negated by "no", "non", "not", "without", "zero", "free of", "free from" or "0%" just
-// before it on the same line, or by "free" just after it ("alcohol-free", "mercury free"). "Free from"
-// and "free of" after a word negate what follows them, not the word before.
+// before it on the same line, or by "free" just after it ("alcohol-free", "mercury free"), even when
+// that "free" wraps onto the next line ("ALCOHOL-" then "FREE"). "Free from" and "free of" after a
+// word negate what follows them, not the word before.
 const NEGATED_BEFORE = / ?(?:\b(?:no|non|not|without|zero|free of|free from) ?-? ?|\b0(?:\.0+)? ?% ?)$/i;
 const NEGATED_AFTER = /^ ?-? ?free\b(?! (?:from|of)\b)/i;
 
 export function labelTagsOf(labelText: string, edition: RuleEdition): string[] {
   const text = normalizeLabel(labelText);
   if (text === "") return [];
-  // Matching treats a line break as a space, so a phrase split over two lines still matches; the
-  // negation check reads the text with its line breaks (same length, so the positions agree).
+  // Matching treats a line break as a space, so a phrase split over two lines still matches. The
+  // check for a negating word before reads the text with its line breaks, so a "no" ending one line
+  // never reaches a word on the next; the check for "-free" after reads breaks as spaces, so a
+  // wrapped "ALCOHOL-" / "FREE" still negates. Both texts have the same length, so positions agree.
   const matchText = text.replace(/\n/g, " ");
   const tags = new Set<string>([LABEL_TEXT_TAG]);
   for (const w of edition.labelWords) {
     if (tags.has(w.tag)) continue;
     for (const m of matchText.matchAll(wholeWord(w.pattern))) {
       const before = text.slice(Math.max(0, m.index - 12), m.index);
-      const after = text.slice(m.index + m[0].length, m.index + m[0].length + 12);
+      const after = matchText.slice(m.index + m[0].length, m.index + m[0].length + 12);
       if (!NEGATED_BEFORE.test(before) && !NEGATED_AFTER.test(after)) {
         tags.add(w.tag);
         break;

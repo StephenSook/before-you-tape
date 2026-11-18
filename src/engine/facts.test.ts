@@ -59,6 +59,13 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("POLYVINYL ALCOHOL", ed)).not.toContain("alcohol");
   });
 
+  it("reads a -free word split over a line break as one word", () => {
+    expect(labelTagsOf("ALCOHOL\nFREE LOTION 8 FL OZ", ed)).not.toContain("alcohol");
+    expect(labelTagsOf("ALCOHOL-\nFREE LOTION 8 FL OZ", ed)).not.toContain("alcohol");
+    expect(labelTagsOf("BODY LOTION\nALCOHOL 8 FL OZ", ed)).toContain("alcohol");
+    expect(labelTagsOf("MARGARINE\nFREE FROM PALM OIL", ed)).toContain("margarine");
+  });
+
   it("reads plurals of the cream and gel words", () => {
     expect(labelTagsOf("ENERGY GELS", ed)).toContain("easily_liquefiable");
     expect(labelTagsOf("HAND CREAMS GIFT SET", ed)).toContain("easily_liquefiable");
