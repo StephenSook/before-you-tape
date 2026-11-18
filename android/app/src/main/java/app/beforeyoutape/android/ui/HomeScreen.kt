@@ -53,6 +53,7 @@ interface HomeActions {
     fun fixed(itemId: String, draft: ReadDraft)
     fun answer(itemId: String, questionId: String, answerId: String)
     fun remove(itemId: String)
+    fun quantity(itemId: String, n: Double)
 }
 
 /**
@@ -75,7 +76,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                 ui.view == HomeView.FIX && ui.fixItemId != null ->
                     ReadForm(ui.fixRead, ReadCopy.NAME, ReadCopy.SAVE, { actions.fixed(ui.fixItemId, it) })
                 ui.view == HomeView.BOX -> PackScreen(
-                    ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove,
+                    ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove, onQuantity = actions::quantity,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
                 chosen == null -> Text(Copy.CHOOSE_DESTINATION_FIRST, style = MaterialTheme.typography.bodyLarge)

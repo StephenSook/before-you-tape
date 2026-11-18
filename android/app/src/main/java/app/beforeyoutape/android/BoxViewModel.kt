@@ -171,6 +171,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish()
     }
 
+    override fun quantity(itemId: String, n: Double) = onWorker {
+        box.setQuantity(itemId, n)
+        publish()
+    }
+
     override fun remove(itemId: String) = onWorker {
         box.remove(itemId)
         publish()

@@ -13,8 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ fun ItemCard(
     onAnswer: (itemId: String, questionId: String, answerId: String) -> Unit,
     onFix: ((itemId: String) -> Unit)? = null,
     onRemove: ((itemId: String) -> Unit)? = null,
+    onQuantity: ((itemId: String, n: Double) -> Unit)? = null,
 ) {
     val input = item.input
     val name = input.overrides["itemName"]?.jsonPrimitive?.content ?: input.read.itemName
@@ -43,6 +46,17 @@ fun ItemCard(
             Text(verdict.headline, style = MaterialTheme.typography.titleLarge)
             verdict.hits.firstOrNull()?.let { Text(it.text, style = MaterialTheme.typography.bodyLarge) }
             Text(Copy.source(item.readSource), style = MaterialTheme.typography.bodyMedium)
+            onQuantity?.let { set ->
+                // 1 to 99, as the box keeps it.
+                val n = input.quantity.toInt()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { set(input.itemId, n - 1.0) }, enabled = n > 1,
+                        modifier = Modifier.semantics { contentDescription = Copy.ONE_FEWER }) { Text("-") }
+                    Text(Copy.howMany(n), style = MaterialTheme.typography.bodyLarge)
+                    TextButton(onClick = { set(input.itemId, n + 1.0) }, enabled = n < 99,
+                        modifier = Modifier.semantics { contentDescription = Copy.ONE_MORE }) { Text("+") }
+                }
+            }
             if (onFix != null || onRemove != null) {
                 Row {
                     onFix?.let { TextButton(onClick = { it(input.itemId) }) { Text(Copy.FIX_READING) } }

@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A quantity stepper on each item.** Each card in the box shows "How many: n" with "One fewer"
+  and "One more" buttons. One fewer is off at 1 and one more is off at 99, matching the box's
+  1 to 99 rule, and the box re-checks after each step. The web app keeps the same field
+  (`setQuantity` in its store) but has no control for it yet; the phone shows the number, so
+  a person sending three phones can say so. Source: review (wired-or-cut for `setQuantity`).
+  Verified: `HomeScreenTest.theQuantityStepsUpAndCannotGoBelowOne`, which failed to compile
+  first, passes on the emulator with the other UI tests (18 of 18); `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
+
 - **The app runs end to end: destination, consent, camera or typing, rules, box.**
   - `BoxViewModel` holds the box and runs every box change on one worker thread. It loads the
     bundled rules (hash-checked) and their destinations, and keeps consent and destination in

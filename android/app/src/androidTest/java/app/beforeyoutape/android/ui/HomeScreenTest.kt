@@ -4,7 +4,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -56,6 +58,7 @@ class HomeScreenTest {
         override fun fixed(itemId: String, draft: ReadDraft) { calls += "fixed:$itemId" }
         override fun answer(itemId: String, questionId: String, answerId: String) { calls += "answer" }
         override fun remove(itemId: String) { calls += "remove:$itemId" }
+        override fun quantity(itemId: String, n: Double) { calls += "quantity:$itemId:$n" }
     }
 
     private fun show(ui: HomeUi, a: Recorded = Recorded()): Recorded {
@@ -110,6 +113,14 @@ class HomeScreenTest {
         rule.onNodeWithText(Copy.REMOVE).performScrollTo().performClick()
         rule.onNodeWithText(Copy.ADD_ANOTHER).performScrollTo().performClick()
         assertEquals(listOf("fix:a", "remove:a", "show:CAMERA"), a.calls)
+    }
+
+    @Test fun theQuantityStepsUpAndCannotGoBelowOne() {
+        val a = show(base.copy(view = HomeView.BOX, box = BoxLogic.empty("CA").copy(items = listOf(item), result = result)))
+        rule.onNodeWithContentDescription(Copy.ONE_FEWER).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(Copy.howMany(1)).assertExists()
+        rule.onNodeWithContentDescription(Copy.ONE_MORE).performScrollTo().performClick()
+        assertEquals(listOf("quantity:a:2.0"), a.calls)
     }
 
     @Test fun aFixStartsFromTheCurrentReading() {

@@ -27,10 +27,14 @@ object Copy {
     const val CHOOSE_DESTINATION_FIRST = "Choose where the box is going first."
     const val ADD_ANOTHER = "Add another item"
     const val REMOVE = "Remove"
+    const val ONE_MORE = "One more"
+    const val ONE_FEWER = "One fewer"
 
     fun sendingTo(name: String) = "Sending to $name"
 
     fun seeTheBox(count: Int) = "See the box ($count)"
+
+    fun howMany(n: Int) = "How many: $n"
 
     /** Where an item's read ran. Web values are the laptop's own reads, seen from this phone. */
     fun source(readSource: String): String = when (readSource) {
@@ -58,7 +62,7 @@ object Copy {
     }
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE,
+        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, howMany(3),
         sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
 }
