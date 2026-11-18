@@ -94,6 +94,14 @@ describe("readItem", () => {
     expect(await readItem(models({ cloud: ok("in_cloud"), fallback: never() }), img, "cloud_only", clock(0, 9))).not.toHaveProperty("fallbackAfter");
   });
 
+  it("never reaches the fallback on device_only or blocked, as when kill_cloud is on", async () => {
+    const m = models({ device: fails("NotReadableError"), fallback: never() });
+    await expect(readItem(m, img, "device_only", clock(0, 1))).rejects.toMatchObject({ kind: "device_failed" });
+    await expect(readItem(m, img, "blocked", clock(0, 1))).rejects.toMatchObject({ kind: "blocked" });
+    expect(m.fallback.generate).not.toHaveBeenCalled();
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
   it("does not use the fallback for other failures, and does not retry the fallback", async () => {
     for (const msg of ["fetch-error 429 Too Many Requests", "Failed to fetch", "fetch-error 403", "fetch-error 502"]) {
       const m = models({ cloud: fails(msg), fallback: never() });

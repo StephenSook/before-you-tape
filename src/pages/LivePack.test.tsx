@@ -26,9 +26,9 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 
 let n = 0;
 function setup(start: Partial<AppConfig> = {}) {
-  const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud", ReturnType<typeof port>>> = {};
+  const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
-  const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: port(), cloud: port() }));
+  const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: port(), cloud: port(), fallback: port() }));
   const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
   store.setConsent(true);
   const cfg = fakeSource(start);
@@ -51,13 +51,14 @@ describe("LivePack", () => {
     expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
-  it("makes zero model calls on reads once kill_cloud turns on, without a reload", async () => {
+  it("makes zero model calls on reads once kill_cloud turns on, the fallback included, without a reload", async () => {
     const { models, push } = setup();
     act(() => push({ killCloud: true }));
     expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused.");
     await userEvent.upload(screen.getByTestId("upload-input"), photo);
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-    const all = Object.values(models).flatMap((m) => [m.cloud.generate, m.hybrid.generate, m.device.generate]);
+    const all = Object.values(models).flatMap((m) => [m.cloud.generate, m.hybrid.generate, m.device.generate, m.fallback.generate]);
+    expect(all).toHaveLength(4);
     for (const g of all) expect(g).not.toHaveBeenCalled();
   });
 
