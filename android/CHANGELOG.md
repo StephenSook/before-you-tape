@@ -3,6 +3,21 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Label read type generated for Firebase AI Logic.** `LabelRead` is a `@Generable` data
+  class with the web app's 16 item-read fields in the same order, no `@Guide` text and no
+  defaults; `toWire()` gives the engine's `ItemReadWire`. On-device and hybrid modes need such
+  a class for structured output (a manual schema works only for cloud-only reads). Adds KSP
+  2.3.14, `firebase-ai-ksp-processor` 17.0.0, the Firebase BoM 35.2.0, `firebase-ai` 18.2.0
+  and `firebase-ai-ondevice` 16.0.0-beta08. Finding: for enums from the `:engine` module the
+  processor listed `Companion` as a 38th category (a `@Serializable` enum carries a Companion
+  object), so a model could have answered "Companion"; the engine's enums are no longer marked
+  `@Serializable` (kotlinx serializes enums by name without it) and the generated schema now
+  holds exactly the wire values. Source: Android plan Task 6. Verified:
+  `LabelReadWireTest.everyPropertyMapsToTheWireFieldOfTheSameName` and
+  `theEnumsAreTheWireEnums` failed first (no class, then the Companion value), then pass; the
+  engine's 13 tests still pass; `bash android/ci-local.sh` (23 tests) and the root CI mirror
+  exit 0.
+
 - **Remote Config values with safe defaults.** `RcValues.parse` reads the in-app defaults
   (`res/xml/remote_config_defaults.xml`) with any fetched values on top: `cloud_model_item`,
   `kill_cloud`, `use_limited_use_tokens`, `minimum_version_android` (a version string, as in

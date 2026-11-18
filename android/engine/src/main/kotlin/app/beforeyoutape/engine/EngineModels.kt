@@ -5,11 +5,13 @@ import kotlinx.serialization.json.JsonObject
 
 // Kotlin mirrors of the engine's JSON, decoded with unknown keys ignored. Enum constants are
 // named exactly as the wire strings: the Firebase AI KSP processor writes constant names into a
-// schema and ignores @SerialName, so the names themselves must be the wire values.
+// schema and ignores @SerialName, so the names themselves must be the wire values. The enums are
+// not marked @Serializable (kotlinx serializes enums by name without it): the annotation adds a
+// Companion object, which the processor lists as one more enum value when the enum comes from
+// another module.
 
 /** The item categories, in the order of src/shared/itemRead.ts. */
 @Suppress("EnumEntryName")
-@Serializable
 enum class ItemCategoryWire {
     perfume_fragrance, nail_polish, aerosol_spray, hand_sanitizer, lotion_cream,
     liquid_toiletry, makeup, powder, medicine, alcohol_drink,
@@ -22,15 +24,12 @@ enum class ItemCategoryWire {
 }
 
 @Suppress("EnumEntryName")
-@Serializable
 enum class RetailBoxWire { sealed, open_or_none, cannot_tell }
 
 @Suppress("EnumEntryName")
-@Serializable
 enum class EvidenceWire { label_read, item_seen, not_sure }
 
 @Suppress("EnumEntryName")
-@Serializable
 enum class VerdictLevel { ok, check, take_out }
 
 /** What a model reads off an item: the 16 fields of the TypeScript ItemRead, in its order. */

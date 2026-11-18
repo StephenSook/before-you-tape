@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // @Generable types: the Firebase AI KSP processor writes their schemas at compile time.
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // google-services.json is never committed. Builds that have it (this Mac, the release
@@ -46,11 +49,16 @@ kotlin {
 
 dependencies {
     implementation(project(":engine"))
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.ai)
+    implementation(libs.firebase.ai.ondevice)
+    ksp(libs.firebase.ai.ksp.processor)
+    implementation(libs.serialization.json)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
 
     testImplementation(libs.junit)
-    testImplementation(libs.serialization.json)
+    testImplementation(libs.coroutines.test)
 }
