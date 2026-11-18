@@ -200,7 +200,28 @@
     "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
     "basis": "inference",
     "ourWording": "Lithium batteries must be inside the device they power. Spare batteries, batteries packed beside a device and power banks can't go.",
-    "when": { "fact": "battery.presence", "op": "in", "value": ["loose", "packed_beside"] },
+    "when": {
+      "all": [
+        { "fact": "battery.presence", "op": "in", "value": ["loose", "packed_beside"] },
+        { "not": { "fact": "battery.chemistry", "op": "eq", "value": "not_lithium" } }
+      ]
+    },
+    "outcome": "take_out"
+  },
+  {
+    "id": "USPS-INTL-LOOSE-NON-LITHIUM",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "Pub 52 348 and IMM 135.6 (international mail not confirmed)",
+    "url": "https://pe.usps.com/text/pub52/pub52c3_027.htm",
+    "basis": "estimate",
+    "ourWording": "We could not confirm that loose AA, AAA or other non-lithium batteries can go by international mail, so take them out of the box.",
+    "when": {
+      "all": [
+        { "fact": "battery.presence", "op": "in", "value": ["loose", "packed_beside"] },
+        { "fact": "battery.chemistry", "op": "eq", "value": "not_lithium" }
+      ]
+    },
     "outcome": "take_out"
   },
   {

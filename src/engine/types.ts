@@ -5,7 +5,7 @@ export type { ItemCategory, ItemRead };
 
 export interface BatteryFacts {
   presence: "none" | "installed" | "loose" | "packed_beside" | "unknown";
-  chemistry: "li_ion" | "li_metal" | "unknown";
+  chemistry: "li_ion" | "li_metal" | "not_lithium" | "unknown"; // not_lithium only from the sender's answer
   volts: number | null;
   milliampHours: number | null;
   whPrinted: number | null;

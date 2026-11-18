@@ -102,7 +102,11 @@ export function deriveBattery(
   const presence = presenceOf(read, answers, hasEvidence, lithiumEvidence, tags);
   let chemistry: BatteryFacts["chemistry"] = "unknown";
   if (liMetal) chemistry = "li_metal";
-  else if (liIon || anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
+  else if (liIon) chemistry = "li_ion";
+  // The sender's "not lithium" answer counts only when no lithium evidence says otherwise, and never for
+  // a device that always holds a lithium battery.
+  else if (answers.battery_installed === "not_lithium" && !BATTERY_DEVICES.has(read.category)) chemistry = "not_lithium";
+  else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
 
   return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
 }
