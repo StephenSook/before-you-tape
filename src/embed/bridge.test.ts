@@ -5,6 +5,7 @@ import box from "../../tests/vectors/box.json";
 import guards from "../../tests/vectors/box-guards.json";
 import defaults from "../../tests/vectors/defaults.json";
 import destinations from "../../tests/vectors/destinations.json";
+import joinLinks from "../../tests/vectors/join-links.json";
 import { canonicalJson, parseEdition } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import type { RuleHit } from "../engine/types";
@@ -188,5 +189,9 @@ describe("the JSON bridge for native clients", () => {
       expect(r.ok, why).toBe(false);
       if (!r.ok) expect(r.error.name, why).toBe("BadInputError");
     }
+  });
+
+  it("reads a join link the way the web app does, for every shared join vector", () => {
+    for (const v of joinLinks) expect(JSON.parse(BYT.parseJoinLinkJson(v.link)), v.name).toEqual({ ok: true, value: v.expect });
   });
 });

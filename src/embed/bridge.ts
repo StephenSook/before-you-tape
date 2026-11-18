@@ -8,6 +8,7 @@ import { labelTagsOf } from "../engine/facts";
 import type { BoxItemInput, DestinationEdition, ItemAnswers, ItemFacts, RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
 import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
+import { parseJoinLink } from "../shared/joinLink";
 
 // QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
 // (objects, arrays, strings, numbers, booleans, null), so a recursive copy gives what the native
@@ -189,6 +190,11 @@ export function destinationHitsJson(inputJson: string): string {
     }
     return evaluateDestination(facts as unknown as ItemFacts, answers as ItemAnswers, resolveDestination(e, str(input, "code")));
   });
+}
+
+/** A join link read from a laptop's QR code. Value: { boxId, key }, or null when it is not one of ours. */
+export function parseJoinLinkJson(link: string): string {
+  return reply(() => parseJoinLink(String(link)));
 }
 
 /** The engine's tags for one label text. */
