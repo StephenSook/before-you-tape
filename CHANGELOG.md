@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Self-hosted fonts, plan Task 53 part (b). Four SIL Open Font License families are served from this site, Latin only, about 166 KB in total: Bricolage Grotesque (display, variable 200 to 800), Figtree (body, variable 300 to 900), DM Mono (400 and 500) and Caveat (variable 400 to 700). `public/fonts/manifest.json` lists each file with family, weight, license, source and SHA-256. `public/fonts/licenses/OFL-*.txt` hold the licenses. `src/styles/tokens.css` declares the font faces and sets `--font-display`, `--font-body`, `--font-mono` and `--font-hand`, with system fonts while they load. `NOTICE` names the four families and their copyright holders. The files came from the fontsource packages (Socket scores: supply chain 93 to 100, no vulnerabilities), unpacked with npm pack; no dependency was added. Source: P1 item 8. Verified by `src/styles/fonts.test.ts`: four OFL families with their files and licenses, no font from another host, and the font faces declaring exactly the listed files. It failed before the fonts existed; local CI mirror exit 0.
 - `public/llms.txt` lists /ran now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/RanPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /ran page, "What ran where". A table gives, for each thing a sender can do, where it runs and what leaves the device:
 - typing an item (no model);
