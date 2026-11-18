@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-76500377fc7f",
+  "editionId": "byt-30243a199396",
   "service": "Priority Mail International",
   "sources": [
     {
@@ -161,7 +161,7 @@
   },
   "labelWords": [
     {
-      "pattern": "alcohol(?![- ]?free)",
+      "pattern": "(?<!(?:cetyl|cetearyl|stearyl|benzyl|behenyl|myristyl|lanolin|oleyl|lauryl|isostearyl|arachidyl|phenethyl) )alcohol(?![- ]?free)",
       "tag": "alcohol"
     },
     {

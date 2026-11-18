@@ -1,5 +1,5 @@
 [
-  { "pattern": "alcohol(?![- ]?free)", "tag": "alcohol" },
+  { "pattern": "(?<!(?:cetyl|cetearyl|stearyl|benzyl|behenyl|myristyl|lanolin|oleyl|lauryl|isostearyl|arachidyl|phenethyl) )alcohol(?![- ]?free)", "tag": "alcohol" },
   { "pattern": "ethanol", "tag": "alcohol" },
   { "pattern": "isopropyl", "tag": "alcohol" },
   { "pattern": "contents under pressure", "tag": "pressurized" },

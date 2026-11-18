@@ -29,6 +29,15 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("EXTREMELY FLAMMABLE", ed)).toContain("flammable");
   });
 
+  it("does not read fatty alcohols in a lotion as alcohol", () => {
+    for (const label of ["WATER, CETEARYL ALCOHOL, GLYCERIN", "Cetyl Alcohol", "stearyl alcohol", "Benzyl Alcohol",
+      "BEHENYL ALCOHOL", "Myristyl Alcohol", "Lanolin Alcohol", "Oleyl Alcohol", "Lauryl Alcohol", "Isostearyl Alcohol"]) {
+      expect(labelTagsOf(label, ed), label).not.toContain("alcohol");
+    }
+    expect(labelTagsOf("ALCOHOL DENAT., CETEARYL ALCOHOL", ed)).toContain("alcohol");
+    expect(labelTagsOf("SD Alcohol 40-B", ed)).toContain("alcohol");
+  });
+
   it("marks that label text was read, and returns nothing for no text", () => {
     expect(labelTagsOf("LOTION 8 FL OZ", ed)).toContain("label_text");
     expect(labelTagsOf("", ed)).toEqual([]);
