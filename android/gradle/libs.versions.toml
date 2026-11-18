@@ -6,6 +6,9 @@ crashlyticsPlugin = "3.0.8"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 junit = "4.13.2"
+serializationJson = "1.8.1"
+# Tests run the rules bundle in QuickJS on the JVM through Zipline (its JVM artifact carries macOS arm64 and Linux x64 hosts).
+zipline = "1.28.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -13,10 +16,13 @@ compose-ui = { module = "androidx.compose.ui:ui" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 junit = { module = "junit:junit", version.ref = "junit" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
+zipline = { module = "app.cash.zipline:zipline", version.ref = "zipline" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "crashlyticsPlugin" }

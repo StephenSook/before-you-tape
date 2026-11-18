@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The rules bundle is built with the app.** Gradle task `:engine:buildEmbed` runs the web
+  repo's `scripts/build-embed.sh` into `android/build/embed` (`byt-engine.js` and its
+  manifest), with the engine, shared and embed sources and the script as inputs, so it reruns
+  only when they change; `:engine:test` depends on it and gets the repo root and the bundle
+  folder as system properties. Adds kotlinx-serialization-json 1.8.1, the Kotlin serialization
+  plugin and, for tests only, Zipline 1.28.0 (QuickJS on the JVM). Source: Android plan Task 3.
+  Verified: `:engine:buildEmbed` writes the bundle and manifest; `bash android/ci-local.sh`
+  and the root CI mirror exit 0; Socket scores: kotlinx-serialization-json 100 on every axis,
+  zipline-jvm supply chain 91, vulnerability 100.
+
 - **Local gate and test counter.** `android/ci-local.sh` runs, each bare and stopping at the
   first failure: `:engine:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`, then
   `count-tests.py` over both modules' reports with a floor (1 for now; raised at each merge
