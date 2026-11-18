@@ -1,12 +1,12 @@
 {
-  "editionId": "byt-30243a199396",
+  "editionId": "byt-e9e783889a23",
   "service": "Priority Mail International",
   "sources": [
     {
       "id": "usps_export",
       "title": "Publication 52, Hazardous, Restricted, and Perishable Mail",
-      "edition": "August 2026 (web edition header)",
-      "url": "https://pe.usps.com/text/pub52/welcome.htm",
+      "edition": "August 2026 (PDF issue date; supersedes the February 2026 edition)",
+      "url": "https://pe.usps.com/cpim/ftp/pubs/Pub52/pub52.pdf",
       "checkedOn": "2026-11-17"
     },
     {

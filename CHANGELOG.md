@@ -18,6 +18,10 @@ All notable changes to this project are listed here.
 - `src/engine/facts.ts` and `rules/label-words.json`: item facts from the read, the sender's fixes, answers and label words. Label words match whole words in any case; "alcohol-free" and "non-flammable" are not read as hazards; a coin-cell code (CR and four digits) or "lithium metal" gives lithium metal. A `label_text` tag records that label text was read, so label identity survives a reload once the text stays on the laptop. A category alone never confirms identity. When the label and an answer disagree on alcohol, the stricter reading is kept. Verified by `src/engine/facts.test.ts`.
 - `src/engine/lithiumBox.ts`: the per-box lithium rule from Pub 52 622.5, at most 4 cells or 2 batteries, not both. Only batteries installed in their device count. A device whose battery could be a cell or a battery is tried both ways, so the result is `ok`, `over`, `mixed` or `depends`, with the range of counts and the item ids. Quantity multiplies. Any text that points toward a second box carries the two-box limit. Verified by `src/engine/lithiumBox.test.ts`.
 
+### Changed
+
+- `rules/sources.json`: the USPS export source now cites the Publication 52 PDF and its printed issue date, August 2026, which supersedes the February 2026 edition. Source: plan Task 11 (record the Pub 52 edition from the PDF cover). Verified by reading the first two pages of `https://pe.usps.com/cpim/ftp/pubs/Pub52/pub52.pdf` live on 2026-11-17; edition rebuilt and `edition:check` passes.
+
 ### Fixed
 
 - `rules/label-words.json`: fatty alcohols that sit on most lotion labels (cetyl, cetearyl, stearyl, benzyl, behenyl, myristyl, lanolin, oleyl, lauryl, isostearyl, arachidyl and phenethyl alcohol) no longer tag an item as containing alcohol, which would have taken lotions out of the box. "Alcohol denat." and "SD alcohol" still do. Source: found while writing the USPS export rules (Task 11). Verified by the new test "does not read fatty alcohols in a lotion as alcohol" in `src/engine/facts.test.ts`, which failed before the change.
