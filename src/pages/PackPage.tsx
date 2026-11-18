@@ -92,7 +92,7 @@ function countryName(code: string, index: readonly DestinationIndexEntry[]): str
 }
 
 export function PackPage(p: PackPageProps) {
-  const { store, models, gate, config, index } = p;
+  const { store, models, gate, config, index, liveConfig } = p;
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [crops, setCrops] = useState<Record<string, ImagePart>>({});
   const [notice, setNotice] = useState<string | null>(null);
@@ -109,18 +109,20 @@ export function PackPage(p: PackPageProps) {
   const looks = useRef(new Map<string, PendingLook>());
   const waitingForOnline = useRef(new Set<string>());
 
-  const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: config.killCloud, online: p.online });
   // The switch and the connection as they are now, for a read that started earlier: before each further
   // cloud call (a retry, the fallback model, a recovery) the read asks whether the cloud is still allowed.
   const live = useRef({ killCloud: config.killCloud, online: p.online });
   useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online }; });
-  const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, ...live.current });
+  // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
+  // again, so every decision to use the cloud reads the source itself when there is one.
+  const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
+  const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: liveConfig ? liveConfig.get().killCloud : config.killCloud, online: p.online });
+  const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, killCloud: pausedNow(), online: live.current.online });
 
   // Reads and second looks that can reach the cloud. Taking back consent or pausing cloud checks aborts
   // them when the change is announced, before the page re-renders; the SDK checks the signal before it
   // gets its tokens and before the request, so it sends nothing it had not already sent.
   const inflight = useRef(new Set<AbortController>());
-  const { liveConfig } = p;
   useEffect(() => {
     const withdraw = () => { for (const ac of inflight.current) ac.abort(); inflight.current.clear(); };
     const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== true) withdraw(); });

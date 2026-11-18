@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -134,6 +134,19 @@ describe("PackPage", () => {
     store.subscribe(() => { abortedWhenAnnounced = signal?.aborted; });
     act(() => store.setConsent(false));
     expect(abortedWhenAnnounced).toBe(true);
+  });
+
+  it("takes the pause from Remote Config as it is now, not from the last render, before using the cloud", async () => {
+    // Remote Config has the pause on; the page has not re-rendered, so its props still say it is off.
+    for (const paused of [true, false]) {
+      const liveConfig = { get: () => ({ killCloud: paused }), subscribe: () => () => {} };
+      const { models } = setup({ liveConfig });
+      await addPhoto();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(models.cloud.generate).toHaveBeenCalledTimes(paused ? 0 : 1);
+      expect(models.hybrid.generate).not.toHaveBeenCalled();
+      cleanup();
+    }
   });
 
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
