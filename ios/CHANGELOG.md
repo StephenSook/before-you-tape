@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### feat(ios): keep the box with verdicts the rules engine derives after every change
+- What: `BoxStore` holds the box (items, country, consent answer, counts of where reads ran)
+  and asks the web app's rules engine for the box result after every change, so a verdict is
+  never read back from storage. A country change re-runs the rules with no model call and is
+  counted. A hand-added item is confirmed by the sender. Quantity is clamped to 1 through 99.
+  The copy handed to storage has no label text, read or corrected; the engine's label tags stand
+  in for it. A saved box loads under any new items and is evaluated afresh. Not yet used by a
+  screen.
+- Source: iPhone client plan, task I-9 (the web app's box store tests, same reads and edition).
+- Verified: 11 tests pass, including a lotion that is OK for Canada and "Take it out" for the
+  Philippines, and a 2500 mAh misread beside 9.62 Wh landing on "Check this" through
+  `USPS-INTL-LI-WH-MISMATCH`; a mutant that saves label text and skips the re-check count fails
+  three of them; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): capture a label photo with the hold zone drawn on the camera
 - What: `CameraSession` runs the back camera, preferring Apple's virtual multi-lens camera so
   the iPhone switches to its close-focus lens by itself; it reports ready, denied or no camera,
