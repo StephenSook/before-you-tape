@@ -49,6 +49,12 @@ describe("readItem", () => {
     expect((await readItem(models({ hybrid: text("oops", "on_device"), cloud: ok("in_cloud") }), img, "hybrid", clock(0, 2))).recoveredFrom).toBe("invalid_output");
   });
 
+  it("carries a reply that named no route into the outcome, and leaves named routes unmarked", async () => {
+    const unreported: MockPort = { generate: vi.fn(async () => ({ text: JSON.stringify(validRead), source: "in_cloud" as const, unreported: true as const })) };
+    expect(await readItem(models({ cloud: unreported }), img, "cloud_only", clock(0, 5))).toMatchObject({ source: "in_cloud", unreported: true });
+    expect(await readItem(models({ cloud: ok("in_cloud") }), img, "cloud_only", clock(0, 5))).not.toHaveProperty("unreported");
+  });
+
   it("never calls the cloud on device_only and discards a cloud-sourced reply", async () => {
     const m = models({ device: fails("NotSupportedError"), cloud: ok("in_cloud") });
     await expect(readItem(m, img, "device_only", clock(0, 1))).rejects.toMatchObject({ kind: "device_failed" });

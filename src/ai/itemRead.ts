@@ -20,6 +20,7 @@ export interface ReadOutcome {
   ms: number;
   route: ReadRoute;
   recoveredFrom: string | null;
+  unreported?: true; // the SDK named no route; source is in_cloud for privacy
 }
 
 // Checks the on-device model at call time, so a model that went away since the page loaded is never asked.
@@ -72,8 +73,11 @@ function parseOrFail(reply: ModelReply): ItemRead {
 
 export async function readItem(models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number): Promise<ReadOutcome> {
   const start = now();
-  const done = (read: ItemRead, source: InferenceSourceName, recoveredFrom: string | null): ReadOutcome =>
-    ({ read, source, ms: now() - start, route, recoveredFrom });
+  const done = (reply: ModelReply, recoveredFrom: string | null): ReadOutcome => {
+    const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route, recoveredFrom };
+    if (reply.unreported) out.unreported = true;
+    return out;
+  };
 
   if (route === "blocked") throw new ReadFailure("blocked", "no route: the on-device model is not ready and the cloud is not allowed");
 
@@ -85,21 +89,21 @@ export async function readItem(models: ItemModels, image: ImagePart, route: Read
       throw e instanceof ReadFailure ? e : new ReadFailure("device_failed", errorName(e));
     }
     if (reply.source !== "on_device") throw new ReadFailure("leak_guard", `a device-only read came back from ${reply.source}`);
-    return done(parseOrFail(reply), "on_device", null);
+    return done(reply, null);
   }
 
   if (route === "hybrid") {
     let recoveredFrom: string;
     try {
       const reply = await models.hybrid.generate(ITEM_READ_PROMPT, image);
-      return done(parseOrFail(reply), reply.source, null);
+      return done(reply, null);
     } catch (e) {
       recoveredFrom = errorName(e);
     }
     const reply = await callCloud(models.cloud, image);
-    return done(parseOrFail(reply), reply.source, recoveredFrom);
+    return done(reply, recoveredFrom);
   }
 
   const reply = await callCloud(models.cloud, image);
-  return done(parseOrFail(reply), reply.source, null);
+  return done(reply, null);
 }
