@@ -40,6 +40,29 @@ class ModelReadinessTest {
         assertEquals(0, failures)
     }
 
+    @Test fun aDownloadableModelStartsDownloadingOnWifiAtLaunch() {
+        assertTrue(ModelReadiness.startsAtLaunch(DeviceModelStatus.DOWNLOADABLE, unmetered = true))
+    }
+
+    /** On mobile data the app asks first: the download waits for "Get the model on this phone". */
+    @Test fun onMobileDataTheAppAsksFirst() {
+        assertFalse(ModelReadiness.startsAtLaunch(DeviceModelStatus.DOWNLOADABLE, unmetered = false))
+    }
+
+    @Test fun anUnavailablePhoneNeverStartsADownload() {
+        for (s in DeviceModelStatus.entries - DeviceModelStatus.DOWNLOADABLE) {
+            assertFalse(s.name, ModelReadiness.startsAtLaunch(s, unmetered = true))
+        }
+    }
+
+    /** A failed download says so once, and the offer comes back so the person can try again. */
+    @Test fun aFailedDownloadIsShownAndCanBeRetried() = runTest {
+        var failures = 0
+        ModelReadiness.collectDownload(flow { emit(ModelDownload.Failed("no space")) }) { failures++ }
+        assertEquals(1, failures)
+        assertEquals(DeviceModelStatus.DOWNLOADABLE, ModelReadiness.shown(DeviceModelStatus.DOWNLOADABLE, downloadActive = false))
+    }
+
     @Test fun whileADownloadRunsTheScreenSaysSoUntilTheModelIsReady() {
         assertEquals(DeviceModelStatus.DOWNLOADING, ModelReadiness.shown(DeviceModelStatus.DOWNLOADABLE, downloadActive = true))
         assertEquals(DeviceModelStatus.DOWNLOADING, ModelReadiness.shown(DeviceModelStatus.UNKNOWN, downloadActive = true))

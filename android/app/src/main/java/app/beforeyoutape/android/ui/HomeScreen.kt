@@ -11,6 +11,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,7 +28,7 @@ import app.beforeyoutape.android.capture.BitmapCrop
 import app.beforeyoutape.engine.DestinationName
 import app.beforeyoutape.engine.ItemReadWire
 
-enum class HomeView { CAMERA, TYPE, BOX, FIX }
+enum class HomeView { CAMERA, TYPE, BOX, FIX, ABOUT }
 
 /** Everything the home screen shows; the view model makes it, tests write it by hand. */
 data class HomeUi(
@@ -41,6 +42,8 @@ data class HomeUi(
     val view: HomeView,
     val fixRead: ItemReadWire?,
     val fixItemId: String? = null,
+    /** Filled when About this phone opens. */
+    val about: AboutInfo? = null,
 )
 
 /** Where the screen goes when a read finishes. */
@@ -87,6 +90,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 ui.loading -> Text(Copy.LOADING, style = MaterialTheme.typography.bodyLarge)
+                ui.view == HomeView.ABOUT && ui.about != null -> AboutPhoneScreen(ui.about, onBack = { actions.show(HomeView.CAMERA) })
                 ui.consent == null -> ConsentScreen(null, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
                 ui.view == HomeView.TYPE -> ReadForm(null, ReadCopy.NAME_OPTIONAL, ReadCopy.ADD, actions::typed)
                 ui.view == HomeView.FIX && ui.fixItemId != null ->
@@ -103,6 +107,9 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
         }
         if (ui.view != HomeView.BOX && ui.consent != null) {
             OutlinedButton(onClick = { actions.show(HomeView.BOX) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.seeTheBox(ui.box.items.size)) }
+        }
+        if (ui.view != HomeView.ABOUT && !ui.loading) {
+            TextButton(onClick = { actions.show(HomeView.ABOUT) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ABOUT) }
         }
     }
 }
