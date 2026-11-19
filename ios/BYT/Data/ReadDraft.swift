@@ -31,7 +31,7 @@ struct ReadDraft: Equatable, Sendable {
         ("other_electronics", "Other electronics"), ("lighter_matches", "Lighter or matches"),
         ("e_cigarette", "E-cigarette or vape"), ("glue_paint", "Glue or paint"), ("knife_tool", "Knife or tool"),
         ("toy_gun", "Toy gun"), ("candle", "Candle"), ("jewelry_watch", "Jewelry or watch"), ("clothing", "Clothing"),
-        ("shoes", "Shoes"), ("book_paper", "Book or paper"), ("toy", "Toy"), ("other", "Something else"),
+        ("shoes", "Shoes"), ("book_paper", "Book or paper"), ("toy", "Toy"), ("ceramic", "Ceramic or porcelain (mug, plate, vase)"), ("other", "Something else"),
     ].map { Category(id: $0.0, label: $0.1) }
 
     var itemName = ""
