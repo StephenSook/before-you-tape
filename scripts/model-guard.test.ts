@@ -21,8 +21,8 @@ describe("guardFiles", () => {
       "import { FaceDetector } from '@mediapipe/tasks-vision'",
       "import * as tf from '@tensorflow/tfjs'",
       "import * as ort from 'onnxruntime-web'",
-      "window.speechSynthesis.speak(u)",
       "new SpeechRecognition()",
+      "new webkitSpeechRecognition()",
       "await LanguageModel.create(opts)",
       "await session.prompt(x)",
       "await session.promptStreaming(x)",
@@ -35,6 +35,11 @@ describe("guardFiles", () => {
     const empty = guardFiles([], 2);
     expect(empty.ok).toBe(false);
     expect(empty.messages.join("\n")).toMatch(/walked 0 files/);
+  });
+
+  it("allows the system voice, which speaks text the app already holds and reads nothing from the user", () => {
+    const r = guardFiles([...clean, file("src/c.ts", "window.speechSynthesis.speak(new SpeechSynthesisUtterance(t))")], 2);
+    expect(r.ok, r.messages.join("\n")).toBe(true);
   });
 
   it("fails on a direct model host anywhere in source, tests or scripts", () => {
