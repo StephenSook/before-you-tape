@@ -3,6 +3,14 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The Android guard refuses speech recognition.** Rule 8 in `android/guard.sh` fails on
+  `SpeechRecognizer`, `RecognizerIntent` or `RECOGNIZE_SPEECH` in any Kotlin, XML or config file
+  under `android/`; the system voice (`TextToSpeech`) stays allowed. This matches the web guard,
+  which refuses speech recognition and allows the system voice. Source: review of the speech rule
+  change on the web side. Verified: with two untracked planted files, the guard passed before the
+  rule (exit 0) and failed after it (exit 1) naming only the two recognizer lines, not the
+  TextToSpeech file; with the plants removed it is clean on 125 files.
+
 - **Android follows the Remote Config edition pin instead of always using the bundled edition.**
   The app now watches `rules_edition_id` and `rules_edition_sha256`. When they change, it reads the
   published edition at `ruleEditions/{id}` (signed in, through the deployed rules), checks it on a

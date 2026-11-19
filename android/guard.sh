@@ -31,5 +31,7 @@ if [ "${#main[@]}" -gt 0 ]; then
 fi
 # 7. ASCII punctuation: no em dash, en dash or curly quotes anywhere under android/.
 hit "em dash, en dash or curly quote" < <(only "${files[@]}" | tr '\n' '\0' | xargs -0 grep -n -I -E $'—|–|‘|’|“|”' 2>/dev/null)
+# 8. No speech recognition: the app never listens. The system voice (TextToSpeech) may read words aloud.
+hit "speech recognition (SpeechRecognizer, RecognizerIntent or RECOGNIZE_SPEECH)" < <(only "${code[@]}" | tr '\n' '\0' | xargs -0 grep -n -I -E 'SpeechRecognizer|RecognizerIntent|RECOGNIZE_SPEECH' 2>/dev/null)
 if [ "$bad" -ne 0 ]; then exit 1; fi
 echo "guard(android): clean"
