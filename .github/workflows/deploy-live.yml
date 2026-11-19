@@ -46,7 +46,9 @@ jobs:
 
       - name: Install
         if: steps.head.outputs.current == 'true'
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix functions
 
       - name: Build with the public web config
         if: steps.head.outputs.current == 'true'
@@ -122,3 +124,32 @@ jobs:
         env:
           BYT_LIVE: "1"
         run: npx playwright test --project=live tests/e2e/roundtrip.live.spec.ts
+
+      # After the site, so a failed functions deploy never holds back the site; the run still fails.
+      # --force accepts the default container image cleanup policy that the first deploy asks about.
+      - name: Deploy the join functions
+        if: steps.head.outputs.current == 'true'
+        run: npx --yes firebase-tools@15.34.2 deploy --only functions --project before-you-tape-2026 --non-interactive --force
+
+      - name: The join functions refuse a call with no App Check token
+        if: steps.head.outputs.current == 'true'
+        run: |
+          python3 - <<'EOF'
+          import json, sys, urllib.error, urllib.request
+          ok = True
+          for name in ("startJoin", "joinBox"):
+              req = urllib.request.Request(f"https://us-central1-before-you-tape-2026.cloudfunctions.net/{name}",
+                  data=json.dumps({"data": {"boxId": "probe"}}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+              try:
+                  r = urllib.request.urlopen(req, timeout=30)
+                  status, body = r.status, r.read()
+              except urllib.error.HTTPError as e:
+                  status, body = e.code, e.read()
+              try:
+                  s = json.loads(body).get("error", {}).get("status")
+              except Exception:
+                  s = None
+              print(f"{name}: HTTP {status} {s}")
+              ok = ok and status == 401 and s == "UNAUTHENTICATED"
+          sys.exit(0 if ok else 1)
+          EOF
