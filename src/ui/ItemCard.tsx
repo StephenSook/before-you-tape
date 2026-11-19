@@ -25,11 +25,35 @@ export interface ItemCardProps {
   onCloudLook?: (itemId: string) => void;
   // The newest card in the box; on a phone it stays in view at the bottom of the screen.
   newest?: boolean;
+  // How many of this item go in the box (the lithium count depends on it), and taking it out of the box.
+  onQuantity?: (itemId: string, n: number) => void;
+  onRemove?: (itemId: string) => void;
+}
+
+// "How many" keeps what the sender is typing (an empty field mid-edit) and sends whole numbers from 1 to 99.
+function HowMany({ quantity, onChange }: { quantity: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(quantity));
+  const [shown, setShown] = useState(quantity);
+  if (shown !== quantity) {
+    setShown(quantity);
+    setText(String(quantity));
+  }
+  return (
+    <label>
+      How many{" "}
+      <input type="number" min={1} max={99} step={1} inputMode="numeric" className="how-many" value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          const n = Number(e.target.value);
+          if (Number.isInteger(n) && n >= 1 && n <= 99) onChange(n);
+        }} />
+    </label>
+  );
 }
 
 const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "checked", stale: "out of date", missing: "not loaded" };
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest }: ItemCardProps) {
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onQuantity, onRemove }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
@@ -51,6 +75,12 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {verdict.question && <QuestionRow question={verdict.question} value={item.answers[verdict.question.id]} onAnswer={(q, a) => onAnswer?.(item.itemId, q, a)} />}
       {needsIdentity && <button type="button" data-testid="confirm-identity" onClick={() => onConfirm?.(item.itemId)}>Yes, this is {name}</button>}
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}
+      {(onQuantity || onRemove) && (
+        <p className="item-controls">
+          {onQuantity && <HowMany quantity={item.quantity} onChange={(n) => onQuantity(item.itemId, n)} />}{" "}
+          {onRemove && <button type="button" onClick={() => onRemove(item.itemId)}>Remove</button>}
+        </p>
+      )}
       <details open={fixOpen} onToggle={(e) => setFixOpen(e.currentTarget.open)}>
         <summary>Fix this reading</summary>
         {/* Keyed on the overrides, so the form starts again from what the sender sees after each save. */}

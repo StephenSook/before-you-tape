@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Each card on the Pack page now has "How many" and "Remove". The store already handled quantity and removal, but the page never called them. So a sender could not take an item back out, or say there were three of one thing, and the lithium count could not reflect it. "How many" keeps what the sender is typing and sends whole numbers from 1 to 99. Each change re-judges the box at once, with no model call. Source: whole-repo review (high), PackPage never called remove or setQuantity. Verified: a new `src/ui/ItemCard.test.tsx` case (the field shows the quantity, a typed 3 is sent, Remove is sent) and a new `src/pages/PackPage.test.tsx` case both failed first. The page case runs a typed 50.6 Wh laptop for Canada: OK to pack at 1, Take it out at 3 (over the lithium limit), OK to pack again at 1, then removed and gone from the box. Unit suite 452/452; local CI mirror exit 0.
 - **The Android CI job also runs when the item contract or the Remote Config template changes.**
   `BoxDocsContractTest` reads `tests/contracts/box-docs.json` and `RcDefaultsTest` reads
   `remoteconfig.template.json`, but neither path triggered `android.yml`, so a change to either could
