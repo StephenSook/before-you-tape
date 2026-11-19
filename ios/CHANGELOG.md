@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### fix(ios): cloud checks wait until Remote Config gives its own kill switch, as in the web app
+- What: the app started on its built-in defaults, where kill_cloud is off, and only later fetched
+  Remote Config, so a photo taken before the fetch (or with every fetch failing) could go to the
+  cloud while the server had paused it. Now, as in the web app, cloud checks stay held until
+  kill_cloud comes from Remote Config itself (fetched now, or fetched before and kept). The app
+  starts held, with the pause switch closed. A photo then says "Checking a photo needs the cloud,
+  and cloud checks are waiting for their settings. Try again in a moment." Label words are still
+  read on this iPhone.
+- Source: review (whole-repo check).
+- Verified: tests for the held rule (held until the server's value, unchanged after it), for a
+  fresh app (no cloud call, the waiting words, then a cloud read once settings arrive), for words
+  read on this iPhone while held, and for the pause switch starting closed. They failed to compile
+  before the change and pass after. Tests that model settings already fetched now pass them
+  explicitly. 142 unit tests pass; the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0, UI test
+  included.
+
 ### fix(ios): a photo of no item is not added to the box, as the web app drops it
 - What: a photo of a room, or of nothing the model could name, was added to the box as an
   unknown item. The web app drops such a read with its isNoItem check and says "Nothing to check

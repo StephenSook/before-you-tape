@@ -101,7 +101,10 @@ import Testing
     }
 
     @Test func theAppsCloudRunnerReadsTheLivePauseSwitch() async throws {
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }))
+        // Before Remote Config gives its own kill switch the cloud is held.
+        let fresh = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }))
+        #expect(try #require(fresh.reader?.makeCloud("any-model") as? SignedInCloudRunner).pause.paused)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), config: .defaults)
         let runner = try #require(model.reader?.makeCloud("any-model") as? SignedInCloudRunner)
         #expect(!runner.pause.paused)
         var paused = RemoteConfigValues.defaults

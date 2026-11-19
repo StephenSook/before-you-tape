@@ -33,8 +33,9 @@ final class AppModel {
     private(set) var lastCrop: Data?
     /// The crop waiting for the cloud question, shown in it.
     var pendingCrop: Data? { if case let .photo(crop)? = pending { crop } else { nil } }
-    /// Remote Config as last applied; reads use it at once, with no restart.
-    private(set) var config = RemoteConfigValues.defaults
+    /// Remote Config as last applied; reads use it at once, with no restart. It starts held (no cloud)
+    /// until Remote Config gives a kill switch of its own.
+    private(set) var config: RemoteConfigValues
     /// Why a newer rule edition was not used, when one was named and refused.
     private(set) var editionNotice: String?
     let appVersion: String
@@ -70,7 +71,8 @@ final class AppModel {
          today: @escaping () -> String = { AppModel.localDate(Date()) },
          appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
          fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition,
-         editionText: String? = AppModel.shippedEdition()) {
+         editionText: String? = AppModel.shippedEdition(), config: RemoteConfigValues = .held) {
+        self.config = config
         self.appVersion = appVersion
         self.fetchEdition = fetchEdition
         self.signIn = signIn
@@ -86,6 +88,7 @@ final class AppModel {
         self.destinations = engine == nil ? [] : editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         let pause = PauseSwitch()
+        pause.paused = config.killCloud
         self.pause = pause
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn, pause: pause) }
         let boxId = Self.currentBoxId(defaults)
@@ -194,11 +197,11 @@ final class AppModel {
         // The name and the verdict both come from the box item as it is now, corrections included.
         let item = lastItemId.flatMap { id in box?.items.first { $0.itemId == id } }
         return Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind,
-                             name: item.flatMap { FixReadingView.current($0).text("itemName") })
+                             name: item.flatMap { FixReadingView.current($0).text("itemName") }, settingsPending: config.pauseUnknown)
     }
 
     static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo,
-                         name current: String? = nil) -> String? {
+                         name current: String? = nil, settingsPending: Bool = false) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
             // The item's current name wins, even when the sender cleared it; the model's first name
@@ -207,12 +210,15 @@ final class AppModel {
             let name = chosen.isEmpty ? "This item" : chosen
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
         }
+        let waiting = "cloud checks are waiting for their settings. Try again in a moment."
         if outcome.route == .blocked, kind == .labelWords {
-            return "This iPhone cannot read label words right now, and the cloud is not allowed."
+            return settingsPending && consent != false ? "This iPhone cannot read label words right now, and " + waiting
+                                                       : "This iPhone cannot read label words right now, and the cloud is not allowed."
         }
         if outcome.route == .blocked {
-            return consent == false ? "You chose to keep everything on this iPhone, and this iPhone does not read photos yet."
-                                    : "Checking a photo needs the cloud, and the cloud is not allowed yet."
+            if consent == false { return "You chose to keep everything on this iPhone, and this iPhone does not read photos yet." }
+            return settingsPending ? "Checking a photo needs the cloud, and " + waiting
+                                   : "Checking a photo needs the cloud, and the cloud is not allowed yet."
         }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         return "That item could not be read. Try another photo."

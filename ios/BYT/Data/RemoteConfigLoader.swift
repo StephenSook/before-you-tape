@@ -28,9 +28,12 @@ final class RemoteConfigLoader {
         }
     }
 
+    /// The values in force. Cloud checks stay held until kill_cloud comes from the server (fetched now
+    /// or fetched before and kept): a failed or blocked first fetch never opens them on the default.
     var current: RemoteConfigValues {
         let keys = Array(RemoteConfigValues.defaults.asStrings.keys)
-        return RemoteConfigValues.parse(Dictionary(uniqueKeysWithValues: keys.map { ($0, remoteConfig.configValue(forKey: $0).stringValue) }))
+        let read = RemoteConfigValues.parse(Dictionary(uniqueKeysWithValues: keys.map { ($0, remoteConfig.configValue(forKey: $0).stringValue) }))
+        return RemoteConfigValues.effective(read, killCloudFromServer: remoteConfig.configValue(forKey: "kill_cloud").source == .remote)
     }
 
     private func publish() { onChange?(current) }

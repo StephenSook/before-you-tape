@@ -15,6 +15,9 @@ struct RemoteConfigValues: Equatable, Sendable {
     /// A newer rule edition to use, by id and SHA-256; both empty means the built-in edition.
     var rulesEditionId: String
     var rulesEditionSha256: String
+    /// Not a Remote Config key: true while kill_cloud has not come from Remote Config itself, so
+    /// cloud checks stay off until it does.
+    var pauseUnknown = false
 
     /// The cloud models this app may send to Firebase AI Logic: the web app's list (src/config/models.ts).
     static let allowedCloudModels = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
@@ -25,6 +28,19 @@ struct RemoteConfigValues: Equatable, Sendable {
         killCloud: false, minimumVersionIOS: "0.0.0",
         secondLookPolicyJSON: #"{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}"#,
         rulesEditionId: "", rulesEditionSha256: "")
+
+    /// The built-in defaults with the cloud held: what the app runs on until Remote Config answers.
+    static let held = effective(defaults, killCloudFromServer: false)
+
+    /// Cloud checks stay off until kill_cloud comes from Remote Config itself (fetched now, or fetched
+    /// before and kept); the in-app default never switches the cloud on, as in the web app.
+    static func effective(_ read: RemoteConfigValues, killCloudFromServer: Bool) -> RemoteConfigValues {
+        guard !killCloudFromServer else { return read }
+        var held = read
+        held.killCloud = true
+        held.pauseUnknown = true
+        return held
+    }
 
     var asStrings: [String: String] {
         ["cloud_model_item": cloudModelItem, "cloud_model_item_fallback": cloudModelItemFallback,
