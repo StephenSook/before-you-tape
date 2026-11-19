@@ -72,6 +72,7 @@ var BYT = (() => {
     "shoes",
     "book_paper",
     "toy",
+    "ceramic",
     "other"
   ];
   var RETAIL_BOX_VALUES = ["sealed", "open_or_none", "cannot_tell"];
@@ -292,8 +293,9 @@ var BYT = (() => {
     if (freeUnsure && freeAnswer === "no") tags.add("alcohol");
     const tagList = [...tags].sort();
     const answer = input.answers.label_alcohol;
+    const senderSaysAlcohol = input.overrides.alcoholOnLabel === true;
     const cleared = answer === "no" || freeUnsure && freeAnswer === "yes";
-    const alcohol = tags.has("alcohol") || answer === "yes" ? "yes" : cleared ? "no" : "unknown";
+    const alcohol = tags.has("alcohol") || answer === "yes" || senderSaysAlcohol ? "yes" : cleared ? "no" : "unknown";
     let identity = "unconfirmed";
     if (input.identityConfirmedBy) identity = input.identityConfirmedBy;
     else if (read.evidence === "label_read" && tags.has(LABEL_TEXT_TAG)) identity = "label";
@@ -499,8 +501,11 @@ var BYT = (() => {
       "suspensions",
       "stopWords",
       "worksheetFields"
-    ], [], "edition");
+    ], ["revision"], "edition");
     str(e.editionId, "editionId");
+    if (e.revision !== void 0 && !(typeof e.revision === "number" && Number.isInteger(e.revision) && e.revision >= 1)) {
+      fail("revision", "must be a whole number from 1");
+    }
     if (e.service !== "Priority Mail International") fail("service", "must be Priority Mail International");
     list(e.sources, "sources").forEach((x, i) => {
       const s2 = obj(x, `sources[${i}]`);

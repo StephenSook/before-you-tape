@@ -47,6 +47,15 @@ final class AppModel {
     @ObservationIgnored private var installedPin = AppModel.pinKey(RemoteConfigValues.defaults)
     /// The retry started by the foreground or the network, for anyone who must wait for it.
     @ObservationIgnored private(set) var editionRetry: Task<Void, Never>?
+    /// Set when the engine would not load or refused the shipped edition: then nothing is checked.
+    let rulesProblem: String?
+    static let rulesFailed = "This app's rules could not load. Update the app."
+
+    /// The rule edition shipped in the app.
+    nonisolated static func shippedEdition() -> String? {
+        Bundle.main.url(forResource: "edition", withExtension: "json").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+    }
+
     /// Label words longer than this are cut: a label's words fit well inside it.
     static let maxWords = 500
 
@@ -57,17 +66,21 @@ final class AppModel {
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
          today: @escaping () -> String = { AppModel.localDate(Date()) },
          appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
-         fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition) {
+         fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition,
+         editionText: String? = AppModel.shippedEdition()) {
         self.appVersion = appVersion
         self.fetchEdition = fetchEdition
         self.signIn = signIn
         self.onDeviceStatus = onDeviceStatus
         self.onDevice = onDeviceStatus()
-        let engine = try? RulesEngine()
-        let editionText = Bundle.main.url(forResource: "edition", withExtension: "json").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-        if let engine, let editionText { _ = try? engine.setEdition(editionText) }
+        // The engine counts only once it has loaded the shipped edition; a refusal is said, not swallowed.
+        let engine: RulesEngine? = {
+            guard let engine = try? RulesEngine(), let editionText, (try? engine.setEdition(editionText)) != nil else { return nil }
+            return engine
+        }()
+        self.rulesProblem = engine == nil ? Self.rulesFailed : nil
         self.bundledEditionText = editionText
-        self.destinations = editionText.map(Self.destinations(fromEdition:)) ?? []
+        self.destinations = engine == nil ? [] : editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         let pause = PauseSwitch()
         self.pause = pause
