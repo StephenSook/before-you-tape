@@ -3,6 +3,19 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **About this phone.** A new "About this phone" button opens a screen with what reads labels
+  here (one sentence per on-device model status, pinned by tests: no model, ready, can be
+  downloaded, downloading, could not report), the cloud model from Remote Config, the App Check
+  provider (`play_integrity` in a release build, `debug` in a debug build), the rules edition id,
+  the rules bundle's commit and the first 12 characters of its SHA-256 (from the bundle's build
+  manifest), the version, "License: Apache-2.0", and a link to the web app's rules page. A ready
+  model says "On-device model: ready" and is never named: the SDK version in use reports no model
+  name. Source: Android plan Task 16 (About part); the real-phone pass had no About screen to
+  show. Verified: `AboutTest` (4 tests: every status sentence, every row, no model named, the rules
+  link) failed first, then passes; the device tests `AboutPhoneScreenTest.everyRowIsShown` and
+  `theHomeScreenOpensAbout` pass on the emulator, and a control with the screen's rows removed
+  fails both. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A crop queued from the old scan session no longer uses up the new session's reset.** The
   reset for a new scan session was a single pending flag, taken by whichever read the worker
   started next. If a crop was accepted, waited on the worker behind a box update, and the person

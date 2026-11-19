@@ -11,6 +11,17 @@ object Copy {
     const val KEEP_ON_PHONE = "Keep everything on this phone"
     const val FOOTER = "Not affiliated with or approved by the US Postal Service."
 
+    /** What reads labels on this phone, by the on-device model's status. */
+    fun modelSentence(s: app.beforeyoutape.android.ai.DeviceModelStatus): String = when (s) {
+        app.beforeyoutape.android.ai.DeviceModelStatus.UNAVAILABLE ->
+            "This phone has no on-device model. To read a label here, the photo goes to the cloud after you allow it. You can also type the numbers."
+        app.beforeyoutape.android.ai.DeviceModelStatus.AVAILABLE -> "Labels are read on this phone first."
+        app.beforeyoutape.android.ai.DeviceModelStatus.DOWNLOADABLE -> "An on-device model can be downloaded to this phone."
+        app.beforeyoutape.android.ai.DeviceModelStatus.DOWNLOADING -> "The on-device model is downloading."
+        app.beforeyoutape.android.ai.DeviceModelStatus.UNKNOWN ->
+            "This phone could not report its on-device model. Reads use the cloud after you allow it."
+    }
+
     const val CHECK_NOW = "Check now"
     const val ADD_PHOTO = "Add a photo"
     const val TYPE_IT = "Type it"
@@ -26,6 +37,9 @@ object Copy {
     const val WHERE_TO = "Where is the box going?"
     const val CHOOSE_DESTINATION_FIRST = "Choose where the box is going first."
     const val ADD_ANOTHER = "Add another item"
+    const val ABOUT = "About this phone"
+    const val RULES_ON_WEB = "Rules on the web"
+    const val BACK = "Back"
     const val REMOVE = "Remove"
     const val ONE_MORE = "One more"
     const val MODEL_CAN_DOWNLOAD = "This phone can get its own model to read labels, so nothing leaves it."

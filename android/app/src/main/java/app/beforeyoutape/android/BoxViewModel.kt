@@ -27,6 +27,7 @@ import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
+import app.beforeyoutape.android.ui.AboutInfo
 import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeActions
 import app.beforeyoutape.android.ui.HomeNav
@@ -167,7 +168,23 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun show(view: HomeView) {
         // Going back to the camera starts a new scan session; its first read lifts a refusal pause.
         if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) session.startNewScan()
-        publish { it.copy(view = view, message = null) }
+        val about = if (view == HomeView.ABOUT) aboutInfo() else null
+        publish { it.copy(view = view, message = null, about = about ?: it.about) }
+    }
+
+    /** What About this phone shows, read when it opens. */
+    private fun aboutInfo(): AboutInfo {
+        val app = getApplication<Application>()
+        fun asset(read: () -> String) = runCatching(read).getOrDefault("unknown")
+        return AboutInfo(
+            deviceModel = state.value.deviceModel,
+            cloudModel = rc?.current()?.cloudModelItem?.ifEmpty { null } ?: "not set",
+            appCheckProvider = AppCheckSetup.PROVIDER,
+            editionId = asset { EngineAssets.editionId(app) },
+            bundleCommit = asset { EngineAssets.manifestCommit(app) },
+            bundleSha256 = asset { EngineAssets.manifestSha256(app) },
+            version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: "unknown",
+        )
     }
 
     override fun typed(draft: ReadDraft) {
