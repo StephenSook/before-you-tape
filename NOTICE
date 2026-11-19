@@ -4,3 +4,11 @@ Copyright 2026 Stephen Sookra
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
 Not affiliated with or approved by the US Postal Service.
+
+Fonts in public/fonts are licensed under the SIL Open Font License 1.1; each license is in public/fonts/licenses:
+- Bricolage Grotesque, Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+- Figtree, Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
+- DM Mono, Copyright 2020 The DM Mono Project Authors (https://www.github.com/googlefonts/dm-mono)
+- Caveat, Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+
+Test photos in public/eval/items are credited, with their licenses and changes, in eval/set/manifest.json and on /about.

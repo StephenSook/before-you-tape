@@ -48,3 +48,31 @@ describe("BoxSummary", () => {
     expect(screen.getByTestId("box-summary")).toHaveTextContent("Nothing in the box yet.");
   });
 });
+
+describe("BoxSummary ready state", () => {
+  const shirt = [input("s", { ...base, category: "clothing" })];
+  const lotion = [input("l", { ...base, category: "lotion_cream", labelText: "BODY LOTION 8 FL OZ", liquid: true })];
+  const summary = (box: BoxItemInput[], code: string) =>
+    render(<BoxSummary limits={ed.limits} result={evaluateBox(box, ed, resolveDestination(ed, code), "2026-11-20")} itemCount={box.length} recheck={null} />);
+
+  it("says Ready to tape when every item is OK to pack", () => {
+    summary([...shirt, ...lotion], "CA");
+    expect(screen.getByTestId("ready-to-tape")).toHaveTextContent("Ready to tape. Everything here is OK to pack.");
+  });
+
+  it("never says it while anything is to take out or to check, or for an empty box", () => {
+    const { unmount } = summary(lotion, "PH");
+    expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+    unmount();
+    const r = summary([input("p", { ...base, category: "perfume_fragrance", liquid: true })], "CA");
+    expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+    r.unmount();
+    summary([], "CA");
+    expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+  });
+
+  it("never says it for a country where mail service is suspended", () => {
+    summary(shirt, "HT");
+    expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+  });
+});

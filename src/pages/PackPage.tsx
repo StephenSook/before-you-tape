@@ -21,6 +21,7 @@ import { DestinationPicker, type DestinationIndexEntry } from "../ui/Destination
 import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
+import { VerdictChip } from "../ui/VerdictChip";
 
 export interface PackConfig {
   killCloud: boolean;
@@ -226,6 +227,8 @@ export function PackPage(p: PackPageProps) {
     }
   };
 
+  const newestItem = state.items.at(-1);
+  const newestVerdict = newestItem ? state.result.items[newestItem.itemId] : undefined;
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
     const r = rulesReadBy(resolveDestination(edition, d.code));
@@ -235,7 +238,7 @@ export function PackPage(p: PackPageProps) {
   // The suspension list decides whether anything can go at all, so its check date is always in view.
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
-    <div>
+    <div className="pack-page">
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
@@ -280,11 +283,20 @@ export function PackPage(p: PackPageProps) {
                 onFix={(id, patch) => store.override(id, patch)}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
-                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined} />
+                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}
+                newest={item.itemId === state.items.at(-1)?.itemId} />
             ) : null;
           })}
         </div>
       </div>
+      {/* On a phone the newest verdict stays in view in this sheet; the full card is in the list above. */}
+      {newestItem && newestVerdict && (
+        <div className="newest-sheet" data-testid="newest-sheet" role="status">
+          <p className="item-name">{newestItem.overrides.itemName ?? newestItem.read.itemName}</p>
+          <VerdictChip level={newestVerdict.level} />
+          <a href={`#item-${newestItem.itemId}`}>See the card</a>
+        </div>
+      )}
     </div>
   );
 }

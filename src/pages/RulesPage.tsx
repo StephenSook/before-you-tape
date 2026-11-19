@@ -20,7 +20,7 @@ export function RulesPage({ edition, index }: { edition: RuleEdition; index: rea
   const seen = new Set<string>();
   const exportRules = edition.rules.filter((r) => r.layer === "usps_export" && !seen.has(r.id) && seen.add(r.id));
   return (
-    <main className="rules">
+    <div className="rules">
       <h1>Rules</h1>
       <p>Every rule the app applies, in our words, with the section it comes from. Rule edition {edition.editionId}.</p>
 
@@ -65,6 +65,6 @@ export function RulesPage({ edition, index }: { edition: RuleEdition; index: rea
           <a href={edition.suspensions.url} target="_blank" rel="noreferrer">Service alerts</a>
         </p>
       </section>
-    </main>
+    </div>
   );
 }

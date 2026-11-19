@@ -111,4 +111,11 @@ describe("ItemCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledWith("s");
   });
+
+  it("marks the newest card, so a phone can keep its verdict in view", () => {
+    const { rerender } = render(<ItemCard item={perfume} verdict={takeOut} crop={null} newest />);
+    expect(screen.getByTestId("item-card")).toHaveClass("newest");
+    rerender(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
+    expect(screen.getByTestId("item-card")).not.toHaveClass("newest");
+  });
 });
