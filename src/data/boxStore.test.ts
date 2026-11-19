@@ -267,6 +267,29 @@ describe("createBoxStore", () => {
     expect(late.s.getState().cloudConsent).toBe(false);
   });
 
+  it("saves the model's own name for an item only after cloud consent; before, a category name, with the real one kept on this device", async () => {
+    const lotion: ItemRead = { ...liquidLotionLabelRead, itemName: "SHEA BUTTER BODY LOTION FROM ACME" };
+    const remembered: Record<string, Record<string, string>> = {};
+    const deviceNames = { remember: (boxId: string, names: Record<string, string>) => { remembered[boxId] = { ...names }; }, recall: (boxId: string) => remembered[boxId] ?? {} };
+    const persistence = spyPersistence();
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    const read = s.addRead(outcome(lotion, "on_device"), "k");
+    const typed = s.addManual({ ...lotion, itemName: "My aunt's lotion" });
+    const saved = () => persistence.save.mock.calls.at(-1)?.[0].items ?? [];
+    expect(saved().find((i) => i.itemId === read)?.read.itemName).toBe("Lotion or cream");
+    expect(saved().find((i) => i.itemId === typed)?.read.itemName).toBe("My aunt's lotion");
+    expect(JSON.stringify(saved())).not.toContain("ACME");
+    expect(s.getState().items.find((i) => i.itemId === read)?.read.itemName).toBe(lotion.itemName);
+    expect(remembered["names-box"]?.[read]).toBe(lotion.itemName);
+    // A reload on this device gets the real name back from the device, not from the server.
+    const back = createBoxStore({ edition: () => ed, persistence: spyPersistence({ items: saved() }), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    await back.ready;
+    expect(back.getState().items.find((i) => i.itemId === read)?.read.itemName).toBe(lotion.itemName);
+    // After consent the model's name is saved.
+    s.setConsent(true);
+    expect(saved().find((i) => i.itemId === read)?.read.itemName).toBe(lotion.itemName);
+  });
+
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
     const s = store();
     expect(s.getState().destinationCode).toBe("CA");

@@ -18,6 +18,7 @@ import { firestorePersistence, persistenceAfterSignIn } from "../data/persistenc
 import { saveCrop } from "../data/crops";
 import { currentBoxId, localPersistence } from "../data/localPersistence";
 import { browserConsentChannel } from "../data/consentChannel";
+import { deviceNames } from "../data/deviceNames";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import { ensureSignedIn, FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
 import type { AI } from "firebase/ai";
@@ -56,6 +57,7 @@ function buildDeps(): PackDeps | Error {
       newId,
       boxId: currentBoxId(localStorage, newId),
       consentChannel: browserConsentChannel(),
+      deviceNames: deviceNames(localStorage),
     });
     // One set of models per pair of model names, so a Remote Config change builds them once.
     const byName = new Map<string, ItemModels>();

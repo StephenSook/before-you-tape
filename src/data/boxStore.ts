@@ -1,6 +1,7 @@
 // The box: local-first, with verdicts always derived (plan Task 18). Every change re-runs evaluateBox, so
 // a verdict is never read back from storage. Label text stays in memory and with the crop on this device;
 // the copy handed to persistence carries only the tags found in it.
+import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
 import { resolveDestination } from "../engine/edition";
@@ -58,6 +59,12 @@ export interface BoxPersistence {
   saveConsent?(boxId: string, consent: boolean | null): void;
 }
 
+// The model's own item names, kept on this device while the server has only category names.
+export interface DeviceNames {
+  remember(boxId: string, names: Record<string, string>): void;
+  recall(boxId: string): Record<string, string>;
+}
+
 // A consent change for one box, sent to this browser's other tabs.
 export interface ConsentMessage { boxId: string; consent: boolean | null }
 export interface ConsentChannel {
@@ -101,6 +108,7 @@ export interface BoxStoreDeps {
   clock?: () => number;
   // Reaches this browser's other tabs, so a consent change made in one holds in all of them at once.
   consentChannel?: ConsentChannel;
+  deviceNames?: DeviceNames;
 }
 
 const DEFAULT_DESTINATION = "CA";
@@ -117,10 +125,13 @@ const EMPTY_CUSTOMS: CustomsLine = { description: "", lintOk: false, weightOz: n
 const clampQuantity = (n: number) => (Number.isFinite(n) ? Math.min(99, Math.max(1, Math.round(n))) : 1);
 
 // The copy that leaves memory: no label text, read or corrected; the tags stand in for it.
-function forStorage(item: BoxItem): BoxItem {
+// Before cloud consent the server gets a plain category name in place of the model's own name, which can
+// repeat the label's words; the real name stays on this device. A name the sender typed is theirs and kept.
+function forStorage(item: BoxItem, consented: boolean): BoxItem {
   const { labelText: _dropped, ...overrides } = item.overrides;
   void _dropped;
-  return { ...item, read: { ...item.read, labelText: "" }, overrides };
+  const itemName = consented || item.readSource === "manual" ? item.read.itemName : CATEGORY_LABELS[item.read.category];
+  return { ...item, read: { ...item.read, labelText: "", itemName }, overrides };
 }
 
 export function createBoxStore(deps: BoxStoreDeps): BoxStore {
@@ -148,7 +159,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
 
   const commit = (result: BoxResult = evaluate()) => {
     state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors };
-    deps.persistence.save({ ...state, items: items.map(forStorage) });
+    const consented = cloudConsent === true;
+    deps.persistence.save({ ...state, items: items.map((i) => forStorage(i, consented)) });
+    if (!consented) deps.deviceNames?.remember(boxId, Object.fromEntries(items.filter((i) => i.readSource !== "manual").map((i) => [i.itemId, i.read.itemName])));
     for (const l of listeners) l(state);
   };
   const update = (itemId: string, change: (item: BoxItem) => BoxItem) => {
@@ -170,7 +183,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
     const known = new Set(items.map((i) => i.itemId));
-    items = [...inAddedOrder((saved.items ?? []).filter((i) => !known.has(i.itemId))), ...items];
+    // Names kept on this device replace the category names the server got before consent.
+    const names = deps.deviceNames?.recall(boxId) ?? {};
+    const withNames = (saved.items ?? []).map((i) => {
+      const name = names[i.itemId];
+      return name === undefined ? i : { ...i, read: { ...i.read, itemName: name } };
+    });
+    items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
     if (saved.cloudConsent !== undefined && !consentChosenHere) cloudConsent = saved.cloudConsent;
     // A box saved before a count existed starts that count at 0.

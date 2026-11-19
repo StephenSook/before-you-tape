@@ -5,6 +5,8 @@ import { doc, getDoc, getDocs, collection, updateDoc, type Firestore } from "fir
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem, BoxState } from "../../src/data/boxStore";
 import { firestorePersistence } from "../../src/data/persistence";
+import { createBoxStore } from "../../src/data/boxStore";
+import { ed } from "../engine/helpers";
 
 let env: RulesTestEnvironment;
 beforeAll(async () => {
@@ -121,5 +123,17 @@ describe("firestorePersistence", () => {
     bob.save(state([item("i9")]));
     await bob.idle();
     expect(bob.lastError()).toMatch(/permission/i);
+  });
+
+  it("keeps the model's own words for an item out of Firestore before cloud consent", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    const store = createBoxStore({ edition: () => ed, persistence: p, now: () => 0, today: () => "2026-11-20", newId: () => "item-1", boxId: "b2" });
+    await store.ready;
+    store.addRead({ read: { ...item("x").read, itemName: "SECRET LABEL WORDS LOTION", category: "lotion_cream" }, source: "on_device", ms: 1, route: "device_only", recoveredFrom: null }, "k");
+    await p.idle();
+    const items = (await admin((d) => getDocs(collection(d, "boxes/b2/items")))).docs.map((d) => d.data());
+    expect(items).toHaveLength(1);
+    expect(JSON.stringify(items)).not.toContain("SECRET");
+    expect(items[0]?.read?.itemName).toBe("Lotion or cream");
   });
 });
