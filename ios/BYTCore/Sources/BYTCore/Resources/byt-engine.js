@@ -721,6 +721,25 @@ var BYT = (() => {
     return hits;
   }
 
+  // src/engine/types.ts
+  var DISPUTE_FIELDS = [
+    "category",
+    "retailBox",
+    "battery",
+    "lithiumGrams",
+    "batteryWords",
+    "liquid",
+    "pressurized",
+    "alcoholOnLabel",
+    "flammableOnLabel",
+    "glassContainer",
+    "powder",
+    "labelTags"
+  ];
+  function openDisputes(disputes) {
+    return DISPUTE_FIELDS.filter((f) => disputes?.[f] !== void 0 && disputes[f].resolved !== true);
+  }
+
   // src/engine/predicates.ts
   function factAt(facts, path) {
     let value = facts;
@@ -886,6 +905,14 @@ var BYT = (() => {
     url: RULES_PAGE,
     text: "We're not sure what this is. Fix the reading or type what it is."
   };
+  var DISPUTE_HIT = {
+    ruleId: "DATA-DISPUTE",
+    layer: "data",
+    level: "check",
+    section: "Before You Tape: two reads disagree",
+    url: RULES_PAGE,
+    text: "The two reads of this item disagree. Choose the reading that matches it."
+  };
   var BAD_QUANTITY_HIT = {
     ruleId: "DATA-BAD-QUANTITY",
     layer: "data",
@@ -925,6 +952,7 @@ var BYT = (() => {
       const facts = deriveFacts(input, edition2);
       const hits = [];
       if (!goodQuantity) hits.push(BAD_QUANTITY_HIT);
+      if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
       if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
       if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
       hits.push(...evaluateItemRules(facts, edition2.rules));
@@ -1060,6 +1088,12 @@ var BYT = (() => {
       }
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
+      }
+      if (o.disputes !== void 0) {
+        for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {
+          if (!DISPUTE_FIELDS.includes(k)) throw new BadInputError(`${id}.disputes.${k} is not a fact two reads can dispute`);
+          if (typeof plain(v, `${id}.disputes.${k}`).resolved !== "boolean") throw new BadInputError(`${id}.disputes.${k}.resolved must be true or false`);
+        }
       }
     });
     return raw;

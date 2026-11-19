@@ -5,7 +5,7 @@
 import { canonicalJson, parseEdition, resolveDestination } from "../engine/edition";
 import { evaluateDestination } from "../engine/destination";
 import { labelTagsOf } from "../engine/facts";
-import type { BoxItemInput, DestinationEdition, ItemAnswers, ItemFacts, RuleEdition } from "../engine/types";
+import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type ItemAnswers, type ItemFacts, type RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
 import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
 
@@ -125,6 +125,13 @@ function checkItems(raw: unknown): BoxItemInput[] {
     }
     if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
       throw new BadInputError(`${id}.labelTags must be a list of strings`);
+    }
+    // Optional. Only whether each dispute is settled changes a verdict, so that is what must be well formed.
+    if (o.disputes !== undefined) {
+      for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {
+        if (!(DISPUTE_FIELDS as readonly string[]).includes(k)) throw new BadInputError(`${id}.disputes.${k} is not a fact two reads can dispute`);
+        if (typeof plain(v, `${id}.disputes.${k}`).resolved !== "boolean") throw new BadInputError(`${id}.disputes.${k}.resolved must be true or false`);
+      }
     }
   });
   return raw as BoxItemInput[];
