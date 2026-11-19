@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): an item saved before tag editions were kept is never OK from its saved tags
+- What: an item from a box saved before the iPhone recorded which edition read its label had no
+  edition, and that counted as current, so its old tags could still give "OK to pack" under a new
+  edition. An unknown edition now counts as another edition's: the item shows "Check this" with
+  "An earlier version of this app saved this item. Photograph or type the label again." An item
+  read with no label words records "" and is never asked for a label, since no edition changes
+  its tags. An item another device wrote is taken as tagged under the edition both follow.
+- Source: review.
+- Verified: a restored box with the tag edition removed shows "Check this" with that reason; an
+  item with no label words stays OK under a new edition. The tests failed to compile, then
+  passed; 121 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): clearing the label words no longer clears "We're not sure what this is"
 - What: any change to the label words counted as the sender saying what the item is, so clearing
   the label of an unsure item set the sender's evidence, confirmed it and could turn "Check this"

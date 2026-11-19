@@ -86,6 +86,35 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         #expect(same.result?.items[id]?.level == "ok")
     }
 
+    /// A box saved before the iPhone kept which edition read each label: where its tags came from is
+    /// unknown, so a saved item never shows OK from them until its label is read again.
+    @Test func aBoxSavedBeforeTagEditionsWereKeptNeverShowsOKFromItsTags() throws {
+        let p = MemoryBoxPersistence()
+        let first = try store(p)
+        let id = first.addManual(Self.lotion)
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(try #require(p.saved.last))) as! [String: Any]
+        json["items"] = (json["items"] as! [[String: Any]]).map { var item = $0; item["tagsEdition"] = nil; return item }
+        let older = try JSONDecoder().decode(BoxSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(older.items.first?.tagsEdition == nil)
+        let restored = try store(MemoryBoxPersistence(stored: older))
+        restored.load()
+        let verdict = try #require(restored.result?.items[id])
+        #expect(verdict.level == "check" && verdict.hits.first?.text == BoxStore.labelUnknown)
+    }
+
+    /// An item read with no label words has tags that no edition changes: it is not asked for a label.
+    @Test func anItemWithNoLabelWordsIsNotAskedForThemUnderANewEdition() throws {
+        let p = MemoryBoxPersistence()
+        let first = try store(p)
+        let id = first.addManual(Self.shirt)
+        #expect(first.items.first?.tagsEdition == "" && first.result?.items[id]?.level == "ok")
+        let engine = try Self.bundledEngine()
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        let restored = try store(MemoryBoxPersistence(stored: p.saved.last), engine: engine)
+        restored.load()
+        #expect(restored.result?.items[id]?.level == "ok")
+    }
+
     /// While the label is still in memory, a newer edition reads it again, and its tags are saved.
     @Test func aNewEditionReadsTheLabelAgainWhileItIsInMemory() throws {
         let p = MemoryBoxPersistence()

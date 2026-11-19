@@ -42,8 +42,9 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// "sender" or "second_look"; nil until someone confirms what the item is.
     var identityConfirmedBy: String?
     var labelTags: [String] = []
-    /// The rule edition whose label words made `labelTags`; nil when there was no label text, so the
-    /// tags do not depend on the edition. Kept on this iPhone only.
+    /// The rule edition whose label words made `labelTags`; "" when there was no label text, so the
+    /// tags do not depend on the edition; nil when unknown (a box saved before this was kept), which
+    /// counts as another edition's. Kept on this iPhone only.
     var tagsEdition: String?
     /// "phone_on_device", "phone_cloud", "manual", or a value another device wrote.
     var readSource: String
@@ -145,6 +146,8 @@ final class BoxStore {
     static let defaultDestination = "CA"
     /// Why a saved item is checked again: another edition read its label, and the label text was not kept.
     static let rulesChanged = "The rules changed since this label was read. Photograph or type the label again."
+    /// The same, for an item saved before the iPhone kept which edition read its label.
+    static let labelUnknown = "An earlier version of this app saved this item. Photograph or type the label again."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -218,7 +221,10 @@ final class BoxStore {
         for tag in tags(item.read["labelText"]) + tags(item.overrides["labelText"]) where !item.labelTags.contains(tag) {
             item.labelTags.append(tag)
         }
-        if let label = labelInMemory(item) { item.tagsEdition = tagsEdition(.string(label)) }
+        // Another device wrote these tags with the edition both devices follow.
+        if let label = labelInMemory(item) { item.tagsEdition = tagsEdition(.string(label)) } else if item.tagsEdition == nil {
+            item.tagsEdition = engine.editionId
+        }
         if let i = items.firstIndex(where: { $0.itemId == item.itemId }) { items[i] = item } else { items.append(item) }
         commit()
     }
@@ -312,8 +318,10 @@ final class BoxStore {
     }
 
     private func isStale(_ item: BoxItem) -> Bool {
-        guard let tagged = item.tagsEdition, let current = engine.editionId else { return false }
-        return tagged != current
+        guard let current = engine.editionId else { return false }
+        // Unknown provenance counts as another edition's; no label words depend on no edition.
+        guard let tagged = item.tagsEdition else { return true }
+        return !tagged.isEmpty && tagged != current
     }
 
     /// The label text this iPhone still holds (a corrected label wins), if any.
@@ -344,7 +352,8 @@ final class BoxStore {
             guard var verdict = result.items[item.itemId], verdict.level == "ok" else { continue }
             verdict.level = "check"
             verdict.headline = "Check this"
-            verdict.hits.insert(RuleHit(ruleId: "DATA-LABEL-AGAIN", layer: "data", level: "check", text: Self.rulesChanged,
+            verdict.hits.insert(RuleHit(ruleId: "DATA-LABEL-AGAIN", layer: "data", level: "check",
+                                        text: item.tagsEdition == nil ? Self.labelUnknown : Self.rulesChanged,
                                         section: "Before You Tape: reading check", url: "https://before-you-tape-2026.web.app/rules"),
                                 at: 0)
             result.items[item.itemId] = verdict
@@ -355,7 +364,7 @@ final class BoxStore {
     }
 
     private func tagsEdition(_ label: JSONValue?) -> String? {
-        guard case let .string(text)? = label, !text.isEmpty else { return nil }
+        guard case let .string(text)? = label, !text.isEmpty else { return "" }
         return engine.editionId
     }
 
