@@ -42,6 +42,37 @@ describe("localPersistence", () => {
     expect(await localPersistence(localStorage).load("bad")).toBeNull();
   });
 
+  describe("explicit operations", () => {
+    const meta = { destinationCode: "PH", sources: { onDevice: 0, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 }, lastRecheckMs: null };
+    const box = (id: string) => ({ itemId: id, read: { ...read, labelText: "" }, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
+      labelTags: [], readSource: "manual" as const, readMs: 0, secondLook: null, cropKey: null,
+      customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null } });
+
+    it("tells a missing box from a found one", async () => {
+      const p = localPersistence(localStorage);
+      expect(await p.loadBox("b1")).toEqual({ status: "missing" });
+      await p.putMeta("b1", meta);
+      const r = await p.loadBox("b1");
+      expect(r.status === "found" && r.box.destinationCode).toBe("PH");
+    });
+
+    it("applies each operation to the box as stored now, so two tabs' items both stay", async () => {
+      const tabA = localPersistence(localStorage);
+      const tabB = localPersistence(localStorage);
+      await tabA.putMeta("b1", meta);
+      await tabA.putItem("b1", box("a"));
+      await tabB.putItem("b1", box("b"));
+      await tabA.putItem("b1", { ...box("a"), quantity: 2 });
+      await tabB.deleteItem("b1", "zz");
+      const r = await tabB.loadBox("b1");
+      expect(r.status === "found" && r.box.items?.map((i) => [i.itemId, i.quantity])).toEqual([["a", 2], ["b", 1]]);
+      await tabA.deleteItem("b1", "b");
+      const r2 = await tabA.loadBox("b1");
+      expect(r2.status === "found" && r2.box.items?.map((i) => i.itemId)).toEqual(["a"]);
+      expect(r2.status === "found" && r2.box.destinationCode).toBe("PH");
+    });
+  });
+
   it("gives the same box id on every visit until it is cleared", () => {
     const first = currentBoxId(localStorage, () => "new-id");
     expect(first).toBe("new-id");

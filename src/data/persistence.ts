@@ -3,9 +3,10 @@
 // its owner as the only member; later saves merge only the box's contents and never send membership, so a
 // phone that joined is never undone. Saves never wait: Firestore queues them, offline too.
 import { collection, deleteField, doc, getDoc, getDocs, runTransaction, setDoc, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
+import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
 import type { BoxItem, BoxPersistence, BoxState } from "./boxStore";
 
-export interface FirestorePersistence extends BoxPersistence {
+export interface FirestorePersistence extends BoxPersistence, BoxOps {
   // Told after each save which items did not save (an empty set once they all have).
   onUnsaved(listener: (ids: ReadonlySet<string>) => void): void;
   // Resolves when every write started so far has finished; for tests and for leaving the page.
@@ -110,7 +111,50 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     known = now;
   };
 
+  // The box document: created with its owner as the only member, or merged with only its details.
+  const putMeta = async (boxId: string, meta: BoxMeta) => {
+    const box = doc(db, "boxes", boxId);
+    const content = { ...meta, editionId: edition() };
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(box);
+      if (snap.exists()) tx.set(box, { ...content, cloudConsent: deleteField() }, { merge: true });
+      else tx.set(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
+    });
+    exists = true;
+  };
+  // One item and its disputes in one batch; with no disputes, any old disputes document goes.
+  const putItem = async (boxId: string, item: BoxItem) => {
+    const box = doc(db, "boxes", boxId);
+    const disputes = item.disputes !== undefined && Object.keys(item.disputes).length > 0 ? item.disputes : undefined;
+    const written = itemDoc(item);
+    const batch = writeBatch(db);
+    batch.set(doc(box, "items", item.itemId), written);
+    if (disputes) batch.set(doc(box, "disputes", item.itemId), { ...disputes, itemRev: revisionOf(written) });
+    else batch.delete(doc(box, "disputes", item.itemId));
+    await batch.commit();
+  };
+  const deleteItem = async (boxId: string, itemId: string) => {
+    const box = doc(db, "boxes", boxId);
+    const batch = writeBatch(db);
+    batch.delete(doc(box, "items", itemId));
+    batch.delete(doc(box, "disputes", itemId));
+    await batch.commit();
+  };
+  const loadBoxResult = async (boxId: string): Promise<LoadResult> => {
+    try {
+      const snap = await getDoc(doc(db, "boxes", boxId));
+      if (!snap.exists()) return { status: "missing" };
+      return { status: "found", box: await readItems(boxId, snap.data() as Partial<BoxState>) };
+    } catch (e) {
+      return { status: "failed", error: message(e) };
+    }
+  };
+
   return {
+    loadBox: loadBoxResult,
+    putMeta,
+    putItem,
+    deleteItem,
     save(state) {
       queue = queue.then(() => write(state)).then(() => { error = null; }, (e: unknown) => { error = message(e); });
     },
@@ -124,22 +168,27 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     onUnsaved: (listener) => { unsavedListeners.add(listener); },
   };
 
+  // The box's items, each with its disputes when they were written together (else reopened).
+  async function readItems(boxId: string, d: Partial<BoxState>): Promise<Partial<BoxState>> {
+    const readBoth = () => Promise.all([getDocs(collection(db, "boxes", boxId, "items")), getDocs(collection(db, "boxes", boxId, "disputes"))]);
+    let [itemDocs, disputeDocs] = await readBoth();
+    // The two queries are not one snapshot: a write between them can pair an item with older disputes. Read
+    // once more before holding anything.
+    if (mismatched(itemDocs, disputeDocs)) [itemDocs, disputeDocs] = await readBoth();
+    const disputes = new Map(disputeDocs.docs.map((x) => [x.id, x.data() as Disputes & { itemRev?: string }]));
+    knownDisputed = new Set([...disputes.keys()]);
+    const items = itemDocs.docs.map((x) => paired(x.data() as BoxItem, disputes.get(x.id)));
+    return { boxId, destinationCode: d.destinationCode, sources: d.sources, lastRecheckMs: d.lastRecheckMs ?? null, items };
+  }
+
   async function loadBox(boxId: string): Promise<Partial<BoxState> | null> {
     try {
       const snap = await getDoc(doc(db, "boxes", boxId));
       if (!snap.exists()) { exists = false; return null; }
       exists = true;
-      const readBoth = () => Promise.all([getDocs(collection(db, "boxes", boxId, "items")), getDocs(collection(db, "boxes", boxId, "disputes"))]);
-      let [itemDocs, disputeDocs] = await readBoth();
-      // The two queries are not one snapshot: a write between them can pair an item with older disputes. Read
-      // once more before holding anything.
-      if (mismatched(itemDocs, disputeDocs)) [itemDocs, disputeDocs] = await readBoth();
-      const disputes = new Map(disputeDocs.docs.map((d) => [d.id, d.data() as Disputes & { itemRev?: string }]));
-      const items = itemDocs.docs.map((d) => paired(d.data() as BoxItem, disputes.get(d.id)));
-      known = new Set(items.map((i) => i.itemId));
-      knownDisputed = new Set([...disputes.keys()]);
-      const d = snap.data() as Partial<BoxState>;
-      return { boxId, destinationCode: d.destinationCode, sources: d.sources, items };
+      const box = await readItems(boxId, snap.data() as Partial<BoxState>);
+      known = new Set((box.items ?? []).map((i) => i.itemId));
+      return box;
     } catch (e) {
       // Not a member, or offline with nothing cached: there is no box to load.
       error = message(e);
