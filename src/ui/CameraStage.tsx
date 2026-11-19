@@ -182,9 +182,10 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
         {!started && <button type="button" data-testid="start-camera" onClick={() => { setCameraError(null); setStarted(true); }}>Start camera</button>}
         {started && !cameraError && <button type="button" data-testid="check-now" onClick={() => void read(HOLD_ZONE, "check_now")}>Check now</button>}{" "}
         {started && !cameraError && <button type="button" data-testid="stop-camera" onClick={() => { setStarted(false); setEvent(null); }}>Turn off camera</button>}{" "}
-        <label>
-          Add a photo{" "}
-          <input ref={uploadRef} data-testid="upload-input" type="file" accept="image/*" {...(phone ? { capture: "environment" } : {})}
+        {/* A button-styled label; the native picker stays in the page, hidden, so keyboards still reach it. */}
+        <label className="button-like">
+          Add a photo
+          <input ref={uploadRef} data-testid="upload-input" className="visually-hidden" type="file" accept="image/*" {...(phone ? { capture: "environment" } : {})}
             onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
       </p>

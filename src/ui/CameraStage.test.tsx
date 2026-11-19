@@ -12,6 +12,14 @@ const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
 const start = () => userEvent.click(screen.getByRole("button", { name: "Start camera" }));
 
 describe("CameraStage", () => {
+  it("offers Add a photo as a button, with the file picker itself hidden but still reachable", () => {
+    render(<CameraStage openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })} onImage={() => {}} />);
+    const input = screen.getByLabelText("Add a photo");
+    expect(input).toHaveAttribute("type", "file");
+    expect(input).toHaveClass("visually-hidden");
+    expect(input.closest("label")).toHaveClass("button-like");
+  });
+
   // jsdom has no media playback; the stage only asks the video to play.
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
 

@@ -47,6 +47,13 @@ describe("PackPage", () => {
   });
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  it("says what it is for in one line, and points judges at the sample box", () => {
+    setup();
+    expect(screen.getByRole("heading", { level: 1, name: "Check a box before you tape it" })).toBeInTheDocument();
+    expect(screen.getByTestId("purpose")).toHaveTextContent("Show each item, and see if it may go in the box to the country you pick.");
+    expect(screen.getByRole("link", { name: "Judges: start here" })).toHaveAttribute("href", "/judge");
+  });
+
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true } });
     await addPhoto();

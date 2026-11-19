@@ -239,6 +239,9 @@ export function PackPage(p: PackPageProps) {
   const suspensionChecked = `Post office suspension list checked ${edition.suspensions.checkedOn}`;
   return (
     <div className="pack-page">
+      <h1>Check a box before you tape it</h1>
+      <p data-testid="purpose" className="purpose">Show each item, and see if it may go in the box to the country you pick.</p>
+      <p><a className="judge-link" href="/judge">Judges: start here</a></p>
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
