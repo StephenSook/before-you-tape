@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: the live link and /judge come first, then how it works in four steps with file pointers, the setup order, every check CI runs, what the release gate checks, and a dated dependency audit. The limited-use token line now names the exact call and option. Source: review. Verified: each claim checked against the code and workflows; every linked file and anchor exists; tone and hygiene pass.
 - **The Android CI job also runs when the item contract or the Remote Config template changes.**
   `BoxDocsContractTest` reads `tests/contracts/box-docs.json` and `RcDefaultsTest` reads
   `remoteconfig.template.json`, but neither path triggered `android.yml`, so a change to either could
