@@ -2,7 +2,8 @@
 // robots.txt and llms.txt are plain text, the models page still lists each allowed model with no Gemini
 // Developer API shutdown before the window ends, and Firebase AI Logic refuses a call that carries the
 // public web key but no App Check token. The two app-link files the phones verify are the repository's,
-// served as JSON with no redirect. Retires itself after the last judging day.
+// served as JSON with no redirect, and the two join callables refuse a call with no App Check token.
+// Retires itself after the last judging day.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -60,6 +61,17 @@ export function appLinkFile(
   return { ok: r.status === 200 && !r.redirected && json && same, detail };
 }
 
+const FUNCTIONS = "https://us-central1-before-you-tape-2026.cloudfunctions.net";
+const CALLABLES = ["startJoin", "joinBox"] as const;
+
+// A callable enforces App Check only if a call with no token gets its own refusal; any answer, a missing
+// function, or another refusal does not show it.
+export function callableRefusal(status: number, body: unknown): { ok: boolean; detail: string } {
+  const s = (body as { error?: { status?: unknown } } | null)?.error?.status;
+  const text = typeof s === "string" ? s : "no error status";
+  return { ok: status === 401 && text === "UNAUTHENTICATED", detail: `HTTP ${status}: ${text}` };
+}
+
 async function get(url: string): Promise<Response> {
   return fetch(url, { headers: { "Cache-Control": "no-cache", "User-Agent": "before-you-tape-probe" }, signal: AbortSignal.timeout(20_000) });
 }
@@ -104,6 +116,15 @@ async function main(): Promise<void> {
       return appLinkFile({ status: r.status, redirected: r.redirected, contentType: r.headers.get("content-type"), body: await r.text() }, expected);
     });
   }
+  for (const name of CALLABLES) {
+    await check(`${name} refuses a call with no App Check token`, async () => {
+      const r = await fetch(`${FUNCTIONS}/${name}`, {
+        method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "before-you-tape-probe" },
+        body: JSON.stringify({ data: { boxId: "probe" } }), signal: AbortSignal.timeout(20_000),
+      });
+      return callableRefusal(r.status, await r.json().catch(() => null));
+    });
+  }
   // The public web key and the site as referrer, and no App Check token: the call must be refused.
   await check("AI Logic refuses a call with no App Check token", async () => {
     const key = process.env.PROBE_API_KEY?.trim();
@@ -122,7 +143,7 @@ async function main(): Promise<void> {
   for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${r.check}: ${r.detail}`);
   const failed = results.filter((r) => !r.ok).length;
   console.log(`probe: ${results.length} checks, ${failed} failed`);
-  if (failed > 0 || results.length < 5 + APP_LINK_FILES.length + CLOUD_MODELS.length) process.exit(1);
+  if (failed > 0 || results.length < 5 + APP_LINK_FILES.length + CALLABLES.length + CLOUD_MODELS.length) process.exit(1);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

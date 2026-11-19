@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appCheckRefusal, appLinkFile, isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
+import { appCheckRefusal, appLinkFile, callableRefusal, isPlainText, modelStatus, PROBE_RETIRES_AFTER, probeRetired } from "./probe-live";
 
 const page = [
   "| **Model** | **Gemini Developer API** | **Agent Platform Gemini API** |",
@@ -78,5 +78,14 @@ describe("appLinkFile", () => {
     expect(appLinkFile(served({ contentType: "application/octet-stream" }), file).ok).toBe(false);
     expect(appLinkFile(served({ body: "[]" }), file).ok).toBe(false);
     expect(appLinkFile(served({ body: "<!doctype html>" }), file)).toMatchObject({ ok: false, detail: expect.stringContaining("not the repository's file") });
+  });
+});
+
+describe("callableRefusal", () => {
+  it("passes only the callable's own refusal of a call with no App Check token", () => {
+    expect(callableRefusal(401, { error: { message: "Unauthenticated", status: "UNAUTHENTICATED" } }).ok).toBe(true);
+    expect(callableRefusal(200, { result: { boxId: "b" } }).ok).toBe(false);
+    expect(callableRefusal(404, null).ok).toBe(false);
+    expect(callableRefusal(401, { error: { status: "PERMISSION_DENIED" } }).ok).toBe(false);
   });
 });
