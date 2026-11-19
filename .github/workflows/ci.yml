@@ -86,10 +86,10 @@ jobs:
         timeout-minutes: 6
         run: npx playwright install chromium
 
-      # The built app in a real browser: it starts, and every camera-stage control is readable.
-      # These need no App Check token; the specs that do wait for a CI debug token.
+      # The built app in a real browser: it starts, every camera-stage control is readable, and /judge works
+      # with no request to a Google API. These need no App Check token.
       - name: Browser checks on the built app
-        run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts
+        run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts
 
       - name: Tone check
         run: npm run tone

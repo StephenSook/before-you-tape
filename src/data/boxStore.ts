@@ -232,8 +232,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     addManual(read) {
       const itemId = deps.newId();
+      // A typed item is the sender's own word; a ticked alcohol line is kept as theirs, so it is not asked again.
       items = [...items, {
-        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
+        itemId, read, overrides: read.alcoholOnLabel ? { alcoholOnLabel: true } : {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
         addedAt: clock(),
       }];

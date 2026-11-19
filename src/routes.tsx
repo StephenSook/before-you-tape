@@ -1,7 +1,11 @@
 import type { ReactElement } from "react";
 import { Route, Routes } from "react-router-dom";
+import { AboutPage } from "./pages/AboutPage";
 import { BlindRoute } from "./pages/BlindRoute";
+import { JudgeRoute } from "./pages/JudgeRoute";
 import { PackRoute } from "./pages/PackRoute";
+import { RanPage } from "./pages/RanPage";
+import { RulesRoute } from "./pages/RulesRoute";
 
 interface PageRoute {
   path: string;
@@ -37,7 +41,7 @@ export function routePaths(dev: boolean): string[] {
 }
 
 // Routes with a built page; the others show their title until their page lands.
-const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/blind/:token": <BlindRoute /> };
+const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/about": <AboutPage />, "/rules": <RulesRoute />, "/ran": <RanPage />, "/blind/:token": <BlindRoute /> };
 
 // The public pages that are built, for lists that must never point at a stub.
 export function builtPagePaths(): string[] {

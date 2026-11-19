@@ -58,6 +58,14 @@ describe("createBoxStore", () => {
     expect(s.getState().lastRecheckMs).toBeNull();
   });
 
+  it("keeps what the sender ticked on a typed item as their own word, so a ticked alcohol line is not asked again", () => {
+    const s = store();
+    const id = s.addManual({ ...perfumeLabelRead, labelText: "", alcoholOnLabel: true });
+    expect(s.getState().items[0]?.overrides).toEqual({ alcoholOnLabel: true });
+    expect(s.getState().result.items[id]?.level).toBe("take_out");
+    expect(s.getState().result.items[id]?.question).toBeNull();
+  });
+
   it("late read uses current destination", () => {
     const s = store();
     s.setDestination("PH");

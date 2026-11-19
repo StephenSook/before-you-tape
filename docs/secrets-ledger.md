@@ -32,7 +32,7 @@ States: VERIFIED (read back from the service), PENDING (not done or not yet conf
 | App Check for the Android app | Play Integrity provider registered for app `1:481254717481:android:d6d36d3b475193c2740438`: token TTL 3600 s, minimum device recognition NO_INTEGRITY (the default); Play Integrity and App Check APIs enabled. Not enforced for this app until a real release APK passes with a Play Integrity token | VERIFIED registered (read back); PENDING: the Play Console app, linking the Cloud project under App integrity, and the outside-Google-Play recognition setting, all Stephen's steps | 2026-11-18 |
 | App Check on the iPhone app | App Attest provider registered (token time to live 3600 s) for Apple team `Y8XVCMLQCZ`; debug provider in debug builds only | VERIFIED: registered and read back through the App Check API (`appAttestConfig`, token time to live 3600 s); a token from a real device is PENDING (first device run) | 2026-11-18 |
 | Anonymous sign-in | Enabled; authorized domains are the two hosting domains | VERIFIED | 2026-11-18 |
-| Firestore rules | Deny all reads and writes | VERIFIED (deployed rules read back) | 2026-11-18 |
+| Firestore rules | Members only: a box and its items are read and written only by the box's members, against a strict schema; membership and join keys change only through the Admin SDK; published rule editions, eval sets and public stats are readable by signed-in users; everything else is denied | VERIFIED (deployed rules read back) | 2026-11-18 |
 | APIs for the deploy identity | `iam`, `iamcredentials` and `sts.googleapis.com` enabled on the project | VERIFIED | 2026-11-18 |
 
 ## Accounts and MFA
