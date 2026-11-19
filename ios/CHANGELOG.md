@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### docs(ios): the README says the box stays on the phone until joining ships
+- What: the README said the iPhone app joins the same box as the web app. It does not yet: the
+  box is kept on the phone only, and joining a box started in the web app is not built. The README
+  now says so.
+- Source: review (whole-repo check).
+- Verified: no join call exists in the iPhone app (`grep -rn "joinBox\|startJoin\|/join/" ios/BYT`
+  finds nothing); the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): a build without its Firebase settings file shows a plain screen instead of crashing
 - What: GoogleService-Info.plist is not in the repo, and the app called FirebaseApp.configure()
   unconditionally, which raises when the file is missing (FIRApp.m in the Firebase SDK), so a fresh
