@@ -11,9 +11,7 @@ struct BoxView: View {
                 Section { DestinationPicker(destinations: model.destinations, box: box) }
                 Section("Your box") {
                     BoxSummaryView(box: box)
-                    if let problem = box.saveProblem {
-                        Text(problem).foregroundStyle(.red).accessibilityIdentifier("box-save-problem")
-                    }
+                    SaveProblemRow(box: box)
                     #if DEBUG
                     if UITestSupport.active {
                         // UI tests read the count of model calls here; release builds have no such line.

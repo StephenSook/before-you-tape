@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a change that could not be saved says so on the check screen too, with a retry
+- What: the "This change is not saved" warning showed only under "Your box", so a photo read whose
+  save failed still looked done on the check screen, where the item was added. The same warning
+  now also shows under the read line on the check screen, and both places offer "Try saving
+  again", which saves the box as it is.
+- Source: review.
+- Verified: a test retries a save while saving fails (the warning stays, nothing is written) and
+  after it works (the warning clears, the box is written); it failed to compile, then passed;
+  127 app unit tests and the UI test pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): every unreadable box file gets its own recovery copy, and one not read yet is left in place
 - What: a second unreadable file for the same box deleted the first recovery copy before moving
   the new one, and any read error (also a locked iPhone) moved the file aside. Now a file that was

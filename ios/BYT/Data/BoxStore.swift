@@ -281,6 +281,9 @@ final class BoxStore {
         if refreshStaleTags() { commit() } else { result = evaluate() }
     }
 
+    /// The sender's "Try saving again": saves the box as it is now, with nothing changed.
+    func retrySave() { commit(result) }
+
     func setConsent(_ value: Bool?) {
         cloudConsent = value
         commit(result)

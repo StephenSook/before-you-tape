@@ -151,7 +151,11 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
 
     final class FailingPersistence: BoxPersistence, @unchecked Sendable {
         var failing = true
-        func save(_ snapshot: BoxSnapshot) throws { if failing { throw BoxFiles.SaveError(BoxFiles.tooLarge) } }
+        private(set) var saved: [BoxSnapshot] = []
+        func save(_ snapshot: BoxSnapshot) throws {
+            if failing { throw BoxFiles.SaveError(BoxFiles.tooLarge) }
+            saved.append(snapshot)
+        }
         func load(boxId: String) -> BoxSnapshot? { nil }
     }
 
@@ -190,6 +194,18 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         p.failing = false
         s.setQuantity(id, 2)
         #expect(s.saveProblem == nil)
+    }
+
+    /// "Try saving again" saves the box as it is, with nothing changed, and clears the warning once it works.
+    @Test func tryingToSaveAgainSavesTheBoxAsItIs() throws {
+        let p = FailingPersistence()
+        let s = try store(p)
+        s.addManual(Self.lotion)
+        s.retrySave()
+        #expect(s.saveProblem == BoxFiles.tooLarge && p.saved.isEmpty)
+        p.failing = false
+        s.retrySave()
+        #expect(s.saveProblem == nil && p.saved.last?.items.count == 1)
     }
 
     @Test func reChecksOnACountryChangeWithNoModelCall() throws {

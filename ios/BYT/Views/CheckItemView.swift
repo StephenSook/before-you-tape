@@ -20,6 +20,8 @@ struct CheckItemView: View {
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("read-line")
                 }
+                // A read that could not be saved says so here, where it was added, not only in the box.
+                if let box = model.box { SaveProblemRow(box: box) }
             }
             .padding()
         }
