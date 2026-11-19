@@ -38,9 +38,10 @@ const NO_DEVICE: ModelPort = {
 
 const ON_DEVICE_PARAMS = () => ({ createOptions: DEVICE_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } });
 
-// The on-device-only models send any request they make to a host that cannot resolve (RFC 2606). Measured: when
-// the on-device model fails to start, the SDK's ONLY_ON_DEVICE mode still sends the read to the cloud. The device
-// guard is the first check; this makes sure such a fallback reaches no server.
+// The on-device-only models send any request they make to a host that cannot resolve (RFC 2606). Measured in a test:
+// with the Prompt API saying its model was available, the SDK's ONLY_ON_DEVICE mode sent the read to the cloud
+// (docs/evidence/on-device-only-request-2026-11-19.md). The device guard is the first check; this makes sure such a
+// request reaches no server.
 export const ON_DEVICE_ONLY_REQUESTS = { baseUrl: "https://on-device-only.invalid" } as const;
 
 const itemCloudParams = (model: string): ModelParams => ({

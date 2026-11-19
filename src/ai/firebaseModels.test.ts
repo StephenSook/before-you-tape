@@ -60,7 +60,8 @@ describe("createItemModels", () => {
       hosts.push(new URL(typeof url === "string" ? url : url instanceof URL ? url.href : url.url).host);
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }));
-    // An on-device model the browser says is there, which then fails to start.
+    // A browser whose Prompt API says its model is available. The SDK has been seen to send the read to the cloud
+    // anyway, without starting the model (docs/evidence/on-device-only-request-2026-11-19.md).
     const lm = { availability: vi.fn(async () => "available"), create: vi.fn(async () => { throw new Error("the model could not start"); }) };
     vi.stubGlobal("LanguageModel", lm);
     const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", lm);
