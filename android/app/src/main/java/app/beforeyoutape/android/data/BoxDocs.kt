@@ -36,7 +36,7 @@ data class BoxHeader(
  * or typed; its tags travel instead.
  */
 object BoxDocs {
-    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs")
+    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs", "addedAt")
     private val EMPTY_CUSTOMS: Map<String, Any?> =
         linkedMapOf("description" to "", "lintOk" to false, "weightOz" to null, "valueUsd" to null, "countryOfOrigin" to null, "upc" to null)
 
@@ -96,6 +96,8 @@ object BoxDocs {
         if ("readFallback" in item.extras) doc["readFallback"] = item.extras["readFallback"]
         doc["cropKey"] = item.extras["cropKey"]
         doc["customs"] = item.extras["customs"] ?: EMPTY_CUSTOMS
+        // The web app stamps addedAt (ms since 1970) on new items; kept as it came.
+        if ("addedAt" in item.extras) doc["addedAt"] = item.extras["addedAt"]
         return doc
     }
 
@@ -114,20 +116,39 @@ object BoxDocs {
         return BoxItem(input, doc["readSource"] as String, (doc["readMs"] as? Number)?.toDouble() ?: 0.0, null, extras)
     }
 
+    /**
+     * A box's items in the order to show them: oldest first by addedAt, then the items with no
+     * addedAt in the order the server gave them (the server returns items by their random ids).
+     */
+    fun sortedForListing(items: List<BoxItem>): List<BoxItem> {
+        fun at(i: BoxItem) = (i.extras["addedAt"] as? Number)?.toLong()?.takeIf { it > 0 }
+        val (dated, undated) = items.partition { at(it) != null }
+        return dated.sortedBy { at(it) } + undated
+    }
+
     fun boxToDoc(h: BoxHeader): Map<String, Any?> = linkedMapOf(
         "ownerUid" to h.ownerUid,
         "memberUids" to h.memberUids,
         "joinKeyHash" to h.joinKeyHash,
         "destinationCode" to h.destinationCode,
         "editionId" to h.editionId,
-        "cloudConsent" to h.cloudConsent,
         "sources" to linkedMapOf(
             "onDevice" to h.sources.onDevice.toLong(), "inCloud" to h.sources.inCloud.toLong(),
             "secondLooks" to h.sources.secondLooks.toLong(), "rulesOnlyRechecks" to h.sources.rulesOnlyRechecks.toLong(),
             "cloudFallbacks" to h.sources.cloudFallbacks.toLong(),
         ),
         "lastRecheckMs" to h.lastRecheckMs?.let(::ms),
-    )
+    ).apply {
+        // Only an old box read back still has a leftover cloudConsent; the phone never sets one.
+        if (h.cloudConsent != null) put("cloudConsent", h.cloudConsent)
+    }
+
+    /**
+     * A first save of a box. Consent lives on each device, so no consent field is written: the
+     * rules refuse a box that carries one.
+     */
+    fun newBoxDoc(ownerUid: String, destinationCode: String, editionId: String): Map<String, Any?> =
+        boxToDoc(BoxHeader(ownerUid, listOf(ownerUid), "", destinationCode, editionId, null, BoxSources(0, 0, 0, 0, 0), null))
 
     fun boxFromDoc(doc: Map<String, Any?>): BoxHeader {
         val s = map(doc["sources"])
