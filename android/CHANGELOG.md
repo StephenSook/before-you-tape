@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Every newer build installs as an update.** `versionCode` is now the HEAD commit's time in
+  epoch seconds (`git log -1 --format=%ct`, read through `providers.exec`), so it rises with each
+  commit; a shallow CI checkout still has its HEAD commit, and with no git the build falls back to
+  1. `android/check-version-code.sh <apk>` reads the APK's versionCode with aapt2 and fails unless it
+  equals the HEAD commit time; `android/release.sh` runs it on the signed file. Source: review (a
+  fixed versionCode of 1 gave every build the same version). Verified: the check failed on the old
+  release APK ("versionCode is 1"), passes on the rebuilt debug APK, and `android/release.sh` exits
+  0 with "check-version-code: versionCode 1795128545 is the HEAD commit time"; the Android guard is
+  clean.
+
 - **The Android guard refuses speech recognition.** Rule 8 in `android/guard.sh` fails on
   `SpeechRecognizer`, `RecognizerIntent` or `RECOGNIZE_SPEECH` in any Kotlin, XML or config file
   under `android/`; the system voice (`TextToSpeech`) stays allowed. This matches the web guard,
