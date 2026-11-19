@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The box repository writes through a small store, local first.** `FirestoreBoxRepository`
+  now makes its writes through `DocStore` (create, set, update, delete by document path, plus
+  the server time and increments), with `FirestoreDocStore` the real one. Only creating a box is
+  awaited; an item, a removal, a destination or counts are sent without waiting, and Firestore's
+  cache holds them while the phone is offline. Watching the box still reads Firestore directly.
+  Source: Android plan Task 10 (`BoxRepositoryTest.anItemReadOfflineIsSentWhenTheLinkReturns`).
+  Verified: `BoxRepositoryTest` (3 tests, against a store that queues writes offline) passes:
+  an item written offline reaches the server when the link returns, with its label text empty
+  and only its category name; a new box carries no consent and the server time; counts go as
+  increments of only what changed. A control where `putItem` sends nothing fails the first test.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A typed name correction never leaves the phone.** The synced item dropped the label text
   and the model's name, but a sender's typed name correction still went out in
   `overrides.itemName`. `BoxLogic.forSync` now drops `itemName` from the synced overrides too,

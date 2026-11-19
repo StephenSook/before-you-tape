@@ -28,35 +28,62 @@ interface BoxRepository {
     fun addCounts(boxId: String, onDevice: Int, inCloud: Int, rulesOnlyRechecks: Int)
 }
 
-class FirestoreBoxRepository : BoxRepository {
-    private val db = Firebase.firestore
-    private fun box(id: String) = db.collection("boxes").document(id)
+/**
+ * The writes the repository makes, by document path ("boxes/{id}/items/{itemId}"). Firestore's own
+ * cache queues them while the phone is offline and sends them when the link returns; only [create]
+ * is awaited.
+ */
+interface DocStore {
+    suspend fun create(collection: String, data: Map<String, Any?>): String
+    fun set(path: String, data: Map<String, Any?>)
+    fun update(path: String, data: Map<String, Any?>)
+    fun delete(path: String)
+    fun serverTime(): Any
+    fun increment(by: Long): Any
+}
 
-    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String {
-        val ref = db.collection("boxes").document()
-        ref.set(BoxDocs.newBoxDoc(ownerUid, destinationCode, editionId) + ("updatedAt" to FieldValue.serverTimestamp())).await()
+class FirestoreDocStore : DocStore {
+    private val db by lazy { Firebase.firestore }
+
+    override suspend fun create(collection: String, data: Map<String, Any?>): String {
+        val ref = db.collection(collection).document()
+        ref.set(data).await()
         return ref.id
     }
 
+    override fun set(path: String, data: Map<String, Any?>) { db.document(path).set(data) }
+    override fun update(path: String, data: Map<String, Any?>) { db.document(path).update(data) }
+    override fun delete(path: String) { db.document(path).delete() }
+    override fun serverTime(): Any = FieldValue.serverTimestamp()
+    override fun increment(by: Long): Any = FieldValue.increment(by)
+}
+
+class FirestoreBoxRepository(private val store: DocStore = FirestoreDocStore()) : BoxRepository {
+    private val db by lazy { Firebase.firestore }
+    private fun box(id: String) = db.collection("boxes").document(id)
+
+    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String =
+        store.create("boxes", BoxDocs.newBoxDoc(ownerUid, destinationCode, editionId) + ("updatedAt" to store.serverTime()))
+
     override fun putItem(boxId: String, item: BoxItem) {
-        box(boxId).collection("items").document(item.input.itemId).set(BoxDocs.itemToDoc(item))
+        store.set("boxes/$boxId/items/${item.input.itemId}", BoxDocs.itemToDoc(item))
     }
 
     override fun removeItem(boxId: String, itemId: String) {
-        box(boxId).collection("items").document(itemId).delete()
+        store.delete("boxes/$boxId/items/$itemId")
     }
 
     override fun setDestination(boxId: String, code: String, recheckAtMs: Long) {
-        box(boxId).update(mapOf("destinationCode" to code, "lastRecheckMs" to recheckAtMs, "updatedAt" to FieldValue.serverTimestamp()))
+        store.update("boxes/$boxId", mapOf("destinationCode" to code, "lastRecheckMs" to recheckAtMs, "updatedAt" to store.serverTime()))
     }
 
     override fun addCounts(boxId: String, onDevice: Int, inCloud: Int, rulesOnlyRechecks: Int) {
-        val changes = buildMap<String, Any> {
-            if (onDevice > 0) put("sources.onDevice", FieldValue.increment(onDevice.toLong()))
-            if (inCloud > 0) put("sources.inCloud", FieldValue.increment(inCloud.toLong()))
-            if (rulesOnlyRechecks > 0) put("sources.rulesOnlyRechecks", FieldValue.increment(rulesOnlyRechecks.toLong()))
+        val changes = buildMap<String, Any?> {
+            if (onDevice > 0) put("sources.onDevice", store.increment(onDevice.toLong()))
+            if (inCloud > 0) put("sources.inCloud", store.increment(inCloud.toLong()))
+            if (rulesOnlyRechecks > 0) put("sources.rulesOnlyRechecks", store.increment(rulesOnlyRechecks.toLong()))
         }
-        if (changes.isNotEmpty()) box(boxId).update(changes + ("updatedAt" to FieldValue.serverTimestamp()))
+        if (changes.isNotEmpty()) store.update("boxes/$boxId", changes + ("updatedAt" to store.serverTime()))
     }
 
     override fun watch(boxId: String): Flow<BoxSnapshot> = callbackFlow {
