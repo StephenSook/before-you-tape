@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### fix(ios): say so when the app's rules will not load, instead of failing every verdict silently
+- What: the app loaded the shipped edition with `try?`, so when the engine refused it (as it did
+  with a stale bundle) the error vanished: the country list still showed while every verdict
+  failed. The engine now counts only once it has loaded the shipped edition; otherwise the app
+  checks nothing and says "This app's rules could not load. Update the app." where the box would be.
+- Source: an engine check on main.
+- Verified: two tests (the shipped edition loads with verdicts and countries; an edition the engine
+  refuses gives that sentence, no box, no engine and no countries) failed to compile, then passed;
+  135 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios): add the ceramic category to the iPhone's reads and its pick list
 - What: main's edition and the web's category list gained "ceramic" ("Ceramic or porcelain (mug,
   plate, vase)") before "other"; the iPhone's guided read and the "Type it" and "Fix this reading"

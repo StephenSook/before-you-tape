@@ -28,7 +28,7 @@ struct BoxView: View {
                 }
                 .onDelete { rows in rows.map { box.items[$0].itemId }.forEach(box.remove) }
             } else {
-                Text("The rules could not load. Reinstall the app.")
+                Text(model.rulesProblem ?? AppModel.rulesFailed)
             }
         }
         .navigationTitle("Your box")
