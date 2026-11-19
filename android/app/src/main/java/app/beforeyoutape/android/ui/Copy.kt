@@ -10,6 +10,8 @@ object Copy {
     const val ALLOW = "Allow"
     const val KEEP_ON_PHONE = "Keep everything on this phone"
     const val FOOTER = "Not affiliated with or approved by the US Postal Service."
+    /** The web app's line for a read of no item (src/pages/PackPage.tsx NO_ITEM). */
+    const val NO_ITEM = "Nothing to check there. Hold one item inside the box."
 
     /** What reads labels on this phone, by the on-device model's status. */
     fun modelSentence(s: app.beforeyoutape.android.ai.DeviceModelStatus): String = when (s) {

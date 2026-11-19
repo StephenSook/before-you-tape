@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A read of no item is dropped, as on the web.** A cloud or on-device read that is unsure,
+  of category `other`, with no label text, no battery, liquid or warning signal and no real name
+  (a camera pointed at a room) was added to the box as an item. `NoItem.isNoItem` now applies the
+  web app's own rule (`src/shared/noItem.ts`), and such a read adds nothing and shows the web's
+  line, "Nothing to check there. Hold one item inside the box." Source: whole-repo review.
+  Verified: `NoItemTest` (the web's own cases, and the name pattern compared with the web file
+  character for character) and `BoxSessionTest.aReadOfNoItemAddsNothing` (which also checks the
+  line is the web's) failed against stubs, then pass. `bash android/ci-local.sh` and the root CI
+  mirror exit 0; GitHub checks are blocked by the Actions budget, so these local runs are the record.
+
 - **Evidence for gate G-A5.** `docs/evidence/android/G-A5.md` records the parity run: on the
   emulator (Android 17), every shared vector passes in the app's runtime (box 29, guards 64,
   destinations 21) and QuickJS equals WebView V8 on 426 inputs (114 vectors, 312 labels), WebView
