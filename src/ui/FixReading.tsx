@@ -17,11 +17,18 @@ export function changedFields(read: ItemRead, d: ReadDraft): Partial<ItemRead> {
   return patch;
 }
 
-export function FixReading({ read, onSave, focusField }: { read: ItemRead; onSave: (patch: Partial<ItemRead>) => void; focusField?: keyof ItemRead }) {
+// The engine's tags that say the label names a battery.
+const BATTERY_TAGS = new Set(["li_ion", "li_metal", "battery_label", "power_bank_label"]);
+
+export function FixReading({ read, onSave, focusField, labelTags = [] }: {
+  read: ItemRead; onSave: (patch: Partial<ItemRead>) => void; focusField?: keyof ItemRead;
+  // The item's label tags, so a battery the label names (a coin cell) shows its numbers.
+  labelTags?: readonly string[];
+}) {
   const [draft, setDraft] = useState<ReadDraft>(() => draftOf(read));
   return (
     <form data-testid="fix-reading" onSubmit={(e) => { e.preventDefault(); onSave(changedFields(read, draft)); }}>
-      <ReadFields draft={draft} onChange={setDraft} focusField={focusField} nameLabel="Name" />
+      <ReadFields draft={draft} onChange={setDraft} focusField={focusField} nameLabel="Name" batteryLabel={labelTags.some((t) => BATTERY_TAGS.has(t))} />
       <button type="submit" disabled={!numbersValid(draft)}>Save</button>
     </form>
   );

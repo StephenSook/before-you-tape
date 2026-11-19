@@ -132,4 +132,14 @@ describe("ItemCard", () => {
     rerender(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
     expect(screen.getByTestId("item-card")).not.toHaveClass("newest");
   });
+
+  it("offers a shortcut to the lithium amount when the verdict needs it", async () => {
+    const watch = item("w", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", evidence: "label_read" },
+      { answers: { battery_installed: "installed" } });
+    const v = verdictFor(watch);
+    expect(v.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-METAL-UNKNOWN");
+    render(<ItemCard item={watch} verdict={v} crop={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Type the lithium amount" }));
+    expect(screen.getByLabelText("Lithium (grams)")).toHaveFocus();
+  });
 });

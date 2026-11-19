@@ -39,6 +39,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
   const reason = verdict.hits[0]?.text;
   const needsIdentity = verdict.hits.some((h) => h.ruleId === "DATA-IDENTITY");
   const needsRating = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH");
+  const needsLithium = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-METAL-UNKNOWN");
   const name = item.overrides.itemName ?? item.read.itemName;
   return (
     <article data-testid="item-card" id={`item-${item.itemId}`} className={newest ? "card newest" : "card"} aria-label={name}>
@@ -55,10 +56,11 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {verdict.question && <QuestionRow question={verdict.question} value={item.answers[verdict.question.id]} onAnswer={(q, a) => onAnswer?.(item.itemId, q, a)} />}
       {needsIdentity && <button type="button" data-testid="confirm-identity" onClick={() => onConfirm?.(item.itemId)}>Yes, this is {name}</button>}
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}
+      {needsLithium && <button type="button" onClick={() => { setFocusField("lithiumGrams"); setFixOpen(true); }}>Type the lithium amount</button>}
       <details open={fixOpen} onToggle={(e) => setFixOpen(e.currentTarget.open)}>
         <summary>Fix this reading</summary>
         {/* Keyed on the overrides, so the form starts again from what the sender sees after each save. */}
-        <FixReading key={JSON.stringify(item.overrides)} read={{ ...item.read, ...item.overrides }} focusField={focusField}
+        <FixReading key={JSON.stringify(item.overrides)} read={{ ...item.read, ...item.overrides }} focusField={focusField} labelTags={item.labelTags}
           onSave={(patch) => { onFix?.(item.itemId, patch); setFixOpen(false); setFocusField(undefined); }} />
       </details>
       <details>
