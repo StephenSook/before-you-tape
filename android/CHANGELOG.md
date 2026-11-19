@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The new "ceramic" item category.** The web app adds a 38th category, `ceramic` ("Ceramic
+  or porcelain (mug, plate, vase)"), just before `other`, with rules that use it. The engine's
+  `ItemCategoryWire` and the typed-item form's `ReadCopy.CATEGORIES` gain it in the same place,
+  so the phone can read, type and sync a ceramic item, and the shared ceramic vectors decode.
+  Source: the web app's rule gaps (batch A). Verified: the contract tests that compare the
+  enum order and the form labels with the web files (`ItemReadWireTest`, `CopyTest`), and the
+  shared vectors (`SharedVectorsTest`, which could not decode `ceramic`), failed first and pass
+  now; the enum size guard moves from 37 to 38.
+
 - **An item whose read leaves out optional fields still loads.** The rules require only
   `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
   may be left out. The phone's decoder required all sixteen, so such an item threw
