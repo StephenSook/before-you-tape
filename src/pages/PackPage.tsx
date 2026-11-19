@@ -122,7 +122,7 @@ export function PackPage(p: PackPageProps) {
   // again, so every decision to use the cloud reads the source itself when there is one.
   const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
   const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: liveConfig ? liveConfig.get().killCloud : config.killCloud, online: p.online });
-  const stillAllowed = () => cloudAllowed({ cloudConsent: store.getState().cloudConsent, killCloud: pausedNow(), online: live.current.online });
+  const stillAllowed = () => !gone.current && cloudAllowed({ cloudConsent: store.getState().cloudConsent, killCloud: pausedNow(), online: live.current.online });
 
   // Reads and second looks that can reach the cloud. Taking back consent or pausing cloud checks aborts
   // them when the change is announced, before the page re-renders; the SDK checks the signal before it
@@ -186,6 +186,8 @@ export function PackPage(p: PackPageProps) {
 
   // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
   const onImage = async (part: ImagePart, how: ImageHow) => {
+    // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
+    if (gone.current) return;
     const route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
     if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), config.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
