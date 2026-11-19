@@ -5,6 +5,106 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(ios): the sender can turn cloud checks off and on, and turning them off stops uploads
+- What: the cloud choice was asked once and could not be changed. The check screen now shows it as
+  the web app does ("Cloud checks are on." with "Turn off cloud checks"; "Cloud checks are off.
+  Photos and label words stay on this iPhone." with "Turn on cloud checks"). Turning them on
+  clears the choice, so the cloud question is asked again before the next cloud call. The choice
+  is now part of the upload gate every cloud runner checks at the moment it would send (with the
+  server's pause): turning cloud checks off cancels an upload still running, refuses new ones,
+  and the line says "Cloud checks are off, so this was not checked." The gate is refreshed at
+  start, on new settings, on the answer to the question, on the switch, and before every read.
+- Source: review (whole-repo check).
+- Verified: a test runs an upload through the app's own gate, turns cloud checks off while it
+  waits for its token (cancelled, nothing sent), checks a new upload is refused, then turns them
+  on (choice cleared, gate still closed until the question is answered). Other tests cover the
+  lines and that known settings alone do not open the gate. They failed to compile before the
+  change and pass after. 144 unit tests pass; the CI mirror `bash ios/scripts/ci-local-ios.sh`
+  exit 0, UI test included. The new row was not checked by eye on the simulator.
+
+### fix(ios): cloud checks wait until Remote Config gives its own kill switch, as in the web app
+- What: the app started on its built-in defaults, where kill_cloud is off, and only later fetched
+  Remote Config, so a photo taken before the fetch (or with every fetch failing) could go to the
+  cloud while the server had paused it. Now, as in the web app, cloud checks stay held until
+  kill_cloud comes from Remote Config itself (fetched now, or fetched before and kept). The app
+  starts held, with the pause switch closed. A photo then says "Checking a photo needs the cloud,
+  and cloud checks are waiting for their settings. Try again in a moment." Label words are still
+  read on this iPhone.
+- Source: review (whole-repo check).
+- Verified: tests for the held rule (held until the server's value, unchanged after it), for a
+  fresh app (no cloud call, the waiting words, then a cloud read once settings arrive), for words
+  read on this iPhone while held, and for the pause switch starting closed. They failed to compile
+  before the change and pass after. Tests that model settings already fetched now pass them
+  explicitly. 142 unit tests pass; the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0, UI test
+  included.
+
+### fix(ios): a photo of no item is not added to the box, as the web app drops it
+- What: a photo of a room, or of nothing the model could name, was added to the box as an
+  unknown item. The web app drops such a read with its isNoItem check and says "Nothing to check
+  there. Hold one item inside the box." The iPhone app now asks the same check, through the
+  engine, after every photo read: such a read is not added and the line under the camera gives
+  the web's words. Typed label words are not checked, as on the web, where only images are.
+- Source: review (whole-repo check).
+- Verified: a test reads a no-item photo (not added, the web's words shown) and then a lotion photo
+  (added, "Body lotion: OK to pack. Read in the cloud."); it failed before the change (the no-item
+  read was added) and passes after; 139 unit tests pass; the CI mirror
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### feat(ios-core): the engine wrapper asks the web app's check whether a read is of no item
+- What: RulesEngine.isNoItem(read) calls the bridge's isNoItemJson, so the iPhone app finds a read
+  of no item with the web app's own function. A read that is not a whole item read comes back as an
+  engine error rather than a guess.
+- Source: review (whole-repo check).
+- Verified: a contract test for an unknown read, an empty name, a named item, an item seen, and a
+  partial read (refused); it failed to compile before the change and passes after; 33 BYTCore tests
+  pass; the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### feat(engine): the native bridge answers whether a read is of no item, with the web app's check
+- What: the web app drops a read of no item (a camera pointed at a room: unsure, "other", no label,
+  no battery or warning, no real name) instead of adding it as a card. The bridge now exposes that
+  same check, isNoItemJson, so the iPhone app can use the web's own function rather than a copy.
+  The iOS engine bundle is rebuilt from it, and the Swift test that pins the bridge's function
+  names lists the new one, both in the same commit, as the bundle check and that pin require.
+- Source: review (whole-repo check).
+- Verified: a bridge test compares isNoItemJson with isNoItem on eight reads and checks that a
+  malformed read is refused; it failed ("isNoItemJson is not a function") before the change and
+  passes after. `bash ios/scripts/check_engine_bundle.sh` reports the bundle fresh. Lint,
+  typecheck, unit tests, tone, guard and `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### docs(ios): the README says the box stays on the phone until joining ships
+- What: the README said the iPhone app joins the same box as the web app. It does not yet: the
+  box is kept on the phone only, and joining a box started in the web app is not built. The README
+  now says so.
+- Source: review (whole-repo check).
+- Verified: no join call exists in the iPhone app (`grep -rn "joinBox\|startJoin\|/join/" ios/BYT`
+  finds nothing); the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### fix(ios): a build without its Firebase settings file shows a plain screen instead of crashing
+- What: GoogleService-Info.plist is not in the repo, and the app called FirebaseApp.configure()
+  unconditionally, which raises when the file is missing (FIRApp.m in the Firebase SDK), so a fresh
+  clone built and then crashed at launch. The app now checks the bundled settings first. When the
+  file is missing, or lacks the app ID, sender ID, API key or project ID that Auth and Firestore
+  need, nothing that needs Firebase starts and one plain screen says what to add and where. With
+  the file in place, startup is unchanged (FirebaseApp.configure() still reads the default file).
+- Source: review (fresh-clone check).
+- Verified: tests for complete settings, no file, an unreadable path and each missing field; they
+  failed to compile before the change and pass after; 138 unit tests pass. On the simulator a build
+  without the plist kept running and showed the plain screen (the old code was not run without the
+  plist here). The CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### build(ios): track the app's package pins so a fresh clone builds the same versions
+- What: the generated Xcode project was untracked as a whole, so the app's package pins (Firebase
+  13.2.0 and the 12 packages beneath it) never reached the repo and a fresh clone resolved
+  whatever versions those packages' ranges allowed that day. The pins file Xcode keeps for the
+  project (BYT.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) is now tracked;
+  the rest of the generated project stays ignored. BYTCore has no remote packages, so it has no
+  pins of its own.
+- Source: review (fresh-clone check).
+- Verified: `xcodegen generate` keeps the file; a simulated fresh clone (a project folder holding
+  only the pins, then XcodeGen, then a resolve into a new derived data folder) left the pins
+  byte-identical; `git status` shows only that file from the generated project. The CI mirror
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### test(ios): run the committed iOS engine bundle against the shipped edition and the box vectors
 - What: `src/embed/iosBundle.test.ts` loads the committed iOS `byt-engine.js` in a fresh V8 context
   with no Node globals (as JavaScriptCore runs it on the phone), expects it to load

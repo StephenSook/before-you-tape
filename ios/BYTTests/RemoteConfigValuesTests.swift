@@ -38,6 +38,17 @@ import Testing
         #expect(!RemoteConfigValues.parse([:]).killCloud)
     }
 
+    /// Cloud checks stay off until kill_cloud comes from Remote Config itself (fetched now, or fetched
+    /// before and kept); the in-app default never switches the cloud on, as in the web app.
+    @Test func theCloudIsHeldUntilTheServersKillSwitchIsKnown() {
+        let read = RemoteConfigValues.parse(["cloud_model_item": "gemini-3.8-flash"])
+        #expect(!read.killCloud && !read.pauseUnknown)
+        let held = RemoteConfigValues.effective(read, killCloudFromServer: false)
+        #expect(held.killCloud && held.pauseUnknown && held.cloudModelItem == "gemini-3.8-flash")
+        #expect(RemoteConfigValues.effective(read, killCloudFromServer: true) == read)
+        #expect(RemoteConfigValues.held.killCloud && RemoteConfigValues.held.pauseUnknown)
+    }
+
     @Test func theModelAllowListIsTheWebAppsList() throws {
         let web = try String(contentsOf: BoxStoreTests.repo.appendingPathComponent("src/config/models.ts"), encoding: .utf8)
         let names = web.components(separatedBy: "{ name: \"").dropFirst().compactMap { $0.split(separator: "\"").first.map(String.init) }

@@ -30,6 +30,9 @@ class LocalStore(private val prefs: Prefs) {
 
     fun setCloudConsent(allowed: Boolean) = prefs.put(CONSENT, if (allowed) YES else NO)
 
+    /** Forgets the choice, so the consent question is asked again. */
+    fun clearCloudConsent() = prefs.put(CONSENT, "")
+
     fun destination(): String? = prefs.get(DESTINATION)
 
     fun setDestination(code: String) = prefs.put(DESTINATION, code)

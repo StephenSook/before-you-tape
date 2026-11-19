@@ -101,13 +101,52 @@ import Testing
     }
 
     @Test func theAppsCloudRunnerReadsTheLivePauseSwitch() async throws {
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }))
+        // Before Remote Config gives its own kill switch the cloud is held.
+        let fresh = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence())
+        #expect(try #require(fresh.reader?.makeCloud("any-model") as? SignedInCloudRunner).pause.paused)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), config: .defaults)
         let runner = try #require(model.reader?.makeCloud("any-model") as? SignedInCloudRunner)
+        // Settings known, but the sender has not allowed the cloud yet: still closed.
+        #expect(runner.pause.paused)
+        await model.answerConsent(true)
         #expect(!runner.pause.paused)
         var paused = RemoteConfigValues.defaults
         paused.killCloud = true
         await model.applyConfig(paused)
         #expect(runner.pause.paused)
+    }
+
+    /// Turning off cloud checks closes the same gate the pause closes: an upload waiting for its
+    /// token is cancelled and nothing new starts. Turning them on again asks the cloud question first.
+    @Test func turningOffCloudChecksCancelsAnUploadInFlight() async throws {
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), config: .defaults)
+        await model.answerConsent(true)
+        #expect(model.cloudChoice == AppModel.CloudChoice(line: "Cloud checks are on.", button: "Turn off cloud checks"))
+        let gate = try #require(model.reader?.makeCloud("any-model") as? SignedInCloudRunner).pause
+        let inner = TokenThenSend(ItemReply(read: read, tokens: nil))
+        let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: gate, inner: inner)
+        let reading = Task { await runner.read(words) }
+        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        #expect(inner.gate.isWaiting)
+        model.turnOffCloudChecks()
+        inner.gate.release()
+        #expect(await reading.value == .failure(ReadError(.cloudPaused)))
+        #expect(inner.events == ["cancelled"] && model.box?.cloudConsent == false && gate.paused)
+        #expect(model.cloudChoice == AppModel.CloudChoice(line: "Cloud checks are off. Photos and label words stay on this iPhone.",
+                                                          button: "Turn on cloud checks"))
+        // A new upload is refused at the boundary while they are off.
+        #expect(await SignedInCloudRunner(ensureSignedIn: { true }, pause: gate, inner: TokenThenSend(ItemReply(read: read, tokens: nil)))
+            .read(words) == .failure(ReadError(.cloudPaused)))
+        model.turnOnCloudChecks()
+        #expect(model.box?.cloudConsent == nil && gate.paused && model.cloudChoice == nil)
+        await model.answerConsent(true)
+        #expect(!gate.paused)
+    }
+
+    /// A read stopped because cloud checks were turned off says so.
+    @Test func aReadStoppedByTurningOffCloudChecksSaysSo() {
+        let stopped = ReadOutcome(read: nil, source: nil, route: .hybrid, failure: .cloudPaused, records: [])
+        #expect(AppModel.readLine(stopped, verdict: nil, consent: false) == "Cloud checks are off, so this was not checked.")
     }
 
     @Test func theAppsReaderBuildsEveryCloudRunnerBehindSignIn() throws {
