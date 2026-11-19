@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `src/shared/cropLimits.ts`: the header comment no longer names a server-side AI Logic trigger as a user of the crop limits. No such trigger exists, and `docs/SECURITY.md` row 12 records the decision not to use one. The web app and the phone apps share the limits. Comment only; no code changes. Source: a code audit for the film fact sheet. Verified: `git grep -n "trigger" src/shared` finds no other claim; local CI mirror exit 0.
 - `src/pages/JudgePage.tsx`: the sample box page now says plainly, under "Check your own box": "If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work." Cloud checks stay off until Remote Config gives its own pause value, so a judge whose browser blocks it should know why a photo is not read in the cloud. Batch A ships that behaviour, and this batch merges after it. Source: review ruling on the fail-closed pause (say it on the judge page). Verified: a new `src/pages/JudgePage.test.tsx` case failed first and passes; local CI mirror exit 0.
 - `public/llms.txt` lists /ran now that the page is built. Source: P1 item 6. Verified: `src/llms.test.ts` passes; tone check clean; local CI mirror exit 0.
 - `src/pages/RanPage.tsx`, `src/routes.tsx` and `src/styles/app.css`: the /ran page, "What ran where". A table gives, for each thing a sender can do, where it runs and what leaves the device:
