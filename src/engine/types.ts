@@ -155,6 +155,8 @@ export interface DisputeValues {
   glassContainer: boolean;
   powder: boolean;
   labelTags: string[];
+  // How each read saw the item: a first read that was not sure is a fact the cloud cannot erase.
+  evidence: ItemRead["evidence"];
 }
 export type DisputeField = keyof DisputeValues;
 export interface ReadDispute<T> { device: T; cloud: T; resolved: boolean }
@@ -162,7 +164,7 @@ export type ReadDisputes = { [F in DisputeField]?: ReadDispute<DisputeValues[F]>
 
 export const DISPUTE_FIELDS: readonly DisputeField[] = [
   "category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized", "alcoholOnLabel",
-  "flammableOnLabel", "glassContainer", "powder", "labelTags",
+  "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence",
 ];
 
 // The disputes the sender has not settled yet, in a fixed order.

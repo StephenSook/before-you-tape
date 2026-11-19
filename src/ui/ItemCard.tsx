@@ -37,7 +37,9 @@ const DISPUTE_LABEL: Record<DisputeField, string> = {
   category: "What it is", retailBox: "Its box", battery: "Battery numbers", lithiumGrams: "Lithium metal",
   batteryWords: "Battery words", liquid: "Liquid", pressurized: "Under pressure", alcoholOnLabel: "Alcohol on the label",
   flammableOnLabel: "Flammable on the label", glassContainer: "Glass container", powder: "Powder", labelTags: "Label words",
+  evidence: "How it was read",
 };
+const EVIDENCE_TEXT: Record<ItemRead["evidence"], string> = { label_read: "Read its label", item_seen: "Saw the item only", not_sure: "Not sure what it is" };
 const BOX_TEXT: Record<ItemRead["retailBox"], string> = { sealed: "Sealed", open_or_none: "Open or no box", cannot_tell: "Can't tell" };
 
 // One read's value of a disputed fact, in plain words.
@@ -45,6 +47,7 @@ function readingText(field: DisputeField, value: DisputeValues[DisputeField]): s
   switch (field) {
     case "category": return CATEGORY_LABELS[value as ItemCategory];
     case "retailBox": return BOX_TEXT[value as ItemRead["retailBox"]];
+    case "evidence": return EVIDENCE_TEXT[value as ItemRead["evidence"]];
     case "battery": {
       const b = value as DisputeValues["battery"];
       const parts = [b.volts > 0 ? `${b.volts} V` : "", b.milliampHours > 0 ? `${b.milliampHours} mAh` : "", b.wattHours > 0 ? `${b.wattHours} Wh` : ""].filter((p) => p !== "");

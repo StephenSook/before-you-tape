@@ -153,6 +153,7 @@ describe("schema", () => {
       lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
       flammableOnLabel: { device: true, cloud: false, resolved: false },
       labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
+      evidence: { device: "not_sure", cloud: "label_read", resolved: false },
     };
     await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i1"), disputes));
     // Every fact at once, with long tag lists: inside one request's evaluation limit.
@@ -178,6 +179,7 @@ describe("schema", () => {
       { lithiumGrams: { device: -1, cloud: 0, resolved: false } },
       { battery: { device: { volts: 3.7 }, cloud: { volts: 3.7, milliampHours: 1, wattHours: 1 }, resolved: false } },
       { liquid: { device: "yes", cloud: false, resolved: false } },
+      { evidence: { device: "guessed", cloud: "label_read", resolved: false } },
     ];
     for (const d of bad) await assertFails(setDoc(doc(alice, "boxes/b1/disputes/i2"), d));
   });

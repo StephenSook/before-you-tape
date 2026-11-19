@@ -60,8 +60,10 @@ describe("mergeReads", () => {
     for (const flag of ["batteryWords", "pressurized", "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder"] as const) {
       expect(readDisputes(r({ [flag]: true }), r({ [flag]: false }))[flag], flag).toEqual({ device: true, cloud: false, resolved: false });
     }
-    // The name, the evidence and the label text are not verdict facts here; the store compares label words.
-    expect(readDisputes(r({ itemName: "A", evidence: "label_read", labelText: "A" }), r({ itemName: "B", evidence: "item_seen", labelText: "B" }))).toEqual({});
+    // How each read saw the item is a fact too: a first read that was not sure is never erased by the cloud.
+    expect(readDisputes(r({ evidence: "not_sure" }), r({ evidence: "label_read" }))).toEqual({ evidence: { device: "not_sure", cloud: "label_read", resolved: false } });
+    // The name and the label text are not verdict facts here; the store compares label words.
+    expect(readDisputes(r({ itemName: "A", labelText: "A" }), r({ itemName: "B", labelText: "B" }))).toEqual({});
   });
 
   it("takes the cloud's category, name and evidence, keeps a label when the cloud read none, and blurs a box disagreement", () => {
@@ -70,6 +72,9 @@ describe("mergeReads", () => {
     // Seen open by either read counts as open.
     expect(m).toMatchObject({ category: "tablet", itemName: "Tablet", labelText: "IPHONE 15", evidence: "item_seen", retailBox: "open_or_none" });
     expect(mergeReads(r({ retailBox: "sealed" }), r({ retailBox: "cannot_tell" })).retailBox).toBe("cannot_tell");
+    // The weaker evidence stands until the sender confirms.
+    expect(mergeReads(r({ evidence: "not_sure" }), r({ evidence: "label_read" })).evidence).toBe("not_sure");
+    expect(mergeReads(r({ evidence: "label_read" }), r({ evidence: "item_seen" })).evidence).toBe("item_seen");
     expect(mergeReads(r({ labelText: "A" }), r({ labelText: "AB" })).labelText).toBe("AB");
   });
 

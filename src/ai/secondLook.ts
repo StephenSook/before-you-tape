@@ -12,11 +12,13 @@ const WH_FIELDS = ["volts", "milliampHours", "wattHours"] as const;
 // Watt-hours as printed, or volts times capacity when none are printed.
 const whOf = (r: ItemRead) => (r.wattHours > 0 ? r.wattHours : (r.volts * r.milliampHours) / 1000);
 const batteryOf = (r: ItemRead) => ({ volts: r.volts, milliampHours: r.milliampHours, wattHours: r.wattHours });
+// Evidence from weakest to strongest.
+const EVIDENCE_RANK: Record<ItemRead["evidence"], number> = { not_sure: 0, item_seen: 1, label_read: 2 };
 
 // Every disagreement is also a dispute (readDisputes) that holds the item at "Check this" until the sender
 // confirms it. Meanwhile the merged value is the cautious one: the battery numbers of the read with more
 // watt-hours, whole (a tie goes to the cloud), the larger lithium reading, any hazard flag either read saw,
-// and a box either read saw open.
+// a box either read saw open, and the weaker of the two reads' evidence.
 export function mergeReads(device: ItemRead, cloud: ItemRead): ItemRead {
   const merged: ItemRead = {
     ...cloud,
@@ -27,6 +29,7 @@ export function mergeReads(device: ItemRead, cloud: ItemRead): ItemRead {
     lithiumGrams: Math.max(device.lithiumGrams, cloud.lithiumGrams),
     retailBox: device.retailBox === cloud.retailBox ? cloud.retailBox
       : device.retailBox === "open_or_none" || cloud.retailBox === "open_or_none" ? "open_or_none" : "cannot_tell",
+    evidence: EVIDENCE_RANK[device.evidence] < EVIDENCE_RANK[cloud.evidence] ? device.evidence : cloud.evidence,
   };
   for (const flag of HAZARD_FLAGS) merged[flag] = device[flag] || cloud[flag];
   return merged;
@@ -41,6 +44,7 @@ export function readDisputes(device: ItemRead, cloud: ItemRead): ReadDisputes {
   if (WH_FIELDS.some((f) => device[f] !== cloud[f])) d.battery = { device: batteryOf(device), cloud: batteryOf(cloud), resolved: false };
   if (device.lithiumGrams !== cloud.lithiumGrams) d.lithiumGrams = { device: device.lithiumGrams, cloud: cloud.lithiumGrams, resolved: false };
   for (const flag of HAZARD_FLAGS) if (device[flag] !== cloud[flag]) d[flag] = { device: device[flag], cloud: cloud[flag], resolved: false };
+  if (device.evidence !== cloud.evidence) d.evidence = { device: device.evidence, cloud: cloud.evidence, resolved: false };
   return d;
 }
 

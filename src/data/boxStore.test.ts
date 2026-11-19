@@ -406,6 +406,16 @@ describe("createBoxStore", () => {
       expect(level(lab.s, lab.id)).toBe("take_out");
     });
 
+    it("keeps a first read that was not sure at Check this when the cloud read the label", () => {
+      const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone" };
+      const { s, id } = look({ ...phone, evidence: "not_sure" }, { ...phone, evidence: "label_read" });
+      expect(level(s, id)).toBe("check");
+      expect(s.getState().items[0]?.disputes?.evidence).toEqual({ device: "not_sure", cloud: "label_read", resolved: false });
+      s.settleDispute(id, "evidence", "cloud");
+      expect(s.getState().items[0]?.read.evidence).toBe("label_read");
+      expect(level(s, id)).toBe("ok");
+    });
+
     it("settles battery numbers only on a whole set, never on one edited number", () => {
       const device = { ...powerBank, volts: 3.7, milliampHours: 2500, wattHours: 0 };
       const cloud = { ...powerBank, volts: 3.8, milliampHours: 2500, wattHours: 9.5 };

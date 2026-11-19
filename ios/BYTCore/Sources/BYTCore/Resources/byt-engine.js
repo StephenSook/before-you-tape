@@ -735,7 +735,8 @@ var BYT = (() => {
     "flammableOnLabel",
     "glassContainer",
     "powder",
-    "labelTags"
+    "labelTags",
+    "evidence"
   ];
   function openDisputes(disputes) {
     return DISPUTE_FIELDS.filter((f) => disputes?.[f] !== void 0 && disputes[f].resolved !== true);

@@ -30,7 +30,7 @@ rules_version = '2';
 // Collection: boxes/{boxId}/disputes
 // Document ID: the item id
 // Fields: the facts a second look's two reads of that item disagreed on (category, retailBox, battery,
-//   lithiumGrams, each hazard flag, labelTags), each { device, cloud, resolved }. No label text: a label
+//   lithiumGrams, each hazard flag, labelTags, evidence), each { device, cloud, resolved }. No label text: a label
 //   dispute holds tags. Its own document, so it has its own evaluation budget beside the item's.
 //
 // Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
@@ -211,7 +211,7 @@ service cloud.firestore {
       let tags = knownTags();
       return m.size() >= 1
         && m.keys().hasOnly(['category', 'retailBox', 'battery', 'lithiumGrams', 'batteryWords', 'liquid', 'pressurized',
-                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags'])
+                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence'])
         && (!('category' in m) || (isDisputeShape(m.category) && m.category.device in cats && m.category.cloud in cats))
         && (!('retailBox' in m) || (isDisputeShape(m.retailBox) && m.retailBox.device in ['sealed', 'open_or_none', 'cannot_tell']
                                     && m.retailBox.cloud in ['sealed', 'open_or_none', 'cannot_tell']))
@@ -221,7 +221,9 @@ service cloud.firestore {
         && isFlagDispute(m, 'batteryWords') && isFlagDispute(m, 'liquid') && isFlagDispute(m, 'pressurized')
         && isFlagDispute(m, 'alcoholOnLabel') && isFlagDispute(m, 'flammableOnLabel') && isFlagDispute(m, 'glassContainer')
         && isFlagDispute(m, 'powder')
-        && (!('labelTags' in m) || (isDisputeShape(m.labelTags) && isTagList(m.labelTags.device, tags) && isTagList(m.labelTags.cloud, tags)));
+        && (!('labelTags' in m) || (isDisputeShape(m.labelTags) && isTagList(m.labelTags.device, tags) && isTagList(m.labelTags.cloud, tags)))
+        && (!('evidence' in m) || (isDisputeShape(m.evidence) && m.evidence.device in ['label_read', 'item_seen', 'not_sure']
+                                   && m.evidence.cloud in ['label_read', 'item_seen', 'not_sure']));
     }
 
     function isValidFallback(v) {

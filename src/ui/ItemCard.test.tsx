@@ -129,6 +129,7 @@ describe("ItemCard", () => {
         labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
         retailBox: { device: "open_or_none", cloud: "sealed", resolved: false },
         liquid: { device: true, cloud: false, resolved: true },
+        evidence: { device: "not_sure", cloud: "label_read", resolved: false },
       },
     });
     const v = verdictFor(disputed);
@@ -146,6 +147,8 @@ describe("ItemCard", () => {
     expect(row("Label words").getByRole("button", { name: "First read: flammable" })).toBeInTheDocument();
     expect(row("Label words").getByRole("button", { name: "Second look: No warning words" })).toBeInTheDocument();
     expect(row("Its box").getByRole("button", { name: "First read: Open or no box" })).toBeInTheDocument();
+    expect(row("How it was read").getByRole("button", { name: "First read: Not sure what it is" })).toBeInTheDocument();
+    expect(row("How it was read").getByRole("button", { name: "Second look: Read its label" })).toBeInTheDocument();
     // A fact the sender already settled is not asked again.
     expect(within(box).queryByRole("group", { name: "Liquid" })).toBeNull();
     await userEvent.click(row("What it is").getByRole("button", { name: "First read: Power bank" }));
