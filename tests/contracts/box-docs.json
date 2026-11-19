@@ -8,7 +8,7 @@
       "joinKeyHash": "",
       "destinationCode": "CA",
       "editionId": "byt-contract",
-      "cloudConsent": null,
+      
       "sources": { "onDevice": 1, "inCloud": 0, "secondLooks": 1, "rulesOnlyRechecks": 0, "cloudFallbacks": 0 },
       "lastRecheckMs": null
     }

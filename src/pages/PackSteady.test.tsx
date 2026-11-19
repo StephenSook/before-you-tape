@@ -9,7 +9,6 @@ import type { GateState, ImagePart, ItemModels, ModelPort } from "../ai/port";
 import { createBoxStore, type BoxPersistence } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage } from "./PackPage";
-import { consentServer } from "../../tests/fakes/consentServer";
 
 vi.mock("../capture/steady", async (importOriginal) => {
   const real = await importOriginal<typeof import("../capture/steady")>();
@@ -31,7 +30,7 @@ const roomFrame: ItemRead = { ...base, itemName: "unknown", category: "other", l
 const port = (read: ItemRead, source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(read), source })) });
 const models = (read: ItemRead) => ({ device: port(read, "on_device"), hybrid: port(read, "on_device"), cloud: port(base, "in_cloud") }) satisfies ItemModels;
-const persistence = (): BoxPersistence => consentServer();
+const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }];
 const camera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 

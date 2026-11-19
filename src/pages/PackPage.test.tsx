@@ -6,7 +6,7 @@ import type { ItemModels, ModelPort } from "../ai/port";
 import { createBoxStore, type BoxPersistence } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
-import { consentServer } from "../../tests/fakes/consentServer";
+import { deviceConsent } from "../data/deviceConsent";
 
 const liquidLotionLabelRead: ItemRead = {
   itemName: "Body lotion", category: "lotion_cream", labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0, milliampHours: 0, wattHours: 0,
@@ -16,7 +16,7 @@ const liquidLotionLabelRead: ItemRead = {
 const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
-const persistence = (): BoxPersistence => consentServer();
+const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
 let n = 0;
 const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
@@ -167,17 +167,18 @@ describe("PackPage", () => {
     expect(saveCrop).not.toHaveBeenCalled();
   });
 
-  it("reads nothing in the cloud when the server says no, even though this page still says allowed", async () => {
-    // Another tab took consent back and this one missed the message: the server's answer decides.
-    const server = consentServer();
-    const store = createBoxStore({ edition: () => ed, persistence: server, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+  it("reads nothing in the cloud when this device's stored answer says no, before the page has heard of it", async () => {
+    // Another tab on this device took consent back; its storage event has not reached this page yet.
+    localStorage.clear();
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
     const { models } = setup({ store });
     expect(store.getState().cloudConsent).toBe(true);
-    server.set(false);
+    localStorage.setItem("byt.cloudConsent", "false");
     await addPhoto();
-    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
+    localStorage.clear();
   });
 
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {

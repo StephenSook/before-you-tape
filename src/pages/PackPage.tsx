@@ -121,8 +121,10 @@ export function PackPage(p: PackPageProps) {
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
   // again, so every decision to use the cloud reads the source itself when there is one.
   const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
-  const cloudInputs = () => ({ cloudConsent: store.getState().cloudConsent, killCloud: liveConfig ? liveConfig.get().killCloud : config.killCloud, online: p.online });
-  const stillAllowed = () => !gone.current && cloudAllowed({ cloudConsent: store.getState().cloudConsent, killCloud: pausedNow(), online: live.current.online });
+  // Consent is read from this device's record each time (store.consentNow): another tab may have changed it
+  // since this page last rendered, and only "allowed" as stored right now opens the cloud.
+  const cloudInputs = () => ({ cloudConsent: store.consentNow(), killCloud: liveConfig ? liveConfig.get().killCloud : config.killCloud, online: p.online });
+  const stillAllowed = () => !gone.current && cloudAllowed({ cloudConsent: store.consentNow(), killCloud: pausedNow(), online: live.current.online });
 
   // Reads and second looks that can reach the cloud. Taking back consent or pausing cloud checks aborts
   // them when the change is announced, before the page re-renders; the SDK checks the signal before it
@@ -160,7 +162,7 @@ export function PackPage(p: PackPageProps) {
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal, () => store.confirmConsent());
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
       if (gone.current) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
@@ -195,7 +197,7 @@ export function PackPage(p: PackPageProps) {
     setBlocked(null);
     const work = cloudWork();
     try {
-      const outcome = await readItem(models, part, route, now, stillAllowed, work.signal, () => store.confirmConsent());
+      const outcome = await readItem(models, part, route, now, stillAllowed, work.signal);
       if (gone.current) return;
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();

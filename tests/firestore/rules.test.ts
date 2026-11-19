@@ -1,7 +1,7 @@
 // Firestore rules (spec 5.8), run against the local emulator: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let env: RulesTestEnvironment;
@@ -9,7 +9,7 @@ let alice: Firestore;
 let bob: Firestore;
 let nobody: Firestore;
 
-const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", cloudConsent: null });
+const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" });
 // An item as the box store saves it: the read with its label text emptied, never sent.
 const itemDoc = {
   itemId: "i1",
@@ -45,23 +45,20 @@ describe("boxes", () => {
     await assertFails(updateDoc(doc(bob, "boxes/b1"), { destinationCode: "PH" }));
   });
 
-  it("takes a consent change only with a newer press time and the server's time, and never on create", async () => {
-    await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), cloudConsent: true }));
-    await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), consentChosenAt: 5, consentAt: serverTimestamp() }));
+  it("keeps no consent on a box: refuses it on create and any set or change, and lets an old answer be deleted", async () => {
+    for (const consent of [true, false, null]) await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), cloudConsent: consent }));
+    await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), consentChosenAt: 5 }));
     await assertSucceeds(setDoc(doc(alice, "boxes/c1"), boxFor("alice")));
-    const say = (consent: boolean | null, at: number) => updateDoc(doc(alice, "boxes/c1"), { cloudConsent: consent, consentChosenAt: at, consentAt: serverTimestamp() });
-    await assertSucceeds(say(true, 100));
-    await assertSucceeds(say(false, 200));
-    // An older press, arriving late, cannot undo the newer one; neither can the same press time again.
-    await assertFails(say(true, 150));
-    await assertFails(say(true, 200));
-    // Without the server's time, or without a press time, consent does not change.
-    await assertFails(updateDoc(doc(alice, "boxes/c1"), { cloudConsent: true, consentChosenAt: 300, consentAt: new Date(0) }));
     await assertFails(updateDoc(doc(alice, "boxes/c1"), { cloudConsent: true }));
-    // An ordinary edit leaves consent as it is, and a full rewrite that drops it is refused.
-    await assertSucceeds(updateDoc(doc(alice, "boxes/c1"), { destinationCode: "PH" }));
-    await assertFails(setDoc(doc(alice, "boxes/c1"), boxFor("alice")));
-    expect((await getDoc(doc(alice, "boxes/c1"))).data()).toMatchObject({ cloudConsent: false, consentChosenAt: 200 });
+    // A box an older version saved with an answer: it may stay as it is or be deleted, never changed.
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/c2"), { ...boxFor("alice"), cloudConsent: true });
+    });
+    await assertSucceeds(updateDoc(doc(alice, "boxes/c2"), { destinationCode: "PH" }));
+    await assertFails(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: false }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: deleteField() }));
+    expect("cloudConsent" in ((await getDoc(doc(alice, "boxes/c2"))).data() ?? {})).toBe(false);
+    await assertFails(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: true }));
   });
 
   it("lets a signed-in user learn only that a box id is free", async () => {

@@ -3,7 +3,8 @@ import type { ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
-import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState, type ConsentChannel, type ConsentMessage } from "./boxStore";
+import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState } from "./boxStore";
+import { deviceConsent } from "./deviceConsent";
 
 const base: ItemRead = {
   itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -148,7 +149,8 @@ describe("createBoxStore", () => {
     expect(s.getState().items.map((i) => i.itemId)).toEqual(["saved-1"]);
     expect(s.getState().result.items["saved-1"]).toBeDefined();
     expect(s.getState().destinationCode).toBe("PH");
-    expect(s.getState().cloudConsent).toBe(true);
+    // An answer an older version saved on the box is ignored: consent is this device's own.
+    expect(s.getState().cloudConsent).toBeNull();
   });
 
   it("clears the item's error when a second look then succeeds", () => {
@@ -210,75 +212,6 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(false);
   });
 
-  it("lets a consent choice made before the saved box arrives win over the saved one, even when it reopens the question", async () => {
-    const late = () => {
-      let arrive!: (saved: Partial<BoxState>) => void;
-      const persistence: BoxPersistence = { save: () => {}, load: () => new Promise((r) => { arrive = r; }) };
-      return { s: store({ persistence }), arrive: (saved: Partial<BoxState>) => arrive(saved) };
-    };
-    // The sender chose "Keep everything on this laptop", then "Turn on cloud checks", which asks again.
-    const asked = late();
-    asked.s.setConsent(false);
-    asked.s.setConsent(null);
-    asked.arrive({ cloudConsent: true });
-    await asked.s.ready;
-    expect(asked.s.getState().cloudConsent).toBeNull();
-    // With no choice made yet, the saved answer applies.
-    const untouched = late();
-    untouched.arrive({ cloudConsent: true });
-    await untouched.s.ready;
-    expect(untouched.s.getState().cloudConsent).toBe(true);
-  });
-
-  it("shares a consent change with the other tabs on the same box, and only the tab that chose saves it", async () => {
-    // Every tab's channel reaches every other tab's, as BroadcastChannel does; never its own.
-    const tabs = new Set<Set<(m: ConsentMessage) => void>>();
-    const channel = (): ConsentChannel => {
-      const mine = new Set<(m: ConsentMessage) => void>();
-      tabs.add(mine);
-      return {
-        post: (m) => { for (const t of tabs) if (t !== mine) for (const f of t) f(m); },
-        listen: (f) => { mine.add(f); return () => { mine.delete(f); }; },
-      };
-    };
-    // One server answer for the box, as Firestore holds it.
-    const server = { consent: null as boolean | null };
-    const saving = () => ({
-      ...spyPersistence(),
-      saveConsent: vi.fn<(boxId: string, v: boolean | null, chosenAt: number) => void>((_b, v) => { server.consent = v; }),
-      readConsent: vi.fn(async (): Promise<boolean | null | undefined> => server.consent),
-    });
-    const make = (boxId: string, persistence: BoxPersistence) =>
-      createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId, consentChannel: channel() });
-    const pa = saving();
-    const pb = saving();
-    const a = make("shared", pa);
-    const b = make("shared", pb);
-    const elsewhere = make("another-box", saving());
-    const seenByB = vi.fn();
-    b.subscribe(seenByB);
-    const savesByB = pb.save.mock.calls.length;
-    // A grant is not taken from the message: B asks the server, and takes it once the server says allowed.
-    a.setConsent(true);
-    expect(b.getState().cloudConsent).toBeNull();
-    await vi.waitFor(() => expect(b.getState().cloudConsent).toBe(true));
-    // A withdrawal holds at once.
-    a.setConsent(false);
-    expect(b.getState().cloudConsent).toBe(false);
-    expect(seenByB).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
-    // Neither message makes B save its box, which could carry its older items.
-    expect(pb.save.mock.calls.length).toBe(savesByB);
-    expect(elsewhere.getState().cloudConsent).toBeNull();
-    expect(pa.saveConsent.mock.calls).toEqual([["shared", true, expect.any(Number)], ["shared", false, expect.any(Number)]]);
-    expect(pb.saveConsent).not.toHaveBeenCalled();
-    // A saved answer that loads after another tab's choice does not undo it.
-    const late = (() => { let arrive!: (s: Partial<BoxState>) => void; const persistence = { save: () => {}, load: () => new Promise<Partial<BoxState> | null>((r) => { arrive = r; }) }; return { s: make("shared", persistence), arrive: (s: Partial<BoxState>) => arrive(s) }; })();
-    a.setConsent(false);
-    late.arrive({ cloudConsent: true });
-    await late.s.ready;
-    expect(late.s.getState().cloudConsent).toBe(false);
-  });
-
   it("saves the model's own name for an item only after cloud consent; before, a category name, with the real one kept on this device", async () => {
     const lotion: ItemRead = { ...liquidLotionLabelRead, itemName: "SHEA BUTTER BODY LOTION FROM ACME" };
     const remembered: Record<string, Record<string, string>> = {};
@@ -297,36 +230,40 @@ describe("createBoxStore", () => {
     const back = createBoxStore({ edition: () => ed, persistence: spyPersistence({ items: saved() }), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
     await back.ready;
     expect(back.getState().items.find((i) => i.itemId === read)?.read.itemName).toBe(lotion.itemName);
-    // After consent the model's name is saved.
+    // After consent the model's name is saved with the next save of the box.
     s.setConsent(true);
+    s.setDestination("PH");
     expect(saved().find((i) => i.itemId === read)?.read.itemName).toBe(lotion.itemName);
   });
 
-  it("opens the cloud only on the server's answer, and says no when there is no server to ask", async () => {
-    const answer = (v: boolean | null | undefined) => createBoxStore({
-      edition: () => ed, persistence: { ...spyPersistence(), readConsent: async () => v }, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
-    });
-    const yes = answer(true);
-    expect(await yes.confirmConsent()).toBe(true);
-    for (const v of [false, null, undefined]) {
-      const s = answer(v);
-      s.setConsent(true);
-      expect(await s.confirmConsent()).toBe(false);
-    }
-    const noServer = store();
-    noServer.setConsent(true);
-    expect(await noServer.confirmConsent()).toBe(false);
+  it("keeps the cloud answer on this device: starts from it, stores each change there, and saves no box for it", () => {
+    localStorage.clear();
+    const consent = deviceConsent(localStorage);
+    consent.set(true);
+    const persistence = spyPersistence();
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent });
+    expect(s.getState().cloudConsent).toBe(true);
+    const saves = persistence.save.mock.calls.length;
+    s.setConsent(false);
+    expect(consent.get()).toBe(false);
+    expect(s.consentNow()).toBe(false);
+    expect(persistence.save.mock.calls.length).toBe(saves);
+    localStorage.clear();
   });
 
-  it("ignores a grant from another tab that the server does not back", async () => {
-    let deliver!: (m: ConsentMessage) => void;
-    const s = createBoxStore({
-      edition: () => ed, persistence: { ...spyPersistence(), readConsent: async () => false }, now: () => 1000, today: () => "2026-11-20",
-      newId: () => `id-${ids++}`, boxId: "x", consentChannel: { post: () => {}, listen: (f) => { deliver = f; return () => {}; } },
-    });
-    deliver({ boxId: "x", consent: true });
-    await new Promise((r) => setTimeout(r, 0));
-    expect(s.getState().cloudConsent).toBeNull();
+  it("hears another tab on this device change the answer, reads it fresh, and tells listeners", () => {
+    localStorage.clear();
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent: deviceConsent(localStorage) });
+    s.setConsent(true);
+    const heard = vi.fn();
+    s.subscribe(heard);
+    // The other tab's write is visible at once, before its event arrives.
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(s.consentNow()).toBe(false);
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "false" }));
+    expect(s.getState().cloudConsent).toBe(false);
+    expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
+    localStorage.clear();
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

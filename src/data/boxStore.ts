@@ -9,6 +9,7 @@ import { labelTagsOf } from "../engine/facts";
 import type { BoxItemInput, DestinationEdition, RuleEdition } from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
 import type { ItemRead } from "../shared/itemRead";
+import type { DeviceConsent } from "./deviceConsent";
 
 // Where an item's read came from. The phones use one name each for both of them.
 // cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
@@ -51,27 +52,15 @@ export interface BoxState {
 }
 
 export interface BoxPersistence {
-  // Saves the box. Consent is not part of an ordinary save: a tab still holding an old answer must never
-  // write it back.
+  // Saves the box. Consent is never part of it: each device keeps its own answer (deviceConsent.ts).
   save(state: BoxState): void;
   load(boxId: string): Promise<Partial<BoxState> | null>;
-  // Saves the sender's consent answer, from the page where they pressed the button, with when they pressed it.
-  saveConsent?(boxId: string, consent: boolean | null, chosenAt: number): void;
-  // The answer as the server has it now; undefined when it cannot be read, which keeps the cloud closed.
-  readConsent?(boxId: string): Promise<boolean | null | undefined>;
 }
 
 // The model's own item names, kept on this device while the server has only category names.
 export interface DeviceNames {
   remember(boxId: string, names: Record<string, string>): void;
   recall(boxId: string): Record<string, string>;
-}
-
-// A consent change for one box, sent to this browser's other tabs.
-export interface ConsentMessage { boxId: string; consent: boolean | null }
-export interface ConsentChannel {
-  post(m: ConsentMessage): void;
-  listen(f: (m: ConsentMessage) => void): () => void;
 }
 
 export interface BoxStore {
@@ -96,9 +85,9 @@ export interface BoxStore {
   setDestination(code: string): void;
   setLiveRead(code: string, edition: DestinationEdition): void;
   setConsent(v: boolean | null): void;
-  // The sender's answer as the server has it now: true only when the server says allowed. With no server
-  // to ask, or one that cannot be read, the answer is no.
-  confirmConsent(): Promise<boolean>;
+  // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
+  // a page last rendered, if another tab changed it.
+  consentNow(): boolean | null;
 }
 
 export interface BoxStoreDeps {
@@ -111,8 +100,9 @@ export interface BoxStoreDeps {
   boxId?: string;
   // Wall-clock time for addedAt; now() is only for measuring how long things take.
   clock?: () => number;
-  // Reaches this browser's other tabs, so a consent change made in one holds in all of them at once.
-  consentChannel?: ConsentChannel;
+  // This device's own cloud answer, shared by its tabs and never synced. Without it the answer lasts for
+  // this page only.
+  consent?: DeviceConsent;
   deviceNames?: DeviceNames;
 }
 
@@ -145,9 +135,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const currentEdition = () => switchedTo ?? deps.edition();
   let destinationCode = DEFAULT_DESTINATION;
   let liveRead: { code: string; edition: DestinationEdition } | null = null;
-  let cloudConsent: boolean | null = null;
-  // Any consent choice made on this page, even one that asks again, wins over a saved answer that loads later.
-  let consentChosenHere = false;
+  let cloudConsent: boolean | null = deps.consent?.get() ?? null;
   let sources: BoxSources = { ...NO_SOURCES };
   let lastRecheckMs: number | null = null;
   const clock = deps.clock ?? (() => Date.now());
@@ -176,28 +164,15 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   const tagsOf = (labelText: string) => labelTagsOf(labelText, currentEdition());
 
-  // The sender changed consent in another tab on this box: it holds here too, a saved answer that loads
-  // later cannot undo it, and listeners hear of it (the Pack page aborts cloud work on a withdrawal).
-  // Tells listeners about a consent change without saving the box: this tab's items may be older than
-  // another tab's, and a save would write them back.
-  let consentVersion = 0;
+  // Tells listeners about a consent change without saving the box, which never holds consent. The Pack
+  // page aborts cloud work when the answer stops being "allowed".
   const publishConsent = (v: boolean | null) => {
-    consentChosenHere = true;
-    consentVersion++;
     cloudConsent = v;
     state = { ...state, cloudConsent };
     for (const l of listeners) l(state);
   };
-  // A withdrawal from another tab holds at once. A grant is never taken from a message: this tab asks
-  // the server and takes it only when the server says allowed and nothing changed here meanwhile.
-  deps.consentChannel?.listen((m) => {
-    if (m.boxId !== boxId) return;
-    if (m.consent !== true) { publishConsent(m.consent); return; }
-    const asked = consentVersion;
-    void deps.persistence.readConsent?.(boxId).then((v) => {
-      if (v === true && asked === consentVersion && cloudConsent !== true) publishConsent(true);
-    });
-  });
+  // Another tab on this device changed the answer.
+  deps.consent?.onChange(publishConsent);
 
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
@@ -210,7 +185,6 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     });
     items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
-    if (saved.cloudConsent !== undefined && !consentChosenHere) cloudConsent = saved.cloudConsent;
     // A box saved before a count existed starts that count at 0.
     if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
     commit();
@@ -311,15 +285,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       liveRead = { code, edition };
       commit();
     },
-    confirmConsent: async () => (deps.persistence.readConsent ? (await deps.persistence.readConsent(boxId)) === true : false),
+    consentNow: () => (deps.consent ? deps.consent.get() : cloudConsent),
     setConsent(v) {
-      consentChosenHere = true;
-      consentVersion++;
-      cloudConsent = v;
-      commit(state.result);
-      // Only the page where the sender pressed the button saves consent, and it tells the other tabs.
-      deps.persistence.saveConsent?.(boxId, v, clock());
-      deps.consentChannel?.post({ boxId, consent: v });
+      deps.consent?.set(v);
+      publishConsent(v);
     },
   };
 }

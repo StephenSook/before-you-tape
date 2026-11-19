@@ -3,7 +3,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
-import { consentServer } from "../../tests/fakes/consentServer";
 import type { ImageHow, ImagePart, ModelPort } from "../ai/port";
 import { createBoxStore } from "../data/boxStore";
 
@@ -17,7 +16,7 @@ describe("Pack page after the sender leaves", () => {
   it("starts no read for a crop that finishes after the page is gone", async () => {
     const port = (): ModelPort & { generate: ReturnType<typeof vi.fn> } => ({ generate: vi.fn(async () => ({ text: "{}", source: "in_cloud" as const })) });
     const models = { device: port(), hybrid: port(), cloud: port() };
-    const store = createBoxStore({ edition: () => ed, persistence: consentServer(), now: () => 0, today: () => "2026-11-20", newId: () => "u1" });
+    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => "u1" });
     store.setConsent(true);
     const { unmount } = render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }}
       openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
