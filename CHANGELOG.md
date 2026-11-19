@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `tests/e2e/roundtrip.live.spec.ts`: the deploy's live check that a saved box comes back from the server now expects what the server keeps. The second browser, which carries only the sign-in and the box pointer, shows one item card named "Clothing" (the category's label). The typed name never appears there, since it stays in the first browser. Before, it looked for the typed name. That stopped being true when Firestore stopped storing an item's own name, so the deploy of the merge commit 7f6957a failed this step, though hosting and rules deployed and the live site serves that commit. Source: the live deploy run 44463368038. Verified: the updated check passes against the live site (1 passed); the old one failed in that run. Local CI mirror exit 0.
 - **The cloud switch-off limit describes the web app's newer stop.** `docs/LIMITS.md` now says
   that on the web a request already sent can finish, and anything not yet sent, including an
   automatic retry or the fallback model, is not sent (the web app re-checks the pause and consent
