@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A Remote Config edition pin needs a safe id and a full hash, as on the web.** The pin was read
+  as raw text. `RcValues.parse` now keeps it only when the id matches `[a-z0-9-]{1,64}` and the
+  SHA-256 is 64 hex digits (trimmed, the hash lowercased); otherwise both are empty and the bundled
+  edition is used. Source: whole-repo review. Verified:
+  `RcValuesTest.anEditionPinNeedsASafeIdAndAFullHash` failed first (an uppercase hash came through
+  unchanged), then passes.
+
 - **The engine can check a pinned rules edition the way the web does.** `EditionPin.choose`
   follows the web's rules and words (`src/data/editionSource.ts`): an empty pin, or one naming the
   bundled edition, uses the bundled edition; a pinned edition is used only when the fetched
