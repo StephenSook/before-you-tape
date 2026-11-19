@@ -11,6 +11,6 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "tests/**/*.test.ts", "functions/src/**/*.test.ts"],
     // The Firestore rules tests need the emulator: npm run test:rules.
-    exclude: ["tests/e2e/**", "tests/firestore/**", "node_modules/**"],
+    exclude: ["tests/e2e/**", "tests/firestore/**", "**/*.emulator.test.ts", "**/node_modules/**"],
   },
 });

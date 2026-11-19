@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/firestore/**/*.test.ts"],
+    include: ["tests/firestore/**/*.test.ts", "functions/src/**/*.emulator.test.ts"],
     testTimeout: 20_000,
     hookTimeout: 30_000,
     fileParallelism: false,

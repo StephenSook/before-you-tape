@@ -31,7 +31,9 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix functions
 
       - name: Rule edition is up to date
         run: npm run edition:check

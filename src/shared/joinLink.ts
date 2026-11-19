@@ -5,8 +5,9 @@
 // One canonical origin: the laptop always makes links on it, and the phone apps' app-link files live there.
 export const JOIN_ORIGINS = ["https://before-you-tape-2026.web.app"] as const;
 
-const BOX_ID = /^[A-Za-z0-9-]{1,64}$/;
-const KEY = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+// A box id and a join code, as the links and the server's join callable both accept them.
+export const BOX_ID = /^[A-Za-z0-9-]{1,64}$/;
+export const KEY = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 // A path of its own, so the phone apps claim only join links, never the whole site.
 const LINK = /^(https?:\/\/[^/?#]+)\/join\/([^/?#]*)$/;
 
