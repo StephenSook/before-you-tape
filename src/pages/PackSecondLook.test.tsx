@@ -61,6 +61,18 @@ describe("Pack page second look", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are off right now, so this was not checked again.");
   });
 
+  it("keeps a hazard word only the cloud's shorter label had, after the merge kept the device's longer label", async () => {
+    const device: ItemRead = { ...phoneDevice, labelText: "LI-ION 3.7V 2500mAh 9.62Wh RECHARGEABLE BATTERY PACK MODEL X100" };
+    const cloud = answers({ ...phoneCloud, labelText: "FLAMMABLE 3.7V 2600mAh 9.62Wh" }, "in_cloud");
+    const { store } = setup({ device, cloud });
+    await upload();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(store.getState().items[0]?.secondLook).not.toBeNull());
+    const item = store.getState().items[0]!;
+    expect(item.read.labelText).toBe(device.labelText);
+    expect(item.labelTags).toContain("flammable");
+  });
+
   it("reads an on-device Wh mismatch again in the cloud with the same crop and prompt, and keeps the merge", async () => {
     const { store, models } = setup();
     await upload();

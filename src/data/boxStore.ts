@@ -77,7 +77,8 @@ export interface BoxStore {
   addManual(read: ItemRead): string;
   mergeRemoteItem(item: BoxItem): void;
   confirmIdentity(itemId: string): void;
-  applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string): void;
+  // cloudLabel: the second look's own label text, whose tags count even when the merge kept the other label.
+  applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string, cloudLabel?: string): void;
   setError(itemId: string, text: string): void;
   answer(itemId: string, questionId: string, answerId: string): void;
   override(itemId: string, patch: Partial<ItemRead>): void;
@@ -247,7 +248,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit();
     },
     confirmIdentity: (itemId) => update(itemId, (i) => ({ ...i, identityConfirmedBy: "sender" })),
-    applySecondLook(itemId, merged, ms, reason) {
+    applySecondLook(itemId, merged, ms, reason, cloudLabel = "") {
       sources = { ...sources, secondLooks: sources.secondLooks + 1 };
       // A second look that worked replaces any earlier failure of it.
       if (errors[itemId] !== undefined) {
@@ -256,8 +257,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         errors = rest;
       }
       // A second look confirms identity only when both reads see the same kind of item.
+      // The tags of every label either read saw, never only the merged one: a hazard word in the shorter
+      // label still counts. The item's tags so far are the first read's.
       update(itemId, (i) => ({
-        ...i, read: merged, labelTags: tagsOf(merged.labelText), secondLook: { ms, reason },
+        ...i, read: merged, labelTags: [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...tagsOf(cloudLabel)])], secondLook: { ms, reason },
         identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
       }));
     },

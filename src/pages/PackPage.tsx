@@ -172,7 +172,7 @@ export function PackPage(p: PackPageProps) {
     try {
       const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
       if (gone.current) return;
-      store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
+      store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel);
       looks.current.delete(itemId);
     } catch (e) {
       const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
