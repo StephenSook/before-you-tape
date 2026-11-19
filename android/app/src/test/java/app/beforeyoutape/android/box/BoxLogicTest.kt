@@ -33,6 +33,16 @@ class BoxLogicTest {
 
     private fun controller(engine: BoxEngine) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-20" })
 
+    /** A newer rules edition re-checks the box, so its verdict follows the rules now in use. */
+    @Test fun newRulesRecheckTheBox() {
+        val e = FakeEngine(result)
+        val c = controller(e)
+        c.addRead(read, listOf("liquid"), Source.ON_DEVICE, 120, "item-1")
+        c.rulesChanged()
+        assertEquals(listOf("CA", "CA"), e.codes)
+        assertEquals(result, c.state.result)
+    }
+
     @Test fun aReadIsAddedWithWhereItRanAndRechecked() {
         val e = FakeEngine(result)
         val c = controller(e)

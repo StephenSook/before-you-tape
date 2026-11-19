@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Android follows the Remote Config edition pin instead of always using the bundled edition.**
+  The app now watches `rules_edition_id` and `rules_edition_sha256`. When they change, it reads the
+  published edition at `ruleEditions/{id}` (signed in, through the deployed rules), checks it on a
+  spare host with `EditionPin.choose`, and only then loads it into the rules in use, re-checks the box
+  and refreshes the destination list; a notice from the check is shown as the web shows it. Each pin
+  change is a new check and only the newest may apply. About shows the edition in use. With the pin
+  empty, as it is today, nothing changes. Source: whole-repo review. Verified:
+  `BoxLogicTest.newRulesRecheckTheBox` failed first, then passes; the live check
+  `EditionPinLiveTest` passed on the emulator against the deployed project (the bundled edition
+  verified on the phone's JavaScript runtime, revision 1; an unpublished edition read nothing through
+  the deployed rules and the built-in edition was kept). `bash android/ci-local.sh` exits 0.
+
 - **A Remote Config edition pin needs a safe id and a full hash, as on the web.** The pin was read
   as raw text. `RcValues.parse` now keeps it only when the id matches `[a-z0-9-]{1,64}` and the
   SHA-256 is 64 hex digits (trimmed, the hash lowercased); otherwise both are empty and the bundled

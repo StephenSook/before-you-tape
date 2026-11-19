@@ -27,6 +27,7 @@ import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
+import app.beforeyoutape.android.engine.PublishedEditions
 import app.beforeyoutape.android.ui.AboutInfo
 import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeActions
@@ -35,12 +36,17 @@ import app.beforeyoutape.android.ui.HomeUi
 import app.beforeyoutape.android.ui.HomeView
 import app.beforeyoutape.android.ui.ReadDraft
 import app.beforeyoutape.android.ui.ReadDrafts
+import app.beforeyoutape.engine.EditionCheck
+import app.beforeyoutape.engine.EditionChoice
+import app.beforeyoutape.engine.EditionPin
 import app.beforeyoutape.engine.EngineError
 import app.beforeyoutape.engine.EngineHost
 import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.PinnedEdition
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.remoteconfig.remoteConfig
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -48,6 +54,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -74,6 +83,12 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val ai: AiClient? = rc?.let { r -> AiClient { r.current() } }
     private val worker = Dispatchers.Default.limitedParallelism(1)
     private var host: EngineHost? = null
+
+    // The bundled edition, and the one in use: a newer one named by the Remote Config pin may replace it.
+    @Volatile private var bundledEdition: PinnedEdition? = null
+    @Volatile private var runningEdition: PinnedEdition? = null
+    private val pinChecks = LatestCheck()
+    private val engineLoaded = CompletableDeferred<Unit>()
 
     private val box = BoxController(BoxLogic.empty(store.destination() ?: ""), BoxEngine { items, code, today ->
         (host ?: throw EngineError("EngineNotLoaded", "the rules are not loaded")).evaluateBox(items, code, today)
@@ -109,8 +124,16 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     init {
         viewModelScope.launch(worker) {
             // The bundled rules: the host checks the bundle's hash, and setEdition lists the destinations.
-            val loaded = runCatching { EngineAssets.load(app).let { h -> h to h.setEdition(EngineAssets.edition(app)).destinations } }.getOrNull()
+            val loaded = runCatching {
+                val h = EngineAssets.load(app)
+                val json = EngineAssets.edition(app)
+                val pinned = requireNotNull(EditionCheck.verify(h, json)) { "the bundled edition did not load" }
+                Triple(h, h.setEdition(json).destinations, pinned)
+            }.getOrNull()
             host = loaded?.first
+            bundledEdition = loaded?.third
+            runningEdition = loaded?.third
+            engineLoaded.complete(Unit)
             // The box from before Android stopped the process, re-checked by the rules.
             persistence.load()?.let { box.restore(it) }
             restored = true
@@ -119,6 +142,44 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             }
         }
         refreshModel()
+        followEditionPin()
+    }
+
+    /**
+     * Follows the Remote Config edition pin, as the web app does. Each pin change is checked off the
+     * worker (the fetch and a spare host's verification), and only the newest check may apply.
+     */
+    private fun followEditionPin() {
+        val values = rc?.values ?: return
+        viewModelScope.launch(Dispatchers.Default) {
+            values.map { it.rulesEditionId to it.rulesEditionSha256 }.distinctUntilChanged().collectLatest { (id, sha) ->
+                val check = pinChecks.begin()
+                // The bundled edition loads on the worker; wait for it before following the pin.
+                engineLoaded.await()
+                val bundled = bundledEdition ?: return@collectLatest
+                val choice = EditionPin.choose(bundled, runningEdition ?: bundled, id, sha, PublishedEditions::fetch, ::verifyOnSpareHost)
+                applyEdition(choice, check)
+            }
+        }
+    }
+
+    /** Verifies an edition on a fresh host, so the rules in use never change before the checks pass. */
+    private fun verifyOnSpareHost(json: String): PinnedEdition? =
+        runCatching { EngineAssets.load(getApplication()).use { EditionCheck.verify(it, json) } }.getOrNull()
+
+    private fun applyEdition(choice: EditionChoice, check: Long) = onWorker {
+        if (!pinChecks.isLatest(check)) return@onWorker
+        val h = host ?: return@onWorker
+        if (choice.edition.editionId != runningEdition?.editionId) {
+            // The live host keeps its rules when it refuses an edition, so a failure here changes nothing.
+            val destinations = runCatching { h.setEdition(choice.edition.json).destinations }.getOrNull()
+                ?: return@onWorker publish { it.copy(message = EditionPin.NOT_READ) }
+            runningEdition = choice.edition
+            box.rulesChanged()
+            publish { it.copy(destinations = destinations, message = choice.notice ?: it.message) }
+        } else if (choice.notice != null) {
+            publish { it.copy(message = choice.notice) }
+        }
     }
 
     /** Wi-Fi or another network that is not billed by the byte. */
@@ -206,7 +267,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             deviceModel = state.value.deviceModel,
             cloudModel = rc?.current()?.cloudModelItem?.ifEmpty { null } ?: "not set",
             appCheckProvider = AppCheckSetup.PROVIDER,
-            editionId = asset { EngineAssets.editionId(app) },
+            editionId = runningEdition?.editionId ?: asset { EngineAssets.editionId(app) },
             bundleCommit = asset { EngineAssets.manifestCommit(app) },
             bundleSha256 = asset { EngineAssets.manifestSha256(app) },
             version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: "unknown",
