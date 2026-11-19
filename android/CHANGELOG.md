@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A typed "lists alcohol" is the sender's own word.** When the sender types an item and
+  ticks that the label lists alcohol, the item now keeps it as their correction
+  (`overrides.alcoholOnLabel = true`), as the web app does. With the shared engine's matching
+  rule, a sender's own alcohol line settles the question like an answer of yes, so it is not
+  asked again; the model's flag alone still asks. Until that engine change is in the shared
+  bundle, the verdict is the same as before. Source: the web app's typed facts change. Verified:
+  `BoxLogicTest.aTypedAlcoholLineIsTheSendersOwnWord` failed first (empty overrides), then
+  passes; an unticked typed item keeps empty overrides. `bash android/ci-local.sh` and the root
+  CI mirror exit 0.
 - **A web `addedAt` survives the phone's sync.** The web app now stamps `addedAt` (ms since
   1970) on new items. The phone's item mapper dropped any field it did not know, so a phone
   write would have removed it. `addedAt` now joins the fields kept as they came and is written
