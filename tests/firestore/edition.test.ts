@@ -9,7 +9,8 @@ import { chooseEdition, firestoreEditionFetcher } from "../../src/data/editionSo
 import { parseEdition } from "../../src/engine/edition";
 
 let env: RulesTestEnvironment;
-const newer = { ...(bundled as Record<string, unknown>), editionId: "byt-newer000001" };
+// Newer means a higher revision; the app keeps its built-in edition otherwise.
+const newer = { ...(bundled as Record<string, unknown>), editionId: "byt-newer000001", revision: ((bundled as { revision?: number }).revision ?? 0) + 1 };
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({ projectId: "demo-before-you-tape", firestore: { rules: readFileSync("firestore.rules", "utf8") } });

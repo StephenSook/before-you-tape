@@ -3,6 +3,32 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A web `addedAt` survives the phone's sync.** The web app now stamps `addedAt` (ms since
+  1970) on new items. The phone's item mapper dropped any field it did not know, so a phone
+  write would have removed it. `addedAt` now joins the fields kept as they came and is written
+  back unchanged when present; the phone does not stamp it yet. Source: the web app's item
+  contract (`tests/contracts/box-docs.json` now carries `addedAt`). Verified:
+  `BoxDocsContractTest.theFixtureItemDecodesAndEncodesToTheSameDocument` failed first (the
+  round trip lost `addedAt`), then passes; `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
+- **The new "ceramic" item category.** The web app adds a 38th category, `ceramic` ("Ceramic
+  or porcelain (mug, plate, vase)"), just before `other`, with rules that use it. The engine's
+  `ItemCategoryWire` and the typed-item form's `ReadCopy.CATEGORIES` gain it in the same place,
+  so the phone can read, type and sync a ceramic item, and the shared ceramic vectors decode.
+  Source: the web app's rule gaps (batch A). Verified: the contract tests that compare the
+  enum order and the form labels with the web files (`ItemReadWireTest`, `CopyTest`), and the
+  shared vectors (`SharedVectorsTest`, which could not decode `ceramic`), failed first and pass
+  now; the enum size guard moves from 37 to 38.
+
+- **Evidence: the app on a real phone.** `docs/evidence/android/a16-2026-11-18/` holds 5
+  stills of the release-signed app on a Samsung A16 against the deployed project (cloud
+  consent, home, destination with the camera off, the typed-item form, an "OK to pack"
+  verdict), with a README that also records the release App Check probe on the same phone
+  (Play Integrity token, sign-in, a cloud read of the known label). Source: the real-device
+  pass. Verified: each still is cropped to remove the phone's status and navigation bars and
+  was checked by eye; the root CI mirror (hygiene guard and secret scan included) exits 0.
+
 - **A crop queued from the old scan session no longer uses up the new session's reset.** The
   reset for a new scan session was a single pending flag, taken by whichever read the worker
   started next. If a crop was accepted, waited on the worker behind a box update, and the person

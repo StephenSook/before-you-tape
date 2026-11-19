@@ -14,8 +14,16 @@ export interface ModelReply {
   unreported?: true;
 }
 
+// What a call that can reach the cloud carries: the check that the cloud is still allowed, and a signal the
+// page aborts when the sender or the pause withdraws it. The SDK checks the signal before it gets its
+// tokens and again before the request, so a withdrawn call sends nothing.
+export interface CallOptions {
+  allowed?: () => boolean;
+  signal?: AbortSignal;
+}
+
 export interface ModelPort {
-  generate(prompt: string, image?: ImagePart): Promise<ModelReply>;
+  generate(prompt: string, image?: ImagePart, opts?: CallOptions): Promise<ModelReply>;
 }
 
 // device: ONLY_ON_DEVICE behind the device guard; hybrid: PREFER_ON_DEVICE; cloud: ONLY_IN_CLOUD;

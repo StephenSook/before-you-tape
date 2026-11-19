@@ -20,7 +20,7 @@ enum class ItemCategoryWire {
     power_bank, loose_battery, battery_toy, musical_card, other_electronics,
     lighter_matches, e_cigarette, glue_paint, knife_tool, toy_gun,
     candle, jewelry_watch, clothing, shoes, book_paper,
-    toy, other,
+    toy, ceramic, other,
 }
 
 @Suppress("EnumEntryName")

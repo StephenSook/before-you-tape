@@ -79,6 +79,10 @@ describe("createItemModels", () => {
     const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm);
     await expect(m.hybrid.generate("read it", img)).resolves.toEqual({ text: "{}", source: "on_device" });
     expect(hybrid.generateContent).toHaveBeenCalledWith(["read it", { type: "inlineData", inlineData: { mimeType: "image/jpeg", data: "AAAA" } }]);
+    // The abort signal reaches the SDK, which checks it before getting tokens and again before the request.
+    const signal = new AbortController().signal;
+    await m.hybrid.generate("read it", { mimeType: "image/jpeg", base64: "AAAA" }, { allowed: () => true, signal });
+    expect(hybrid.generateContent).toHaveBeenLastCalledWith(expect.any(Array), { signal });
   });
 
   it("never reports on_device unless the SDK says so, and marks a reply that names no route", async () => {

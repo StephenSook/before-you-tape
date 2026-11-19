@@ -4,6 +4,7 @@ import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
 import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState } from "./boxStore";
+import { deviceConsent } from "./deviceConsent";
 
 const base: ItemRead = {
   itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -156,7 +157,8 @@ describe("createBoxStore", () => {
     expect(s.getState().items.map((i) => i.itemId)).toEqual(["saved-1"]);
     expect(s.getState().result.items["saved-1"]).toBeDefined();
     expect(s.getState().destinationCode).toBe("PH");
-    expect(s.getState().cloudConsent).toBe(true);
+    // An answer an older version saved on the box is ignored: consent is this device's own.
+    expect(s.getState().cloudConsent).toBeNull();
   });
 
   it("clears the item's error when a second look then succeeds", () => {
@@ -216,6 +218,64 @@ describe("createBoxStore", () => {
     s.setConsent(false);
     expect(seen).toHaveBeenCalledTimes(3);
     expect(s.getState().cloudConsent).toBe(false);
+  });
+
+  it("never saves an item's own name: Firestore gets its category's label, and the real names stay on this device", async () => {
+    const lotion: ItemRead = { ...liquidLotionLabelRead, itemName: "SHEA BUTTER BODY LOTION FROM ACME" };
+    const remembered: Record<string, Record<string, { read: string; override?: string }>> = {};
+    const deviceNames = { remember: (boxId: string, names: Record<string, { read: string; override?: string }>) => { remembered[boxId] = { ...names }; }, recall: (boxId: string) => remembered[boxId] ?? {} };
+    const persistence = spyPersistence();
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    s.setConsent(true);
+    const read = s.addRead(outcome(lotion, "on_device"), "k");
+    const typed = s.addManual({ ...lotion, itemName: "My aunt's lotion" });
+    // A correction that names it and changes its kind: the label follows the corrected kind.
+    s.override(read, { itemName: "Grandma's rose water", category: "perfume_fragrance" });
+    const saved = () => persistence.save.mock.calls.at(-1)?.[0].items ?? [];
+    expect(saved().find((i) => i.itemId === read)?.read.itemName).toBe("Perfume or cologne");
+    expect(saved().find((i) => i.itemId === typed)?.read.itemName).toBe("Lotion or cream");
+    expect(saved().find((i) => i.itemId === read)?.overrides).not.toHaveProperty("itemName");
+    const text = JSON.stringify(saved());
+    for (const words of ["ACME", "aunt", "Grandma"]) expect(text).not.toContain(words);
+    // This device keeps the real names, and a reload puts them back.
+    expect(remembered["names-box"]?.[read]).toEqual({ read: lotion.itemName, override: "Grandma's rose water" });
+    expect(remembered["names-box"]?.[typed]).toEqual({ read: "My aunt's lotion" });
+    const back = createBoxStore({ edition: () => ed, persistence: spyPersistence({ items: saved() }), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    await back.ready;
+    const again = back.getState().items.find((i) => i.itemId === read);
+    expect(again?.read.itemName).toBe(lotion.itemName);
+    expect(again?.overrides.itemName).toBe("Grandma's rose water");
+    expect(back.getState().items.find((i) => i.itemId === typed)?.read.itemName).toBe("My aunt's lotion");
+  });
+
+  it("keeps the cloud answer on this device: starts from it, stores each change there, and saves no box for it", () => {
+    localStorage.clear();
+    const consent = deviceConsent(localStorage);
+    consent.set(true);
+    const persistence = spyPersistence();
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent });
+    expect(s.getState().cloudConsent).toBe(true);
+    const saves = persistence.save.mock.calls.length;
+    s.setConsent(false);
+    expect(consent.get()).toBe(false);
+    expect(s.consentNow()).toBe(false);
+    expect(persistence.save.mock.calls.length).toBe(saves);
+    localStorage.clear();
+  });
+
+  it("hears another tab on this device change the answer, reads it fresh, and tells listeners", () => {
+    localStorage.clear();
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent: deviceConsent(localStorage) });
+    s.setConsent(true);
+    const heard = vi.fn();
+    s.subscribe(heard);
+    // The other tab's write is visible at once, before its event arrives.
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(s.consentNow()).toBe(false);
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "false" }));
+    expect(s.getState().cloudConsent).toBe(false);
+    expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
+    localStorage.clear();
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

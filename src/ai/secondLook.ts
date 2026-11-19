@@ -49,11 +49,11 @@ const NOT_USED: ModelPort = {
 
 export async function runSecondLook(
   cloud: ModelPort, image: ImagePart, device: ItemRead, now: () => number, fallback?: ModelPort, tolerancePct = MERGE_WH_TOLERANCE_PCT,
-  stillAllowed: StillAllowed = () => true,
+  stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
 ): Promise<{ merged: ItemRead; ms: number; sameCategory: boolean }> {
   // The cloud-only route brings the same retry, refusal handling and fallback as a first read.
   const models = fallback ? { device: NOT_USED, hybrid: NOT_USED, cloud, fallback } : { device: NOT_USED, hybrid: NOT_USED, cloud };
-  const out = await readItem(models, image, "cloud_only", now, stillAllowed);
+  const out = await readItem(models, image, "cloud_only", now, stillAllowed, signal);
   return { merged: mergeReads(device, out.read, tolerancePct), ms: out.ms, sameCategory: out.read.category === device.category };
 }
 
