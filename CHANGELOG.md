@@ -6,6 +6,13 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- **The Android CI job also runs when the item contract or the Remote Config template changes.**
+  `BoxDocsContractTest` reads `tests/contracts/box-docs.json` and `RcDefaultsTest` reads
+  `remoteconfig.template.json`, but neither path triggered `android.yml`, so a change to either could
+  land without the Android tests that check it. Both are now in the push and pull request path lists
+  (15 paths each, the two lists identical). Source: review of the CI path filter. Verified: the
+  workflow parses with both lists equal; the root CI mirror exits 0.
+
 - On a phone the newest verdict stays in view: `src/pages/PackPage.tsx` renders a sheet fixed to the bottom of the screen with the newest item's name, its verdict and a "See the card" link to that card. It is a polite live region, so a screen reader announces each new verdict. `src/styles/app.css` shows it only up to 700 px, and pads the page so it covers nothing. `src/ui/ItemCard.tsx` gives each card an anchor id and marks the newest. A sticky card was tried first, but it cannot rise out of its own column below the camera. Tests that read a verdict or a name now look inside the item card, because the sheet repeats them: `src/pages/PackSecondLook.test.tsx`, `tests/e2e/pack.local.spec.ts` and `tests/e2e/roundtrip.live.spec.ts`. Source: P1 item 8 (the newest verdict as a bottom sheet on phones). Verified: new tests in `src/pages/PackPage.test.tsx` (sheet with name, verdict, link and live role) and `src/ui/ItemCard.test.tsx` (newest mark) failed first. 415 src tests pass, and pack.local and axe pass in Chromium; local CI mirror exit 0.
 - `src/styles/app.css`: on a card the verdict word reads at display size, in Bricolage Grotesque at 1.15rem with more padding. It is the answer the sender came for. The chip colors are unchanged and still pinned in the token test. Source: P1 item 8 (the verdict word at display size). Verified: the browser checks pass, including axe on every page; local CI mirror exit 0.
 - `src/styles/app.css`: on phones the pack page's column is `minmax(0, 1fr)`, and the photo picker is capped at the column width. A plain `1fr` column could not shrink below the photo picker row, so the home page scrolled sideways by 7 px at 390 px. `tests/e2e/a11y.spec.ts` now also asserts no sideways page scroll on every built page at both widths. Source: a review of the new layout at phone width. Verified: the new assertion failed first on the home page at 390 px (7 px), and passes after; all 14 browser checks pass; local CI mirror exit 0.
