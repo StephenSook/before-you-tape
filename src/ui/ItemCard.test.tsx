@@ -55,6 +55,11 @@ describe("ItemCard", () => {
     expect(lines.join(" ")).not.toMatch(/: checked/);
   });
 
+  it("labels the mail service the verdict is for", () => {
+    render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
+    expect(screen.getByTestId("service")).toHaveTextContent("Service: Priority Mail International");
+  });
+
   it("keeps the layer list in a closed What we checked disclosure", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
     const details = screen.getByTestId("layer-list").closest("details");

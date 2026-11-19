@@ -68,7 +68,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
             <li key={l.id}>{layerLine(l)}</li>
           ))}
         </ul>
-        <p>{verdict.service}</p>
+        <p data-testid="service">Service: {verdict.service}</p>
       </details>
     </article>
   );
