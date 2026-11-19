@@ -13,16 +13,18 @@ const after = (marker: string): string => {
   return rules.slice(at, rules.indexOf("\n    }\n", at));
 };
 const quoted = (text: string) => [...text.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+// The names in a regex literal's first group of alternatives, such as '^(a|b|c)$'.
+const alternatives = (text: string) => /\(([a-z_]+(?:\|[a-z_]+)+)\)/.exec(text)?.[1]?.split("|") ?? [];
 
 describe("firestore.rules vocabularies", () => {
   it("lists exactly the item categories of the read contract", () =>
-    expect(quoted(after("categories")).sort()).toEqual([...ITEM_CATEGORIES].sort()));
+    expect(alternatives(after("categories")).sort()).toEqual([...ITEM_CATEGORIES].sort()));
 
   it("lists exactly the tags the app can save: label words, category tags and engine tags", () => {
     const e = bundled as { labelWords: Array<{ tag?: string }>; categoryTags: Record<string, string[]> };
     const tags = new Set<string>([...ENGINE_TAGS, ...Object.values(e.categoryTags).flat()]);
     for (const w of e.labelWords) if (w.tag) tags.add(w.tag);
-    expect(quoted(after("tags")).sort()).toEqual([...tags].sort());
+    expect(alternatives(after("tags")).sort()).toEqual([...tags].sort());
   });
 
   it("lists exactly the edition's questions and each one's answers", () => {

@@ -143,6 +143,8 @@ describe("schema", () => {
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "spaceship" } }));
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "toy_gun" } }));
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { secondLook: { ms: 900, reason: "The cloud looked again." }, readFallback: { after: "503", route: "cloud_only" } }));
+    // The item never carries anything about its disputes.
+    await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { secondLook: { ms: 900, reason: "r", rev: "a1b2c3d4" } }));
   });
 
   it("keeps a second look's disputes in their own document, with no label text, and refuses any other shape", async () => {
@@ -161,7 +163,14 @@ describe("schema", () => {
     const tags = ["alcohol", "battery_label", "cosmetic", "electronics", "flammable", "label_text", "li_ion", "liquid", "power_bank_label", "pressurized"];
     const every = { ...disputes, batteryWords: flag, liquid: flag, pressurized: flag, alcoholOnLabel: flag, glassContainer: flag, powder: flag,
       labelTags: { device: tags, cloud: tags.slice(0, 5), resolved: false } };
-    await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i3"), every));
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i3"), { ...every, itemRev: "a1b2c3d4" }));
+    // The heaviest item: every correction, many tags, a second look with its revision.
+    const overrides = { itemName: "Power bank", category: "power_bank", volts: 3.7, milliampHours: 10000, wattHours: 37, lithiumGrams: 0,
+      batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false, glassContainer: false,
+      powder: false, retailBox: "sealed", evidence: "label_read" };
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i9"), { ...itemDoc, itemId: "i9", overrides, labelTags: tags, addedAt: 1795000000000,
+      answers: { battery_installed: "installed", cell_count: "one", device_condition: "new_sealed", label_alcohol: "no", label_alcohol_free: "yes" },
+      secondLook: { ms: 900, reason: "The cloud looked again." }, readFallback: { after: "503", route: "cloud_only" } }));
     // Only a member of the box may read or write it.
     await assertFails(setDoc(doc(bob, "boxes/b1/disputes/i4"), disputes));
     await assertFails(getDoc(doc(bob, "boxes/b1/disputes/i1")));
@@ -186,6 +195,10 @@ describe("schema", () => {
       { retailBox: { device: "sealed!", cloud: "sealed", resolved: false } },
       { liquid: { device: "yes", cloud: false, resolved: false } },
       { evidence: { device: "guessed", cloud: "label_read", resolved: false } },
+      { ...disputes, itemRev: 7 },
+      { ...disputes, itemRev: "x".repeat(40) },
+      { itemRev: "a1b2c3d4" },
+      { ...disputes, rev: "a1b2c3d4" },
     ];
     for (const d of bad) await assertFails(setDoc(doc(alice, "boxes/b1/disputes/i2"), d));
   });

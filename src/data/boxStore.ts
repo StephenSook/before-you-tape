@@ -57,6 +57,8 @@ export interface BoxPersistence {
   // Saves the box. Consent is never part of it: each device keeps its own answer (deviceConsent.ts).
   save(state: BoxState): void;
   load(boxId: string): Promise<Partial<BoxState> | null>;
+  // Told after each save which items did not save, when this copy can fail (an empty set once all have).
+  onUnsaved?(listener: (ids: ReadonlySet<string>) => void): void;
 }
 
 // An item's own names, the read's and the sender's correction, kept on this device: the server has only

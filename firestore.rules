@@ -30,7 +30,9 @@ rules_version = '2';
 // Collection: boxes/{boxId}/disputes
 // Document ID: the item id
 // Fields: the facts a second look's two reads of that item disagreed on (category, retailBox, battery,
-//   lithiumGrams, each hazard flag, labelTags, evidence), each { device, cloud, resolved }. No label text: a label
+//   lithiumGrams, each hazard flag, labelTags, evidence), each { device, cloud, resolved }, and itemRev, a
+//   revision of the item document it was written with in the same batch: a reload that finds the item changed
+//   since holds it at "Check this". No label text: a label
 //   dispute holds tags. Its own document, so it has its own evaluation budget beside the item's.
 //
 // Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
@@ -73,42 +75,34 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------
     // Fixed vocabularies, copied from the rule edition and the read contract.
-    // tests/firestore-vocab.test.ts fails if any list here differs from its source.
+    // tests/firestore-vocab.test.ts fails if any list here differs from its source. Categories and tags are regex
+    // literals, not lists: one request may evaluate at most 1000 expressions, and a list counts every element.
     // ---------------------------------------------------------------
 
     // vocab:categories
-    function categories() {
-      return [
-        'perfume_fragrance', 'nail_polish', 'aerosol_spray', 'hand_sanitizer', 'lotion_cream', 'liquid_toiletry',
-        'makeup', 'powder', 'medicine', 'alcohol_drink', 'food_packaged', 'chocolate', 'coffee', 'cooking_oil',
-        'meat_product', 'phone', 'tablet', 'laptop', 'smartwatch', 'earbuds', 'power_bank', 'loose_battery',
-        'battery_toy', 'musical_card', 'other_electronics', 'lighter_matches', 'e_cigarette', 'glue_paint',
-        'knife_tool', 'toy_gun', 'candle', 'jewelry_watch', 'clothing', 'shoes', 'book_paper', 'toy', 'ceramic', 'other'
-      ];
+    // One literal: a list literal costs one expression per element against the limit of 1000 per request.
+    function categoryPattern() {
+      return '^(perfume_fragrance|nail_polish|aerosol_spray|hand_sanitizer|lotion_cream|liquid_toiletry|makeup|powder|medicine|alcohol_drink|food_packaged|chocolate|coffee|cooking_oil|meat_product|phone|tablet|laptop|smartwatch|earbuds|power_bank|loose_battery|battery_toy|musical_card|other_electronics|lighter_matches|e_cigarette|glue_paint|knife_tool|toy_gun|candle|jewelry_watch|clothing|shoes|book_paper|toy|ceramic|other)$';
     }
 
     // vocab:tags
-    function knownTags() {
-      return [
-        'alcohol', 'alcohol_flag', 'alcohol_free_unsure', 'alcoholic_drink', 'battery_label', 'bullion', 'ceramic', 'chocolate',
-        'christmas_cracker', 'cigar', 'clothing', 'coffee', 'cosmetic', 'dry_ice', 'easily_liquefiable',
-        'edible_oil', 'electronics', 'explosive', 'flammable', 'food', 'fragrance', 'glass_fragile',
-        'hardware_tools', 'hemp', 'hemp_maybe', 'jewelry_valuables', 'knife', 'label_text', 'li_ion', 'li_metal',
-        'lighter', 'liquid', 'magnet', 'margarine', 'matches', 'meat', 'mercury', 'pet_food', 'pharmaceutical',
-        'plant', 'pork_meat', 'powder', 'power_bank_label', 'pressurized', 'reprint', 'sanitizer', 'tobacco', 'toy',
-        'toy_gun', 'vaping'
-      ];
+    // Matched against ',' + tags.join(',') + ',': every tag is one known tag, whole.
+    function tagListPattern() {
+      return '^,((alcohol|alcohol_flag|alcohol_free_unsure|alcoholic_drink|battery_label|bullion|ceramic|chocolate|christmas_cracker|cigar|clothing|coffee|cosmetic|dry_ice|easily_liquefiable|edible_oil|electronics|explosive|flammable|food|fragrance|glass_fragile|hardware_tools|hemp|hemp_maybe|jewelry_valuables|knife|label_text|li_ion|li_metal|lighter|liquid|magnet|margarine|matches|meat|mercury|pet_food|pharmaceutical|plant|pork_meat|powder|power_bank_label|pressurized|reprint|sanitizer|tobacco|toy|toy_gun|vaping),)*$';
     }
 
     // vocab:answers
-    function isValidAnswers(a) {
-      return a is map
-        && a.keys().hasOnly(['battery_installed', 'cell_count', 'device_condition', 'label_alcohol', 'label_alcohol_free'])
+    function isAnswerSet(a) {
+      return a.keys().hasOnly(['battery_installed', 'cell_count', 'device_condition', 'label_alcohol', 'label_alcohol_free'])
         && a.get('battery_installed', 'installed') in ['installed', 'loose', 'packed_beside', 'none', 'not_lithium']
         && a.get('cell_count', 'one') in ['one', 'more_than_one', 'not_sure']
         && a.get('device_condition', 'new_sealed') in ['new_sealed', 'new_opened', 'used', 'refurbished_certified']
         && a.get('label_alcohol', 'yes') in ['yes', 'no', 'cannot_tell']
         && a.get('label_alcohol_free', 'yes') in ['yes', 'no', 'cannot_tell'];
+    }
+
+    function isValidAnswers(a) {
+      return a is map && (a.size() == 0 || isAnswerSet(a));
     }
 
     // ---------------------------------------------------------------
@@ -151,7 +145,7 @@ service cloud.firestore {
     // Types of every read field that is present; shared by the read and the sender's corrections.
     function readFieldsTyped(r) {
       return isShortString(r.get('itemName', ''), 120)
-        && r.get('category', 'other') in categories()
+        && (!('category' in r) || (r.category is string && r.category.matches(categoryPattern())))
         && isNonNegative(r.get('volts', 0)) && isNonNegative(r.get('milliampHours', 0))
         && isNonNegative(r.get('wattHours', 0)) && isNonNegative(r.get('lithiumGrams', 0))
         && r.get('batteryWords', false) is bool && r.get('liquid', false) is bool && r.get('pressurized', false) is bool
@@ -175,10 +169,10 @@ service cloud.firestore {
     // A sender's corrections: any read field except the label text.
     function isValidOverrides(o) {
       return o is map && !('labelText' in o)
-        && o.keys().hasOnly(['itemName', 'category', 'volts', 'milliampHours', 'wattHours', 'lithiumGrams',
+        && (o.size() == 0 || (o.keys().hasOnly(['itemName', 'category', 'volts', 'milliampHours', 'wattHours', 'lithiumGrams',
                              'batteryWords', 'liquid', 'pressurized', 'alcoholOnLabel', 'flammableOnLabel', 'glassContainer',
                              'powder', 'retailBox', 'evidence'])
-        && readFieldsTyped(o);
+        && readFieldsTyped(o)));
     }
 
     function isValidSecondLook(v) {
@@ -197,8 +191,15 @@ service cloud.firestore {
       return b is map && b.size() == 3 && isNonNegative(b.volts) && isNonNegative(b.milliampHours) && isNonNegative(b.wattHours);
     }
 
-    // Tags, never label text: each one a lowercase word of letters and underscores. One regex over the joined list,
-    // because building the tag vocabulary as well would pass the 1000-expression limit on the heaviest document.
+    // Every tag one known tag, whole: the joined text matches the vocabulary and splits back into as many tags
+    // as the list holds, so no element can hide a comma.
+    function isKnownTagList(t) {
+      return t is list && t.size() <= 40
+        && (t.size() == 0 || ((',' + t.join(',') + ',').matches(tagListPattern()) && t.join(',').split(',').size() == t.size()));
+    }
+
+    // A dispute's tags: lowercase words, never label text. Lighter than the vocabulary check above, which the
+    // heaviest disputes document cannot also afford inside the expression limit.
     function isTagWords(t) {
       return t is list && t.size() <= 40 && (t.size() == 0 || t.join(',').matches('^[a-z_]{1,40}(,[a-z_]{1,40})*$'));
     }
@@ -212,10 +213,9 @@ service cloud.firestore {
                            && m[k].cloud is string && m[k].cloud.matches(pattern));
     }
 
-    // The category list is built only when there is a category dispute.
     function isCategoryDispute(d) {
-      let cats = categories();
-      return isDisputeShape(d) && d.device in cats && d.cloud in cats;
+      return isDisputeShape(d) && d.device is string && d.device.matches(categoryPattern())
+        && d.cloud is string && d.cloud.matches(categoryPattern());
     }
 
     // A label dispute holds tags, never label text.
@@ -223,11 +223,13 @@ service cloud.firestore {
       return isDisputeShape(d) && isTagWords(d.device) && isTagWords(d.cloud);
     }
 
-    // At least one fact, each typed as the read types it.
+    // At least one fact, each typed as the read types it, and itemRev: a revision of the item document the
+    // disputes were written with, in the same batch.
     function isValidDisputes(m) {
-      return m.size() >= 1
+      return m.size() >= ('itemRev' in m ? 2 : 1)
         && m.keys().hasOnly(['category', 'retailBox', 'battery', 'lithiumGrams', 'batteryWords', 'liquid', 'pressurized',
-                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence'])
+                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence', 'itemRev'])
+        && (!('itemRev' in m) || isShortString(m.itemRev, 16))
         && (!('category' in m) || isCategoryDispute(m.category))
         && isEnumDispute(m, 'retailBox', '^(sealed|open_or_none|cannot_tell)$')
         && isEnumDispute(m, 'evidence', '^(label_read|item_seen|not_sure)$')
@@ -266,7 +268,7 @@ service cloud.firestore {
         && isValidAnswers(d.answers)
         && d.quantity is int && d.quantity >= 1 && d.quantity <= 99
         && (d.identityConfirmedBy == null || d.identityConfirmedBy in ['sender', 'second_look'])
-        && d.labelTags is list && d.labelTags.size() <= 40 && d.labelTags.hasOnly(knownTags())
+        && isKnownTagList(d.labelTags)
         && d.readSource in ['on_device', 'in_cloud', 'cloud_unreported', 'manual', 'phone_on_device', 'phone_cloud']
         && (!('readMs' in d) || d.readMs is number)
         && (!('secondLook' in d) || isValidSecondLook(d.secondLook))
