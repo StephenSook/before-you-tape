@@ -16,7 +16,8 @@ rules_version = '2';
 //   - joinKeyExpiresAt: int ms (optional, absent at creation, immutable from clients) - when the code stops working
 //   - destinationCode: string (required, 2 letters) - the destination country
 //   - editionId: string (required, up to 64) - the rule edition the box was judged with
-//   - cloudConsent: bool or null (required) - the sender's cloud answer
+//   - (no consent) - each device keeps its own cloud answer; a box written by an older version may still
+//     hold cloudConsent, which a client may only delete
 //   - sources: map of counts (optional) - onDevice, inCloud, secondLooks, rulesOnlyRechecks, cloudFallbacks
 //   - lastRecheckMs: number or null (optional) - time of the last rules-only re-check
 //   - updatedAt: timestamp (optional)
@@ -117,7 +118,7 @@ service cloud.firestore {
     }
 
     function isValidBox(d) {
-      return d.keys().hasAll(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent'])
+      return d.keys().hasAll(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId'])
         && d.keys().hasOnly(['ownerUid', 'memberUids', 'joinKeyHash', 'joinKeyExpiresAt', 'destinationCode', 'editionId',
                              'cloudConsent', 'sources', 'lastRecheckMs', 'updatedAt'])
         && isShortString(d.ownerUid, 128)
@@ -126,10 +127,17 @@ service cloud.firestore {
         && (!('joinKeyExpiresAt' in d) || (d.joinKeyExpiresAt is int && d.joinKeyExpiresAt > 0))
         && d.destinationCode is string && d.destinationCode.matches('^[A-Z]{2}$')
         && isShortString(d.editionId, 64)
-        && (d.cloudConsent == null || d.cloudConsent is bool)
+
         && (!('sources' in d) || isValidSources(d.sources))
         && (!('lastRecheckMs' in d) || isNumberOrNull(d.lastRecheckMs))
         && (!('updatedAt' in d) || d.updatedAt is timestamp);
+    }
+
+    // Consent is kept on each device, never here: a write may leave an older box's cloudConsent as it is or
+    // delete it, and never sets or changes it.
+    function consentUntouchedOrDeleted() {
+      return !('cloudConsent' in request.resource.data)
+        || ('cloudConsent' in resource.data && request.resource.data.cloudConsent == resource.data.cloudConsent);
     }
 
     function isNonNegative(v) {
@@ -223,11 +231,13 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.memberUids == [request.auth.uid]
         && request.resource.data.joinKeyHash == ''
-        && !('joinKeyExpiresAt' in request.resource.data);
+        && !('joinKeyExpiresAt' in request.resource.data)
+        && !('cloudConsent' in request.resource.data);
       // Members change the box contents, never who belongs to it.
       allow update: if isMemberOf(resource)
         && isValidBox(request.resource.data)
-        && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash', 'joinKeyExpiresAt']);
+        && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash', 'joinKeyExpiresAt'])
+        && consentUntouchedOrDeleted();
       allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
 
       match /items/{itemId} {

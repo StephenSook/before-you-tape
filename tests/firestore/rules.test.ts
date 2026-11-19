@@ -1,15 +1,15 @@
 // Firestore rules (spec 5.8), run against the local emulator: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc, type Firestore } from "firebase/firestore";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let env: RulesTestEnvironment;
 let alice: Firestore;
 let bob: Firestore;
 let nobody: Firestore;
 
-const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", cloudConsent: true });
+const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" });
 // An item as the box store saves it: the read with its label text emptied, never sent.
 const itemDoc = {
   itemId: "i1",
@@ -54,6 +54,22 @@ describe("boxes", () => {
     await assertFails(updateDoc(doc(alice, "boxes/b1"), { joinKeyExpiresAt: 1_900_000_000_000 }));
     await assertFails(updateDoc(doc(alice, "boxes/b1"), { joinKeyHash: "" }));
     await assertFails(setDoc(doc(alice, "boxes/b3"), { ...boxFor("alice"), joinKeyExpiresAt: 1_800_000_000_000 }));
+  });
+
+  it("keeps no consent on a box: refuses it on create and any set or change, and lets an old answer be deleted", async () => {
+    for (const consent of [true, false, null]) await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), cloudConsent: consent }));
+    await assertFails(setDoc(doc(alice, "boxes/c0"), { ...boxFor("alice"), consentChosenAt: 5 }));
+    await assertSucceeds(setDoc(doc(alice, "boxes/c1"), boxFor("alice")));
+    await assertFails(updateDoc(doc(alice, "boxes/c1"), { cloudConsent: true }));
+    // A box an older version saved with an answer: it may stay as it is or be deleted, never changed.
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/c2"), { ...boxFor("alice"), cloudConsent: true });
+    });
+    await assertSucceeds(updateDoc(doc(alice, "boxes/c2"), { destinationCode: "PH" }));
+    await assertFails(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: false }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: deleteField() }));
+    expect("cloudConsent" in ((await getDoc(doc(alice, "boxes/c2"))).data() ?? {})).toBe(false);
+    await assertFails(updateDoc(doc(alice, "boxes/c2"), { cloudConsent: true }));
   });
 
   it("lets a signed-in user learn only that a box id is free", async () => {

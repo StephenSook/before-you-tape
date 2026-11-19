@@ -69,6 +69,10 @@ describe("destination editions", () => {
       { tag: "glass_fragile", effect: "take_out" },
       { tag: "easily_liquefiable", effect: "check" },
       { tag: "ceramic", effect: "check" },
+      // A saved item keeps its tags but not its label text, so tags from before chocolate and margarine
+      // counted as easily liquefiable still lead here.
+      { tag: "chocolate", effect: "check" },
+      { tag: "margarine", effect: "check" },
     ]));
 
   it("has no Canada line that matches liquids", () => {

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -6,6 +6,7 @@ import type { ItemModels, ModelPort } from "../ai/port";
 import { createBoxStore, type BoxPersistence } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
+import { deviceConsent } from "../data/deviceConsent";
 
 const liquidLotionLabelRead: ItemRead = {
   itemName: "Body lotion", category: "lotion_cream", labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0, milliampHours: 0, wattHours: 0,
@@ -15,9 +16,9 @@ const liquidLotionLabelRead: ItemRead = {
 const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
-const persistence: BoxPersistence = { save: () => {}, load: async () => null };
+const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
 let n = 0;
-const newStore = () => createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
@@ -135,6 +136,64 @@ describe("PackPage", () => {
   it("shows no Use your phone without the handoff", () => {
     setup();
     expect(screen.queryByRole("button", { name: "Use your phone" })).toBeNull();
+  });
+
+  it("aborts a cloud read in flight the moment the sender takes back consent, before the page re-renders", async () => {
+    let signal: AbortSignal | undefined;
+    const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<never>(() => {}); }) };
+    const { store } = setup({ models: { ...spyModels(), cloud } });
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    expect(signal?.aborted).toBe(false);
+    // Subscribed after the page, so it sees the state at the moment the change is announced.
+    let abortedWhenAnnounced: boolean | undefined;
+    store.subscribe(() => { abortedWhenAnnounced = signal?.aborted; });
+    act(() => store.setConsent(false));
+    expect(abortedWhenAnnounced).toBe(true);
+  });
+
+  it("takes the pause from Remote Config as it is now, not from the last render, before using the cloud", async () => {
+    // Remote Config has the pause on; the page has not re-rendered, so its props still say it is off.
+    for (const paused of [true, false]) {
+      const liveConfig = { get: () => ({ killCloud: paused }), subscribe: () => () => {} };
+      const { models } = setup({ liveConfig });
+      await addPhoto();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(models.cloud.generate).toHaveBeenCalledTimes(paused ? 0 : 1);
+      expect(models.hybrid.generate).not.toHaveBeenCalled();
+      cleanup();
+    }
+  });
+
+  it("aborts a cloud read in flight when the sender leaves the page, and adds nothing once the page is gone", async () => {
+    let signal: AbortSignal | undefined;
+    let finish!: (r: { text: string; source: "in_cloud" }) => void;
+    const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<{ text: string; source: "in_cloud" }>((r) => { finish = r; }); }) };
+    const store = newStore();
+    store.setConsent(true);
+    const saveCrop = vi.fn(async () => {});
+    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} online />);
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => { finish({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }); for (let i = 0; i < 10; i++) await Promise.resolve(); });
+    expect(store.getState().items).toHaveLength(0);
+    expect(saveCrop).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing in the cloud when this device's stored answer says no, before the page has heard of it", async () => {
+    // Another tab on this device took consent back; its storage event has not reached this page yet.
+    localStorage.clear();
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    const { models } = setup({ store });
+    expect(store.getState().cloudConsent).toBe(true);
+    localStorage.setItem("byt.cloudConsent", "false");
+    await addPhoto();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+    localStorage.clear();
   });
 
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {

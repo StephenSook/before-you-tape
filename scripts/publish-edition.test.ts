@@ -13,7 +13,8 @@ describe("editionDocument", () => {
   });
 
   it("produces a document the app accepts under that pin", async () => {
-    const newer = { ...(bundled as Record<string, unknown>), editionId: "byt-newer000001" };
+    // Newer means a higher revision; the app keeps its built-in edition otherwise.
+    const newer = { ...(bundled as Record<string, unknown>), editionId: "byt-newer000001", revision: ((bundled as { revision?: number }).revision ?? 0) + 1 };
     const d = await editionDocument(newer);
     const chosen = await chooseEdition({
       bundled: parseEdition(bundled), bundledSha: await sha256Hex(canonicalJson(bundled)),

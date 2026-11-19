@@ -174,8 +174,12 @@ function checkDestination(
 export function parseEdition(json: unknown): RuleEdition {
   const e = obj(json, "edition");
   keys(e, ["editionId", "service", "sources", "limits", "categoryTags", "labelWords", "questions", "rules",
-    "destinations", "suspensions", "stopWords", "worksheetFields"], [], "edition");
+    "destinations", "suspensions", "stopWords", "worksheetFields"], ["revision"], "edition");
   str(e.editionId, "editionId");
+  // Which edition is newer: a pinned edition is used only when its revision is higher than the built-in one's.
+  if (e.revision !== undefined && !(typeof e.revision === "number" && Number.isInteger(e.revision) && e.revision >= 1)) {
+    fail("revision", "must be a whole number from 1");
+  }
   if (e.service !== "Priority Mail International") fail("service", "must be Priority Mail International");
 
   list(e.sources, "sources").forEach((x, i) => {

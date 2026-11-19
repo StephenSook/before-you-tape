@@ -19,7 +19,7 @@ class ItemReadWireTest {
             for (c in ItemCategoryWire.entries) assertEquals(c, host.parseItemRead(readWith("category", c.name)).category)
             for (r in RetailBoxWire.entries) assertEquals(r, host.parseItemRead(readWith("retailBox", r.name)).retailBox)
             for (e in EvidenceWire.entries) assertEquals(e, host.parseItemRead(readWith("evidence", e.name)).evidence)
-            assertEquals(37, ItemCategoryWire.entries.size)
+            assertEquals(38, ItemCategoryWire.entries.size)
         }
     }
 

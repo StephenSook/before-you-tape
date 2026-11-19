@@ -134,6 +134,18 @@
     "expect": { "spread": "check" }, "expectRules": { "spread": ["PH-P-01"] }
   },
   {
+    "name": "saved_chocolate_with_only_its_old_tag_to_philippines_is_check", "source": "IMM Philippines PH-P-01; a saved item keeps its tags, not its label text",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "snack", "identityConfirmedBy": "sender", "read": { "category": "food_packaged", "labelText": "" }, "labelTags": ["chocolate"] }],
+    "expect": { "snack": "check" }, "expectRules": { "snack": ["PH-P-01"] }
+  },
+  {
+    "name": "saved_margarine_with_only_its_old_tag_to_philippines_is_check", "source": "IMM Philippines PH-P-01; a saved item keeps its tags, not its label text",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "spread", "identityConfirmedBy": "sender", "read": { "category": "food_packaged", "labelText": "" }, "labelTags": ["margarine"] }],
+    "expect": { "spread": "check" }, "expectRules": { "spread": ["PH-P-01"] }
+  },
+  {
     "name": "chocolate_bar_to_canada_stays_ok", "source": "no Canada line names chocolate",
     "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "bar", "read": { "category": "chocolate", "labelText": "EXCELLENCE 85% CACAO RICH DARK" } }],

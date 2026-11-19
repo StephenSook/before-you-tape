@@ -123,6 +123,55 @@ describe("readItem", () => {
     expect(hybrid.cloud.generate).not.toHaveBeenCalled();
   });
 
+  // The SDK's hybrid mode can reach the cloud inside one call, after any check made before it, so a hybrid
+  // read starts only while the cloud is still allowed, and every call that can reach the cloud carries the
+  // permission check and an abort signal the page fires when the sender or the pause withdraws it.
+  it("reads on the device only when the cloud is no longer allowed as a hybrid read starts", async () => {
+    const m = models({ device: ok("on_device") });
+    expect(await readItem(m, img, "hybrid", clock(0, 1), () => false)).toMatchObject({ source: "on_device", route: "device_only" });
+    expect(m.hybrid.generate).not.toHaveBeenCalled();
+    const leak = models({ device: ok("in_cloud") });
+    await expect(readItem(leak, img, "hybrid", clock(0, 1), () => false)).rejects.toMatchObject({ kind: "leak_guard" });
+  });
+
+  it("gives every call that can reach the cloud the permission check and the abort signal", async () => {
+    const signal = new AbortController().signal;
+    const allowed = () => true;
+    const m = models({ hybrid: fails("QuotaExceededError"), cloud: fails("fetch-error 503"), fallback: ok("in_cloud") });
+    await readItem(m, img, "hybrid", clock(0, 1), allowed, signal);
+    for (const port of [m.hybrid, m.cloud, m.fallback]) expect(port.generate).toHaveBeenCalledWith(expect.any(String), img, { allowed, signal });
+  });
+
+  it("ends a read as blocked, with no recovery, retry or fallback, once its signal is aborted", async () => {
+    const aborts = (ac: AbortController): MockPort => ({ generate: vi.fn(async () => { ac.abort(); throw new DOMException("Aborted", "AbortError"); }) });
+    const a = new AbortController();
+    const hybrid = models({ hybrid: aborts(a), cloud: never() });
+    await expect(readItem(hybrid, img, "hybrid", clock(0, 1), () => true, a.signal)).rejects.toMatchObject({ kind: "blocked" });
+    expect(hybrid.cloud.generate).not.toHaveBeenCalled();
+    const b = new AbortController();
+    const cloud = models({ cloud: aborts(b), fallback: never() });
+    await expect(readItem(cloud, img, "cloud_only", clock(0, 1), () => true, b.signal)).rejects.toMatchObject({ kind: "blocked" });
+    expect(cloud.cloud.generate).toHaveBeenCalledTimes(1);
+    expect(cloud.fallback.generate).not.toHaveBeenCalled();
+    const c = new AbortController();
+    c.abort();
+    const before = models({ cloud: never() });
+    await expect(readItem(before, img, "cloud_only", clock(0, 1), () => true, c.signal)).rejects.toMatchObject({ kind: "blocked" });
+    expect(before.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("settles as blocked the moment its signal aborts, even while a cloud call has not answered", async () => {
+    const pending = (): MockPort => ({ generate: vi.fn(() => new Promise<never>(() => {})) });
+    for (const route of ["hybrid", "cloud_only"] as const) {
+      const ac = new AbortController();
+      const m = models({ hybrid: pending(), cloud: pending() });
+      const read = readItem(m, img, route, clock(0, 1), () => true, ac.signal);
+      await Promise.resolve();
+      ac.abort();
+      await expect(read).rejects.toMatchObject({ kind: "blocked" });
+    }
+  });
+
   it("tries the fallback once when the API says the model is gone, without retrying the gone model", async () => {
     for (const msg of [
       "[GoogleGenerativeAI Error]: fetch-error 404 Not Found: models/gemini-2.5-flash is no longer available to new users",

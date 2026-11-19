@@ -80,6 +80,7 @@ object ReadCopy {
         ItemCategoryWire.shoes to "Shoes",
         ItemCategoryWire.book_paper to "Book or paper",
         ItemCategoryWire.toy to "Toy",
+        ItemCategoryWire.ceramic to "Ceramic or porcelain (mug, plate, vase)",
         ItemCategoryWire.other to "Something else",
     )
 

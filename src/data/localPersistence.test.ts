@@ -27,6 +27,15 @@ describe("localPersistence", () => {
     expect(b.getState().result.items[b.getState().items[0]!.itemId]?.level).toBe("take_out");
   });
 
+  it("keeps no consent with the box, and ignores an answer an older save carried", async () => {
+    localStorage.setItem("byt.box.box-c", JSON.stringify({ boxId: "box-c", destinationCode: "CA", items: [], cloudConsent: true }));
+    expect(await localPersistence(localStorage).load("box-c")).not.toHaveProperty("cloudConsent");
+    const s = make("box-c");
+    await s.ready;
+    s.setConsent(true);
+    expect(localStorage.getItem("byt.box.box-c")).not.toContain("cloudConsent");
+  });
+
   it("returns nothing for a box it never saved, and ignores a damaged record", async () => {
     expect(await localPersistence(localStorage).load("none")).toBeNull();
     localStorage.setItem("byt.box.bad", "{not json");
