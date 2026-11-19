@@ -15,7 +15,9 @@ const RULES: ReadonlyArray<{ name: string; re: RegExp; allowIn?: readonly string
   { name: "mediapipe", re: /mediapipe/gi },
   { name: "@tensorflow", re: /@tensorflow/g },
   { name: "onnxruntime", re: /onnxruntime/gi },
-  { name: "speechSynthesis", re: /\bspeechSynthesis\b/g },
+  // Speech: recognition is banned (this matches the webkit-prefixed name too), since it reads the user's speech
+  // with a model outside Firebase AI Logic. The browser's system voice (speechSynthesis) is allowed as a fallback
+  // voice: it speaks text the app already holds and reads nothing from the user.
   { name: "SpeechRecognition", re: /SpeechRecognition/g },
   { name: "LanguageModel.create", re: /\bLanguageModel\s*\.\s*create\b/g },
   { name: ".prompt(", re: /\.prompt\s*\(/g },
