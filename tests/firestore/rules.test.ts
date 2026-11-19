@@ -45,6 +45,17 @@ describe("boxes", () => {
     await assertFails(updateDoc(doc(bob, "boxes/b1"), { destinationCode: "PH" }));
   });
 
+  it("leaves the join code's expiry to the server: members keep editing a box that has one, and never change it", async () => {
+    // The server (Admin SDK, outside these rules) wrote a join code and its expiry.
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/b1"), { ...boxFor("alice"), joinKeyHash: "a".repeat(64), joinKeyExpiresAt: 1_800_000_000_000 });
+    });
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1"), { destinationCode: "PH" }));
+    await assertFails(updateDoc(doc(alice, "boxes/b1"), { joinKeyExpiresAt: 1_900_000_000_000 }));
+    await assertFails(updateDoc(doc(alice, "boxes/b1"), { joinKeyHash: "" }));
+    await assertFails(setDoc(doc(alice, "boxes/b3"), { ...boxFor("alice"), joinKeyExpiresAt: 1_800_000_000_000 }));
+  });
+
   it("lets a signed-in user learn only that a box id is free", async () => {
     await assertSucceeds(getDoc(doc(alice, "boxes/free")));
     await assertFails(getDoc(doc(nobody, "boxes/free")));

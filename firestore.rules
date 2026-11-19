@@ -13,6 +13,7 @@ rules_version = '2';
 //   - ownerUid: string (required, immutable) - who started the box
 //   - memberUids: list of uid strings (required, 1 to 4, immutable from clients) - who may read and write
 //   - joinKeyHash: string (required, empty at creation, immutable from clients) - set by the join function
+//   - joinKeyExpiresAt: int ms (optional, absent at creation, immutable from clients) - when the code stops working
 //   - destinationCode: string (required, 2 letters) - the destination country
 //   - editionId: string (required, up to 64) - the rule edition the box was judged with
 //   - cloudConsent: bool or null (required) - the sender's cloud answer
@@ -117,11 +118,12 @@ service cloud.firestore {
 
     function isValidBox(d) {
       return d.keys().hasAll(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent'])
-        && d.keys().hasOnly(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent',
-                             'sources', 'lastRecheckMs', 'updatedAt'])
+        && d.keys().hasOnly(['ownerUid', 'memberUids', 'joinKeyHash', 'joinKeyExpiresAt', 'destinationCode', 'editionId',
+                             'cloudConsent', 'sources', 'lastRecheckMs', 'updatedAt'])
         && isShortString(d.ownerUid, 128)
         && d.memberUids is list && d.memberUids.size() >= 1 && d.memberUids.size() <= 4
         && isShortString(d.joinKeyHash, 128)
+        && (!('joinKeyExpiresAt' in d) || (d.joinKeyExpiresAt is int && d.joinKeyExpiresAt > 0))
         && d.destinationCode is string && d.destinationCode.matches('^[A-Z]{2}$')
         && isShortString(d.editionId, 64)
         && (d.cloudConsent == null || d.cloudConsent is bool)
@@ -220,11 +222,12 @@ service cloud.firestore {
         && isValidBox(request.resource.data)
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.memberUids == [request.auth.uid]
-        && request.resource.data.joinKeyHash == '';
+        && request.resource.data.joinKeyHash == ''
+        && !('joinKeyExpiresAt' in request.resource.data);
       // Members change the box contents, never who belongs to it.
       allow update: if isMemberOf(resource)
         && isValidBox(request.resource.data)
-        && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash']);
+        && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash', 'joinKeyExpiresAt']);
       allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
 
       match /items/{itemId} {
