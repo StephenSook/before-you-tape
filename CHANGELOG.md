@@ -6,12 +6,6 @@ All notable changes to this project are listed here.
 
 ### Added
 
-- **The cloud switch-off limit describes the web app's newer stop.** `docs/LIMITS.md` now says
-  that on the web a request already sent can finish, and anything not yet sent, including an
-  automatic retry or the fallback model, is not sent (the web app re-checks the pause and consent
-  right before every cloud call). The Android half is unchanged. Source: the web app's batch A
-  change, wording from its builder. Verified: the root CI mirror exits 0 (hygiene and tone).
-
 - `docs/LIMITS.md`: the cloud switch-off line now covers both clients. A read already running when cloud checks are switched off can still finish: on Android one hybrid call may fall back to the cloud (its retries re-check the switch); on the web the call in flight can finish, plus at most one automatic retry and one try on the fallback model. Source: the web builder's reading of `src/ai/itemRead.ts`, on the Android review note. Verified: tone check and the root CI list exit 0.
 - `docs/LIMITS.md`: the Android app's cloud switch-off covers every read that starts after it, not one already running. The app keeps the SDK's hybrid mode (prefer the phone's model, fall back to the cloud), so a read that started with the sender's cloud consent can still fall back once while the switch is being turned off. Source: review (second model) of the Android pull request, finding 3, accepted with this note. Verified: tone check and the root CI list exit 0.
 - `.gitleaks.toml`: gitleaks keeps all of its default rules and allows exactly one value, the made-up join key `ABCDEFGHJKMNPQRSTVWXYZ2345` (the Crockford base32 alphabet in order), in either case. Commit dfb14b3, on the handoff branch, uses it in `src/shared/joinLink.test.ts` and `tests/vectors/join-links.json`. CI checks out every branch and scans them all, so its three findings could turn the secret scan red on any branch. It is a test value, not a secret: checked by hand against each line, and confirmed separately in review. The branch is not rewritten; later tests use a low-entropy key. Source: the secret scan reported by lanes B and D, and the review ruling. Verified with CI's exact command, `gitleaks git --redact --exit-code 1 .`, with origin/handoff present: exit 0 with this file, exit 1 without it (3 leaks). A planted GitHub-token-shaped value is still caught with it. Local CI mirror exit 0.
