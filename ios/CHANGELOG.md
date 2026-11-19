@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): clearing the label words no longer clears "We're not sure what this is"
+- What: any change to the label words counted as the sender saying what the item is, so clearing
+  the label of an unsure item set the sender's evidence, confirmed it and could turn "Check this"
+  into "OK to pack". Only a new category or new, non-blank label words count now.
+- Source: review.
+- Verified: a test clears the label of an unsure shirt (no evidence, not confirmed, still
+  "Check this"); it failed on the old code (3 issues), then passed; 119 app unit tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): a return to the installed rule edition stops any slower request
 - What: the request counter moved only when a pin still had to be installed, so going back to the
   installed pin left a slower request for another pin current, and it installed when it finished.
