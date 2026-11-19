@@ -61,3 +61,11 @@ Every cloud model call, all through Firebase AI Logic with App Check, all paused
 | Second look | `src/ai/secondLook.ts` | the same crop and prompt | When the policy names a reason, after an on-device read |
 
 Descriptions for the customs form come later, through the text model, and will be added here.
+
+### What opens a cloud call
+
+Each call above starts only when all three hold, checked right before it:
+
+- **Consent, as the server has it.** The sender's answer lives on the box document in Firestore. The read gets it with `getDocFromServer`, never the cache, after the tab's own writes. Only "allowed" opens the cloud. A "no", an unanswered box, an offline device or a refused read keep it closed: a hybrid read runs on the device only, and a cloud read is not made. A change needs a press time later than the stored one and the server's timestamp (`firestore.rules`), so a late, older press from another tab cannot undo a newer one. Other tabs hear a withdrawal at once and abort their work. They never take a grant from a message.
+- **The pause (`kill_cloud`).** Cloud checks stay off until Remote Config has given this browser a value of its own. If nothing was ever fetched and activated (a first visit with Remote Config blocked or offline), they stay off for the visit. A value fetched and activated earlier is used until the next successful fetch or real-time update replaces it. That is how Remote Config delivers settings, and it is the accepted limit: a new pause reaches a browser on its next fetch or update, not before.
+- **This page.** The page is open, online, and not withdrawn; leaving the page aborts its calls.
