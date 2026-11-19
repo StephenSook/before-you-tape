@@ -96,6 +96,27 @@ class BoxSessionTest {
         assertEquals(listOf("read starts", "read ends (its refusal counts)", "reset", "read starts"), order.take(4))
     }
 
+    /**
+     * A crop accepted in the old session but still queued on the worker when the new session starts
+     * (the person went to the box and back to the camera before it ran) belongs to the old session:
+     * it must not use up the new session's reset.
+     */
+    @Test fun aQueuedCropFromTheOldSessionDoesNotUseUpTheNewSessionsReset() = runTest {
+        val box = box()
+        val order = mutableListOf<String>()
+        val s = BoxSession(
+            box,
+            reader = { order += "read"; ReadOutcome.Failed(FailReason.REFUSED, retryable = true) },
+            tags = { emptyList() }, newId = { "n" }, resetRun = { order += "reset" },
+        )
+        val accepted = s.currentScan()
+        s.startNewScan()
+        s.check(crop, accepted)
+        s.check(crop, s.currentScan())
+        // The old crop's refusal counts before the reset; the new session's first read gets the reset.
+        assertEquals(listOf("read", "reset", "read"), order)
+    }
+
     @Test fun eachReadGetsItsOwnId() = runTest {
         val box = box()
         val s = session(box, ReadOutcome.Read(read, Source.ON_DEVICE, ReadRoute.DEVICE_ONLY, 300))

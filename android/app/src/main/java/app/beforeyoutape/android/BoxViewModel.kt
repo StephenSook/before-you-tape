@@ -154,8 +154,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun crop(crop: BitmapCrop) {
         if (state.value.busy) return
         publish { it.copy(busy = true, message = null) }
+        // The crop belongs to the scan session current now, even if it waits on the worker.
+        val scan = session.currentScan()
         onWorker {
-            val message = session.check(crop)
+            val message = session.check(crop, scan)
             publish { HomeNav.afterCheck(it, message) }
         }
     }
@@ -163,8 +165,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun photoFailed() = publish { it.copy(message = Copy.PHOTO_FAILED) }
 
     override fun show(view: HomeView) {
-        // Going back to the camera starts a new scan session (lifts a refusal pause).
-        // A new scan session; the reset itself waits for the next read (a read still running stays in the old one).
+        // Going back to the camera starts a new scan session; its first read lifts a refusal pause.
         if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) session.startNewScan()
         publish { it.copy(view = view, message = null) }
     }
@@ -223,9 +224,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
         viewModelScope.launch {
             try {
-                client.downloadModel().collect { step ->
-                    if (step is ModelDownload.Failed) state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
-                }
+                ModelReadiness.collectDownload(client.downloadModel()) { state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) } }
             } finally {
                 downloadActive = false
                 refreshModel()
