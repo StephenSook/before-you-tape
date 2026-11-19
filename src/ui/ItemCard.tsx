@@ -23,11 +23,13 @@ export interface ItemCardProps {
   onRetry?: (itemId: string) => void;
   // Offered when the camera read this item by itself on this device: the cloud look runs only on this press.
   onCloudLook?: (itemId: string) => void;
+  // The newest card in the box; on a phone it stays in view at the bottom of the screen.
+  newest?: boolean;
 }
 
 const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "checked", stale: "out of date", missing: "not loaded" };
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook }: ItemCardProps) {
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
@@ -35,7 +37,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
   const needsRating = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH");
   const name = item.overrides.itemName ?? item.read.itemName;
   return (
-    <article data-testid="item-card" className="card" aria-label={name}>
+    <article data-testid="item-card" id={`item-${item.itemId}`} className={newest ? "card newest" : "card"} aria-label={name}>
       {crop && <img data-testid="crop-image" src={`data:${crop.mimeType};base64,${crop.base64}`} alt={`The photo of ${name} that was read`} />}
       <p className="item-name">{name}{item.quantity > 1 ? ` x ${item.quantity}` : ""}</p>
       <VerdictChip level={verdict.level} />

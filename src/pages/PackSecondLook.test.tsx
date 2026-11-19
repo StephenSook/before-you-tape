@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -55,7 +55,7 @@ describe("Pack page second look", () => {
     // A cloud call that never answers, as one waiting on sign-in or on the SDK's tokens can.
     const { store } = setup({ cloud: { generate: vi.fn(() => new Promise<never>(() => {})) } });
     await upload();
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Checking again in the cloud."));
+    expect(await screen.findByText("Checking again in the cloud.")).toBeInTheDocument();
     act(() => store.setConsent(false));
     await waitFor(() => expect(screen.queryByText("Checking again in the cloud.")).toBeNull());
     expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are off right now, so this was not checked again.");
@@ -109,7 +109,7 @@ describe("Pack page second look", () => {
     await upload();
     expect(await screen.findByRole("alert")).toHaveTextContent("The cloud step was refused. Try a normal browser window.");
     expect(store.getState().items[0]?.read.milliampHours).toBe(2500);
-    expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Check this");
     cloud.generate.mockResolvedValueOnce({ text: JSON.stringify(phoneCloud), source: "in_cloud" });
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     await screen.findByTestId("second-look");

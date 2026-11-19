@@ -11,7 +11,7 @@ const ROWS: { action: string; runs: string; leaves: string }[] = [
 
 export function RanPage() {
   return (
-    <main className="ran">
+    <div className="ran">
       <h1>What ran where</h1>
       <p>Each thing you can do, where it runs, and what leaves this device.</p>
       <table>
@@ -21,6 +21,6 @@ export function RanPage() {
         </tbody>
       </table>
       <p>Photos and label words are kept on this device. Your box list is saved without them, so it survives a reload.</p>
-    </main>
+    </div>
   );
 }

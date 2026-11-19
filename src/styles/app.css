@@ -14,6 +14,10 @@ body {
 
 button, input, select { font: inherit; color: inherit; }
 
+h1, h2, h3, .item-name { font-family: var(--font-display); line-height: 1.15; }
+h1 { font-size: 2rem; font-weight: 800; }
+.label-words { font-family: var(--font-mono); font-size: 0.9rem; }
+
 button {
   border: var(--outline);
   border-radius: var(--radius-button);
@@ -25,7 +29,9 @@ button {
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--night); outline-offset: 2px; }
 
 .pack { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: var(--space-5); padding: var(--space-5); }
-@media (max-width: 700px) { .pack { grid-template-columns: 1fr; padding: var(--space-4); } }
+/* minmax(0, 1fr): a plain 1fr column cannot shrink below its widest content (the photo picker row). */
+@media (max-width: 700px) { .pack { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); } }
+.stage input[type="file"] { max-width: 100%; }
 
 .stage { position: relative; background: var(--night); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-4); }
 /* Controls keep dark text on their light face; inheriting the stage's light text made them vanish. */
@@ -62,3 +68,24 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 }
 .ran table { border-collapse: collapse; width: 100%; }
 .ran th, .ran td { border: var(--outline); padding: var(--space-2); text-align: left; vertical-align: top; }
+.ready { background: var(--holly); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); font-family: var(--font-display); font-weight: 700; }
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-bottom: var(--outline); }
+.wordmark { font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; color: var(--ink); text-decoration: none; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.nav-pill { color: var(--ink); text-decoration: none; border: var(--outline); border-radius: var(--radius-chip); padding: var(--space-1) var(--space-3); }
+.nav-pill.active { background: var(--ink); color: var(--paper); }
+.site-footer { padding: var(--space-4) var(--space-5); border-top: var(--outline); font-size: 0.9rem; }
+.pack-top { padding: var(--space-4) var(--space-5) 0; }
+@media (max-width: 700px) { .site-header, .site-footer { padding-left: var(--space-4); padding-right: var(--space-4); } .pack-top { padding: var(--space-4) var(--space-4) 0; } }
+.pack-page > .banner, .pack-page > p { margin-left: var(--space-5); margin-right: var(--space-5); }
+@media (max-width: 700px) { .pack-page > .banner, .pack-page > p { margin-left: var(--space-4); margin-right: var(--space-4); } }
+/* The verdict word is the answer, so it reads at display size. */
+.card .chip { font-family: var(--font-display); font-size: 1.15rem; padding: var(--space-2) var(--space-4); }
+/* On a phone the newest verdict sits in a sheet at the bottom of the screen; the full card stays in the list. */
+.newest-sheet { display: none; }
+@media (max-width: 700px) {
+  .newest-sheet { display: flex; align-items: center; gap: var(--space-3); position: fixed; left: var(--space-2); right: var(--space-2); bottom: var(--space-2); z-index: 2;
+    background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); }
+  .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
+  .pack-page { padding-bottom: 96px; }
+}

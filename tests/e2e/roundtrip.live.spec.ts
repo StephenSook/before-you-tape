@@ -53,7 +53,7 @@ test("a typed item comes back from the server in a browser with no copy of the b
   await form.getByLabel("What is it?").selectOption("clothing");
   await form.getByLabel("Name (optional)").fill(name);
   await form.getByRole("button", { name: "Add" }).click();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(page.getByTestId("item-card").getByText(name)).toBeVisible();
 
   // Anonymous sign-in can finish after the item is added; copy the state only once the user is stored.
   await expect.poll(() => storedUid(page), { timeout: 30_000, message: "the first browser signs in" }).not.toBeNull();
