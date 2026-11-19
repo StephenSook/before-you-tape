@@ -44,6 +44,7 @@ struct ItemReadG {
         case shoes = "shoes"
         case bookPaper = "book_paper"
         case toy = "toy"
+        case ceramic = "ceramic"
         case other = "other"
     }
 

@@ -28,7 +28,7 @@ import Testing
             return v.compactMap { if case let .string(s) = $0 { s } else { nil } }
         }
         #expect(ItemReadG.CategoryG.allCases.map(\.rawValue) == values("category"))
-        #expect(values("category").count == 37)
+        #expect(values("category").count == 38)
         #expect(ItemReadG.RetailBoxG.allCases.map(\.rawValue) == values("retailBox"))
         #expect(ItemReadG.EvidenceG.allCases.map(\.rawValue) == values("evidence"))
     }

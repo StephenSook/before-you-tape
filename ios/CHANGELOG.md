@@ -3,6 +3,59 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-19
+
+### test(ios): run the committed iOS engine bundle against the shipped edition and the box vectors
+- What: `src/embed/iosBundle.test.ts` loads the committed iOS `byt-engine.js` in a fresh V8 context
+  with no Node globals (as JavaScriptCore runs it on the phone), expects it to load
+  `rules/edition.json`, and runs every case in `tests/vectors/box.json` through it, so a bundle that
+  falls behind the engine or the edition fails the unit tests on any machine, not only on an iPhone.
+- Source: an engine check on main.
+- Verified: against main's committed bundle both tests failed ("EditionError: edition.revision:
+  unknown field"); against the rebuilt bundle both pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### ci: check the iOS engine bundle and the iOS model guard in the repository's CI
+- What: the iOS engine bundle went stale on main because only the local iOS mirror checked it.
+  The repository's CI job now runs the iOS model guard with its tests and
+  `ios/scripts/check_engine_bundle.sh`, which rebuilds the engine from this commit and fails when
+  the committed bundle or its hash differ, so a change to the web engine or the edition that leaves
+  the iPhone's copy behind fails CI. The bundle stays committed (the Swift package and its tests
+  read it as a resource with no Node step), and CI keeps it honest.
+- Source: an engine check on main.
+- Verified: the three commands pass locally; the bundle check exits 1 with a wrong hash; the
+  workflow file parses; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### fix(ios): say so when the app's rules will not load, instead of failing every verdict silently
+- What: the app loaded the shipped edition with `try?`, so when the engine refused it (as it did
+  with a stale bundle) the error vanished: the country list still showed while every verdict
+  failed. The engine now counts only once it has loaded the shipped edition; otherwise the app
+  checks nothing and says "This app's rules could not load. Update the app." where the box would be.
+- Source: an engine check on main.
+- Verified: two tests (the shipped edition loads with verdicts and countries; an edition the engine
+  refuses gives that sentence, no box, no engine and no countries) failed to compile, then passed;
+  135 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### feat(ios): add the ceramic category to the iPhone's reads and its pick list
+- What: main's edition and the web's category list gained "ceramic" ("Ceramic or porcelain (mug,
+  plate, vase)") before "other"; the iPhone's guided read and the "Type it" and "Fix this reading"
+  pick lists now carry it in the same place, so a ceramic item is read and typed as on the web.
+- Source: the web's category list and the shipped edition.
+- Verified: the tests that compare the iPhone's lists with the web's files failed on main (37
+  against 38), then passed; 133 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### fix(ios): rebuild the bundled rules engine so it loads the shipped edition
+- What: the committed `byt-engine.js` was built before main's edition gained `revision` and the
+  ceramic category, so the iPhone's engine refused `rules/edition.json` ("edition.revision: unknown
+  field"); every verdict then failed on a real phone while the country list still showed. Rebuilt
+  with `scripts/build-embed.sh` from main and refreshed `byt-engine.sha256`. The contract test now
+  reads the expected edition id from the shipped edition file, so a new edition cannot leave it
+  pinned to an old id.
+- Source: an engine check on main (the harness loaded the committed bundle and the shipped edition).
+- Verified: `bash ios/scripts/check_engine_bundle.sh` reported the file stale, then fresh (49019
+  bytes, sha256 66057932c332); the contract test failed on the old pinned id, then passed; 32 core
+  tests pass. The CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0 on this tree together with the
+  next commit's category lists, without which the app's category tests fail on main.
+
 ## 2026-11-18
 
 ### fix(ios): drop the reply of a read the pause cancelled, even after a resume
