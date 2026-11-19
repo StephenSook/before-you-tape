@@ -34,7 +34,7 @@ describe("layerStatuses", () => {
 
   it("says the listing was read by us and not yet checked by a person, until a person checks it", () => {
     const dest = (e: typeof ed) => layerStatuses(e, resolveDestination(e, "PH"), "2026-11-20")[1];
-    expect(dest(ed)?.label).toBe("Philippines rules: read from the USPS page on 2026-11-17, not yet checked by a person");
+    expect(dest(ed)?.label).toBe("Philippines rules: read from the USPS page on 2026-11-17; not yet checked by a person");
     const checked = structuredClone(ed);
     checked.destinations.PH!.personReviewedOn = "2026-11-19";
     expect(dest(checked)?.label).toBe("Philippines rules: checked by a person on 2026-11-19");

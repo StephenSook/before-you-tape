@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageHow, ImagePart } from "../ai/port";
 import { CameraError, type CameraErrorKind, type openCamera as openCameraFn } from "../capture/camera";
-import { cropToJpeg, decodePhoto } from "../capture/crop";
+import { CropError, cropToJpeg, decodePhoto } from "../capture/crop";
 import { SteadyDetector, type Box, type SteadyConfig, type SteadyEvent } from "../capture/steady";
 import { CROP_LIMITS } from "../shared/cropLimits";
 import { PhotoCrop, type CropSource } from "./PhotoCrop";
@@ -65,6 +65,11 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const latest = useRef({ onImage, onError, capture, autoRead, started });
   useEffect(() => { latest.current = { onImage, onError, capture, autoRead, started }; });
 
+  // What the sender reads when a read or a photo fails: plain words, never the code's own message.
+  const plain = (e: unknown, photo: boolean): string => {
+    if (e instanceof CropError && /empty crop box/.test(e.message)) return "Hold the item inside the box, or type it instead.";
+    return photo ? "That photo could not be opened. Try another, or type the item." : "That could not be read. Try again, or type the item.";
+  };
   const read = useCallback(async (box: Box, how: ImageHow) => {
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
@@ -73,7 +78,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       if (!part) throw new Error("the camera is not ready");
       emit(part, how);
     } catch (e) {
-      fail?.(e instanceof Error ? e.message : String(e));
+      fail?.(plain(e, false));
     }
   }, []);
 
@@ -141,7 +146,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       setEvent(null);
       setPicked((old) => { if (old) release(old); return source; });
     } catch (e) {
-      onError?.(e instanceof Error ? e.message : String(e));
+      onError?.(plain(e, true));
     }
   };
   const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
@@ -149,7 +154,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   if (picked) {
     return (
       <section data-testid="stage" className="stage" aria-label="Camera">
-        <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={onError}
+        <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
           onSend={(part) => { closePicked(); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
     );
@@ -182,9 +187,10 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
         {!started && <button type="button" data-testid="start-camera" onClick={() => { setCameraError(null); setStarted(true); }}>Start camera</button>}
         {started && !cameraError && <button type="button" data-testid="check-now" onClick={() => void read(HOLD_ZONE, "check_now")}>Check now</button>}{" "}
         {started && !cameraError && <button type="button" data-testid="stop-camera" onClick={() => { setStarted(false); setEvent(null); }}>Turn off camera</button>}{" "}
-        <label>
-          Add a photo{" "}
-          <input ref={uploadRef} data-testid="upload-input" type="file" accept="image/*" {...(phone ? { capture: "environment" } : {})}
+        {/* A button-styled label; the native picker stays in the page, hidden, so keyboards still reach it. */}
+        <label className="button-like">
+          Add a photo
+          <input ref={uploadRef} data-testid="upload-input" className="visually-hidden" type="file" accept="image/*" {...(phone ? { capture: "environment" } : {})}
             onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
       </p>

@@ -47,6 +47,13 @@ describe("PackPage", () => {
   });
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  it("says what it is for in one line, and points judges at the sample box", () => {
+    setup();
+    expect(screen.getByRole("heading", { level: 1, name: "Check a box before you tape it" })).toBeInTheDocument();
+    expect(screen.getByTestId("purpose")).toHaveTextContent("Show each item, and see if it may go in the box to the country you pick.");
+    expect(screen.getByRole("link", { name: "Judges: start here" })).toHaveAttribute("href", "/judge");
+  });
+
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true } });
     await addPhoto();
@@ -187,7 +194,9 @@ describe("PackPage", () => {
     expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are on.");
     await userEvent.click(screen.getByRole("button", { name: "Turn off cloud checks" }));
     expect(store.getState().cloudConsent).toBe(false);
-    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off. Photos and label words stay on this laptop.");
+    // One state line: this laptop has no model of its own, so the cloud line says what that means.
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks.");
+    expect(screen.queryByText("This device checks items in the cloud.")).toBeNull();
     await addPhoto();
     expect(models.cloud.generate).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Turn on cloud checks" }));
