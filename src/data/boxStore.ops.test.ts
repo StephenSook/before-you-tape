@@ -194,4 +194,18 @@ describe("saving by explicit operations", () => {
     expect(cloud.o.putItem.mock.calls.map((c) => c[1].itemId)).toEqual([b]);
     expect(again.getState().unsaved).toEqual([]);
   });
+
+  it("knows no country until the box loads or the sender picks one", async () => {
+    const p = ops(found([], "PH"));
+    const s = make(p.o);
+    expect(s.getState().destinationKnown).toBe(false);
+    p.answer();
+    await s.ready;
+    expect(s.getState().destinationKnown).toBe(true);
+    const q = ops(found([], "PH"));
+    const t = make(q.o);
+    t.setDestination("CA");
+    expect(t.getState().destinationKnown).toBe(true);
+    expect(t.getState().destinationCode).toBe("CA");
+  });
 });

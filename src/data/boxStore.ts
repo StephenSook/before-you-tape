@@ -56,6 +56,9 @@ export interface BoxState {
   unsaved?: readonly string[];
   // Whether the saved box has been read: until it has, nothing is written; a read that failed writes nothing.
   loadState?: "loading" | "ready" | "failed";
+  // Whether the country is known: the saved box has been read, or the sender chose one. Until then the picker
+  // shows no country, so even a first pick of the default counts.
+  destinationKnown?: boolean;
 }
 
 // Edits not yet acknowledged by the server: each item's latest stored copy (null: removed) and the box's
@@ -198,8 +201,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
-  const snapshot = (result: BoxResult): BoxState =>
-    ({ boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState });
+  // A country the sender chose before the saved box was read: it stands over the saved one.
+  let chosenDestination: string | null = null;
+  const snapshot = (result: BoxResult): BoxState => ({
+    boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
+    destinationKnown: loadState === "ready" || chosenDestination !== null,
+  });
   let state: BoxState = snapshot(evaluate());
 
   // What the server is believed to hold: each item's stored copy, and whether the box exists with which details.
@@ -209,8 +216,6 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const journal: Journal = deps.journal?.read(boxId) ?? { meta: null, items: {} };
   // The writes that failed last time ("meta" or an item id); they wait for a retry or the next edit.
   const failed = new Set<string>();
-  // A country the sender chose before the saved box was read: it stands over the saved one.
-  let chosenDestination: string | null = null;
   const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
   const storedJson = (i: BoxItem) => stableJson(forStorage(i));
   const keepJournal = () => deps.journal?.write(boxId, journal);
@@ -499,7 +504,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     setDestination(code) {
       // A choice made before the saved box was read stands over the saved country, even the same as shown.
       if (loadState !== "ready") chosenDestination = code;
-      if (code === destinationCode) return;
+      if (code === destinationCode) {
+        if (loadState !== "ready") commit(state.result, false);
+        return;
+      }
       destinationCode = code;
       if (liveRead && liveRead.code !== code) liveRead = null;
       const start = deps.now();
@@ -513,7 +521,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit(evaluate(), false);
     },
     consentNow: () => (deps.consent ? deps.consent.get() : cloudConsent),
-    retrySave: () => { failed.clear(); refreshUnsaved(); publish(); void flush(); },
+    // After a read that failed, saving again means reading the box again first.
+    retrySave: () => {
+      if (loadState === "failed") { void load(); return; }
+      failed.clear(); refreshUnsaved(); publish(); void flush();
+    },
     retryLoad: () => (loadState === "failed" ? load() : Promise.resolve()),
     async settled() {
       await ready;
