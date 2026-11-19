@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): drop the reply of a read the pause cancelled, even after a resume
+- What: whether a reply was used depended on the switch's value when it came back, so a pause
+  that cancelled a read, lifted again before the reply arrived, let that reply into the box. Each
+  upload now has its own record: the pause marks every upload it cancels, and a reply from a
+  marked (or otherwise cancelled) upload is dropped, whatever the switch reads by then.
+- Source: review.
+- Verified: a test pauses and resumes while the upload waits, with a runner that answers even
+  when cancelled; the reply was used on the old code (failed) and is dropped now (passes);
+  133 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): "Try saving again" reads a saved box that could not be read yet
 - What: when the saved box could not be read (a locked iPhone), saves for it were held, but
   "Try saving again" only retried the write, so the box stayed held and showed verdicts for the

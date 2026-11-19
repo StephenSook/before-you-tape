@@ -215,8 +215,9 @@ struct SignedInCloudRunner: ItemModelRunner {
         guard let upload = await pause.startUnlessPaused({ await inner.read(input) }) else { return .failure(ReadError(.cloudPaused)) }
         // The upload runs apart from this read, so a read that is cancelled (its time limit) cancels it too.
         let result = await withTaskCancellationHandler { await upload.task.value } onCancel: { upload.task.cancel() }
-        await pause.finished(upload.id)
-        if await pause.paused { return .failure(ReadError(.cloudPaused)) }
+        // The read's own record decides: a reply from a read the pause cancelled is dropped, even
+        // when the pause was lifted again before the reply came back.
+        if await pause.finished(upload.id) || upload.task.isCancelled { return .failure(ReadError(.cloudPaused)) }
         return result
     }
 }
@@ -226,9 +227,16 @@ struct SignedInCloudRunner: ItemModelRunner {
 @MainActor
 final class PauseSwitch {
     var paused = RemoteConfigValues.defaults.killCloud {
-        didSet { if paused { running.values.forEach { $0() } } }
+        didSet {
+            guard paused else { return }
+            for (id, cancel) in running {
+                cancelled.insert(id)
+                cancel()
+            }
+        }
     }
     private var running: [UUID: () -> Void] = [:]
+    private var cancelled: Set<UUID> = []
 
     struct Upload<T: Sendable>: Sendable {
         let id: UUID
@@ -245,5 +253,9 @@ final class PauseSwitch {
         return Upload(id: id, task: task)
     }
 
-    func finished(_ id: UUID) { running[id] = nil }
+    /// Ends the upload's record; true when the pause cancelled it.
+    func finished(_ id: UUID) -> Bool {
+        running[id] = nil
+        return cancelled.remove(id) != nil
+    }
 }

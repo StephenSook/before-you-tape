@@ -43,11 +43,16 @@ import Testing
     final class TokenThenSend: ItemModelRunner, @unchecked Sendable {
         let gate = AppConfigTests.Gate()
         let reply: ItemReply
+        /// Answers even when cancelled, as a reply already on its way back can.
+        var ignoresCancellation = false
         private(set) var events: [String] = []
-        init(_ reply: ItemReply) { self.reply = reply }
+        init(_ reply: ItemReply, ignoresCancellation: Bool = false) {
+            self.reply = reply
+            self.ignoresCancellation = ignoresCancellation
+        }
         func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
             await gate.wait()
-            if Task.isCancelled { events.append("cancelled"); return .failure(ReadError(.server)) }
+            if Task.isCancelled, !ignoresCancellation { events.append("cancelled"); return .failure(ReadError(.server)) }
             events.append("sent")
             return .success(reply)
         }
@@ -66,6 +71,21 @@ import Testing
         inner.gate.release()
         #expect(await reading.value == .failure(ReadError(.cloudPaused)))
         #expect(inner.events == ["cancelled"])
+    }
+
+    /// A read the pause cancelled is dropped even if its reply comes back and the pause is lifted
+    /// before it does: the read's own cancellation decides, not the switch's value at that moment.
+    @Test func aReplyFromAReadThePauseCancelledIsDroppedAfterAResume() async {
+        let pause = PauseSwitch()
+        let inner = TokenThenSend(ItemReply(read: read, tokens: nil), ignoresCancellation: true)
+        let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: pause, inner: inner)
+        let reading = Task { await runner.read(words) }
+        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        pause.paused = true
+        pause.paused = false
+        inner.gate.release()
+        #expect(await reading.value == .failure(ReadError(.cloudPaused)))
+        #expect(inner.events == ["sent"])
     }
 
     /// A read the reader gives up on (its time limit) cancels the upload too.
