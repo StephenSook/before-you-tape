@@ -131,6 +131,17 @@ describe("CameraStage", () => {
     expect(screen.queryByTestId("photo-crop")).toBeNull();
   });
 
+  it("says a crop preview that fails in plain words, never the browser's error", async () => {
+    const onError = vi.fn();
+    const source = document.createElement("canvas");
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} decodeFile={async () => source}
+      cropPart={async () => { throw new Error("the browser could not encode the crop"); }} />);
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(onError).toHaveBeenLastCalledWith("That photo could not be opened. Try another, or type the item.");
+    expect(onError).not.toHaveBeenCalledWith(expect.stringMatching(/encode/));
+  });
+
   it("sends nothing when the sender cancels the crop", async () => {
     const onImage = vi.fn();
     const source = document.createElement("canvas");

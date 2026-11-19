@@ -154,7 +154,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   if (picked) {
     return (
       <section data-testid="stage" className="stage" aria-label="Camera">
-        <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={onError}
+        <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
           onSend={(part) => { closePicked(); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
     );
