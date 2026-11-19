@@ -6,6 +6,13 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- **The Android CI job also runs when the item contract or the Remote Config template changes.**
+  `BoxDocsContractTest` reads `tests/contracts/box-docs.json` and `RcDefaultsTest` reads
+  `remoteconfig.template.json`, but neither path triggered `android.yml`, so a change to either could
+  land without the Android tests that check it. Both are now in the push and pull request path lists
+  (15 paths each, the two lists identical). Source: review of the CI path filter. Verified: the
+  workflow parses with both lists equal; the root CI mirror exits 0.
+
 - `docs/SECURITY.md`: rows 6 and "Item read, hybrid" no longer say every item read is hybrid. An item read is hybrid (`PREFER_ON_DEVICE`) only when the device model is ready and cloud checks are allowed (`chooseReadRoute` in `src/routing/policy.ts`). Otherwise it runs on the device only or in the cloud only, with the same prompt. Source: a code audit for the film fact sheet. Verified against `src/routing/policy.ts`; local CI mirror exit 0.
 - `docs/secrets-ledger.md`: the Firestore rules row now describes the rules that are deployed. Members only: a box and its items are read and written only by its members, against a strict schema; membership and join keys change only through the Admin SDK; published rule editions, eval sets and public stats are readable by signed-in users; everything else is denied. It said "Deny all reads and writes", which was true before boxes were saved to Firestore. Source: a code audit for the film fact sheet. Verified: the deployed Firestore rules were read back on 2026-11-18 and match this; local CI mirror exit 0.
 - `src/shared/cropLimits.ts`: the header comment no longer names a server-side AI Logic trigger as a user of the crop limits. No such trigger exists, and `docs/SECURITY.md` row 12 records the decision not to use one. The web app and the phone apps share the limits. Comment only; no code changes. Source: a code audit for the film fact sheet. Verified: `git grep -n "trigger" src/shared` finds no other claim; local CI mirror exit 0.
