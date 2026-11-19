@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ReadOutcome } from "../ai/itemRead";
-import { mergeReads } from "../ai/secondLook";
+import { mergeReads, readDisputes } from "../ai/secondLook";
 import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
@@ -321,6 +321,74 @@ describe("createBoxStore", () => {
     const reloaded = store({ persistence: spyPersistence(saved) });
     await reloaded.ready;
     expect(reloaded.getState().result.items[id]?.level).toBe(before);
+  });
+
+  describe("a second look whose two reads disagree", () => {
+    // A label with no "power bank" words, so only the category tells the two reads apart.
+    const powerBank: ItemRead = { ...base, itemName: "Power bank", category: "power_bank", labelText: "LI-ION 3.7V 5000mAh 18.5Wh",
+      volts: 3.7, milliampHours: 5000, wattHours: 18.5, batteryWords: true, retailBox: "sealed" };
+    const level = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.level;
+    // Adds the device read, answers as a sender would, then lands the second look.
+    const look = (device: ItemRead, cloud: ItemRead, withDisputes = true, p?: BoxPersistence) => {
+      const s = store(p ? { persistence: p } : {});
+      const id = s.addRead(outcome(device, "on_device"), "k");
+      s.answer(id, "device_condition", "new_sealed");
+      s.answer(id, "cell_count", "one");
+      s.applySecondLook(id, mergeReads(device, cloud), 900, "reason", cloud.labelText, withDisputes ? readDisputes(device, cloud) : {});
+      return { s, id };
+    };
+
+    it("holds a power bank read as a phone at Check this, where the cloud's category alone said OK", () => {
+      const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
+      const control = look(powerBank, phone, false);
+      expect(level(control.s, control.id)).toBe("ok");
+      const { s, id } = look(powerBank, phone);
+      expect(level(s, id)).toBe("check");
+      expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).toContain("DATA-DISPUTE");
+      expect(s.getState().items[0]?.disputes?.category).toEqual({ device: "power_bank", cloud: "phone", resolved: false });
+    });
+
+    it("never lets an open-and-sealed reading, a 95 or 105 Wh reading, or 2.5 g against 0 g end at OK", () => {
+      const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000, wattHours: 15.4 };
+      const box = look({ ...phone, retailBox: "open_or_none" }, phone);
+      expect(level(box.s, box.id)).not.toBe("ok");
+      expect(box.s.getState().items[0]?.read.retailBox).toBe("open_or_none");
+      const wh = look({ ...powerBank, volts: 3.7, milliampHours: 25675, wattHours: 95 }, { ...powerBank, volts: 3.6, milliampHours: 25675, wattHours: 105 });
+      expect(level(wh.s, wh.id)).not.toBe("ok");
+      expect(wh.s.getState().items[0]?.read.wattHours).toBe(105);
+      const grams = look({ ...phone, lithiumGrams: 2.5 }, phone);
+      expect(level(grams.s, grams.id)).not.toBe("ok");
+      expect(grams.s.getState().items[0]?.read.lithiumGrams).toBe(2.5);
+    });
+
+    it("records a label word only one read saw as a dispute of tags, never of label text", () => {
+      const lotion = { ...liquidLotionRead, flammableOnLabel: false };
+      const { s } = look({ ...lotion, labelText: "FLAMMABLE BODY LOTION" }, { ...lotion, labelText: "SHEA BUTTER BODY LOTION 8 FL OZ" });
+      const d = s.getState().items[0]?.disputes?.labelTags;
+      expect(d?.device).toContain("flammable");
+      expect(d?.cloud).not.toContain("flammable");
+      expect(JSON.stringify(s.getState().items[0]?.disputes)).not.toMatch(/LOTION/);
+    });
+
+    it("raises no dispute on a fact the sender corrected while the cloud read ran", () => {
+      const s = store();
+      const id = s.addRead(outcome(powerBank, "on_device"), "k");
+      s.override(id, { category: "power_bank", labelText: "POWER BANK 37Wh" });
+      const phone = { ...powerBank, category: "phone" as const, labelText: "FLAMMABLE PHONE" };
+      s.applySecondLook(id, mergeReads(powerBank, phone), 900, "reason", phone.labelText, readDisputes(powerBank, phone));
+      expect(s.getState().items[0]?.disputes).toBeUndefined();
+    });
+
+    it("settles a dispute when the sender fixes that fact, and keeps the disputes in the saved copy", () => {
+      const p = spyPersistence();
+      const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
+      const { s, id } = look(powerBank, phone, true, p);
+      expect(p.save.mock.calls.at(-1)![0].items[0]?.disputes?.category?.resolved).toBe(false);
+      s.override(id, { category: "power_bank" });
+      expect(s.getState().items[0]?.disputes?.category?.resolved).toBe(true);
+      expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-DISPUTE");
+      expect(p.save.mock.calls.at(-1)![0].items[0]?.disputes?.category?.resolved).toBe(true);
+    });
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

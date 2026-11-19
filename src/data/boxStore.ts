@@ -5,8 +5,8 @@ import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
 import { resolveDestination } from "../engine/edition";
-import { labelTagsOf } from "../engine/facts";
-import type { BoxItemInput, DestinationEdition, RuleEdition } from "../engine/types";
+import { LABEL_TEXT_TAG, labelTagsOf } from "../engine/facts";
+import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type DisputeField, type ReadDisputes, type RuleEdition } from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
 import type { ItemRead } from "../shared/itemRead";
 import type { DeviceConsent } from "./deviceConsent";
@@ -78,7 +78,8 @@ export interface BoxStore {
   mergeRemoteItem(item: BoxItem): void;
   confirmIdentity(itemId: string): void;
   // cloudLabel: the second look's own label text, whose tags count even when the merge kept the other label.
-  applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string, cloudLabel?: string): void;
+  // disputes: the facts the two reads disagreed on (readDisputes); the store adds label words itself.
+  applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string, cloudLabel?: string, disputes?: ReadDisputes): void;
   setError(itemId: string, text: string): void;
   answer(itemId: string, questionId: string, answerId: string): void;
   override(itemId: string, patch: Partial<ItemRead>): void;
@@ -133,6 +134,21 @@ function forStorage(item: BoxItem): BoxItem {
   const category = item.overrides.category ?? item.read.category;
   return { ...item, read: { ...item.read, labelText: "", itemName: CATEGORY_LABELS[category] }, overrides };
 }
+
+// Whether a sender's correction covers a disputed fact: their own word settles it.
+const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
+  field === "battery" ? patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined
+  : field === "labelTags" ? patch.labelText !== undefined
+  : patch[field] !== undefined;
+
+// The label words that can change a verdict: every tag except the one that only says a label was read.
+const wordsOf = (tags: readonly string[]) => [...new Set(tags.filter((t) => t !== LABEL_TEXT_TAG))].sort().join(",");
+
+const withDisputes = (item: BoxItem, disputes: ReadDisputes): BoxItem => {
+  const { disputes: _old, ...rest } = item;
+  void _old;
+  return Object.keys(disputes).length > 0 ? { ...rest, disputes } : rest;
+};
 
 const namesOf = (item: BoxItem): ItemNames =>
   item.overrides.itemName === undefined ? { read: item.read.itemName } : { read: item.read.itemName, override: item.overrides.itemName };
@@ -248,7 +264,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit();
     },
     confirmIdentity: (itemId) => update(itemId, (i) => ({ ...i, identityConfirmedBy: "sender" })),
-    applySecondLook(itemId, merged, ms, reason, cloudLabel = "") {
+    applySecondLook(itemId, merged, ms, reason, cloudLabel, disputes = {}) {
       sources = { ...sources, secondLooks: sources.secondLooks + 1 };
       // A second look that worked replaces any earlier failure of it.
       if (errors[itemId] !== undefined) {
@@ -260,22 +276,42 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       // The tags of every label either read saw, never only the merged one: a hazard word in the shorter
       // label still counts. The item's tags so far are the first read's. A label the sender corrected while
       // the cloud read ran stays theirs: only its tags are saved, so a reload gives the verdict they saw.
-      update(itemId, (i) => ({
-        ...i, read: merged, secondLook: { ms, reason },
-        labelTags: i.overrides.labelText !== undefined ? i.labelTags : [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...tagsOf(cloudLabel)])],
-        identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
-      }));
+      update(itemId, (i) => {
+        const cloudTags = tagsOf(cloudLabel ?? "");
+        const found: ReadDisputes = { ...disputes };
+        // Label words only one read saw: a dispute of tags (never of label text) the sender settles.
+        if (cloudLabel !== undefined && wordsOf(i.labelTags) !== wordsOf(cloudTags)) {
+          found.labelTags = { device: [...i.labelTags], cloud: cloudTags, resolved: false };
+        }
+        // A fact the sender corrected while the cloud read ran is theirs: no dispute stands on it.
+        for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f)) delete found[f];
+        return withDisputes({
+          ...i, read: merged, secondLook: { ms, reason },
+          labelTags: i.overrides.labelText !== undefined ? i.labelTags : [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...cloudTags])],
+          identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
+        }, found);
+      });
     },
     setError(itemId, text) {
       errors = { ...errors, [itemId]: text };
       commit(state.result);
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
-    override: (itemId, patch) => update(itemId, (i) => ({
-      ...i, overrides: { ...i.overrides, ...patch },
-      // A corrected label replaces the read one, so its tags must survive the label text not being saved.
-      labelTags: patch.labelText !== undefined ? tagsOf(patch.labelText) : i.labelTags,
-    })),
+    override: (itemId, patch) => update(itemId, (i) => {
+      const next: BoxItem = {
+        ...i, overrides: { ...i.overrides, ...patch },
+        // A corrected label replaces the read one, so its tags must survive the label text not being saved.
+        labelTags: patch.labelText !== undefined ? tagsOf(patch.labelText) : i.labelTags,
+      };
+      if (!i.disputes) return next;
+      // The sender's own correction of a disputed fact settles that dispute.
+      const settled: ReadDisputes = { ...i.disputes };
+      for (const f of DISPUTE_FIELDS) {
+        const d = settled[f];
+        if (d && corrects(patch, f)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
+      }
+      return withDisputes(next, settled);
+    }),
     setQuantity: (itemId, n) => update(itemId, (i) => ({ ...i, quantity: clampQuantity(n) })),
     setCustoms: (itemId, patch) => update(itemId, (i) => ({ ...i, customs: { ...i.customs, ...patch } })),
     remove(itemId) {
