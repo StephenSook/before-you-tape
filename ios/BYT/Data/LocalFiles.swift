@@ -19,7 +19,12 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     /// Why a save did not happen, in the words the box shows.
     struct SaveError: Error, Equatable, LocalizedError {
         let message: String
-        init(_ message: String) { self.message = message }
+        /// The saved box is there but could not be read yet: read it before trying again.
+        let savedBoxUnread: Bool
+        init(_ message: String, savedBoxUnread: Bool = false) {
+            self.message = message
+            self.savedBoxUnread = savedBoxUnread
+        }
         var errorDescription: String? { message }
     }
 
@@ -45,7 +50,10 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
             return SaveError(message)
         }
         guard let url = url(boxId: snapshot.boxId) else { throw fail("This change is not saved: the box id is not a safe file name.") }
-        guard !held.contains(snapshot.boxId) else { throw fail(Self.notReadYet) }
+        guard !held.contains(snapshot.boxId) else {
+            problem = Self.notReadYet
+            throw SaveError(Self.notReadYet, savedBoxUnread: true)
+        }
         let data: Data
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -248,6 +248,34 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         #expect(s.saveProblem == nil)
     }
 
+    /// A saved box that cannot be read yet (a locked iPhone), then can.
+    final class LockedPersistence: BoxPersistence, @unchecked Sendable {
+        var locked = true
+        let stored: BoxSnapshot
+        private(set) var saved: [BoxSnapshot] = []
+        init(stored: BoxSnapshot) { self.stored = stored }
+        func save(_ snapshot: BoxSnapshot) throws {
+            if locked { throw BoxFiles.SaveError(BoxFiles.notReadYet, savedBoxUnread: true) }
+            saved.append(snapshot)
+        }
+        func load(boxId: String) -> BoxSnapshot? { locked ? nil : stored }
+    }
+
+    /// When the saved box could not be read yet, "Try saving again" reads it first, keeps what was
+    /// added meanwhile, and only then saves.
+    @Test func tryingAgainReadsTheSavedBoxThatCouldNotBeReadYet() throws {
+        let earlier = BoxItem(itemId: "saved-1", read: Self.shirt, identityConfirmedBy: "sender", tagsEdition: "", readSource: "manual", readMs: 0)
+        let p = LockedPersistence(stored: BoxSnapshot(boxId: "b", destinationCode: "CA", items: [earlier], cloudConsent: nil, sources: BoxSources()))
+        let s = try store(p)
+        s.load()
+        let added = s.addManual(Self.lotion)
+        #expect(s.saveProblem == BoxFiles.notReadYet && s.items.count == 1)
+        p.locked = false
+        s.retrySave()
+        #expect(s.saveProblem == nil && Set(s.items.map(\.itemId)) == ["saved-1", added])
+        #expect(Set(p.saved.last?.items.map(\.itemId) ?? []) == ["saved-1", added] && s.result?.items["saved-1"] != nil)
+    }
+
     /// "Try saving again" saves the box as it is, with nothing changed, and clears the warning once it works.
     @Test func tryingToSaveAgainSavesTheBoxAsItIs() throws {
         let p = FailingPersistence()

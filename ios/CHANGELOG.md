@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): "Try saving again" reads a saved box that could not be read yet
+- What: when the saved box could not be read (a locked iPhone), saves for it were held, but
+  "Try saving again" only retried the write, so the box stayed held and showed verdicts for the
+  items added meanwhile only. Now the held save says so (`savedBoxUnread`), and "Try saving again"
+  reads the saved box first, keeps what was added meanwhile, derives the verdicts again and saves.
+  A box that was read normally is not read again, so nothing removed comes back.
+- Source: review.
+- Verified: a test holds the saved box unread, adds an item, then unlocks and taps retry: both the
+  saved item and the new one are in the box, its verdicts and the saved file; it failed to compile,
+  then passed; the held-save expectation now carries the flag; 132 app unit tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): every stale item still in the box holds the lithium total, even one marked "Take out"
 - What: a stale item marked "Take out" did not hold the box's lithium total, although it stays in
   the box until the sender removes it; and with stale items but no lithium found yet, the box

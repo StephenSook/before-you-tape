@@ -164,6 +164,8 @@ final class BoxStore {
     private(set) var engineProblem: String?
     /// Why the last change is not saved on this iPhone; nil once a save works.
     private(set) var saveProblem: String?
+    /// The saved box is there but could not be read yet; "Try saving again" reads it first.
+    @ObservationIgnored private var savedBoxUnread = false
 
     @ObservationIgnored private let engine: RulesEngine
     @ObservationIgnored private let persistence: BoxPersistence
@@ -185,6 +187,7 @@ final class BoxStore {
     /// Merges a saved box under any items already added, then derives the verdicts afresh.
     func load() {
         guard let saved = persistence.load(boxId: boxId) else { return }
+        savedBoxUnread = false
         // An item id appears once: a damaged file with duplicate ids would make the engine refuse the box.
         var known = Set(items.map(\.itemId))
         let restored = saved.items.filter { known.insert($0.itemId).inserted }
@@ -284,8 +287,15 @@ final class BoxStore {
         if refreshStaleTags() { commit() } else { result = evaluate() }
     }
 
-    /// The sender's "Try saving again": saves the box as it is now, with nothing changed.
-    func retrySave() { commit(result) }
+    /// The sender's "Try saving again": saves the box as it is now. When the saved box could not be
+    /// read yet, it is read first, under what was added meanwhile, and the verdicts derived again.
+    func retrySave() {
+        if savedBoxUnread {
+            load()
+            if !savedBoxUnread { return }
+        }
+        commit(result)
+    }
 
     func setConsent(_ value: Bool?) {
         cloudConsent = value
@@ -308,6 +318,7 @@ final class BoxStore {
             saveProblem = nil
         } catch {
             saveProblem = (error as? LocalizedError)?.errorDescription ?? "This change is not saved on this iPhone."
+            if (error as? BoxFiles.SaveError)?.savedBoxUnread == true { savedBoxUnread = true }
         }
     }
 

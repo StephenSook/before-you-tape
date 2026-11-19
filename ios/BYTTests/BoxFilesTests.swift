@@ -81,7 +81,7 @@ import Testing
         let files = BoxFiles(folder: dir)
         #expect(files.load(boxId: "b5") == nil && files.problem != nil)
         #expect(try asides(dir, "b5").isEmpty)
-        #expect(throws: BoxFiles.SaveError(BoxFiles.notReadYet)) {
+        #expect(throws: BoxFiles.SaveError(BoxFiles.notReadYet, savedBoxUnread: true)) {
             try files.save(BoxSnapshot(boxId: "b5", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources()))
         }
         var isDir: ObjCBool = false
