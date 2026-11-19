@@ -60,23 +60,22 @@ class BoxDocsContractTest {
         assertEquals(norm(d), norm(BoxDocs.boxToDoc(box)))
     }
 
-    /** A first save: consent not chosen yet (null) and no consent fields, or the rules refuse the box. */
-    @Test fun aNewBoxHasNoConsentChosenYet() {
+    /** Consent lives on each device; the rules refuse a box that carries any consent field. */
+    @Test fun aNewBoxCarriesNoConsentAtAll() {
         val d = BoxDocs.newBoxDoc("owner-uid", "CA", "byt-e1")
-        assertEquals(null, d["cloudConsent"])
-        assertTrue("cloudConsent" in d)
-        assertTrue("consentChosenAt" !in d && "consentAt" !in d)
+        for (k in listOf("cloudConsent", "consentChosenAt", "consentAt")) assertTrue(k, k !in d)
         assertEquals(listOf("owner-uid"), d["memberUids"])
         assertEquals("", d["joinKeyHash"])
     }
 
-    /** cloudConsent changes only together with the press time (phone clock, ms) and a server time. */
-    @Test fun aConsentChangeCarriesThePressTimeAndTheServerTime() {
-        val server = Any()
-        assertEquals(
-            mapOf("cloudConsent" to true, "consentChosenAt" to 1795000000123L, "consentAt" to server),
-            BoxDocs.consentChange(allowed = true, chosenAtMs = 1795000000123L, serverTime = server),
-        )
+    /** The model's name for an item never goes to Firestore: the synced read names only the category. */
+    @Test fun anItemDocumentNamesOnlyTheCategory() {
+        val read = ItemReadWire("Brand X Shea Butter Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
+            false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+        val item = BoxLogic.addRead(BoxLogic.empty("CA"), read, listOf("liquid"), Source.IN_CLOUD, 900, "i1").items.single()
+        @Suppress("UNCHECKED_CAST")
+        assertEquals("Lotion or cream", (BoxDocs.itemToDoc(item)["read"] as Map<String, Any?>)["itemName"])
+        assertEquals("Brand X Shea Butter Lotion", item.input.read.itemName)
     }
 
     @Test fun anItemDocumentNeverCarriesLabelText() {

@@ -25,8 +25,6 @@ interface BoxRepository {
     fun removeItem(boxId: String, itemId: String)
     fun setDestination(boxId: String, code: String, recheckAtMs: Long)
 
-    /** The sender's consent choice, with the press time from this phone's clock (ms). */
-    fun setConsent(boxId: String, allowed: Boolean, chosenAtMs: Long)
     fun addCounts(boxId: String, onDevice: Int, inCloud: Int, rulesOnlyRechecks: Int)
 }
 
@@ -46,10 +44,6 @@ class FirestoreBoxRepository : BoxRepository {
 
     override fun removeItem(boxId: String, itemId: String) {
         box(boxId).collection("items").document(itemId).delete()
-    }
-
-    override fun setConsent(boxId: String, allowed: Boolean, chosenAtMs: Long) {
-        box(boxId).update(BoxDocs.consentChange(allowed, chosenAtMs, FieldValue.serverTimestamp()) + ("updatedAt" to FieldValue.serverTimestamp()))
     }
 
     override fun setDestination(boxId: String, code: String, recheckAtMs: Long) {

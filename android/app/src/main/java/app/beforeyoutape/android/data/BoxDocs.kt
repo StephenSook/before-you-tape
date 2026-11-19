@@ -132,29 +132,23 @@ object BoxDocs {
         "joinKeyHash" to h.joinKeyHash,
         "destinationCode" to h.destinationCode,
         "editionId" to h.editionId,
-        "cloudConsent" to h.cloudConsent,
         "sources" to linkedMapOf(
             "onDevice" to h.sources.onDevice.toLong(), "inCloud" to h.sources.inCloud.toLong(),
             "secondLooks" to h.sources.secondLooks.toLong(), "rulesOnlyRechecks" to h.sources.rulesOnlyRechecks.toLong(),
             "cloudFallbacks" to h.sources.cloudFallbacks.toLong(),
         ),
         "lastRecheckMs" to h.lastRecheckMs?.let(::ms),
-    )
+    ).apply {
+        // Only an old box read back still has a leftover cloudConsent; the phone never sets one.
+        if (h.cloudConsent != null) put("cloudConsent", h.cloudConsent)
+    }
 
     /**
-     * A first save of a box: consent is not chosen yet (null) and no consent fields are written.
-     * The rules refuse a new box with anything else.
+     * A first save of a box. Consent lives on each device, so no consent field is written: the
+     * rules refuse a box that carries one.
      */
     fun newBoxDoc(ownerUid: String, destinationCode: String, editionId: String): Map<String, Any?> =
         boxToDoc(BoxHeader(ownerUid, listOf(ownerUid), "", destinationCode, editionId, null, BoxSources(0, 0, 0, 0, 0), null))
-
-    /**
-     * The only write that may change cloudConsent: with the press time from this phone's clock (ms,
-     * which the rules require to be later than the stored one) and the server's time. Ordinary
-     * updates leave all three alone.
-     */
-    fun consentChange(allowed: Boolean, chosenAtMs: Long, serverTime: Any): Map<String, Any?> =
-        linkedMapOf("cloudConsent" to allowed, "consentChosenAt" to chosenAtMs, "consentAt" to serverTime)
 
     fun boxFromDoc(doc: Map<String, Any?>): BoxHeader {
         val s = map(doc["sources"])

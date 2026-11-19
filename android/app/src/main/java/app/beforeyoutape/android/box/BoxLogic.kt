@@ -89,8 +89,11 @@ object BoxLogic {
     }
 
     /** The item as it may leave the phone: the label text, read or typed, stays here; its tags travel instead. */
-    fun forSync(input: BoxItemInput): BoxItemInput =
-        input.copy(read = input.read.copy(labelText = ""), overrides = JsonObject(input.overrides - "labelText"))
+    fun forSync(input: BoxItemInput): BoxItemInput = input.copy(
+        // The model's name never leaves the phone: the synced read names only the category.
+        read = input.read.copy(labelText = "", itemName = app.beforeyoutape.android.ui.ReadCopy.CATEGORIES[input.read.category] ?: input.read.itemName),
+        overrides = JsonObject(input.overrides - "labelText"),
+    )
 }
 
 /** Holds the box and re-checks it through the engine after every change. */

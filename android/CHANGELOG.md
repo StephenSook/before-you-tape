@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Firestore carries no consent and no model names.** Consent is now chosen on each device
+  and never stored in Firestore: the box rules refuse `cloudConsent`, `consentChosenAt` and
+  `consentAt`. A new box from the phone writes none of them (`BoxDocs.newBoxDoc`); the
+  `setConsent` write added just before is removed, and only an old box read back still shows a
+  leftover `cloudConsent`. An item's synced read now names only its category (the form label,
+  for example "Lotion or cream"): the model's name for the item stays on the phone. Source: the
+  per-device consent ruling for the web and Android apps. Verified:
+  `BoxDocsContractTest.aNewBoxCarriesNoConsentAtAll` and `anItemDocumentNamesOnlyTheCategory`
+  failed first, then pass; the fixture round trips still pass. The deployed rules still require
+  `cloudConsent` on a new box until the new rules deploy, so the live box test waits for that.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A new box carries no consent, and consent changes carry their times.** The box rules now
   refuse a new box whose `cloudConsent` is not null, and refuse any change to `cloudConsent`
   that does not also set `consentChosenAt` (the press time) and `consentAt` (the server's time).
