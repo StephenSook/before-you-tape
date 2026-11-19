@@ -23,6 +23,9 @@ final class AppModel {
     /// The last read and the box item it made, for the line under the camera.
     private(set) var lastRead: ReadOutcome?
     private(set) var lastItemId: String?
+    /// True when the last photo was of no item (a camera pointed at a room) and was not added.
+    private(set) var lastWasNoItem = false
+    static let noItem = "Nothing to check there. Hold one item inside the box."
     /// True while the one-time cloud question is on screen; the read waits for the answer.
     private(set) var askingConsent = false
     private var pending: ItemInput?
@@ -170,7 +173,9 @@ final class AppModel {
         if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
-        lastItemId = box.addRead(outcome, cropFile: nil)
+        // A photo of no item is dropped, as the web app drops it, by the web app's own check.
+        lastWasNoItem = input.kind == .photo && outcome.read.map { (try? engine?.isNoItem($0)) == true } == true
+        lastItemId = lastWasNoItem ? nil : box.addRead(outcome, cropFile: nil)
     }
 
     /// The sender's answer to the cloud question; a waiting photo is read after it.
@@ -185,6 +190,7 @@ final class AppModel {
     private(set) var lastKind: ReadInputKind = .photo
 
     var readLine: String? {
+        if lastWasNoItem { return Self.noItem }
         // The name and the verdict both come from the box item as it is now, corrections included.
         let item = lastItemId.flatMap { id in box?.items.first { $0.itemId == id } }
         return Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind,

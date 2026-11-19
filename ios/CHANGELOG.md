@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### fix(ios): a photo of no item is not added to the box, as the web app drops it
+- What: a photo of a room, or of nothing the model could name, was added to the box as an
+  unknown item. The web app drops such a read with its isNoItem check and says "Nothing to check
+  there. Hold one item inside the box." The iPhone app now asks the same check, through the
+  engine, after every photo read: such a read is not added and the line under the camera gives
+  the web's words. Typed label words are not checked, as on the web, where only images are.
+- Source: review (whole-repo check).
+- Verified: a test reads a no-item photo (not added, the web's words shown) and then a lotion photo
+  (added, "Body lotion: OK to pack. Read in the cloud."); it failed before the change (the no-item
+  read was added) and passes after; 139 unit tests pass; the CI mirror
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(ios-core): the engine wrapper asks the web app's check whether a read is of no item
 - What: RulesEngine.isNoItem(read) calls the bridge's isNoItemJson, so the iPhone app finds a read
   of no item with the web app's own function. A read that is not a whole item read comes back as an
