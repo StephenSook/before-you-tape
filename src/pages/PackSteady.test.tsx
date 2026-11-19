@@ -30,12 +30,12 @@ const roomFrame: ItemRead = { ...base, itemName: "unknown", category: "other", l
 const port = (read: ItemRead, source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(read), source })) });
 const models = (read: ItemRead) => ({ device: port(read, "on_device"), hybrid: port(read, "on_device"), cloud: port(base, "in_cloud") }) satisfies ItemModels;
-const persistence: BoxPersistence = { save: () => {}, load: async () => null };
+const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }];
 const camera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 
 function setup(gate: GateState, read: ItemRead) {
-  const store = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => "id-1" });
+  const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => "id-1" });
   store.setConsent(true);
   const m = models(read);
   render(<PackPage store={store} models={m} gate={gate} config={{ killCloud: false }} openCamera={camera} index={index}

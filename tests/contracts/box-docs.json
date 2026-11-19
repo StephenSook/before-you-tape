@@ -8,7 +8,7 @@
       "joinKeyHash": "",
       "destinationCode": "CA",
       "editionId": "byt-contract",
-      "cloudConsent": true,
+      
       "sources": { "onDevice": 1, "inCloud": 0, "secondLooks": 1, "rulesOnlyRechecks": 0, "cloudFallbacks": 0 },
       "lastRecheckMs": null
     }
@@ -32,7 +32,8 @@
       "secondLook": { "ms": 980, "reason": "The watt-hours on the label did not match the volts and capacity, so the cloud read it again." },
       "readFallback": { "after": "503", "route": "cloud_only" },
       "cropKey": null,
-      "customs": { "description": "", "lintOk": false, "weightOz": null, "valueUsd": null, "countryOfOrigin": null, "upc": null }
+      "customs": { "description": "", "lintOk": false, "weightOz": null, "valueUsd": null, "countryOfOrigin": null, "upc": null },
+      "addedAt": 1795000000000
     }
   }
 }

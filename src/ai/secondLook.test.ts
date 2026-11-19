@@ -53,7 +53,8 @@ describe("runSecondLook", () => {
   it("reads the same crop with the same prompt in the cloud and returns the merge, its time and whether the kind agreed", async () => {
     const cloud = answers(r({ volts: 3.7, milliampHours: 2600, wattHours: 9.62, labelText: "3.7V 2600mAh 9.62Wh", evidence: "label_read" }));
     const out = await runSecondLook(cloud, img, deviceRead, clock(100, 1100));
-    expect(cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, img);
+    // The same prompt and crop, with the check that the cloud is still allowed.
+    expect(cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, img, { allowed: expect.any(Function) });
     expect(out).toMatchObject({ ms: 1000, sameCategory: true });
     expect(out.merged.milliampHours).toBe(2600);
     expect((await runSecondLook(answers(r({ category: "tablet" })), img, deviceRead, clock(0, 1))).sameCategory).toBe(false);

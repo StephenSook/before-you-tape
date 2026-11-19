@@ -28,7 +28,7 @@ describe("box documents contract", () => {
     await p.load("box-1");
     const s = contract.box.doc;
     p.save({
-      boxId: "box-1", destinationCode: s.destinationCode, cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs,
+      boxId: "box-1", destinationCode: s.destinationCode, cloudConsent: true, sources: s.sources, lastRecheckMs: s.lastRecheckMs,
       items: [contract.item.doc], errors: {}, result: {},
     } as unknown as BoxState);
     await p.idle();

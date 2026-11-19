@@ -6,13 +6,15 @@ import type { ItemModels, ModelPort } from "./port";
 
 function waitFor(signIn: Promise<string>, inner: ModelPort): ModelPort {
   return {
-    async generate(prompt, image) {
+    async generate(prompt, image, opts) {
       try {
         await signIn;
       } catch {
         throw new ReadFailure("cloud_unreachable", "not signed in, so the cloud check did not run");
       }
-      return inner.generate(prompt, image);
+      // The sender or the pause may have withdrawn the cloud while sign-in was finishing.
+      if (opts?.signal?.aborted || (opts?.allowed && !opts.allowed())) throw new ReadFailure("blocked", "cloud checks were switched off during sign-in");
+      return opts ? inner.generate(prompt, image, opts) : inner.generate(prompt, image);
     },
   };
 }

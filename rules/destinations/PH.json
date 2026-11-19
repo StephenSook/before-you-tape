@@ -26,6 +26,18 @@
         {
           "tag": "easily_liquefiable",
           "effect": "check"
+        },
+        {
+          "tag": "ceramic",
+          "effect": "check"
+        },
+        {
+          "tag": "chocolate",
+          "effect": "check"
+        },
+        {
+          "tag": "margarine",
+          "effect": "check"
         }
       ]
     },

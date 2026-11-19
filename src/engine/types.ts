@@ -111,6 +111,8 @@ export interface WorksheetFieldSpec {
 
 export interface RuleEdition {
   editionId: string;
+  // Higher is newer; an edition from before revisions has none.
+  revision?: number;
   service: "Priority Mail International";
   sources: EditionSource[];
   limits: LithiumLimits;

@@ -1,5 +1,6 @@
 {
-  "editionId": "byt-65f5528fc307",
+  "editionId": "byt-8f79dcb51dec",
+  "revision": 1,
   "service": "Priority Mail International",
   "sources": [
     {
@@ -81,7 +82,8 @@
     ],
     "chocolate": [
       "chocolate",
-      "food"
+      "food",
+      "easily_liquefiable"
     ],
     "coffee": [
       "coffee",
@@ -159,6 +161,9 @@
     "book_paper": [],
     "toy": [
       "toy"
+    ],
+    "ceramic": [
+      "ceramic"
     ],
     "other": []
   },
@@ -360,12 +365,24 @@
       "tag": "chocolate"
     },
     {
+      "pattern": "chocolate",
+      "tag": "easily_liquefiable"
+    },
+    {
       "pattern": "cocoa",
       "tag": "chocolate"
     },
     {
+      "pattern": "cocoa",
+      "tag": "easily_liquefiable"
+    },
+    {
       "pattern": "cacao",
       "tag": "chocolate"
+    },
+    {
+      "pattern": "cacao",
+      "tag": "easily_liquefiable"
     },
     {
       "pattern": "coffee",
@@ -476,12 +493,36 @@
       "tag": "margarine"
     },
     {
+      "pattern": "margarine",
+      "tag": "easily_liquefiable"
+    },
+    {
       "pattern": "oleomargarine",
       "tag": "margarine"
     },
     {
+      "pattern": "oleomargarine",
+      "tag": "easily_liquefiable"
+    },
+    {
       "pattern": "butter substitutes?",
       "tag": "margarine"
+    },
+    {
+      "pattern": "butter substitutes?",
+      "tag": "easily_liquefiable"
+    },
+    {
+      "pattern": "ceramics?",
+      "tag": "ceramic"
+    },
+    {
+      "pattern": "porcelain",
+      "tag": "ceramic"
+    },
+    {
+      "pattern": "stoneware",
+      "tag": "ceramic"
     },
     {
       "pattern": "(?:pet|dog|cat) food",
@@ -1962,6 +2003,18 @@
             },
             {
               "tag": "easily_liquefiable",
+              "effect": "check"
+            },
+            {
+              "tag": "ceramic",
+              "effect": "check"
+            },
+            {
+              "tag": "chocolate",
+              "effect": "check"
+            },
+            {
+              "tag": "margarine",
               "effect": "check"
             }
           ]
