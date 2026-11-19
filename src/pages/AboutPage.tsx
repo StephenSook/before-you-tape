@@ -8,7 +8,7 @@ const items = (manifest as SetManifest).items;
 
 export function AboutPage() {
   return (
-    <main className="about">
+    <div className="about">
       <h1>About Before You Tape</h1>
       <p>Hold each gift up to your laptop and see what the post office won't take, before you tape the box.</p>
 
@@ -47,6 +47,6 @@ export function AboutPage() {
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   );
 }

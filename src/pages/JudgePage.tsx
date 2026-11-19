@@ -45,7 +45,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
   const byId = new Map(SAMPLE_BOX.map((s) => [s.itemId, s]));
 
   return (
-    <main className="judge">
+    <div className="judge">
       <h1>Try the sample box</h1>
       <p>
         Nine real items from our test photos. We typed in what each label says, so this page needs no camera, no built-in
@@ -77,6 +77,6 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
           </article>
         );
       })}
-    </main>
+    </div>
   );
 }

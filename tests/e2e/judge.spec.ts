@@ -17,3 +17,14 @@ test("the sample box works with no sign-in, camera or model", async ({ page }) =
   await expect(page.getByTestId("recheck-line")).toContainText("0 model calls");
   expect(googleApis).toEqual([]);
 });
+
+test("the heading uses the self-hosted display font, loaded from this site", async ({ page }) => {
+  const fontHosts: string[] = [];
+  page.on("request", (r) => { if (r.resourceType() === "font") fontHosts.push(new URL(r.url()).origin); });
+  await page.goto("/judge");
+  await page.evaluate(() => document.fonts.ready);
+  // check() is also true when no face matches at all, so ask for a loaded face by name.
+  expect(await page.evaluate(() => [...document.fonts].some((f) => f.family.replace(/"/g, "") === "Bricolage Grotesque" && f.status === "loaded"))).toBe(true);
+  expect(await page.getByRole("heading", { level: 1 }).evaluate((h) => getComputedStyle(h).fontFamily)).toMatch(/^"?Bricolage Grotesque/);
+  expect(new Set(fontHosts)).toEqual(new Set([new URL(page.url()).origin]));
+});

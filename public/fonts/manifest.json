@@ -1,0 +1,42 @@
+[
+  {
+    "family": "Bricolage Grotesque",
+    "file": "BricolageGrotesque/bricolage-grotesque-latin-wght-normal.woff2",
+    "weight": 400,
+    "license": "OFL-1.1",
+    "source": "https://github.com/ateliertriay/bricolage",
+    "sha256": "a97804dc9fbe5fc972a08018c5eda4dab7ef2346f64c57e61419d05e6de4ea1c"
+  },
+  {
+    "family": "Figtree",
+    "file": "Figtree/figtree-latin-wght-normal.woff2",
+    "weight": 400,
+    "license": "OFL-1.1",
+    "source": "https://github.com/erikdkennedy/figtree",
+    "sha256": "4ba7d3d096695818fe0686be4f1e82c6b05134e18a22260336130335027462dd"
+  },
+  {
+    "family": "DM Mono",
+    "file": "DMMono/dm-mono-latin-400-normal.woff2",
+    "weight": 400,
+    "license": "OFL-1.1",
+    "source": "https://github.com/googlefonts/dm-mono",
+    "sha256": "e1896b13b2b1bb112fac2f9571bd6c40e118746e77a4511edbf43fbb41bf3e1e"
+  },
+  {
+    "family": "DM Mono",
+    "file": "DMMono/dm-mono-latin-500-normal.woff2",
+    "weight": 500,
+    "license": "OFL-1.1",
+    "source": "https://github.com/googlefonts/dm-mono",
+    "sha256": "9964608a849396bd00c4bfd7034afe03486469dcf20b4f6b8cbdfdd310369951"
+  },
+  {
+    "family": "Caveat",
+    "file": "Caveat/caveat-latin-wght-normal.woff2",
+    "weight": 400,
+    "license": "OFL-1.1",
+    "source": "https://github.com/googlefonts/caveat",
+    "sha256": "891951df5e8b5b0f0bc760d31375405e795c666b5add70437de12d4a6482b33f"
+  }
+]
