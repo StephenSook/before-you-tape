@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A typed "lists alcohol" is the sender's own word.** When the sender types an item and
+  ticks that the label lists alcohol, the item now keeps it as their correction
+  (`overrides.alcoholOnLabel = true`), as the web app does. With the shared engine's matching
+  rule, a sender's own alcohol line settles the question like an answer of yes, so it is not
+  asked again; the model's flag alone still asks. Until that engine change is in the shared
+  bundle, the verdict is the same as before. Source: the web app's typed facts change. Verified:
+  `BoxLogicTest.aTypedAlcoholLineIsTheSendersOwnWord` failed first (empty overrides), then
+  passes; an unticked typed item keeps empty overrides. `bash android/ci-local.sh` and the root
+  CI mirror exit 0.
 - **A web `addedAt` survives the phone's sync.** The web app now stamps `addedAt` (ms since
   1970) on new items. The phone's item mapper dropped any field it did not know, so a phone
   write would have removed it. `addedAt` now joins the fields kept as they came and is written
@@ -21,6 +30,54 @@ source (plan task or finding) and how it was verified.
   shared vectors (`SharedVectorsTest`, which could not decode `ceramic`), failed first and pass
   now; the enum size guard moves from 37 to 38.
 
+- **The box repository writes through a small store, local first.** `FirestoreBoxRepository`
+  now makes its writes through `DocStore` (create, set, update, delete by document path, plus
+  the server time and increments), with `FirestoreDocStore` the real one. Only creating a box is
+  awaited; an item, a removal, a destination or counts are sent without waiting, and Firestore's
+  cache holds them while the phone is offline. Watching the box still reads Firestore directly.
+  Source: Android plan Task 10 (`BoxRepositoryTest.anItemReadOfflineIsSentWhenTheLinkReturns`).
+  Verified: `BoxRepositoryTest` (3 tests, against a store that queues writes offline) passes:
+  an item written offline reaches the server when the link returns, with its label text empty
+  and only its category name; a new box carries no consent and the server time; counts go as
+  increments of only what changed. A control where `putItem` sends nothing fails the first test.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A typed name correction never leaves the phone.** The synced item dropped the label text
+  and the model's name, but a sender's typed name correction still went out in
+  `overrides.itemName`. `BoxLogic.forSync` now drops `itemName` from the synced overrides too,
+  and the synced read's name is the label of the corrected category when a correction changed it
+  (falling back to the category id, never free text). Source: automated security review of the
+  previous commit, and the web app's matching rule (typed corrections stay on the device).
+  Verified: `BoxDocsContractTest.aTypedNameCorrectionNeverLeavesThePhone` (a correction to
+  "Grandma's rose water" and perfume) failed first, then passes: no `itemName` in the synced
+  overrides, the read named "Perfume or cologne", and the typed words nowhere in the document.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **Firestore carries no consent and no model names.** Consent is now chosen on each device
+  and never stored in Firestore: the box rules refuse `cloudConsent`, `consentChosenAt` and
+  `consentAt`. A new box from the phone writes none of them (`BoxDocs.newBoxDoc`); the
+  `setConsent` write added just before is removed, and only an old box read back still shows a
+  leftover `cloudConsent`. An item's synced read now names only its category (the form label,
+  for example "Lotion or cream"): the model's name for the item stays on the phone. Source: the
+  per-device consent ruling for the web and Android apps. Verified:
+  `BoxDocsContractTest.aNewBoxCarriesNoConsentAtAll` and `anItemDocumentNamesOnlyTheCategory`
+  failed first, then pass; the fixture round trips still pass. The deployed rules still require
+  `cloudConsent` on a new box until the new rules deploy, so the live box test waits for that.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A new box carries no consent, and consent changes carry their times.** The box rules now
+  refuse a new box whose `cloudConsent` is not null, and refuse any change to `cloudConsent`
+  that does not also set `consentChosenAt` (the press time) and `consentAt` (the server's time).
+  The phone's `createBox` wrote the sender's consent on a new box. It now writes
+  `BoxDocs.newBoxDoc` (consent null, no consent fields), and a new `setConsent` writes
+  `BoxDocs.consentChange`: `cloudConsent`, `consentChosenAt` from this phone's clock, and
+  `consentAt` as a server timestamp, in one update. The destination and count updates already
+  leave all three alone. Source: the web app's box consent rules (batch A). Verified:
+  `BoxDocsContractTest.aNewBoxHasNoConsentChosenYet` and
+  `aConsentChangeCarriesThePressTimeAndTheServerTime` failed against stubs of the old behavior,
+  then pass; `BoxLiveTest` passed live on the emulator against the deployed rules (a phone-made
+  box with consent null is accepted and read back; a stranger is refused). `setConsent` needs the
+  new rules and is not called yet. `bash android/ci-local.sh` and the root CI mirror exit 0.
 - **A downloadable model starts on Wi-Fi at launch.** At launch, the first model check now
   decides once: a phone whose on-device model can be downloaded starts the download when the
   network is unmetered (Wi-Fi); on mobile data the app asks first (the existing "Get the model
@@ -257,6 +314,28 @@ source (plan task or finding) and how it was verified.
   message; with it, the build passes. `bash android/release.sh` exit 0 with "Firebase
   configuration: present", 0 scan hits and 16 KB alignment exit 0. `bash android/ci-local.sh`
   and the root CI mirror exit 0.
+- **A box lists its items in the order they were added.** The web app is adding an optional
+  `addedAt` to item documents (ms since 1970), because the server returns items by their random
+  ids and cards reshuffled after a reload. The phone now keeps an `addedAt` it reads on every
+  write back, and lists a box oldest first by `addedAt`, with undated items last in the order the
+  server gave them (`BoxDocs.sortedForListing`, used by the repository's watch). The phone does
+  not stamp `addedAt` on its own items yet: the deployed rules refuse item fields they do not
+  list, so stamping waits until the web change and its rules are deployed. Source: the web
+  builder's contract change for item order. Verified: `BoxDocsContractTest.anAddedAtFromTheWebIsKept`
+  and `aListedBoxIsSortedByAddedAtWithUndatedItemsLast` failed first, then pass (7 contract
+  tests); `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A Firestore box repository, local first.** `FirestoreBoxRepository` creates a box (its owner
+  as the only member, no join key, zero counts; awaited, because items need the box to exist).
+  It writes and removes items, sets the destination with the time of the rules-only re-check,
+  adds to the read counts, and watches the box and its items as one stream. Every write except
+  the creation is sent without waiting, and the Firestore cache holds it while the phone is
+  offline. Adds `firebase-firestore` (Firebase BoM). Source: Android plan Task 10. Verified:
+  `BoxLiveTest` (live, on request) passed on the emulator against the deployed rules. A box made
+  on the phone was read back with its owner as the only member. An item written with the network
+  off reached the server once the network returned, with empty label text and quantity 1. A
+  destination change was accepted. A stranger (a new anonymous user) was refused the box
+  (PERMISSION_DENIED). `bash android/ci-local.sh` and the root CI mirror exit 0.
 
 - **Box and item documents that match the web app's.** `BoxDocs` turns a box item into the web
   app's item document and back, and the box header likewise, as Firestore values. The shapes

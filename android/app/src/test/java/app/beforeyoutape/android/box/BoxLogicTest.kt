@@ -72,6 +72,14 @@ class BoxLogicTest {
         assertEquals(2, e.codes.size)
     }
 
+    /** A typed item is the sender's own word: a ticked alcohol line is kept as theirs, so it is not asked again. */
+    @Test fun aTypedAlcoholLineIsTheSendersOwnWord() {
+        val ticked = BoxLogic.addManual(BoxLogic.empty("CA"), read.copy(alcoholOnLabel = true), emptyList(), "t1").items.single()
+        assertEquals(kotlinx.serialization.json.JsonObject(mapOf("alcoholOnLabel" to kotlinx.serialization.json.JsonPrimitive(true))), ticked.input.overrides)
+        val plain = BoxLogic.addManual(BoxLogic.empty("CA"), read.copy(alcoholOnLabel = false), emptyList(), "t2").items.single()
+        assertEquals(kotlinx.serialization.json.JsonObject(emptyMap()), plain.input.overrides)
+    }
+
     @Test fun labelTextIsKeptOutOfTheSyncedItem() {
         val c = controller(FakeEngine(result))
         c.addRead(read, listOf("liquid"), Source.IN_CLOUD, 900, "item-1")

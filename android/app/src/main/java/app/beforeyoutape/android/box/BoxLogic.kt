@@ -34,7 +34,10 @@ object BoxLogic {
 
     /** A typed item: the sender's own, so its identity is confirmed by the sender. */
     fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String): BoxState {
-        val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, "sender", labelTags)
+        // A typed item is the sender's own word: a ticked alcohol line is kept as theirs, so the
+        // rules treat it like an answer of yes and do not ask again (as the web app does).
+        val overrides = if (read.alcoholOnLabel) mapOf("alcoholOnLabel" to kotlinx.serialization.json.JsonPrimitive(true)) else emptyMap()
+        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags)
         return s.copy(items = s.items + BoxItem(input, "manual", 0.0, null))
     }
 
@@ -89,8 +92,15 @@ object BoxLogic {
     }
 
     /** The item as it may leave the phone: the label text, read or typed, stays here; its tags travel instead. */
-    fun forSync(input: BoxItemInput): BoxItemInput =
-        input.copy(read = input.read.copy(labelText = ""), overrides = JsonObject(input.overrides - "labelText"))
+    fun forSync(input: BoxItemInput): BoxItemInput {
+        // Names never leave the phone: not the model's name, not a typed correction. The synced read
+        // names only the category, the corrected one when a correction changed it.
+        val overrides = input.overrides - "labelText" - "itemName"
+        val category = (overrides["category"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+            ?.let { c -> app.beforeyoutape.engine.ItemCategoryWire.entries.firstOrNull { it.name == c } } ?: input.read.category
+        val name = app.beforeyoutape.android.ui.ReadCopy.CATEGORIES[category] ?: category.name
+        return input.copy(read = input.read.copy(labelText = "", itemName = name), overrides = JsonObject(overrides))
+    }
 }
 
 /** Holds the box and re-checks it through the engine after every change. */
