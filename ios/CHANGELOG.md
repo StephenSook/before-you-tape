@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(ios): add the ceramic category to the iPhone's reads and its pick list
+- What: main's edition and the web's category list gained "ceramic" ("Ceramic or porcelain (mug,
+  plate, vase)") before "other"; the iPhone's guided read and the "Type it" and "Fix this reading"
+  pick lists now carry it in the same place, so a ceramic item is read and typed as on the web.
+- Source: the web's category list and the shipped edition.
+- Verified: the tests that compare the iPhone's lists with the web's files failed on main (37
+  against 38), then passed; 133 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): rebuild the bundled rules engine so it loads the shipped edition
 - What: the committed `byt-engine.js` was built before main's edition gained `revision` and the
   ceramic category, so the iPhone's engine refused `rules/edition.json` ("edition.revision: unknown
