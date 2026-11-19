@@ -51,10 +51,10 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         return String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
     }
 
-    func store(_ p: BoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil) throws -> BoxStore {
+    func store(_ p: BoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil, idPrefix: String = "id") throws -> BoxStore {
         let engine = try engine ?? Self.bundledEngine()
         var n = 0
-        return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "id-\(n)" }, now: { 1000 })
+        return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "\(idPrefix)-\(n)" }, now: { 1000 })
     }
 
     func outcome(_ read: JSONValue, _ source: ReadPath, fallbackAfter: FallbackAfter? = nil) -> ReadOutcome {
@@ -100,6 +100,28 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         restored.load()
         let verdict = try #require(restored.result?.items[id])
         #expect(verdict.level == "check" && verdict.hits.first?.text == BoxStore.labelUnknown)
+    }
+
+    /// The box-wide lithium total depends on every item still in the box. While one item's label
+    /// must be read again, no lithium item is OK on a total that may be missing it.
+    @Test func aStaleLabelWithholdsTheOtherItemsLithiumOK() throws {
+        let p = MemoryBoxPersistence()
+        let first = try store(p)
+        let staleId = first.addManual(Self.markedLotion)
+        let engine = try Self.bundledEngine()
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        let restored = try store(MemoryBoxPersistence(stored: p.saved.last), engine: engine, idPrefix: "later")
+        restored.load()
+        let phoneId = restored.addManual(Self.phone)
+        // A new sealed phone is OK on its own; here it waits for the other label.
+        restored.answer(phoneId, question: "device_condition", answer: "new_sealed")
+        let phone = try #require(restored.result?.items[phoneId])
+        #expect(phone.level == "check" && phone.hits.first?.text == BoxStore.lithiumWaits)
+        #expect(restored.result?.lithium.status == "depends" && restored.result?.lithium.text == BoxStore.lithiumWaits)
+        #expect(restored.result?.counts.ok == 0)
+        // Once that item is out of the box, the phone stands on its own again.
+        restored.remove(staleId)
+        #expect(restored.result?.items[phoneId]?.level == "ok" && restored.result?.lithium.status == "ok")
     }
 
     /// An item read with no label words has tags that no edition changes: it is not asked for a label.

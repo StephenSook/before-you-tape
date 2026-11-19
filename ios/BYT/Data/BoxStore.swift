@@ -148,6 +148,8 @@ final class BoxStore {
     static let rulesChanged = "The rules changed since this label was read. Photograph or type the label again."
     /// The same, for an item saved before the iPhone kept which edition read its label.
     static let labelUnknown = "An earlier version of this app saved this item. Photograph or type the label again."
+    /// Why a lithium item waits: the box-wide total may be missing an item whose label is read again.
+    static let lithiumWaits = "Another item in this box needs its label read again before the lithium total is known."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -348,17 +350,29 @@ final class BoxStore {
     /// is asked to read the label again.
     private func guardStaleTags(_ result: BoxResult) -> BoxResult {
         var result = result
-        for item in items where isStale(item) {
-            guard var verdict = result.items[item.itemId], verdict.level == "ok" else { continue }
+        func withhold(_ id: String, _ reason: String) {
+            guard var verdict = result.items[id], verdict.level == "ok" else { return }
             verdict.level = "check"
             verdict.headline = "Check this"
-            verdict.hits.insert(RuleHit(ruleId: "DATA-LABEL-AGAIN", layer: "data", level: "check",
-                                        text: item.tagsEdition == nil ? Self.labelUnknown : Self.rulesChanged,
+            verdict.hits.insert(RuleHit(ruleId: "DATA-LABEL-AGAIN", layer: "data", level: "check", text: reason,
                                         section: "Before You Tape: reading check", url: "https://before-you-tape-2026.web.app/rules"),
                                 at: 0)
-            result.items[item.itemId] = verdict
+            result.items[id] = verdict
             result.counts.ok -= 1
             result.counts.check += 1
+        }
+        var staleInBox = false
+        for item in items where isStale(item) {
+            // An item already taken out is not in the box, so it cannot change the box's total.
+            if let level = result.items[item.itemId]?.level, level != "take_out" { staleInBox = true }
+            withhold(item.itemId, item.tagsEdition == nil ? Self.labelUnknown : Self.rulesChanged)
+        }
+        // The lithium total is box-wide: an item whose label must be read again may add to it, so no
+        // lithium item is OK on that total until it is read.
+        if staleInBox, result.lithium.status == "ok" {
+            result.lithium.status = "depends"
+            result.lithium.text = Self.lithiumWaits
+            for id in result.lithium.itemIds { withhold(id, Self.lithiumWaits) }
         }
         return result
     }

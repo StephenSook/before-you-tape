@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): no lithium item is OK while another item's label must be read again
+- What: the box-wide lithium total was computed from the saved tags of an item whose label must
+  be read again, so a restored item that would add lithium under the new edition could leave the
+  other lithium items "OK to pack". While any such item is still in the box (not taken out), every
+  lithium item the engine found OK is held at "Check this" with "Another item in this box needs its
+  label read again before the lithium total is known.", and the box's lithium line says the same.
+  Once that item is read again or removed, the total stands on its own.
+- Source: review.
+- Verified: a restored stale item beside a new sealed phone added under the new edition holds the
+  phone at "Check this" and the box's lithium at "depends" (the old logic gave OK), and removing
+  the stale item gives the phone OK again; 122 app unit tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): an item saved before tag editions were kept is never OK from its saved tags
 - What: an item from a box saved before the iPhone recorded which edition read its label had no
   edition, and that counted as current, so its old tags could still give "OK to pack" under a new
