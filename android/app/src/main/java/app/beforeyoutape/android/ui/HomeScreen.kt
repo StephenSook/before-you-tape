@@ -73,6 +73,12 @@ interface HomeActions {
 
     /** Download the on-device model. */
     fun getModel()
+
+    /** Withdraw cloud consent now; a read under way is cancelled. */
+    fun turnOffCloud() {}
+
+    /** Forget the consent choice, so it is asked again. */
+    fun askConsentAgain() {}
 }
 
 /**
@@ -90,7 +96,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 ui.loading -> Text(Copy.LOADING, style = MaterialTheme.typography.bodyLarge)
-                ui.view == HomeView.ABOUT && ui.about != null -> AboutPhoneScreen(ui.about, onBack = { actions.show(HomeView.CAMERA) })
+                ui.view == HomeView.ABOUT && ui.about != null -> AboutPhoneScreen(ui.about, onBack = { actions.show(HomeView.CAMERA) }, onTurnOffCloud = actions::turnOffCloud, onAskAgain = actions::askConsentAgain)
                 ui.consent == null -> ConsentScreen(null, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
                 ui.view == HomeView.TYPE -> ReadForm(null, ReadCopy.NAME_OPTIONAL, ReadCopy.ADD, actions::typed)
                 ui.view == HomeView.FIX && ui.fixItemId != null ->

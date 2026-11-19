@@ -162,4 +162,7 @@ class BoxController(initial: BoxState, private val engine: BoxEngine, private va
         state = BoxLogic.setDestination(state, code)
         recheck()
     }
+
+    /** The rules edition changed: the box is re-checked against the rules now in use. */
+    fun rulesChanged() = recheck()
 }

@@ -25,6 +25,8 @@ data class RcValues(
             "ondevice_model_option_android", "rules_edition_id", "rules_edition_sha256", "second_look_policy_json",
         )
         val MODEL_OPTIONS = listOf("stable", "preview", "preview_fast")
+        private val PIN_ID = Regex("[a-z0-9-]{1,64}")
+        private val PIN_SHA = Regex("[0-9a-f]{64}")
 
         private fun version(s: String): List<Int>? {
             val parts = s.trim().split(".")
@@ -41,14 +43,18 @@ data class RcValues(
             fun s(k: String) = values[k]?.trim().orEmpty()
             fun b(k: String, default: Boolean) = when (s(k).lowercase()) { "true" -> true; "false" -> false; else -> default }
             val minimum = s("minimum_version_android").takeIf { version(it) != null } ?: "0.0.0"
+            // As on the web: a newer edition needs both a safe id and a 64-hex SHA-256, or neither is used.
+            val pinId = s("rules_edition_id")
+            val pinSha = s("rules_edition_sha256").lowercase()
+            val pin = if (PIN_ID.matches(pinId) && PIN_SHA.matches(pinSha)) pinId to pinSha else "" to ""
             return RcValues(
                 cloudModelItem = s("cloud_model_item"),
                 killCloud = b("kill_cloud", false),
                 useLimitedUseTokens = b("use_limited_use_tokens", true),
                 minimumVersionAndroid = minimum,
                 onDeviceModelOption = s("ondevice_model_option_android").lowercase().takeIf { it in MODEL_OPTIONS } ?: "stable",
-                rulesEditionId = s("rules_edition_id"),
-                rulesEditionSha256 = s("rules_edition_sha256"),
+                rulesEditionId = pin.first,
+                rulesEditionSha256 = pin.second,
                 secondLookPolicyJson = s("second_look_policy_json"),
             )
         }
