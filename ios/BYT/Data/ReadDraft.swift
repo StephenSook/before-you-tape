@@ -89,11 +89,13 @@ struct ReadDraft: Equatable, Sendable {
     /// A fix as saved: the changed fields, and when the sender said what the item is, their word as
     /// the evidence (the label they typed, or what they say it is), so an unsure read is resolved.
     /// Only a new category or new label words say what it is: a new name alone does not (renaming
-    /// an unsure "Shirt" to "My shirt" adds nothing), and neither does clearing the label.
+    /// an unsure "Shirt" to "My shirt" adds nothing), and neither does clearing the label or adding spaces.
     func fixPatch(from read: JSONValue) -> [String: JSONValue] {
         var patch = changed(from: read)
         let label = labelText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if patch["category"] != nil || (patch["labelText"] != nil && !label.isEmpty) {
+        let before = (read.text("labelText") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // New words means different words once spaces are set aside: a space added is not new evidence.
+        if patch["category"] != nil || (!label.isEmpty && label != before) {
             patch["evidence"] = .string(label.isEmpty ? "item_seen" : "label_read")
         }
         return patch

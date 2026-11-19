@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): label words that differ only by spaces are not new identity evidence
+- What: a label edit counted as new evidence when its raw text changed, so adding a space to an
+  unsure item's label set the sender's evidence and could turn "Check this" into "OK to pack".
+  The new words now count only when, with spaces set aside, they are non-blank and differ from
+  the old ones.
+- Source: review.
+- Verified: a test adds spaces around an unsure shirt's label (no evidence, not confirmed, still
+  "Check this"); it failed on the old code (2 issues), then passed; 128 app unit tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): a change that could not be saved says so on the check screen too, with a retry
 - What: the "This change is not saved" warning showed only under "Your box", so a photo read whose
   save failed still looked done on the check screen, where the item was added. The same warning

@@ -132,6 +132,21 @@ import Testing
         #expect(s.result?.items[id]?.level == "check" && s.result?.items[id]?.hits.contains { $0.ruleId == "DATA-UNSURE" } == true)
     }
 
+    /// The same words with a space added are not new words.
+    @Test func addingASpaceToTheLabelKeepsTheUncertainty() throws {
+        let s = try BoxStoreTests().store()
+        let unsure = BoxStoreTests.read(["itemName": .string("Shirt"), "category": .string("clothing"),
+                                         "labelText": .string("SHIRT 100% COTTON"), "evidence": .string("not_sure")])
+        let id = s.addRead(ReadOutcome(read: unsure, source: .onDevice, route: .hybrid, failure: nil, records: []), cropFile: nil)!
+        let item = try #require(s.items.first)
+        var d = ReadDraft.of(FixReadingView.current(item))
+        d.labelText = " SHIRT 100% COTTON  "
+        let patch = d.fixPatch(from: FixReadingView.current(item))
+        #expect(patch["evidence"] == nil)
+        s.applyFix(id, patch: patch)
+        #expect(s.items.first?.identityConfirmedBy == nil && s.result?.items[id]?.level == "check")
+    }
+
     /// A fix that says what the item is clears "We're not sure what this is": the sender's word is the evidence.
     @Test func aFixThatSaysWhatItIsClearsTheUncertainty() throws {
         let s = try BoxStoreTests().store()
