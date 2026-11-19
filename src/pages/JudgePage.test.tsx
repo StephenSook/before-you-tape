@@ -43,6 +43,11 @@ describe("JudgePage", () => {
     expect(verdict("Perfume")).toHaveTextContent("Take it out");
   });
 
+  it("says plainly that cloud checks stay off when the browser blocks Firebase settings", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByTestId("cloud-settings-note")).toHaveTextContent("If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.");
+  });
+
   it("names the rule and its section behind each verdict", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });
