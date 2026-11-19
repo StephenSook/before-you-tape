@@ -3,6 +3,20 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The engine can check a pinned rules edition the way the web does.** `EditionPin.choose`
+  follows the web's rules and words (`src/data/editionSource.ts`): an empty pin, or one naming the
+  bundled edition, uses the bundled edition; a pinned edition is used only when the fetched
+  document has exactly the pinned id and SHA-256, the rules accept it and its revision is higher than
+  the one in use; anything else keeps the edition in use and says why. `EditionCheck.verify` loads a
+  document into a spare host and hashes the engine's own canonical JSON, the text the publish script
+  hashes. One difference from the web: Android needs the rules to parse a document before it can
+  hash it, so a document that is both malformed and wrongly hashed reads "could not be read" rather
+  than "failed its integrity check"; both keep the edition in use. Source: whole-repo review.
+  Verified: `EditionPinTest` (8) and `EditionCheckTest` (2) failed first, then pass; with the hash
+  and revision checks removed, 2 of 8 fail; the bundled edition's hash on Android equals the web's
+  `sha256Hex(canonicalJson(...))` of `rules/edition.json` (checked once against the value the web
+  code prints).
+
 - **Cloud consent can be changed in the app, and turning it off stops a read under way.** The
   consent question was asked once and could not be changed afterwards. The About screen now shows
   this phone's choice ("Cloud reads: allowed", "off" or "not chosen yet") and a button: "Turn off
