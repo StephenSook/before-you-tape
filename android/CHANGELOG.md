@@ -3,6 +3,14 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Evidence for gate G-A5.** `docs/evidence/android/G-A5.md` records the parity run: on the
+  emulator (Android 17), every shared vector passes in the app's runtime (box 29, guards 64,
+  destinations 21) and QuickJS equals WebView V8 on 426 inputs (114 vectors, 312 labels), WebView
+  145.0.7632.218, rules bundle SHA-256 52e8fb43...60b48 from a clean build of 4c64439, with both
+  controls caught. The A16 run and the live same-box check are listed as not done yet, with what
+  each needs. Source: Android plan Task 17. Verified: the root CI mirror and the Android mirror
+  (its dash and quote guard included) exit 0.
+
 - **QuickJS against WebView V8 on every vector and a 312-label corpus.** `EngineDifferentialTest`
   loads the same rules bundle and edition into the app's QuickJS runtime and into an
   `android.webkit.WebView` (V8, test code only), and requires byte-for-byte equal reply text for
