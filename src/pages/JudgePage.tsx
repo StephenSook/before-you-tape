@@ -52,6 +52,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         model and no sign-in. The app's own rules decide each verdict, here in your browser.
       </p>
       <p><a href="/">Check your own box</a></p>
+      <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
       <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
         recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country }} />

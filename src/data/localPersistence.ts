@@ -9,9 +9,9 @@ const CURRENT_KEY = "byt.currentBox";
 export function localPersistence(storage: Storage): BoxPersistence {
   return {
     save(state: BoxState) {
-      const { boxId, destinationCode, items, cloudConsent, sources } = state;
+      const { boxId, destinationCode, items, sources } = state;
       try {
-        storage.setItem(BOX_KEY(boxId), JSON.stringify({ boxId, destinationCode, items, cloudConsent, sources }));
+        storage.setItem(BOX_KEY(boxId), JSON.stringify({ boxId, destinationCode, items, sources }));
       } catch {
         // Storage full or blocked: the box still works for this visit.
       }
@@ -20,7 +20,10 @@ export function localPersistence(storage: Storage): BoxPersistence {
       const raw = storage.getItem(BOX_KEY(boxId));
       if (!raw) return null;
       try {
-        return JSON.parse(raw) as Partial<BoxState>;
+        // Consent is the device's own (deviceConsent.ts); an answer an older save carried is ignored.
+        const { cloudConsent: _old, ...box } = JSON.parse(raw) as Partial<BoxState>;
+        void _old;
+        return box;
       } catch {
         return null;
       }

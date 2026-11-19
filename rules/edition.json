@@ -1,5 +1,6 @@
 {
-  "editionId": "byt-e1710fc2f032",
+  "editionId": "byt-8f79dcb51dec",
+  "revision": 1,
   "service": "Priority Mail International",
   "sources": [
     {
@@ -2006,6 +2007,14 @@
             },
             {
               "tag": "ceramic",
+              "effect": "check"
+            },
+            {
+              "tag": "chocolate",
+              "effect": "check"
+            },
+            {
+              "tag": "margarine",
               "effect": "check"
             }
           ]

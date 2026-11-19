@@ -2,8 +2,9 @@
 // The first browser types an item and stays open, so its pending write keeps syncing. A second browser
 // starts with only the first one's stored sign-in and the pointer to its box: no Firestore cache and no
 // local copy of the box. If the item shows there for the same user, it was read from the server. The
-// deploy gate runs this after every deploy; it leaves one box with one typed clothing item named
-// "Round-trip check <time>".
+// server never gets an item's own name, only its category's label, so the second browser shows "Clothing"
+// and never the typed name, which stays in the first browser. The deploy gate runs this after every
+// deploy; it leaves one box with one typed clothing item.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 type BaseState = Awaited<ReturnType<BrowserContext["storageState"]>>;
@@ -70,7 +71,10 @@ test("a typed item comes back from the server in a browser with no copy of the b
       await second.goto("/");
       await expect(second.getByRole("button", { name: "Type an item" })).toBeVisible({ timeout: 20_000 });
       expect(await storedUid(second), "the second browser is the same user").toBe(uid);
-      await expect(second.getByTestId("item-card").getByText(name)).toBeVisible({ timeout: 15_000 });
+      // This user's box holds only the one item, so one card named by its category is that item.
+      await expect(second.getByTestId("item-card")).toHaveCount(1, { timeout: 15_000 });
+      await expect(second.getByTestId("item-card").locator(".item-name")).toHaveText("Clothing");
+      await expect(second.getByText(name), "the typed name stays in the first browser").toHaveCount(0);
     } finally {
       await fresh.close();
     }

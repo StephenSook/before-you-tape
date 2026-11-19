@@ -44,7 +44,7 @@ jobs:
           npx tsx scripts/probe-live.ts
 
       - name: Install the test browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # The fetch checks above cannot see a page that failed to start; this one opens it like a visitor.
       - name: The live app starts

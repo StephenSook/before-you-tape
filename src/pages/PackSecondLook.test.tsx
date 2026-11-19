@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -51,13 +51,24 @@ describe("Pack page second look", () => {
   beforeEach(() => { vi.stubGlobal("createImageBitmap", vi.fn(async () => { const c = document.createElement("canvas"); c.width = 64; c.height = 64; return c; })); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  it("settles a second look still waiting on the cloud when the sender takes back consent, and says it was not checked", async () => {
+    // A cloud call that never answers, as one waiting on sign-in or on the SDK's tokens can.
+    const { store } = setup({ cloud: { generate: vi.fn(() => new Promise<never>(() => {})) } });
+    await upload();
+    expect(await screen.findByText("Checking again in the cloud.")).toBeInTheDocument();
+    act(() => store.setConsent(false));
+    await waitFor(() => expect(screen.queryByText("Checking again in the cloud.")).toBeNull());
+    expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are off right now, so this was not checked again.");
+  });
+
   it("reads an on-device Wh mismatch again in the cloud with the same crop and prompt, and keeps the merge", async () => {
     const { store, models } = setup();
     await upload();
     await screen.findByTestId("second-look");
     expect(screen.getByTestId("second-look")).toHaveTextContent(SECOND_LOOK_TEXT.wh_mismatch);
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
-    expect(models.cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, models.hybrid.generate.mock.calls[0]?.[1]);
+    // The same prompt and crop, with the cloud check and the abort signal the page fires on a withdrawal.
+    expect(models.cloud.generate).toHaveBeenCalledWith(ITEM_READ_PROMPT, models.hybrid.generate.mock.calls[0]?.[1], { allowed: expect.any(Function), signal: expect.any(AbortSignal) });
     const item = store.getState().items[0];
     expect(item?.read.milliampHours).toBe(2600);
     expect(item?.secondLook?.reason).toBe(SECOND_LOOK_TEXT.wh_mismatch);
