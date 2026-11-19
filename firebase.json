@@ -15,35 +15,35 @@
     ],
     "rewrites": [
       {
-        "source": "/",
+        "regex": "^/$",
         "destination": "/index.html"
       },
       {
-        "source": "/judge",
+        "regex": "^/[jJ][uU][dD][gG][eE]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/measured",
+        "regex": "^/[mM][eE][aA][sS][uU][rR][eE][dD]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/rules",
+        "regex": "^/[rR][uU][lL][eE][sS]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/ran",
+        "regex": "^/[rR][aA][nN]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/about",
+        "regex": "^/[aA][bB][oO][uU][tT]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/worksheet",
+        "regex": "^/[wW][oO][rR][kK][sS][hH][eE][eE][tT]/?$",
         "destination": "/index.html"
       },
       {
-        "source": "/blind/*",
+        "regex": "^/[bB][lL][iI][nN][dD]/[^/]+/?$",
         "destination": "/index.html"
       }
     ]
