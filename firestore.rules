@@ -187,43 +187,57 @@ service cloud.firestore {
     }
 
     // One fact a second look's two reads disagreed on: what each read saw and whether the sender settled it.
+    // Exactly the three keys device, cloud and resolved. Each check below is kept small: one request may evaluate
+    // at most 1000 expressions, and every element of a list literal counts.
     function isDisputeShape(d) {
-      return d is map && d.keys().hasOnly(['device', 'cloud', 'resolved']) && d.keys().hasAll(['device', 'cloud', 'resolved'])
-        && d.resolved is bool;
+      return d is map && d.size() == 3 && 'device' in d && 'cloud' in d && d.resolved is bool;
     }
 
     function isBatteryNumbers(b) {
-      return b is map && b.keys().hasOnly(['volts', 'milliampHours', 'wattHours']) && b.keys().hasAll(['volts', 'milliampHours', 'wattHours'])
-        && isNonNegative(b.volts) && isNonNegative(b.milliampHours) && isNonNegative(b.wattHours);
+      return b is map && b.size() == 3 && isNonNegative(b.volts) && isNonNegative(b.milliampHours) && isNonNegative(b.wattHours);
     }
 
-    function isTagList(t, tags) {
-      return t is list && t.size() <= 40 && t.hasOnly(tags);
+    // Tags, never label text: each one a lowercase word of letters and underscores. One regex over the joined list,
+    // because building the tag vocabulary as well would pass the 1000-expression limit on the heaviest document.
+    function isTagWords(t) {
+      return t is list && t.size() <= 40 && (t.size() == 0 || t.join(',').matches('^[a-z_]{1,40}(,[a-z_]{1,40})*$'));
     }
 
     function isFlagDispute(m, k) {
       return !(k in m) || (isDisputeShape(m[k]) && m[k].device is bool && m[k].cloud is bool);
     }
 
-    // At least one fact, each typed as the read types it. A label dispute holds tags, never label text.
-    function isValidDisputes(m) {
+    function isEnumDispute(m, k, pattern) {
+      return !(k in m) || (isDisputeShape(m[k]) && m[k].device is string && m[k].device.matches(pattern)
+                           && m[k].cloud is string && m[k].cloud.matches(pattern));
+    }
+
+    // The category list is built only when there is a category dispute.
+    function isCategoryDispute(d) {
       let cats = categories();
-      let tags = knownTags();
+      return isDisputeShape(d) && d.device in cats && d.cloud in cats;
+    }
+
+    // A label dispute holds tags, never label text.
+    function isTagDispute(d) {
+      return isDisputeShape(d) && isTagWords(d.device) && isTagWords(d.cloud);
+    }
+
+    // At least one fact, each typed as the read types it.
+    function isValidDisputes(m) {
       return m.size() >= 1
         && m.keys().hasOnly(['category', 'retailBox', 'battery', 'lithiumGrams', 'batteryWords', 'liquid', 'pressurized',
                              'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence'])
-        && (!('category' in m) || (isDisputeShape(m.category) && m.category.device in cats && m.category.cloud in cats))
-        && (!('retailBox' in m) || (isDisputeShape(m.retailBox) && m.retailBox.device in ['sealed', 'open_or_none', 'cannot_tell']
-                                    && m.retailBox.cloud in ['sealed', 'open_or_none', 'cannot_tell']))
+        && (!('category' in m) || isCategoryDispute(m.category))
+        && isEnumDispute(m, 'retailBox', '^(sealed|open_or_none|cannot_tell)$')
+        && isEnumDispute(m, 'evidence', '^(label_read|item_seen|not_sure)$')
         && (!('battery' in m) || (isDisputeShape(m.battery) && isBatteryNumbers(m.battery.device) && isBatteryNumbers(m.battery.cloud)))
         && (!('lithiumGrams' in m) || (isDisputeShape(m.lithiumGrams) && isNonNegative(m.lithiumGrams.device)
                                        && isNonNegative(m.lithiumGrams.cloud)))
         && isFlagDispute(m, 'batteryWords') && isFlagDispute(m, 'liquid') && isFlagDispute(m, 'pressurized')
         && isFlagDispute(m, 'alcoholOnLabel') && isFlagDispute(m, 'flammableOnLabel') && isFlagDispute(m, 'glassContainer')
         && isFlagDispute(m, 'powder')
-        && (!('labelTags' in m) || (isDisputeShape(m.labelTags) && isTagList(m.labelTags.device, tags) && isTagList(m.labelTags.cloud, tags)))
-        && (!('evidence' in m) || (isDisputeShape(m.evidence) && m.evidence.device in ['label_read', 'item_seen', 'not_sure']
-                                   && m.evidence.cloud in ['label_read', 'item_seen', 'not_sure']));
+        && (!('labelTags' in m) || isTagDispute(m.labelTags));
     }
 
     function isValidFallback(v) {
