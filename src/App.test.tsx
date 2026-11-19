@@ -22,7 +22,7 @@ describe("header", () => {
 });
 
 describe("routes", () => {
-  const publicPaths = ["/", "/judge", "/measured", "/rules", "/ran", "/about", "/worksheet", "/blind/:token"];
+  const publicPaths = ["/", "/judge", "/measured", "/rules", "/ran", "/about", "/worksheet", "/blind/:token", "/join/:code"];
 
   it("serves the public routes in every build", () => {
     expect(routePaths(false)).toEqual(publicPaths);

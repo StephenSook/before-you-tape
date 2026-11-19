@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import { createBoxStore } from "./boxStore";
-import { currentBoxId, localPersistence } from "./localPersistence";
+import { chooseCurrentBox, currentBoxId, localPersistence } from "./localPersistence";
 
 const read = {
   itemName: "Perfume", category: "perfume_fragrance" as const, labelText: "EAU DE PARFUM ALCOHOL DENAT 50 ML", volts: 0, milliampHours: 0, wattHours: 0,
@@ -37,5 +37,12 @@ describe("localPersistence", () => {
     const first = currentBoxId(localStorage, () => "new-id");
     expect(first).toBe("new-id");
     expect(currentBoxId(localStorage, () => "other")).toBe("new-id");
+  });
+});
+
+describe("chooseCurrentBox", () => {
+  it("makes a joined box this browser's current box", () => {
+    chooseCurrentBox(localStorage, "joined-box");
+    expect(currentBoxId(localStorage, () => "new-box")).toBe("joined-box");
   });
 });

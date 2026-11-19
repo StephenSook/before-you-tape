@@ -28,6 +28,11 @@ export function localPersistence(storage: Storage): BoxPersistence {
   };
 }
 
+// A phone that joined a laptop's box opens that box from now on.
+export function chooseCurrentBox(storage: Storage, boxId: string): void {
+  storage.setItem(CURRENT_KEY, boxId);
+}
+
 export function currentBoxId(storage: Storage, newId: () => string): string {
   const known = storage.getItem(CURRENT_KEY);
   if (known) return known;

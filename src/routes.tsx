@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Route, Routes } from "react-router-dom";
 import { AboutPage } from "./pages/AboutPage";
 import { BlindRoute } from "./pages/BlindRoute";
+import { JoinRoute } from "./pages/JoinRoute";
 import { JudgeRoute } from "./pages/JudgeRoute";
 import { PackRoute } from "./pages/PackRoute";
 import { RanPage } from "./pages/RanPage";
@@ -21,6 +22,7 @@ const PUBLIC_ROUTES: readonly PageRoute[] = [
   { path: "/about", title: "About" },
   { path: "/worksheet", title: "Customs worksheet" },
   { path: "/blind/:token", title: "Blind check" },
+  { path: "/join/:code", title: "Join a box" },
 ];
 
 // Development builds only. Vite replaces import.meta.env.DEV with false in production,
@@ -41,7 +43,7 @@ export function routePaths(dev: boolean): string[] {
 }
 
 // Routes with a built page; the others show their title until their page lands.
-const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/about": <AboutPage />, "/rules": <RulesRoute />, "/ran": <RanPage />, "/blind/:token": <BlindRoute /> };
+const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/about": <AboutPage />, "/rules": <RulesRoute />, "/ran": <RanPage />, "/blind/:token": <BlindRoute />, "/join/:code": <JoinRoute /> };
 
 // The public pages that are built, for lists that must never point at a stub.
 export function builtPagePaths(): string[] {
