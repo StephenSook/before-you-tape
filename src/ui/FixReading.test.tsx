@@ -50,4 +50,34 @@ describe("FixReading", () => {
     render(<FixReading read={phoneRead} onSave={() => {}} focusField="wattHours" />);
     expect(screen.getByLabelText("Watt-hours (Wh)")).toHaveFocus();
   });
+
+  // A second look can land while the form is open: the reading under the form changes.
+  const powerBankRead: ItemRead = { ...phoneRead, itemName: "Power bank", category: "power_bank" };
+
+  it("sends only the fields the sender edited, even after the reading changed under the form", async () => {
+    const onSave = vi.fn();
+    const { rerender } = render(<FixReading read={phoneRead} onSave={onSave} />);
+    rerender(<FixReading read={powerBankRead} onSave={onSave} />);
+    await userEvent.clear(screen.getByLabelText("Name"));
+    await userEvent.type(screen.getByLabelText("Name"), "My charger");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ itemName: "My charger" });
+    // The untouched field shows the new reading.
+    expect(screen.getByLabelText("What is it?")).toHaveValue("power_bank");
+  });
+
+  it("asks again for a field the sender had edited when a second look changes it", async () => {
+    const onSave = vi.fn();
+    const { rerender } = render(<FixReading read={phoneRead} onSave={onSave} />);
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "tablet");
+    rerender(<FixReading read={powerBankRead} onSave={onSave} />);
+    expect(screen.getByRole("status")).toHaveTextContent("The second look changed what it is. Check it again before you save.");
+    expect(screen.getByLabelText("What is it?")).toHaveValue("power_bank");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith({});
+    // A fresh choice counts.
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "tablet");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith({ category: "tablet" });
+  });
 });
