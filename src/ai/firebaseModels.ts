@@ -38,6 +38,12 @@ const NO_DEVICE: ModelPort = {
 
 const ON_DEVICE_PARAMS = () => ({ createOptions: DEVICE_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } });
 
+// The on-device-only models send any request they make to a host that cannot resolve (RFC 2606). Measured in a test:
+// with the Prompt API saying its model was available, the SDK's ONLY_ON_DEVICE mode sent the read to the cloud
+// (docs/evidence/on-device-only-request-2026-11-19.md). The device guard is the first check; this makes sure such a
+// request reaches no server.
+export const ON_DEVICE_ONLY_REQUESTS = { baseUrl: "https://on-device-only.invalid" } as const;
+
 const itemCloudParams = (model: string): ModelParams => ({
   model,
   systemInstruction: ITEM_READ_SYSTEM,
@@ -61,7 +67,7 @@ export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallba
     const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
     return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) });
   }
-  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
+  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
   const hybrid = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS(), inCloudParams });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
@@ -78,5 +84,5 @@ export function createTextCloudModel(ai: AI, cloudModel: string, schema: Schema)
 
 // The model handle prepareDeviceModel uses to start the on-device download.
 export function deviceDownloadModel(ai: AI): GenerativeModel {
-  return getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
+  return getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
 }
