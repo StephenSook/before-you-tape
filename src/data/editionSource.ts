@@ -13,6 +13,7 @@ const NOT_LOADED = "A newer rule edition could not be loaded. Using the built-in
 const FAILED_CHECK = "A newer rule edition failed its integrity check. Using the built-in edition.";
 const NOT_READ = "A newer rule edition could not be read. Using the built-in edition.";
 const OLDER = "The pinned rule edition is older than this build's. Using the built-in edition.";
+const OLDER_THAN_IN_USE = "The pinned rule edition is older than the one in use. Keeping the one in use.";
 
 export async function chooseEdition(i: {
   bundled: RuleEdition;
@@ -20,11 +21,17 @@ export async function chooseEdition(i: {
   wantId: string;
   wantSha: string;
   fetchRemote: (id: string) => Promise<unknown | null>;
+  // The edition in use now; a newer verified one may already have replaced the built-in edition.
+  active?: RuleEdition;
 }): Promise<EditionChoice> {
-  const keep = (notice: string | null): EditionChoice => ({ edition: i.bundled, from: "bundled", notice });
+  // A pin never brings back an edition older than the one in use. Clearing the pin, or naming the built-in
+  // edition, is the deliberate way back to it, as a reload would be.
+  const running = i.active ?? i.bundled;
+  const keep = (notice: string | null): EditionChoice => ({ edition: running, from: running === i.bundled ? "bundled" : "remote", notice });
   const wantId = i.wantId.trim();
   const wantSha = i.wantSha.trim().toLowerCase();
-  if (!wantId || (wantId === i.bundled.editionId && wantSha === i.bundledSha)) return keep(null);
+  if (!wantId || (wantId === i.bundled.editionId && wantSha === i.bundledSha)) return { edition: i.bundled, from: "bundled", notice: null };
+  if (wantId === running.editionId) return keep(null);
 
   let raw: unknown;
   try {
@@ -41,8 +48,8 @@ export async function chooseEdition(i: {
   } catch {
     return keep(NOT_READ);
   }
-  // A pin that is not newer than the build would bring back rules the build has fixed.
-  if ((edition.revision ?? 0) <= (i.bundled.revision ?? 0)) return keep(OLDER);
+  // A pin that is not newer than the rules in use would bring back rules a later edition fixed.
+  if ((edition.revision ?? 0) <= (running.revision ?? 0)) return keep(running === i.bundled ? OLDER : OLDER_THAN_IN_USE);
   return { edition, from: "remote", notice: null };
 }
 
@@ -79,7 +86,7 @@ export function followEditionPin(o: {
     const pin = `${c.rulesEditionId}|${c.rulesEditionSha256}`;
     if (pin === lastPin) return;
     lastPin = pin;
-    const choice = await chooseEdition({ bundled: o.bundled, bundledSha: o.bundledSha, wantId: c.rulesEditionId, wantSha: c.rulesEditionSha256, fetchRemote: o.fetchRemote });
+    const choice = await chooseEdition({ bundled: o.bundled, bundledSha: o.bundledSha, wantId: c.rulesEditionId, wantSha: c.rulesEditionSha256, fetchRemote: o.fetchRemote, active: current });
     // A newer pin may have arrived while this one was being checked; only the latest counts.
     if (!alive || pin !== lastPin) return;
     if (choice.edition !== current) {

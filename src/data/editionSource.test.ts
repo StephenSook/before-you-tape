@@ -53,6 +53,21 @@ describe("chooseEdition", async () => {
     }
   });
 
+  it("keeps a newer edition already in use when a pin is not newer than it, and never falls back to the built-in one", async () => {
+    const rev = (bundled.revision ?? 0) + 2;
+    const running = parseEdition({ ...remote, editionId: "byt-running00001", revision: rev });
+    const pinned = (editionId: string, revision: number) => ({ ...remote, editionId, revision });
+    for (const old of [pinned("byt-older0000001", rev - 1), pinned("byt-sameRev00001", rev)]) {
+      const got = await chooseEdition({ ...base, active: running, wantId: old.editionId, wantSha: await shaOf(old), fetchRemote: async () => old });
+      expect(got).toMatchObject({ edition: running, from: "remote", notice: "The pinned rule edition is older than the one in use. Keeping the one in use." });
+    }
+    // Clearing the pin is the deliberate way back to the built-in edition.
+    expect(await chooseEdition({ ...base, active: running })).toMatchObject({ edition: bundled, from: "bundled", notice: null });
+    const newer = pinned("byt-newest000001", rev + 1);
+    const got = await chooseEdition({ ...base, active: running, wantId: newer.editionId, wantSha: await shaOf(newer), fetchRemote: async () => newer });
+    expect(got.edition.editionId).toBe("byt-newest000001");
+  });
+
   it("asks for the edition by the id Remote Config names", async () => {
     const fetchRemote = vi.fn(async () => remote);
     await chooseEdition({ ...base, wantId: "byt-newer000001", wantSha: await shaOf(remote), fetchRemote });
@@ -85,6 +100,19 @@ describe("followEditionPin", async () => {
     expect(setEdition.mock.calls[1]?.[0]).toBe(bundled);
     expect(fetchRemote).toHaveBeenCalledTimes(1);
     stop();
+  });
+
+  it("does not let a stale pin replace a newer edition the store already switched to", async () => {
+    const newest = { ...remote, editionId: "byt-newest000001", revision: (bundled.revision ?? 0) + 2 };
+    const cfg = source({ rulesEditionId: newest.editionId, rulesEditionSha256: await shaOf(newest) });
+    const setEdition = vi.fn();
+    const editions: Record<string, unknown> = { [newest.editionId]: newest, "byt-newer000001": remote };
+    followEditionPin({ source: cfg.s, store: { setEdition }, bundled, bundledSha, fetchRemote: async (id) => editions[id] ?? null, onNotice: () => {} });
+    await vi.waitFor(() => expect(setEdition).toHaveBeenCalledTimes(1));
+    cfg.push({ rulesEditionId: "byt-newer000001", rulesEditionSha256: remoteSha });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(setEdition).toHaveBeenCalledTimes(1);
+    expect(setEdition.mock.calls[0]?.[0].editionId).toBe("byt-newest000001");
   });
 
   it("keeps the built-in edition and passes on the notice when the pin fails", async () => {
