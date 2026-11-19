@@ -6,6 +6,15 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- **The public hygiene guard also finds build-process words and a work stream named as a role.**
+  `scripts/hygiene-guard.ts` adds more words and phrases (kept as SHA-256 hashes, so the file names none) and a
+  shape for a build work stream named as a role (the word for a work stream followed by a letter A to D). A phrase is two words joined by
+  "-", a space or "/", so a hyphenated or spaced term is caught as well as a path; branch names such as lane-web and
+  lane-android do not match. Source: review (public-repository hygiene, the same patterns as the backend
+  repository's guard). Verified: the test (11 planted terms, built from pieces, each found once on its line; branch
+  names and an ordinary "lane" pass) failed first, now all 6 guard tests pass; `npm run typecheck`, `lint`, `test`,
+  `guard`, `tone`, `edition:check` and `build` exit 0; with `REPO_PRIVATE=false CI=true` the guard walks 493 files
+  and finds 2 hits, both in `docs/secrets-ledger.md`.
 - A cloud second look can no longer turn a hazard into "OK to pack". The merge shows the longer of the two label texts, and the item's label tags used to come from that text alone. So a hazard word only the shorter label had was lost. For example, the device read "FLAMMABLE BODY LOTION" and a longer cloud label without the word, and the merged lotion came out OK to pack for Canada. Now `src/data/boxStore.ts` keeps the union of every label's tags: the first read's, the merged label's, and the second look's own label (`cloudLabel`, returned by `runSecondLook` and passed by the Pack page). Disputed numbers still drop to 0 and hazard flags still combine with OR, so a disagreement never lowers the verdict. Source: whole-repo review (urgent, safety). Verified: a new `src/data/boxStore.test.ts` case runs the real engine on Canada rules for the exact lotion case and its reverse. It failed first (the merged item read "ok") and both now read "take_out". A new `src/pages/PackSecondLook.test.tsx` case (only the cloud's shorter label says FLAMMABLE) fails when the page does not pass the cloud label, and passes. Unit suite 451/451; local CI mirror exit 0.
 - **The Android CI job also runs when the item contract or the Remote Config template changes.**
   `BoxDocsContractTest` reads `tests/contracts/box-docs.json` and `RcDefaultsTest` reads
