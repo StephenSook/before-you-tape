@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A downloadable model starts on Wi-Fi at launch.** At launch, the first model check now
+  decides once: a phone whose on-device model can be downloaded starts the download when the
+  network is unmetered (Wi-Fi); on mobile data the app asks first (the existing "Get the model
+  on this phone" button), and a phone with no model never downloads. A failed download says so
+  once and the offer comes back to try again. Source: Android plan Task 16 (model readiness).
+  Verified: `ModelReadinessTest` gains the four plan tests; `startsAtLaunch` stubbed false fails
+  the Wi-Fi test, and stubbed true fails the mobile-data and no-model tests; the real rule passes
+  all. The view model's launch hook itself has no unit test, and no phone available here reports
+  a downloadable model (the emulator and the A16 have none), so that path is untested on a device.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **About this phone.** A new "About this phone" button opens a screen with what reads labels
   here (one sentence per on-device model status, pinned by tests: no model, ready, can be
   downloaded, downloading, could not report), the cloud model from Remote Config, the App Check

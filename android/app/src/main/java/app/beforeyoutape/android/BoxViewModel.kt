@@ -63,6 +63,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     private val modelChecks = LatestCheck()
     @Volatile private var downloadActive = false
+    @Volatile private var launchChecked = false
 
     // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
     @Volatile private var restored = false
@@ -115,6 +116,12 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             }
         }
         refreshModel()
+    }
+
+    /** Wi-Fi or another network that is not billed by the byte. */
+    private fun unmetered(): Boolean {
+        val cm = getApplication<Application>().getSystemService(ConnectivityManager::class.java) ?: return false
+        return cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == true
     }
 
     private fun online(): Boolean {
@@ -231,6 +238,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         viewModelScope.launch {
             val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
             if (modelChecks.isLatest(check)) state.update { it.copy(deviceModel = ModelReadiness.shown(status, downloadActive)) }
+            // Once, at launch: a downloadable model starts on Wi-Fi; on mobile data the app asks first.
+            if (!launchChecked) {
+                launchChecked = true
+                if (ModelReadiness.startsAtLaunch(status, unmetered())) getModel()
+            }
         }
     }
 

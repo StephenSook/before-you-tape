@@ -14,6 +14,13 @@ class LatestCheck {
 
 object ModelReadiness {
     /**
+     * At launch, a model that can be downloaded starts downloading on Wi-Fi (an unmetered network).
+     * On mobile data the app asks first, and a phone with no model never downloads.
+     */
+    fun startsAtLaunch(status: DeviceModelStatus, unmetered: Boolean): Boolean =
+        status == DeviceModelStatus.DOWNLOADABLE && unmetered
+
+    /**
      * Runs this app's model download, calling [onFailed] once when it fails. The pinned SDK reports a
      * failed download as a Failed step and then ends the flow with the exception, so the exception is
      * caught here: a failed download must show a message, never crash the app. Cancellation (the
