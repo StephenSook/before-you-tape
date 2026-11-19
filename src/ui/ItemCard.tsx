@@ -27,7 +27,11 @@ export interface ItemCardProps {
   newest?: boolean;
 }
 
-const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "checked", stale: "out of date", missing: "not loaded" };
+// A layer's freshness. "Checked" would read as a person's check, which the destination line describes itself.
+const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "up to date", stale: "out of date", missing: "not loaded" };
+// The destination line already says when its rules were read, so it does not repeat the date.
+const layerLine = (l: LayerStatus) =>
+  `${l.label} (${LAYER_STATE[l.state]}${l.checkedOn && !l.label.includes(l.checkedOn) ? `, ${l.checkedOn}` : ""})`;
 
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
@@ -61,7 +65,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
         <summary>What we checked</summary>
         <ul data-testid="layer-list">
           {verdict.layers.map((l) => (
-            <li key={l.id}>{l.label}: {LAYER_STATE[l.state]}{l.checkedOn ? `, ${l.checkedOn}` : ""}</li>
+            <li key={l.id}>{layerLine(l)}</li>
           ))}
         </ul>
         <p>{verdict.service}</p>

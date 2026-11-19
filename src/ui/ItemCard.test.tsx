@@ -46,6 +46,15 @@ describe("ItemCard", () => {
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
   });
 
+  it("says each layer is up to date or not, and never says checked beside not yet checked by a person", () => {
+    render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
+    const lines = within(screen.getByTestId("layer-list")).getAllByRole("listitem").map((li) => li.textContent ?? "");
+    const dest = lines.find((l) => l.startsWith("Canada rules"));
+    expect(dest).toMatch(/^Canada rules: read from the USPS page on \d{4}-\d{2}-\d{2}; not yet checked by a person \(up to date\)$/);
+    expect(lines.find((l) => l.startsWith("Service suspensions"))).toMatch(/^Service suspensions \(up to date, \d{4}-\d{2}-\d{2}\)$/);
+    expect(lines.join(" ")).not.toMatch(/: checked/);
+  });
+
   it("keeps the layer list in a closed What we checked disclosure", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
     const details = screen.getByTestId("layer-list").closest("details");
