@@ -139,9 +139,10 @@ function forStorage(item: BoxItem): BoxItem {
   return { ...item, read: { ...item.read, labelText: "", itemName: CATEGORY_LABELS[category] }, overrides };
 }
 
-// Whether a sender's correction covers a disputed fact: their own word settles it.
+// Whether a sender's correction covers a disputed fact: their own word settles it. Battery numbers are one
+// fact: only a whole corrected set (all three numbers) settles them, never one edited number.
 const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
-  field === "battery" ? patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined
+  field === "battery" ? patch.volts !== undefined && patch.milliampHours !== undefined && patch.wattHours !== undefined
   : field === "labelTags" ? patch.labelText !== undefined
   : patch[field] !== undefined;
 

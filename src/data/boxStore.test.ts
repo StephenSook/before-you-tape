@@ -406,6 +406,23 @@ describe("createBoxStore", () => {
       expect(level(lab.s, lab.id)).toBe("take_out");
     });
 
+    it("settles battery numbers only on a whole set, never on one edited number", () => {
+      const device = { ...powerBank, volts: 3.7, milliampHours: 2500, wattHours: 0 };
+      const cloud = { ...powerBank, volts: 3.8, milliampHours: 2500, wattHours: 9.5 };
+      const { s, id } = look(device, cloud);
+      s.override(id, { milliampHours: 2600 });
+      expect(s.getState().items[0]?.disputes?.battery?.resolved).toBe(false);
+      expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).toContain("DATA-DISPUTE");
+      s.override(id, { volts: 3.7, milliampHours: 2600, wattHours: 9.62 });
+      expect(s.getState().items[0]?.disputes?.battery?.resolved).toBe(true);
+      // A single number corrected while the cloud read ran does not cancel the battery dispute either.
+      const early = store();
+      const eid = early.addRead(outcome(device, "on_device"), "k");
+      early.override(eid, { milliampHours: 2500 });
+      early.applySecondLook(eid, mergeReads(device, cloud), 900, "reason", cloud.labelText, readDisputes(device, cloud));
+      expect(early.getState().items[0]?.disputes?.battery?.resolved).toBe(false);
+    });
+
     it("settles a dispute when the sender fixes that fact, and keeps the disputes in the saved copy", () => {
       const p = spyPersistence();
       const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
