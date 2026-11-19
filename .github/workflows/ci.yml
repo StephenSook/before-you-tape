@@ -97,6 +97,14 @@ jobs:
       - name: Model guard
         run: npm run guard
 
+      - name: iOS model guard and its tests
+        run: |
+          python3 -I ios/scripts/test_ios_guard.py
+          python3 -I ios/scripts/ios_guard.py .
+
+      - name: iOS engine bundle is built from this commit's engine
+        run: bash ios/scripts/check_engine_bundle.sh
+
       - name: Public hygiene (reports while private, fails once public)
         env:
           REPO_PRIVATE: ${{ github.event.repository.private }}
