@@ -157,10 +157,20 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   let state: BoxState = { boxId, destinationCode, items, result: evaluate(), cloudConsent, sources, lastRecheckMs, errors };
 
+  // Nothing is saved until the saved box has loaded: a save before then would hold none of its items, which
+  // a writer reads as deleting them. Changes made meanwhile stay in memory and are saved once it has.
+  let hydrated = false;
+  let unsaved = false;
+  // A destination the sender picks before the saved box arrives wins over the saved one.
+  let destinationChosenHere = false;
   const commit = (result: BoxResult = evaluate()) => {
     state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors };
-    deps.persistence.save({ ...state, items: items.map(forStorage) });
-    deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
+    if (hydrated) {
+      deps.persistence.save({ ...state, items: items.map(forStorage) });
+      deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
+    } else {
+      unsaved = true;
+    }
     for (const l of listeners) l(state);
   };
   const update = (itemId: string, change: (item: BoxItem) => BoxItem) => {
@@ -180,8 +190,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   // Another tab on this device changed the answer.
   deps.consent?.onChange(publishConsent);
 
-  const ready = deps.persistence.load(boxId).then((saved) => {
-    if (!saved) return;
+  // Returns whether a saved box arrived.
+  const merge = (saved: Partial<BoxState> | null): boolean => {
+    if (!saved) return false;
     const known = new Set(items.map((i) => i.itemId));
     // The names kept on this device replace the category labels the server has.
     const names = deps.deviceNames?.recall(boxId) ?? {};
@@ -192,10 +203,15 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       return { ...i, read: { ...i.read, itemName: n.read }, overrides };
     });
     items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
-    if (saved.destinationCode) destinationCode = saved.destinationCode;
+    if (saved.destinationCode && !destinationChosenHere) destinationCode = saved.destinationCode;
     // A box saved before a count existed starts that count at 0.
     if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
-    commit();
+    return true;
+  };
+  // Saving starts once the load has answered, with a saved box or none; a failed load counts as none.
+  const ready = deps.persistence.load(boxId).then(merge, () => false).then((arrived) => {
+    hydrated = true;
+    if (arrived || unsaved) commit();
   });
 
   return {
@@ -282,6 +298,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     setDestination(code) {
       if (code === destinationCode) return;
+      destinationChosenHere = true;
       destinationCode = code;
       if (liveRead && liveRead.code !== code) liveRead = null;
       const start = deps.now();

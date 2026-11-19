@@ -91,9 +91,10 @@ describe("createBoxStore", () => {
     expect(s.getState().sources.secondLooks).toBe(1);
   });
 
-  it("hands persistence an item with no label text and with its label tags", () => {
+  it("hands persistence an item with no label text and with its label tags", async () => {
     const p = spyPersistence();
     const s = store({ persistence: p });
+    await s.ready;
     s.addRead(outcome(perfumeLabelRead, "on_device"), "k");
     const saved = p.save.mock.calls.at(-1)![0].items[0]!;
     expect(saved.read.labelText).toBe("");
@@ -101,9 +102,10 @@ describe("createBoxStore", () => {
     expect(s.getState().items[0]?.read.labelText).toBe(perfumeLabelRead.labelText);
   });
 
-  it("keeps a corrected label's tags when the corrected text itself is not saved", () => {
+  it("keeps a corrected label's tags when the corrected text itself is not saved", async () => {
     const p = spyPersistence();
     const s = store({ persistence: p });
+    await s.ready;
     const id = s.addRead(outcome({ ...base, category: "lotion_cream", labelText: "BODY LOTION" }, "on_device"), "k");
     s.override(id, { labelText: "BODY LOTION ALCOHOL DENAT 8 FL OZ" });
     const saved = p.save.mock.calls.at(-1)![0].items[0]!;
@@ -226,6 +228,7 @@ describe("createBoxStore", () => {
     const deviceNames = { remember: (boxId: string, names: Record<string, { read: string; override?: string }>) => { remembered[boxId] = { ...names }; }, recall: (boxId: string) => remembered[boxId] ?? {} };
     const persistence = spyPersistence();
     const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    await s.ready;
     s.setConsent(true);
     const read = s.addRead(outcome(lotion, "on_device"), "k");
     const typed = s.addManual({ ...lotion, itemName: "My aunt's lotion" });
@@ -276,6 +279,33 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(false);
     expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
     localStorage.clear();
+  });
+
+  it("saves nothing until the saved box has loaded, then keeps the changes made meanwhile", async () => {
+    let arrive!: (saved: Partial<BoxState> | null) => void;
+    const persistence = { save: vi.fn<(st: BoxState) => void>(), load: () => new Promise<Partial<BoxState> | null>((r) => { arrive = r; }) };
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "slow" });
+    s.setDestination("PH");
+    const typed = s.addManual(shirtRead);
+    // Nothing may be written yet: a save now would hold no saved items, which reads as deleting them.
+    expect(persistence.save).not.toHaveBeenCalled();
+    arrive({ items: [savedItemWithOldVerdict], destinationCode: "CA" });
+    await s.ready;
+    expect(persistence.save).toHaveBeenCalledTimes(1);
+    const saved = persistence.save.mock.calls[0]![0];
+    expect(saved.destinationCode).toBe("PH");
+    expect(saved.items.map((i) => i.itemId).sort()).toEqual([typed, "saved-1"].sort());
+  });
+
+  it("starts saving once it knows there is no saved box, including changes made before", async () => {
+    let arrive!: (saved: Partial<BoxState> | null) => void;
+    const persistence = { save: vi.fn<(st: BoxState) => void>(), load: () => new Promise<Partial<BoxState> | null>((r) => { arrive = r; }) };
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}` });
+    s.addManual(shirtRead);
+    arrive(null);
+    await s.ready;
+    expect(persistence.save).toHaveBeenCalledTimes(1);
+    expect(persistence.save.mock.calls[0]![0].items).toHaveLength(1);
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

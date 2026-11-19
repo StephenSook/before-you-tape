@@ -149,4 +149,20 @@ describe("firestorePersistence", () => {
     expect((await admin((d) => getDoc(doc(d, "boxes/b5")))).data()).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
     expect((await admin((d) => getDoc(doc(d, "boxes/b5/items/late")))).exists()).toBe(true);
   });
+
+  it("never deletes saved items because of a change made before the box finished loading", async () => {
+    await admin(async (d) => {
+      await setDoc(doc(d, "boxes/h1"), { ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" });
+      await setDoc(doc(d, "boxes/h1/items/kept"), item("kept"));
+    });
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    const s = createBoxStore({ edition: () => ed, persistence: p, now: () => 0, today: () => "2026-11-20", newId: () => "early", boxId: "h1" });
+    // A change before the load has answered.
+    s.setDestination("PH");
+    await s.ready;
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    expect((await admin((d) => getDoc(doc(d, "boxes/h1/items/kept")))).exists()).toBe(true);
+    expect((await admin((d) => getDoc(doc(d, "boxes/h1")))).data()?.destinationCode).toBe("PH");
+  });
 });
