@@ -20,6 +20,7 @@ import { ConsentNotice } from "../ui/ConsentNotice";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
+import { PhoneHandoff } from "../ui/PhoneHandoff";
 import { ReadyButton } from "../ui/ReadyButton";
 import { VerdictChip } from "../ui/VerdictChip";
 
@@ -42,6 +43,8 @@ export interface PackPageProps {
   onGetReady?: () => void;
   now?: () => number;
   newCropKey?: () => string;
+  // Asks the server for a join code for this box, so a phone can join it; without it there is no handoff.
+  startJoin?: (boxId: string) => Promise<{ key: string; expiresAt: number }>;
   // Why a newer rule edition could not be used, if one was named and failed.
   editionNotice?: string | null;
 }
@@ -98,6 +101,7 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
+  const [handoff, setHandoff] = useState(false);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
@@ -209,9 +213,14 @@ export function PackPage(p: PackPageProps) {
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
         <div>
-          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
+          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"}
+            phoneReady={p.phoneReady || Boolean(p.startJoin)} onUsePhone={p.startJoin ? () => setHandoff(true) : undefined} onError={setNotice}
             onTypeIt={() => setTyping(true)} />
-          <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
+          <p>
+            <button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button>
+            {p.startJoin && <> <button type="button" aria-expanded={handoff} onClick={() => setHandoff((h) => !h)}>Use your phone</button></>}
+          </p>
+          {handoff && p.startJoin && <PhoneHandoff boxId={state.boxId} start={p.startJoin} onClose={() => setHandoff(false)} />}
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
         </div>

@@ -21,6 +21,7 @@ import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import { ensureSignedIn, FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
 import type { AI } from "firebase/ai";
 import { LivePack } from "./LivePack";
+import { joinClient } from "../handoff/client";
 
 interface PackDeps {
   ai: AI;
@@ -29,6 +30,7 @@ interface PackDeps {
   store: BoxStore;
   lm: unknown;
   followEdition: (onNotice: (notice: string | null) => void) => () => void;
+  startJoin: (boxId: string) => Promise<{ key: string; expiresAt: number }>;
 }
 
 let built: PackDeps | Error | null = null;
@@ -77,7 +79,9 @@ function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
-    built = { ai, makeModels, source, store: box, lm, followEdition };
+    // Only the laptop that started the box gets a code; the server checks who is asking.
+    const join = joinClient(fb.functions, signIn);
+    built = { ai, makeModels, source, store: box, lm, followEdition, startJoin: (boxId) => join.startJoin(boxId) };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
   }
@@ -125,6 +129,7 @@ export function PackRoute() {
 
   return (
     <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera}
-      index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
+      index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice}
+      startJoin={deps.startJoin} />
   );
 }

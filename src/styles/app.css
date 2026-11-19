@@ -89,3 +89,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
   .pack-page { padding-bottom: 96px; }
 }
+
+/* The join QR code: big enough for a phone camera across a desk, never wider than its column. */
+.join-qr svg { display: block; width: min(240px, 100%); height: auto; background: #fff; }

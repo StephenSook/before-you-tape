@@ -122,6 +122,21 @@ describe("PackPage", () => {
     expect(fallback.generate).not.toHaveBeenCalled();
   });
 
+  it("offers Use your phone when the handoff is there, and asks the server for this box's code", async () => {
+    const startJoin = vi.fn(async () => ({ key: "A".repeat(26), expiresAt: Date.now() + 600_000 }));
+    const { store } = setup({ startJoin });
+    await userEvent.click(screen.getByRole("button", { name: "Use your phone" }));
+    await waitFor(() => expect(startJoin).toHaveBeenCalledWith(store.getState().boxId));
+    expect(await screen.findByTestId("join-qr")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByTestId("join-qr")).toBeNull();
+  });
+
+  it("shows no Use your phone without the handoff", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Use your phone" })).toBeNull();
+  });
+
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));
