@@ -6,6 +6,8 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     let folder: URL
     /// The last save or load that failed, in words; nil when the last one worked.
     private(set) var problem: String?
+    /// Boxes whose file is there but could not be read (or moved aside): no save replaces them.
+    private var held: Set<String> = []
 
     static var defaultFolder: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("boxes")
@@ -22,6 +24,7 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     }
 
     static let tooLarge = "This change is not saved: the box is too large. The last saved box is kept."
+    static let notReadYet = "This change is not saved: the saved box could not be read yet, so it is kept as it is."
 
     /// Atomic, and readable only while the iPhone is unlocked.
     static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
@@ -42,6 +45,7 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
             return SaveError(message)
         }
         guard let url = url(boxId: snapshot.boxId) else { throw fail("This change is not saved: the box id is not a safe file name.") }
+        guard !held.contains(snapshot.boxId) else { throw fail(Self.notReadYet) }
         let data: Data
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -59,30 +63,53 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         problem = nil
     }
 
+    /// Reads the box. A file that cannot be read right now (the iPhone is locked, a read error)
+    /// stays where it is and holds the box, so no save replaces it. A file that was read but is not
+    /// a box (damaged, or too large) is moved aside to its own copy, so a new box can start.
     func load(boxId: String) -> BoxSnapshot? {
-        guard let url = url(boxId: boxId), FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard let url = url(boxId: boxId), FileManager.default.fileExists(atPath: url.path) else {
+            held.remove(boxId)
+            return nil
+        }
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
+        guard size <= Self.maxFileBytes else {
+            problem = "The saved box is too large to be a box (\(size) bytes), so it was not read."
+            keepAside(url, boxId: boxId)
+            return nil
+        }
+        let data: Data
         do {
-            let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
-            guard size <= Self.maxFileBytes else {
-                problem = "The saved box is too large to be a box (\(size) bytes), so it was not read. It is kept aside."
-                keepAside(url, boxId: boxId)
-                return nil
-            }
-            let snapshot = try JSONDecoder().decode(BoxSnapshot.self, from: Data(contentsOf: url))
+            data = try Data(contentsOf: url)
+        } catch {
+            problem = "The saved box could not be read yet: \(error.localizedDescription) It is kept as it is."
+            held.insert(boxId)
+            return nil
+        }
+        do {
+            let snapshot = try JSONDecoder().decode(BoxSnapshot.self, from: data)
             problem = nil
+            held.remove(boxId)
             return snapshot
         } catch {
-            problem = "The saved box could not be read: \(error.localizedDescription) It is kept aside."
+            problem = "The saved box is damaged: \(error.localizedDescription)"
             keepAside(url, boxId: boxId)
             return nil
         }
     }
 
-    /// Moves a box file that could not be read to `<id>.unreadable.json` (a box id has no dot, so
-    /// that name is never a box), so no later save replaces it and it can still be recovered.
+    /// Moves a box file that is not a box to its own `<id>.unreadable-<time>-<tag>.json` (a box id
+    /// has no dot, so that name is never a box), so it can still be recovered and no earlier copy is
+    /// touched. If the move fails, the file stays and holds the box.
     private func keepAside(_ url: URL, boxId: String) {
-        let aside = folder.appendingPathComponent(boxId + ".unreadable.json")
-        try? FileManager.default.removeItem(at: aside)
-        try? FileManager.default.moveItem(at: url, to: aside)
+        let stamp = Int(Date().timeIntervalSince1970)
+        let aside = folder.appendingPathComponent("\(boxId).unreadable-\(stamp)-\(UUID().uuidString.prefix(8)).json")
+        do {
+            try FileManager.default.moveItem(at: url, to: aside)
+            held.remove(boxId)
+            problem = (problem ?? "The saved box could not be read.") + " It is kept aside."
+        } catch {
+            held.insert(boxId)
+            problem = (problem ?? "The saved box could not be read.") + " It could not be moved aside, so it is kept as it is."
+        }
     }
 }

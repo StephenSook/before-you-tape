@@ -39,6 +39,11 @@ import Testing
         #expect(files.problem != nil)
     }
 
+    func asides(_ dir: URL, _ boxId: String) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix(boxId + ".unreadable-") }
+    }
+
     /// A saved box that cannot be read is moved aside, whole, so a later save never replaces it.
     @Test func anUnreadableBoxIsKeptAsideForRecovery() throws {
         let dir = folder()
@@ -47,11 +52,40 @@ import Testing
         try damaged.write(to: dir.appendingPathComponent("b4.json"))
         let files = BoxFiles(folder: dir)
         #expect(files.load(boxId: "b4") == nil && files.problem != nil)
-        let aside = dir.appendingPathComponent("b4.unreadable.json")
+        let aside = try #require(try asides(dir, "b4").first)
         #expect(try Data(contentsOf: aside) == damaged)
         try files.save(BoxSnapshot(boxId: "b4", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources()))
         #expect(try Data(contentsOf: aside) == damaged)
         #expect(files.load(boxId: "b4")?.destinationCode == "CA")
+    }
+
+    /// A second unreadable file for the same box gets its own copy; the first is never deleted.
+    @Test func aSecondUnreadableBoxKeepsTheFirstCopy() throws {
+        let dir = folder()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let files = BoxFiles(folder: dir)
+        try Data("{ first".utf8).write(to: dir.appendingPathComponent("b6.json"))
+        #expect(files.load(boxId: "b6") == nil)
+        try Data("{ second".utf8).write(to: dir.appendingPathComponent("b6.json"))
+        #expect(files.load(boxId: "b6") == nil)
+        let kept = try Set(asides(dir, "b6").map { try Data(contentsOf: $0) })
+        #expect(kept == [Data("{ first".utf8), Data("{ second".utf8)])
+    }
+
+    /// A file that cannot be read right now (here a folder in its place; on the iPhone, a locked
+    /// phone) stays where it is, and no save replaces it until it reads.
+    @Test func aBoxThatCannotBeReadYetStaysAndBlocksSaves() throws {
+        let dir = folder()
+        let path = dir.appendingPathComponent("b5.json")
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        let files = BoxFiles(folder: dir)
+        #expect(files.load(boxId: "b5") == nil && files.problem != nil)
+        #expect(try asides(dir, "b5").isEmpty)
+        #expect(throws: BoxFiles.SaveError(BoxFiles.notReadYet)) {
+            try files.save(BoxSnapshot(boxId: "b5", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources()))
+        }
+        var isDir: ObjCBool = false
+        #expect(FileManager.default.fileExists(atPath: path.path, isDirectory: &isDir) && isDir.boolValue)
     }
 
     /// A snapshot too large to load again is not written, so the last good file stays.

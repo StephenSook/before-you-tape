@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): every unreadable box file gets its own recovery copy, and one not read yet is left in place
+- What: a second unreadable file for the same box deleted the first recovery copy before moving
+  the new one, and any read error (also a locked iPhone) moved the file aside. Now a file that was
+  read but is not a box (damaged, or too large) moves to its own `<id>.unreadable-<time>-<tag>.json`
+  and no earlier copy is touched; if that move fails, the file stays. A file that cannot be read
+  right now stays where it is, and saves for that box are refused ("This change is not saved: the
+  saved box could not be read yet, so it is kept as it is.") until it reads.
+- Source: review.
+- Verified: three tests (a damaged file is kept aside byte for byte while a new box saves; a second
+  damaged file keeps both copies; a file that cannot be read stays and blocks saves) failed to
+  compile, then passed; 126 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): a pause cancels a cloud upload that is still waiting or running
 - What: the pause was read once after sign-in, but AI Logic then waits for its limited-use App
   Check token before it sends, so a pause landing in that wait still let the photo go. The upload
