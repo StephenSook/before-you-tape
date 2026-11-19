@@ -5,6 +5,7 @@ import {
   InvalidReadError,
   itemReadJsonSchema,
   parseItemRead,
+  parseItemReadWithLabel,
   type ItemRead,
 } from "./itemRead";
 
@@ -65,6 +66,14 @@ describe("item read contract", () => {
     expect(() => parseItemRead(JSON.stringify({ ...valid, category: "spaceship" }))).toThrow(InvalidReadError);
     expect(() => parseItemRead(JSON.stringify({ ...valid, volts: "3.7" }))).toThrow(InvalidReadError);
     expect(parseItemRead(JSON.stringify({ ...valid, labelText: "x".repeat(300) })).labelText).toHaveLength(160);
+  });
+
+  it("keeps the whole label beside the clipped read, so a word past the cap can still be tagged", () => {
+    const label = `${"x".repeat(170)} FLAMMABLE`;
+    const out = parseItemReadWithLabel(JSON.stringify({ ...valid, labelText: label }));
+    expect(out.read.labelText).toHaveLength(160);
+    expect(out.read).toEqual(parseItemRead(JSON.stringify({ ...valid, labelText: label })));
+    expect(out.fullLabelText).toBe(label);
   });
 
   it("rejects a missing field, an extra field, a non-object and a non-finite number", () => {

@@ -296,6 +296,16 @@ describe("createBoxStore", () => {
     }
   });
 
+  it("tags the whole label a read returned, so a hazard word past the clipped text still counts", () => {
+    const label = `SHEA BUTTER BODY LOTION ${"FOR VERY DRY SKIN ".repeat(8)}EXTREMELY FLAMMABLE`;
+    const read = { ...liquidLotionRead, labelText: Array.from(label).slice(0, 160).join("") };
+    expect(read.labelText).not.toContain("FLAMMABLE");
+    const s = store();
+    const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: label }, "k");
+    expect(s.getState().items[0]?.labelTags).toContain("flammable");
+    expect(s.getState().result.items[id]?.level).toBe("take_out");
+  });
+
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
     const s = store();
     expect(s.getState().destinationCode).toBe("CA");

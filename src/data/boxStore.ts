@@ -215,7 +215,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const itemId = deps.newId();
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
-        labelTags: tagsOf(outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
+        labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
         customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };

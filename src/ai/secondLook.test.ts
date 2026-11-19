@@ -60,6 +60,12 @@ describe("runSecondLook", () => {
     expect((await runSecondLook(answers(r({ category: "tablet" })), img, deviceRead, clock(0, 1))).sameCategory).toBe(false);
   });
 
+  it("returns the cloud's whole label text, not the clipped one", async () => {
+    const label = `${"x".repeat(170)} FLAMMABLE`;
+    const out = await runSecondLook(answers(r({ labelText: label })), img, deviceRead, clock(0, 1));
+    expect(out.cloudLabel).toBe(label);
+  });
+
   it("keeps check when second look fails", async () => {
     await expect(runSecondLook(fails("fetch-error 403"), img, deviceRead, clock(0, 1))).rejects.toMatchObject({ kind: "cloud_refused" });
     await expect(runSecondLook(fails("Failed to fetch"), img, deviceRead, clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });

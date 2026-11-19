@@ -132,6 +132,9 @@ var BYT = (() => {
     }
   }
   function parseItemRead(text) {
+    return parseItemReadWithLabel(text).read;
+  }
+  function parseItemReadWithLabel(text) {
     let data;
     try {
       data = JSON.parse(text);
@@ -151,7 +154,7 @@ var BYT = (() => {
       checkField(f, record[f.name]);
     }
     const read = record;
-    return { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") };
+    return { read: { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") }, fullLabelText: read.labelText };
   }
 
   // src/engine/battery.ts

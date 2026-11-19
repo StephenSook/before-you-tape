@@ -55,7 +55,7 @@ export async function runSecondLook(
   // The cloud-only route brings the same retry, refusal handling and fallback as a first read.
   const models = fallback ? { device: NOT_USED, hybrid: NOT_USED, cloud, fallback } : { device: NOT_USED, hybrid: NOT_USED, cloud };
   const out = await readItem(models, image, "cloud_only", now, stillAllowed, signal);
-  return { merged: mergeReads(device, out.read, tolerancePct), ms: out.ms, sameCategory: out.read.category === device.category, cloudLabel: out.read.labelText };
+  return { merged: mergeReads(device, out.read, tolerancePct), ms: out.ms, sameCategory: out.read.category === device.category, cloudLabel: out.fullLabelText ?? out.read.labelText };
 }
 
 export const SECOND_LOOK_TEXT: Record<SecondLookReason, string> = {
