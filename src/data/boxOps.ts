@@ -20,3 +20,18 @@ export interface BoxOps {
   // One item and its disputes, removed together.
   deleteItem(boxId: string, itemId: string): Promise<void>;
 }
+
+// The same JSON text for the same value, whatever order its keys were set in.
+export function stableJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableJson).join(",")}]`;
+  if (v && typeof v === "object") return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stableJson((v as Record<string, unknown>)[k])}`).join(",")}}`;
+  return JSON.stringify(v);
+}
+
+// A box store that keeps nothing: the box loads as missing and every write succeeds (the judge's sample box, tests).
+export const noPersistence = (): BoxOps => ({
+  loadBox: async () => ({ status: "missing" }),
+  putMeta: async () => {},
+  putItem: async () => {},
+  deleteItem: async () => {},
+});

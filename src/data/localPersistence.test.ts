@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import { createBoxStore } from "./boxStore";
-import { currentBoxId, localPersistence } from "./localPersistence";
+import type { BoxItem } from "./boxStore";
+import { currentBoxId, localJournal, localPersistence } from "./localPersistence";
 
 const read = {
   itemName: "Perfume", category: "perfume_fragrance" as const, labelText: "EAU DE PARFUM ALCOHOL DENAT 50 ML", volts: 0, milliampHours: 0, wattHours: 0,
@@ -19,6 +20,7 @@ describe("localPersistence", () => {
     await a.ready;
     a.addManual(read);
     a.setDestination("PH");
+    await a.settled();
     expect(localStorage.getItem("byt.box.box-1") ?? "").not.toContain("EAU DE PARFUM");
     const b = make("box-1");
     await b.ready;
@@ -29,17 +31,21 @@ describe("localPersistence", () => {
 
   it("keeps no consent with the box, and ignores an answer an older save carried", async () => {
     localStorage.setItem("byt.box.box-c", JSON.stringify({ boxId: "box-c", destinationCode: "CA", items: [], cloudConsent: true }));
-    expect(await localPersistence(localStorage).load("box-c")).not.toHaveProperty("cloudConsent");
+    const r = await localPersistence(localStorage).loadBox("box-c");
+    expect(r.status === "found" && r.box).not.toHaveProperty("cloudConsent");
     const s = make("box-c");
     await s.ready;
+    // The device's own answer is never written with the box; the next write of the box drops the old one.
     s.setConsent(true);
+    s.setDestination("PH");
+    await s.settled();
     expect(localStorage.getItem("byt.box.box-c")).not.toContain("cloudConsent");
   });
 
-  it("returns nothing for a box it never saved, and ignores a damaged record", async () => {
-    expect(await localPersistence(localStorage).load("none")).toBeNull();
+  it("finds no box it never saved, and treats a damaged record as no box", async () => {
+    expect(await localPersistence(localStorage).loadBox("none")).toEqual({ status: "missing" });
     localStorage.setItem("byt.box.bad", "{not json");
-    expect(await localPersistence(localStorage).load("bad")).toBeNull();
+    expect(await localPersistence(localStorage).loadBox("bad")).toEqual({ status: "missing" });
   });
 
   describe("explicit operations", () => {
@@ -71,6 +77,18 @@ describe("localPersistence", () => {
       expect(r2.status === "found" && r2.box.items?.map((i) => i.itemId)).toEqual(["a"]);
       expect(r2.status === "found" && r2.box.destinationCode).toBe("PH");
     });
+  });
+
+  it("keeps a box's unsaved edits for the next visit, and drops the record once nothing is left", () => {
+    const j = localJournal(localStorage);
+    expect(j.read("b1")).toBeNull();
+    const item = { itemId: "a" } as BoxItem;
+    j.write("b1", { meta: null, items: { a: item, b: null } });
+    expect(localJournal(localStorage).read("b1")).toEqual({ meta: null, items: { a: item, b: null } });
+    j.write("b1", { meta: null, items: {} });
+    expect(localStorage.getItem("byt.journal.b1")).toBeNull();
+    localStorage.setItem("byt.journal.b2", "{not json");
+    expect(j.read("b2")).toBeNull();
   });
 
   it("gives the same box id on every visit until it is cleared", () => {

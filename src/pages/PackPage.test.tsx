@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import type { ItemModels, ModelPort } from "../ai/port";
-import { createBoxStore, type BoxPersistence } from "../data/boxStore";
+import { noPersistence } from "../data/boxOps";
+import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
 import { deviceConsent } from "../data/deviceConsent";
@@ -16,7 +17,7 @@ const liquidLotionLabelRead: ItemRead = {
 const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
-const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
+const persistence = () => noPersistence();
 let n = 0;
 const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });

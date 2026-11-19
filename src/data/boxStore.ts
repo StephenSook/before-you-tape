@@ -11,6 +11,7 @@ import {
 } from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
 import { LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
+import { stableJson, type BoxMeta, type BoxOps } from "./boxOps";
 import type { DeviceConsent } from "./deviceConsent";
 
 // Where an item's read came from. The phones use one name each for both of them.
@@ -51,16 +52,18 @@ export interface BoxState {
   sources: BoxSources;
   lastRecheckMs: number | null;
   errors: Record<string, string>;
-  // Items whose last save did not reach the server: what the card shows is on this device only.
+  // Items with an edit that has not reached the server: what the card shows is on this device only.
   unsaved?: readonly string[];
+  // Whether the saved box has been read: until it has, nothing is written; a read that failed writes nothing.
+  loadState?: "loading" | "ready" | "failed";
 }
 
-export interface BoxPersistence {
-  // Saves the box. Consent is never part of it: each device keeps its own answer (deviceConsent.ts).
-  save(state: BoxState): void;
-  load(boxId: string): Promise<Partial<BoxState> | null>;
-  // Told after each save which items did not save, when this copy can fail (an empty set once all have).
-  onUnsaved?(listener: (ids: ReadonlySet<string>) => void): void;
+// Edits not yet acknowledged by the server: each item's latest stored copy (null: removed) and the box's
+// details. Kept in this browser, so a reload sends them.
+export interface Journal { meta: BoxMeta | null; items: Record<string, BoxItem | null> }
+export interface JournalStore {
+  read(boxId: string): Journal | null;
+  write(boxId: string, journal: Journal): void;
 }
 
 // An item's own names, the read's and the sender's correction, kept on this device: the server has only
@@ -97,8 +100,12 @@ export interface BoxStore {
   setDestination(code: string): void;
   setLiveRead(code: string, edition: DestinationEdition): void;
   setConsent(v: boolean | null): void;
-  // Saves the box again, as it is now (after a save that did not reach the server).
+  // Sends again every edit that has not reached the server.
   retrySave(): void;
+  // Reads the saved box again, after a read that failed.
+  retryLoad(): Promise<void>;
+  // Resolves once the box has been read and every write started so far has answered (tests, leaving the page).
+  settled(): Promise<void>;
   // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
   // a page last rendered, if another tab changed it.
   consentNow(): boolean | null;
@@ -106,7 +113,10 @@ export interface BoxStore {
 
 export interface BoxStoreDeps {
   edition: () => RuleEdition;
-  persistence: BoxPersistence;
+  // Where the box is saved: explicit operations, each changing only what it names.
+  persistence: BoxOps;
+  // This browser's copy of the edits not yet saved. Without it they last for this page only.
+  journal?: JournalStore;
   now: () => number;
   // The device's own local calendar date, YYYY-MM-DD.
   today: () => string;
@@ -187,13 +197,106 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live), deps.today());
   };
   let unsaved: readonly string[] = [];
-  let state: BoxState = { boxId, destinationCode, items, result: evaluate(), cloudConsent, sources, lastRecheckMs, errors, unsaved };
+  let loadState: NonNullable<BoxState["loadState"]> = "loading";
+  const snapshot = (result: BoxResult): BoxState =>
+    ({ boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState });
+  let state: BoxState = snapshot(evaluate());
 
-  const commit = (result: BoxResult = evaluate()) => {
-    state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved };
-    deps.persistence.save({ ...state, items: items.map(forStorage) });
+  // What the server is believed to hold: each item's stored copy, and whether the box exists with which details.
+  const server = new Map<string, string>();
+  let serverMeta: string | null = null;
+  let boxExists = false;
+  const journal: Journal = deps.journal?.read(boxId) ?? { meta: null, items: {} };
+  // The writes that failed last time ("meta" or an item id); they wait for a retry or the next edit.
+  const failed = new Set<string>();
+  // A country the sender chose before the saved box was read: it stands over the saved one.
+  let chosenDestination: string | null = null;
+  const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
+  const storedJson = (i: BoxItem) => stableJson(forStorage(i));
+  const keepJournal = () => deps.journal?.write(boxId, journal);
+
+  const publish = () => { for (const l of listeners) l(state); };
+  const refreshUnsaved = () => {
+    const pending = Object.keys(journal.items);
+    const blocked = loadState === "failed" || (failed.has("meta") && !boxExists);
+    unsaved = pending.filter((id) => blocked || failed.has(id));
+    state = { ...state, unsaved, loadState };
+  };
+
+  // The journal entries an edit made: each item whose stored copy differs from the server's, each removed one,
+  // and the box's details once the saved box has been read.
+  const recordEdits = () => {
+    const now = new Set(items.map((i) => i.itemId));
+    for (const i of items) {
+      const j = storedJson(i);
+      if (server.get(i.itemId) === j) delete journal.items[i.itemId];
+      else journal.items[i.itemId] = forStorage(i);
+    }
+    for (const id of Object.keys(journal.items)) if (!now.has(id) && !server.has(id)) delete journal.items[id];
+    for (const id of server.keys()) if (!now.has(id)) journal.items[id] = null;
+    if (loadState === "ready" && stableJson(metaOf()) !== serverMeta) journal.meta = metaOf();
+    keepJournal();
+  };
+
+  // Sends the journal: the box's details first (a new box is created before its first item), then each item.
+  let flushing: Promise<void> | null = null;
+  let again = false;
+  const flush = (): Promise<void> => {
+    if (loadState !== "ready") return Promise.resolve();
+    if (flushing) { again = true; return flushing; }
+    flushing = (async () => {
+      do {
+        again = false;
+        const hasItems = Object.keys(journal.items).length > 0;
+        const meta = journal.meta ?? (!boxExists && hasItems ? metaOf() : null);
+        if (meta) {
+          const sent = journal.meta;
+          try {
+            await deps.persistence.putMeta(boxId, meta);
+            boxExists = true;
+            serverMeta = stableJson(meta);
+            failed.delete("meta");
+            if (journal.meta === sent) journal.meta = null;
+          } catch {
+            failed.add("meta");
+          }
+        }
+        if (boxExists) {
+          await Promise.all(Object.entries(journal.items).map(async ([id, item]) => {
+            try {
+              if (item) await deps.persistence.putItem(boxId, item);
+              else await deps.persistence.deleteItem(boxId, id);
+              failed.delete(id);
+              // A newer edit made while this write was out stays in the journal.
+              if (journal.items[id] === item) {
+                delete journal.items[id];
+                if (item) server.set(id, stableJson(item));
+                else server.delete(id);
+              }
+            } catch {
+              failed.add(id);
+            }
+          }));
+        }
+        keepJournal();
+      } while (again);
+      const before = stableJson(unsaved);
+      refreshUnsaved();
+      if (stableJson(unsaved) !== before) publish();
+    })().finally(() => { flushing = null; });
+    return flushing;
+  };
+
+  // edit: the change came from the sender (or a read), so it is journaled and sent; a load or a notice is not.
+  const commit = (result: BoxResult = evaluate(), edit = true) => {
+    state = snapshot(result);
     deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
-    for (const l of listeners) l(state);
+    if (edit) {
+      recordEdits();
+      refreshUnsaved();
+      void flush();
+    }
+    publish();
   };
   const update = (itemId: string, change: (item: BoxItem) => BoxItem) => {
     if (!items.some((i) => i.itemId === itemId)) return;
@@ -207,34 +310,56 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const publishConsent = (v: boolean | null) => {
     cloudConsent = v;
     state = { ...state, cloudConsent };
-    for (const l of listeners) l(state);
+    publish();
   };
   // Another tab on this device changed the answer.
   deps.consent?.onChange(publishConsent);
-  // The saved copy says which items it could not save; the cards say so, with no new save.
-  deps.persistence.onUnsaved?.((ids) => {
-    unsaved = [...ids];
-    state = { ...state, unsaved };
-    for (const l of listeners) l(state);
-  });
 
-  const ready = deps.persistence.load(boxId).then((saved) => {
-    if (!saved) return;
-    const known = new Set(items.map((i) => i.itemId));
-    // The names kept on this device replace the category labels the server has.
-    const names = deps.deviceNames?.recall(boxId) ?? {};
-    const withNames = (saved.items ?? []).map((i) => {
-      const n = names[i.itemId];
-      if (n === undefined) return i;
-      const overrides = n.override === undefined ? i.overrides : { ...i.overrides, itemName: n.override };
-      return { ...i, read: { ...i.read, itemName: n.read }, overrides };
-    });
-    items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
-    if (saved.destinationCode) destinationCode = saved.destinationCode;
-    // A box saved before a count existed starts that count at 0.
-    if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
-    commit();
-  });
+  // The names kept on this device replace the category labels the server has.
+  const withNames = (i: BoxItem): BoxItem => {
+    const n = (deps.deviceNames?.recall(boxId) ?? {})[i.itemId];
+    if (n === undefined) return i;
+    const overrides = n.override === undefined ? i.overrides : { ...i.overrides, itemName: n.override };
+    return { ...i, read: { ...i.read, itemName: n.read }, overrides };
+  };
+
+  // Reads the saved box. Nothing is written by a read: edits made meanwhile and an earlier visit's unsaved edits
+  // are merged over it and then sent. A read that failed leaves everything held.
+  const load = async () => {
+    loadState = "loading";
+    const r = await deps.persistence.loadBox(boxId).catch((e: unknown) => ({ status: "failed" as const, error: String(e) }));
+    if (r.status === "failed") {
+      loadState = "failed";
+      refreshUnsaved();
+      commit(evaluate(), false);
+      return;
+    }
+    const inMemory = new Set(items.map((i) => i.itemId));
+    const saved = r.status === "found" ? r.box : {};
+    boxExists = r.status === "found";
+    server.clear();
+    for (const i of saved.items ?? []) server.set(i.itemId, stableJson(i));
+    // The saved items, an earlier visit's unsaved copies over them, its unsaved new items, then this visit's.
+    const fromServer = (saved.items ?? []).filter((i) => !inMemory.has(i.itemId) && journal.items[i.itemId] !== null)
+      .map((i) => journal.items[i.itemId] ?? i);
+    const fromJournal = Object.values(journal.items).filter((i): i is BoxItem => i !== null && !inMemory.has(i.itemId) && !server.has(i.itemId));
+    items = [...inAddedOrder([...fromServer, ...fromJournal].map(withNames)), ...items];
+    const savedSources = { ...NO_SOURCES, ...saved.sources };
+    serverMeta = boxExists ? stableJson({ destinationCode: saved.destinationCode ?? DEFAULT_DESTINATION, sources: savedSources, lastRecheckMs: saved.lastRecheckMs ?? null }) : null;
+    destinationCode = chosenDestination ?? journal.meta?.destinationCode ?? saved.destinationCode ?? destinationCode;
+    // Reads made while the box loaded add to the saved counts.
+    sources = Object.fromEntries(Object.entries(savedSources).map(([k, v]) => [k, v + sources[k as keyof BoxSources]])) as unknown as BoxSources;
+    lastRecheckMs = journal.meta?.lastRecheckMs ?? lastRecheckMs ?? saved.lastRecheckMs ?? null;
+    loadState = "ready";
+    if (chosenDestination !== null || stableJson(sources) !== stableJson(savedSources)) {
+      if (boxExists || chosenDestination !== null || Object.keys(journal.items).length > 0) journal.meta = metaOf();
+    }
+    keepJournal();
+    refreshUnsaved();
+    commit(evaluate(), false);
+    await flush();
+  };
+  const ready = load();
 
   return {
     ready,
@@ -242,7 +367,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     edition: () => currentEdition(),
     setEdition(e) {
       switchedTo = e;
-      commit();
+      commit(evaluate(), false);
     },
     subscribe(listener) {
       listeners.add(listener);
@@ -340,7 +465,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     }),
     setError(itemId, text) {
       errors = { ...errors, [itemId]: text };
-      commit(state.result);
+      commit(state.result, false);
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
     override: (itemId, patch) => update(itemId, (i) => {
@@ -369,6 +494,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit();
     },
     setDestination(code) {
+      // A choice made before the saved box was read stands over the saved country, even the same as shown.
+      if (loadState !== "ready") chosenDestination = code;
       if (code === destinationCode) return;
       destinationCode = code;
       if (liveRead && liveRead.code !== code) liveRead = null;
@@ -380,10 +507,15 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     setLiveRead(code, edition) {
       liveRead = { code, edition };
-      commit();
+      commit(evaluate(), false);
     },
     consentNow: () => (deps.consent ? deps.consent.get() : cloudConsent),
-    retrySave: () => commit(),
+    retrySave: () => { failed.clear(); refreshUnsaved(); publish(); void flush(); },
+    retryLoad: () => (loadState === "failed" ? load() : Promise.resolve()),
+    async settled() {
+      await ready;
+      while (flushing) await flushing;
+    },
     setConsent(v) {
       deps.consent?.set(v);
       publishConsent(v);

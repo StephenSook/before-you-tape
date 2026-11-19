@@ -2,7 +2,7 @@
 // The store already hands over a copy with no label text, and the result is never trusted on load: the
 // store re-judges every item against the current edition.
 import type { BoxOps, BoxMeta, LoadResult } from "./boxOps";
-import type { BoxItem, BoxPersistence, BoxState } from "./boxStore";
+import type { BoxItem, BoxState, Journal, JournalStore } from "./boxStore";
 
 const BOX_KEY = (boxId: string) => `byt.box.${boxId}`;
 const CURRENT_KEY = "byt.currentBox";
@@ -15,7 +15,7 @@ async function underLock<T>(name: string, f: () => T): Promise<T> {
   return locks ? locks.request(name, async () => f()) : f();
 }
 
-export function localPersistence(storage: Storage): BoxPersistence & BoxOps {
+export function localPersistence(storage: Storage): BoxOps {
   const readBox = (boxId: string): StoredBox | null => {
     const raw = storage.getItem(BOX_KEY(boxId));
     if (!raw) return null;
@@ -47,24 +47,29 @@ export function localPersistence(storage: Storage): BoxPersistence & BoxOps {
       return { ...box, items: items.some((i) => i.itemId === item.itemId) ? items.map((i) => (i.itemId === item.itemId ? item : i)) : [...items, item] };
     }),
     deleteItem: (boxId: string, itemId: string) => change(boxId, (box) => ({ ...box, items: (box.items ?? []).filter((i) => i.itemId !== itemId) })),
-    save(state: BoxState) {
-      const { boxId, destinationCode, items, sources } = state;
+  };
+}
+
+const JOURNAL_KEY = (boxId: string) => `byt.journal.${boxId}`;
+
+// This browser's copy of a box's edits that have not reached the server, so a reload sends them.
+export function localJournal(storage: Storage): JournalStore {
+  return {
+    read(boxId) {
       try {
-        storage.setItem(BOX_KEY(boxId), JSON.stringify({ boxId, destinationCode, items, sources }));
-      } catch {
-        // Storage full or blocked: the box still works for this visit.
-      }
-    },
-    async load(boxId: string) {
-      const raw = storage.getItem(BOX_KEY(boxId));
-      if (!raw) return null;
-      try {
-        // Consent is the device's own (deviceConsent.ts); an answer an older save carried is ignored.
-        const { cloudConsent: _old, ...box } = JSON.parse(raw) as Partial<BoxState>;
-        void _old;
-        return box;
+        const raw = storage.getItem(JOURNAL_KEY(boxId));
+        const j = raw ? (JSON.parse(raw) as Journal) : null;
+        return j && typeof j === "object" && j.items && typeof j.items === "object" ? { meta: j.meta ?? null, items: j.items } : null;
       } catch {
         return null;
+      }
+    },
+    write(boxId, journal) {
+      try {
+        if (journal.meta === null && Object.keys(journal.items).length === 0) storage.removeItem(JOURNAL_KEY(boxId));
+        else storage.setItem(JOURNAL_KEY(boxId), JSON.stringify(journal));
+      } catch {
+        // Storage full or blocked: the edits last for this page.
       }
     },
   };

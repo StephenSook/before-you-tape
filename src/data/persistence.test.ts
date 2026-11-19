@@ -1,39 +1,42 @@
 import { describe, expect, it, vi } from "vitest";
-import type { BoxPersistence, BoxState } from "./boxStore";
+import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
+import type { BoxItem } from "./boxStore";
 import { persistenceAfterSignIn } from "./persistence";
 
 const fake = () => ({
-  save: vi.fn<BoxPersistence["save"]>(),
-  load: vi.fn<BoxPersistence["load"]>(async () => ({ destinationCode: "PH" })),
-});
-const state = { boxId: "b1" } as BoxState;
+  loadBox: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => ({ status: "found", box: { destinationCode: "PH" } })),
+  putMeta: vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>(async () => {}),
+  putItem: vi.fn<(boxId: string, item: BoxItem) => Promise<void>>(async () => {}),
+  deleteItem: vi.fn<(boxId: string, itemId: string) => Promise<void>>(async () => {}),
+}) satisfies BoxOps;
+const meta: BoxMeta = { destinationCode: "CA", sources: { onDevice: 0, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 }, lastRecheckMs: null };
 
 describe("persistenceAfterSignIn", () => {
-  it("waits for sign-in, then uses Firestore for loads and saves made before and after", async () => {
+  it("waits for sign-in, then sends every operation to Firestore, those made before it too", async () => {
     let signedIn!: (uid: string) => void;
     const signIn = new Promise<string>((r) => { signedIn = r; });
     const cloud = fake();
     const make = vi.fn(() => cloud);
     const p = persistenceAfterSignIn(signIn, make, fake());
-    p.save(state);
-    const loading = p.load("b1");
+    const early = p.putMeta("b1", meta);
+    const loading = p.loadBox("b1");
     expect(make).not.toHaveBeenCalled();
     signedIn("alice");
-    expect(await loading).toEqual({ destinationCode: "PH" });
-    p.save(state);
-    await p.idle();
+    expect(await loading).toEqual({ status: "found", box: { destinationCode: "PH" } });
+    await early;
+    await p.deleteItem("b1", "i1");
     expect(make).toHaveBeenCalledWith("alice");
-    expect(cloud.save).toHaveBeenCalledTimes(2);
+    expect(cloud.putMeta).toHaveBeenCalledWith("b1", meta);
+    expect(cloud.deleteItem).toHaveBeenCalledWith("b1", "i1");
   });
 
   it("keeps the box in this browser when sign-in fails", async () => {
     const local = fake();
     const make = vi.fn();
     const p = persistenceAfterSignIn(Promise.reject(new Error("offline")), make, local);
-    p.save(state);
-    expect(await p.load("b1")).toEqual({ destinationCode: "PH" });
-    await p.idle();
+    await p.putMeta("b1", meta);
+    expect(await p.loadBox("b1")).toEqual({ status: "found", box: { destinationCode: "PH" } });
     expect(make).not.toHaveBeenCalled();
-    expect(local.save).toHaveBeenCalledWith(state);
+    expect(local.putMeta).toHaveBeenCalledWith("b1", meta);
   });
 });

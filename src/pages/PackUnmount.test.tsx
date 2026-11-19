@@ -5,6 +5,7 @@ import { useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import type { ImageHow, ImagePart, ModelPort } from "../ai/port";
+import { noPersistence } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 
 const late = vi.hoisted(() => ({ emit: null as null | ((part: ImagePart, how: ImageHow) => void) }));
@@ -17,7 +18,7 @@ describe("Pack page after the sender leaves", () => {
   it("starts no read for a crop that finishes after the page is gone", async () => {
     const port = (): ModelPort & { generate: ReturnType<typeof vi.fn> } => ({ generate: vi.fn(async () => ({ text: "{}", source: "in_cloud" as const })) });
     const models = { device: port(), hybrid: port(), cloud: port() };
-    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => "u1" });
+    const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => "u1" });
     store.setConsent(true);
     const { unmount } = render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }}
       openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
@@ -33,7 +34,7 @@ describe("Pack page after the sender leaves", () => {
   it("starts no read for a crop handed over while the page is being removed, before its later cleanup runs", async () => {
     const port = (): ModelPort & { generate: ReturnType<typeof vi.fn> } => ({ generate: vi.fn(async () => ({ text: "{}", source: "in_cloud" as const })) });
     const models = { device: port(), hybrid: port(), cloud: port() };
-    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => "u2" });
+    const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => "u2" });
     store.setConsent(true);
     // A sibling removed with the page hands over a crop from its own layout cleanup: after the page's
     // layout cleanup, before any passive one.
