@@ -34,7 +34,10 @@ object BoxLogic {
 
     /** A typed item: the sender's own, so its identity is confirmed by the sender. */
     fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String): BoxState {
-        val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, "sender", labelTags)
+        // A typed item is the sender's own word: a ticked alcohol line is kept as theirs, so the
+        // rules treat it like an answer of yes and do not ask again (as the web app does).
+        val overrides = if (read.alcoholOnLabel) mapOf("alcoholOnLabel" to kotlinx.serialization.json.JsonPrimitive(true)) else emptyMap()
+        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags)
         return s.copy(items = s.items + BoxItem(input, "manual", 0.0, null))
     }
 

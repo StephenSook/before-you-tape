@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A typed "lists alcohol" is the sender's own word.** When the sender types an item and
+  ticks that the label lists alcohol, the item now keeps it as their correction
+  (`overrides.alcoholOnLabel = true`), as the web app does. With the shared engine's matching
+  rule, a sender's own alcohol line settles the question like an answer of yes, so it is not
+  asked again; the model's flag alone still asks. Until that engine change is in the shared
+  bundle, the verdict is the same as before. Source: the web app's typed facts change. Verified:
+  `BoxLogicTest.aTypedAlcoholLineIsTheSendersOwnWord` failed first (empty overrides), then
+  passes; an unticked typed item keeps empty overrides. `bash android/ci-local.sh` and the root
+  CI mirror exit 0.
+
 - **A downloadable model starts on Wi-Fi at launch.** At launch, the first model check now
   decides once: a phone whose on-device model can be downloaded starts the download when the
   network is unmetered (Wi-Fi); on mobile data the app asks first (the existing "Get the model
