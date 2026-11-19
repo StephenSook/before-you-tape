@@ -89,10 +89,29 @@ function dropsWhatOtherSaw(field: DisputeField, picked: DisputeValues[DisputeFie
 
 const SIDE_NAME = { device: "first read", cloud: "second look" } as const;
 
+const NUMBER_FIELDS = ["volts", "milliampHours", "wattHours", "lithiumGrams"] as const;
+const number = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 3 });
+
+// The battery numbers the verdict rests on, so the sender can see them without opening the form: positive
+// values only, and "Typed by you" once the sender typed any of them.
+function batteryLine(item: BoxItem): string | null {
+  const n = { ...item.read, ...item.overrides };
+  const parts = [
+    n.volts > 0 ? `${number(n.volts)} V` : "", n.milliampHours > 0 ? `${number(n.milliampHours)} mAh` : "",
+    n.wattHours > 0 ? `${number(n.wattHours)} Wh` : "", n.lithiumGrams > 0 ? `${number(n.lithiumGrams)} g lithium` : "",
+  ].filter((p) => p !== "");
+  if (parts.length === 0) return null;
+  const typed = item.readSource === "manual" || NUMBER_FIELDS.some((f) => item.overrides[f] !== undefined);
+  return `${typed ? "Typed by you" : "Label read"}: ${parts.join(", ")}`;
+}
+
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
+  const numbers = batteryLine(item);
+  // Each rule the verdict rests on, once: the section it cites and the page it links to.
+  const rules = [...new Map(verdict.hits.map((h) => [`${h.section}|${h.url}`, h])).values()];
   const needsIdentity = verdict.hits.some((h) => h.ruleId === "DATA-IDENTITY");
   const needsRating = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH");
   const needsLithium = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-METAL-UNKNOWN");
@@ -105,6 +124,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       <p className="item-name">{name}{item.quantity > 1 ? ` x ${item.quantity}` : ""}</p>
       <VerdictChip level={verdict.level} />
       {reason && <p>{reason}</p>}
+      {numbers && <p data-testid="battery-numbers">{numbers}</p>}
       <SourceGlyph source={item.readSource} />
       {checking && <p role="status">Checking again in the cloud.</p>}
       {!checking && item.secondLook && <p data-testid="second-look">{item.secondLook.reason}</p>}
@@ -161,6 +181,13 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
             <li key={l.id}>{layerLine(l)}</li>
           ))}
         </ul>
+        {rules.length > 0 && (
+          <ul data-testid="rule-list">
+            {rules.map((h) => (
+              <li key={`${h.section}|${h.url}`}><a href={h.url} target="_blank" rel="noopener noreferrer">Rule: {h.section}</a></li>
+            ))}
+          </ul>
+        )}
         <p data-testid="service">Service: {verdict.service}</p>
       </details>
     </article>
