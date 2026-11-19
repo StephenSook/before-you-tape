@@ -31,7 +31,8 @@ function mergeBatteryNumbers(device: ItemRead, cloud: ItemRead, tolerancePct: nu
 export function mergeReads(device: ItemRead, cloud: ItemRead, tolerancePct = MERGE_WH_TOLERANCE_PCT): ItemRead {
   const merged: ItemRead = {
     ...cloud,
-    // The longer label keeps every word either read copied; a tie goes to the cloud.
+    // The longer label is the one shown; the store keeps both labels' tags, so a word only the shorter had
+    // still counts.
     labelText: device.labelText.length > cloud.labelText.length ? device.labelText : cloud.labelText,
     ...mergeBatteryNumbers(device, cloud, tolerancePct),
     lithiumGrams: device.lithiumGrams === cloud.lithiumGrams ? cloud.lithiumGrams : 0,
@@ -50,11 +51,11 @@ const NOT_USED: ModelPort = {
 export async function runSecondLook(
   cloud: ModelPort, image: ImagePart, device: ItemRead, now: () => number, fallback?: ModelPort, tolerancePct = MERGE_WH_TOLERANCE_PCT,
   stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
-): Promise<{ merged: ItemRead; ms: number; sameCategory: boolean }> {
+): Promise<{ merged: ItemRead; ms: number; sameCategory: boolean; cloudLabel: string }> {
   // The cloud-only route brings the same retry, refusal handling and fallback as a first read.
   const models = fallback ? { device: NOT_USED, hybrid: NOT_USED, cloud, fallback } : { device: NOT_USED, hybrid: NOT_USED, cloud };
   const out = await readItem(models, image, "cloud_only", now, stillAllowed, signal);
-  return { merged: mergeReads(device, out.read, tolerancePct), ms: out.ms, sameCategory: out.read.category === device.category };
+  return { merged: mergeReads(device, out.read, tolerancePct), ms: out.ms, sameCategory: out.read.category === device.category, cloudLabel: out.read.labelText };
 }
 
 export const SECOND_LOOK_TEXT: Record<SecondLookReason, string> = {

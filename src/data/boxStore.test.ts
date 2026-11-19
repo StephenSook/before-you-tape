@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ReadOutcome } from "../ai/itemRead";
+import { mergeReads } from "../ai/secondLook";
 import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
@@ -276,6 +277,23 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(false);
     expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
     localStorage.clear();
+  });
+
+  it("never loses a hazard word either read saw: a second look keeps the union of both labels' tags", () => {
+    const lotion = { ...liquidLotionRead, flammableOnLabel: false };
+    const flammable = { ...lotion, labelText: "FLAMMABLE BODY LOTION" };
+    const plain = { ...lotion, labelText: "SHEA BUTTER MOISTURE BODY LOTION FOR DRY SKIN 8 FL OZ" };
+    const levelOf = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.level;
+    // The flammable label alone is Take it out for Canada; the plain one is not.
+    const alone = store();
+    expect(levelOf(alone, alone.addRead(outcome(flammable, "on_device"), "k"))).toBe("take_out");
+    // The device saw FLAMMABLE; the longer cloud label did not. And the other way round.
+    for (const [device, cloud] of [[flammable, plain], [plain, flammable]] as const) {
+      const s = store();
+      const id = s.addRead(outcome(device, "on_device"), "k");
+      s.applySecondLook(id, mergeReads(device, cloud), 900, "reason", cloud.labelText);
+      expect(levelOf(s, id), `device "${device.labelText}", cloud "${cloud.labelText}"`).toBe("take_out");
+    }
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
