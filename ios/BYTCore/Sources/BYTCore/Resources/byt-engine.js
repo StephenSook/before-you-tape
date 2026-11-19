@@ -296,7 +296,8 @@ var BYT = (() => {
     const read = { ...input.read, ...input.overrides };
     const tags = new Set(edition2.categoryTags[read.category]);
     for (const [flag, tag] of FLAG_TAGS) if (read[flag]) tags.add(tag);
-    for (const t of labelTagsOf(read.labelText, edition2)) tags.add(t);
+    const savedTagsCoverLabel = input.overrides.labelText === void 0 && input.labelTags.includes(LABEL_TEXT_TAG);
+    if (!savedTagsCoverLabel) for (const t of labelTagsOf(read.labelText, edition2)) tags.add(t);
     if (input.overrides.labelText === void 0) for (const t of input.labelTags) tags.add(t);
     const freeAnswer = input.answers.label_alcohol_free;
     const freeUnsure = tags.has(ALCOHOL_FREE_UNSURE_TAG) && !tags.has("alcohol");

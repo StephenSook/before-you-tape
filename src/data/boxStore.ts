@@ -299,7 +299,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f)) delete found[f];
         return withDisputes({
           ...i, read: merged, secondLook: { ms, reason },
-          labelTags: i.overrides.labelText !== undefined ? i.labelTags : [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...cloudTags])],
+          // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
+          labelTags: i.overrides.labelText !== undefined ? i.labelTags
+            : [...new Set([...i.labelTags, ...(cloudLabel === undefined ? tagsOf(merged.labelText) : cloudTags)])],
           identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
         }, found);
       });

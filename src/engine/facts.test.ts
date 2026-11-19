@@ -176,6 +176,21 @@ describe("deriveFacts", () => {
     expect(facts({ read: r({ labelText: "" }), labelTags: ["alcohol", "pressurized"] }).tags)
       .toEqual(expect.arrayContaining(["alcohol", "pressurized"])));
 
+  it("takes a read's label words from its saved tags, never from the clipped label shown", () => {
+    // The whole label said FLAMMABLE-FREE; the shown text was cut right after FLAMMABLE.
+    const whole = `${"x".repeat(150)} FLAMMABLE-FREE LOTION`;
+    const shown = Array.from(whole).slice(0, 160).join("");
+    expect(shown.endsWith("FLAMMABLE")).toBe(true);
+    const labelTags = labelTagsOf(whole, ed);
+    expect(labelTags).not.toContain("flammable");
+    expect(facts({ read: r({ category: "lotion_cream", labelText: shown, evidence: "label_read" }), labelTags }).tags).not.toContain("flammable");
+    // And the other way: a word past the cut still counts, from the saved tags.
+    const late = labelTagsOf(`${"x".repeat(170)} FLAMMABLE`, ed);
+    expect(facts({ read: r({ labelText: "x".repeat(160) }), labelTags: late }).tags).toContain("flammable");
+    // A client that sends no saved tags still has its label text read.
+    expect(facts({ read: r({ labelText: "EXTREMELY FLAMMABLE" }), labelTags: [] }).tags).toContain("flammable");
+  });
+
   it("uses a corrected label instead of the tags saved from the old one", () => {
     const corrected = facts({
       read: r({ category: "lotion_cream", labelText: "ALCOHOL LOTION 100 mL", liquid: true, evidence: "label_read" }),

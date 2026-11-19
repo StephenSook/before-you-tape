@@ -103,7 +103,11 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   const read = { ...input.read, ...input.overrides };
   const tags = new Set<string>(edition.categoryTags[read.category]);
   for (const [flag, tag] of FLAG_TAGS) if (read[flag]) tags.add(tag);
-  for (const t of labelTagsOf(read.labelText, edition)) tags.add(t);
+  // A read's label is shown clipped. When its tags were taken from the whole label and sent as labelTags
+  // (they hold label_text), those decide and the clipped text is never tagged again: a cut can both drop a
+  // word and turn "FLAMMABLE-FREE" into "FLAMMABLE". A client that sends no such tags has its text read.
+  const savedTagsCoverLabel = input.overrides.labelText === undefined && input.labelTags.includes(LABEL_TEXT_TAG);
+  if (!savedTagsCoverLabel) for (const t of labelTagsOf(read.labelText, edition)) tags.add(t);
   // Saved tags stand in for label text that stayed on the laptop. A label the sender corrected
   // replaces the old label, so the tags saved from the old one no longer apply.
   if (input.overrides.labelText === undefined) for (const t of input.labelTags) tags.add(t);

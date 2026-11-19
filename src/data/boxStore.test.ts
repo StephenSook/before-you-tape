@@ -430,6 +430,17 @@ describe("createBoxStore", () => {
       expect(reloaded.getState().items[0]?.read.itemName).toBe("Power bank");
     });
 
+    it("never takes a hazard from the clipped label a second look shows", () => {
+      const lotion = { ...liquidLotionRead, flammableOnLabel: false };
+      const whole = `${"x".repeat(150)} FLAMMABLE-FREE LOTION`;
+      const cloud = { ...lotion, labelText: Array.from(whole).slice(0, 160).join("") };
+      const s = store();
+      const id = s.addRead(outcome(lotion, "on_device"), "k");
+      s.applySecondLook(id, mergeReads(lotion, cloud), 900, "reason", whole, readDisputes(lotion, cloud));
+      expect(s.getState().items[0]?.labelTags).not.toContain("flammable");
+      expect(s.getState().result.items[id]?.level).not.toBe("take_out");
+    });
+
     it("settles battery numbers only on a whole set, never on one edited number", () => {
       const device = { ...powerBank, volts: 3.7, milliampHours: 2500, wattHours: 0 };
       const cloud = { ...powerBank, volts: 3.8, milliampHours: 2500, wattHours: 9.5 };
