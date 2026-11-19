@@ -70,29 +70,32 @@ export function firestoreEditionFetcher(db: Firestore): (id: string) => Promise<
 }
 
 // Follows the Remote Config edition pin: once config is ready, and whenever the pin changes, choose the
-// edition and switch the store only when the choice changes. Returns a function that stops following.
+// edition and switch the store only when the choice changes. Each pin change is a new request, and only
+// the newest one may apply, so a slow, older fetch that finishes last changes nothing. It starts from the
+// store's own edition, so following again (a remount) never falls back. Returns a function that stops.
 export function followEditionPin(o: {
   source: ConfigSource;
-  store: Pick<BoxStore, "setEdition">;
+  store: Pick<BoxStore, "setEdition" | "edition">;
   bundled: RuleEdition;
   bundledSha: string;
   fetchRemote: (id: string) => Promise<unknown | null>;
   onNotice: (notice: string | null) => void;
 }): () => void {
   let lastPin: string | null = null;
-  let current = o.bundled;
+  let request = 0;
   let alive = true;
   const apply = async (c: AppConfig) => {
     const pin = `${c.rulesEditionId}|${c.rulesEditionSha256}`;
     if (pin === lastPin) return;
     lastPin = pin;
-    const choice = await chooseEdition({ bundled: o.bundled, bundledSha: o.bundledSha, wantId: c.rulesEditionId, wantSha: c.rulesEditionSha256, fetchRemote: o.fetchRemote, active: current });
-    // A newer pin may have arrived while this one was being checked; only the latest counts.
-    if (!alive || pin !== lastPin) return;
-    if (choice.edition !== current) {
-      current = choice.edition;
-      o.store.setEdition(choice.edition);
-    }
+    const mine = ++request;
+    const choice = await chooseEdition({
+      bundled: o.bundled, bundledSha: o.bundledSha, wantId: c.rulesEditionId, wantSha: c.rulesEditionSha256, fetchRemote: o.fetchRemote,
+      active: o.store.edition(),
+    });
+    // A newer pin change may have started while this one was being checked; only the newest applies.
+    if (!alive || mine !== request) return;
+    if (choice.edition !== o.store.edition()) o.store.setEdition(choice.edition);
     o.onNotice(choice.notice);
   };
   void o.source.ready.then(() => apply(o.source.get()));
