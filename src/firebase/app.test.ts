@@ -15,7 +15,13 @@ vi.mock("firebase/firestore", async (orig) => {
   return { ...real, initializeFirestore: vi.fn(real.initializeFirestore), persistentMultipleTabManager: vi.fn(real.persistentMultipleTabManager) };
 });
 
+vi.mock("firebase/functions", async (orig) => {
+  const real = await orig<typeof import("firebase/functions")>();
+  return { ...real, connectFunctionsEmulator: vi.fn() };
+});
+
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { connectFunctionsEmulator } from "firebase/functions";
 import { initializeFirestore, persistentMultipleTabManager } from "firebase/firestore";
 import { signInAnonymously, type Auth } from "firebase/auth";
 import { ensureSignedIn, initFirebase, type FirebaseEnv } from "./app";
@@ -79,6 +85,13 @@ describe("initFirebase", () => {
   });
 
   it("refuses an emulator setting that is not true or false", () => expect(() => fresh({ VITE_USE_EMULATORS: "yes" })).toThrow(/VITE_USE_EMULATORS/));
+
+  it("reaches the join callables in us-central1, and the local emulator only when asked", () => {
+    expect(fresh().functions.region).toBe("us-central1");
+    expect(connectFunctionsEmulator).not.toHaveBeenCalled();
+    const local = fresh({ VITE_USE_EMULATORS: "true" });
+    expect(connectFunctionsEmulator).toHaveBeenCalledWith(local.functions, "127.0.0.1", 5001);
+  });
 });
 
 describe("ensureSignedIn", () => {

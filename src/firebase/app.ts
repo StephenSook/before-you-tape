@@ -1,5 +1,5 @@
 // Firebase for the web app: one app, App Check started before any service can be called, anonymous
-// sign-in, Firestore, and Firebase AI Logic on the Gemini Developer API.
+// sign-in, Firestore, the join callables, and Firebase AI Logic on the Gemini Developer API.
 import { getAI, GoogleAIBackend, type AI } from "firebase/ai";
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
@@ -7,6 +7,7 @@ import { connectAuthEmulator, getAuth, signInAnonymously, type Auth } from "fire
 import {
   connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore,
 } from "firebase/firestore";
+import { connectFunctionsEmulator, getFunctions, type Functions } from "firebase/functions";
 
 export interface FirebaseEnv {
   VITE_FB_API_KEY: string;
@@ -23,6 +24,8 @@ export interface FirebaseHandles {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
+  // The QR handoff's callables, startJoin and joinBox, in the region they are deployed to.
+  functions: Functions;
   getAi(useLimitedUseTokens: boolean): AI;
 }
 
@@ -62,9 +65,11 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
       ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
       : memoryLocalCache(),
   });
+  const functions = getFunctions(app, "us-central1");
   if (env.VITE_USE_EMULATORS === "true") {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    connectFunctionsEmulator(functions, "127.0.0.1", 5001);
   }
 
   // The SDK refuses a second AI instance for the same app and backend with a different token setting,
@@ -74,6 +79,7 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
     app,
     auth,
     db,
+    functions,
     getAi(useLimitedUseTokens: boolean): AI {
       if (!ai) {
         ai = { instance: getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: useLimitedUseTokens }), limited: useLimitedUseTokens };
