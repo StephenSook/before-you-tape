@@ -29,7 +29,7 @@ describe("localPersistence", () => {
 
   it("keeps consent apart from the box, so a save from a tab with an old answer cannot restore it", async () => {
     const p = localPersistence(localStorage);
-    p.saveConsent?.("box-c", false);
+    p.saveConsent?.("box-c", false, 1);
     const stale = make("box-c");
     await stale.ready;
     p.save({ ...stale.getState(), cloudConsent: true });

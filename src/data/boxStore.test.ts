@@ -241,7 +241,7 @@ describe("createBoxStore", () => {
         listen: (f) => { mine.add(f); return () => { mine.delete(f); }; },
       };
     };
-    const saving = () => ({ ...spyPersistence(), saveConsent: vi.fn<(boxId: string, v: boolean | null) => void>() });
+    const saving = () => ({ ...spyPersistence(), saveConsent: vi.fn<(boxId: string, v: boolean | null, chosenAt: number) => void>() });
     const make = (boxId: string, persistence: BoxPersistence) =>
       createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId, consentChannel: channel() });
     const pa = saving();
@@ -257,7 +257,7 @@ describe("createBoxStore", () => {
     expect(b.getState().cloudConsent).toBe(false);
     expect(seenByB).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
     expect(elsewhere.getState().cloudConsent).toBeNull();
-    expect(pa.saveConsent.mock.calls).toEqual([["shared", true], ["shared", false]]);
+    expect(pa.saveConsent.mock.calls).toEqual([["shared", true, expect.any(Number)], ["shared", false, expect.any(Number)]]);
     expect(pb.saveConsent).not.toHaveBeenCalled();
     // A saved answer that loads after another tab's choice does not undo it.
     const late = (() => { let arrive!: (s: Partial<BoxState>) => void; const persistence = { save: () => {}, load: () => new Promise<Partial<BoxState> | null>((r) => { arrive = r; }) }; return { s: make("shared", persistence), arrive: (s: Partial<BoxState>) => arrive(s) }; })();

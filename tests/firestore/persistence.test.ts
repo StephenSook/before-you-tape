@@ -46,9 +46,10 @@ describe("firestorePersistence", () => {
     p.save(state([item("i1"), item("i2", { quantity: 3 })]));
     await p.idle();
     const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
-    expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", cloudConsent: true });
+    // A new box starts with no consent answer, whatever the saving tab holds; only the button sets one.
+    expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", cloudConsent: null });
     const loaded = await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
-    expect(loaded).toMatchObject({ boxId: "b1", destinationCode: "CA", cloudConsent: true, sources: { onDevice: 2 } });
+    expect(loaded).toMatchObject({ boxId: "b1", destinationCode: "CA", cloudConsent: null, sources: { onDevice: 2 } });
     expect(loaded?.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
   });
 
@@ -57,7 +58,10 @@ describe("firestorePersistence", () => {
     await first.load("b1");
     first.save(state([], { cloudConsent: true }));
     await first.idle();
-    first.saveConsent("b1", false);
+    first.saveConsent("b1", false, 200);
+    await first.idle();
+    // An older press from another tab, arriving late, is refused.
+    first.saveConsent("b1", true, 150);
     await first.idle();
     // Another tab, still holding the old answer, saves its box.
     const stale = firestorePersistence(db("alice"), "alice", "byt-test");
@@ -135,5 +139,33 @@ describe("firestorePersistence", () => {
     expect(items).toHaveLength(1);
     expect(JSON.stringify(items)).not.toContain("SECRET");
     expect(items[0]?.read?.itemName).toBe("Lotion or cream");
+  });
+
+  it("reads consent from the server after this tab's own writes, and says when it cannot", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.load("b3");
+    p.save(state([], { boxId: "b3" }));
+    expect(await p.readConsent("b3")).toBeNull();
+    p.saveConsent("b3", true, 10);
+    expect(await p.readConsent("b3")).toBe(true);
+    expect(await firestorePersistence(db("bob"), "bob", "byt-test").readConsent("b3")).toBeUndefined();
+    expect(await p.readConsent("no-such-box")).toBeUndefined();
+  });
+
+  it("never lets a tab's late first save bring back consent another tab withdrew", async () => {
+    // Both tabs found no box; one created it and the sender turned cloud checks off.
+    const a = firestorePersistence(db("alice"), "alice", "byt-test");
+    const b = firestorePersistence(db("alice"), "alice", "byt-test");
+    await Promise.all([a.load("b4"), b.load("b4")]);
+    a.save(state([], { boxId: "b4" }));
+    a.saveConsent("b4", true, 100);
+    a.saveConsent("b4", false, 200);
+    await a.idle();
+    b.save(state([item("late")], { boxId: "b4", cloudConsent: true }));
+    await b.idle();
+    expect(b.lastError()).toBeNull();
+    const box = (await admin((d) => getDoc(doc(d, "boxes/b4")))).data();
+    expect(box).toMatchObject({ cloudConsent: false, consentChosenAt: 200 });
+    expect((await admin((d) => getDoc(doc(d, "boxes/b4/items/late")))).exists()).toBe(true);
   });
 });

@@ -55,8 +55,10 @@ export interface BoxPersistence {
   // write it back.
   save(state: BoxState): void;
   load(boxId: string): Promise<Partial<BoxState> | null>;
-  // Saves the sender's consent answer, from the page where they pressed the button.
-  saveConsent?(boxId: string, consent: boolean | null): void;
+  // Saves the sender's consent answer, from the page where they pressed the button, with when they pressed it.
+  saveConsent?(boxId: string, consent: boolean | null, chosenAt: number): void;
+  // The answer as the server has it now; undefined when it cannot be read, which keeps the cloud closed.
+  readConsent?(boxId: string): Promise<boolean | null | undefined>;
 }
 
 // The model's own item names, kept on this device while the server has only category names.
@@ -297,7 +299,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       cloudConsent = v;
       commit(state.result);
       // Only the page where the sender pressed the button saves consent, and it tells the other tabs.
-      deps.persistence.saveConsent?.(boxId, v);
+      deps.persistence.saveConsent?.(boxId, v, clock());
       deps.consentChannel?.post({ boxId, consent: v });
     },
   };
