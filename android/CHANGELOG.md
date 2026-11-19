@@ -3,6 +3,20 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A new box carries no consent, and consent changes carry their times.** The box rules now
+  refuse a new box whose `cloudConsent` is not null, and refuse any change to `cloudConsent`
+  that does not also set `consentChosenAt` (the press time) and `consentAt` (the server's time).
+  The phone's `createBox` wrote the sender's consent on a new box. It now writes
+  `BoxDocs.newBoxDoc` (consent null, no consent fields), and a new `setConsent` writes
+  `BoxDocs.consentChange`: `cloudConsent`, `consentChosenAt` from this phone's clock, and
+  `consentAt` as a server timestamp, in one update. The destination and count updates already
+  leave all three alone. Source: the web app's box consent rules (batch A). Verified:
+  `BoxDocsContractTest.aNewBoxHasNoConsentChosenYet` and
+  `aConsentChangeCarriesThePressTimeAndTheServerTime` failed against stubs of the old behavior,
+  then pass; `BoxLiveTest` passed live on the emulator against the deployed rules (a phone-made
+  box with consent null is accepted and read back; a stranger is refused). `setConsent` needs the
+  new rules and is not called yet. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **An item whose read leaves out optional fields still loads.** The rules require only
   `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
   may be left out. The phone's decoder required all sixteen, so such an item threw

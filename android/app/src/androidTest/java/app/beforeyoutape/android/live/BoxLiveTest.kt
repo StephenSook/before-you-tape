@@ -43,7 +43,7 @@ class BoxLiveTest {
         val owner = withTimeout(30_000) { FirebaseSignIn.ensureSignedIn() }
         val repo = FirestoreBoxRepository()
         log("step: create box")
-        val boxId = repo.createBox(owner, "CA", "byt-live-test", true)
+        val boxId = repo.createBox(owner, "CA", "byt-live-test")
         log("step: box created")
         val item = BoxLogic.addRead(BoxLogic.empty("CA"), read, listOf("label_text"), Source.IN_CLOUD, 900, "live-item-1").items.single()
         // An item written while offline waits in the Firestore cache and is sent when the link returns.

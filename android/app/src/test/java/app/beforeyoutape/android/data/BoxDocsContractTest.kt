@@ -60,6 +60,25 @@ class BoxDocsContractTest {
         assertEquals(norm(d), norm(BoxDocs.boxToDoc(box)))
     }
 
+    /** A first save: consent not chosen yet (null) and no consent fields, or the rules refuse the box. */
+    @Test fun aNewBoxHasNoConsentChosenYet() {
+        val d = BoxDocs.newBoxDoc("owner-uid", "CA", "byt-e1")
+        assertEquals(null, d["cloudConsent"])
+        assertTrue("cloudConsent" in d)
+        assertTrue("consentChosenAt" !in d && "consentAt" !in d)
+        assertEquals(listOf("owner-uid"), d["memberUids"])
+        assertEquals("", d["joinKeyHash"])
+    }
+
+    /** cloudConsent changes only together with the press time (phone clock, ms) and a server time. */
+    @Test fun aConsentChangeCarriesThePressTimeAndTheServerTime() {
+        val server = Any()
+        assertEquals(
+            mapOf("cloudConsent" to true, "consentChosenAt" to 1795000000123L, "consentAt" to server),
+            BoxDocs.consentChange(allowed = true, chosenAtMs = 1795000000123L, serverTime = server),
+        )
+    }
+
     @Test fun anItemDocumentNeverCarriesLabelText() {
         val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
             false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)

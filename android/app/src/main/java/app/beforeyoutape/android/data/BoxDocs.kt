@@ -141,6 +141,21 @@ object BoxDocs {
         "lastRecheckMs" to h.lastRecheckMs?.let(::ms),
     )
 
+    /**
+     * A first save of a box: consent is not chosen yet (null) and no consent fields are written.
+     * The rules refuse a new box with anything else.
+     */
+    fun newBoxDoc(ownerUid: String, destinationCode: String, editionId: String): Map<String, Any?> =
+        boxToDoc(BoxHeader(ownerUid, listOf(ownerUid), "", destinationCode, editionId, null, BoxSources(0, 0, 0, 0, 0), null))
+
+    /**
+     * The only write that may change cloudConsent: with the press time from this phone's clock (ms,
+     * which the rules require to be later than the stored one) and the server's time. Ordinary
+     * updates leave all three alone.
+     */
+    fun consentChange(allowed: Boolean, chosenAtMs: Long, serverTime: Any): Map<String, Any?> =
+        linkedMapOf("cloudConsent" to allowed, "consentChosenAt" to chosenAtMs, "consentAt" to serverTime)
+
     fun boxFromDoc(doc: Map<String, Any?>): BoxHeader {
         val s = map(doc["sources"])
         fun count(k: String) = (s[k] as? Number)?.toInt() ?: 0

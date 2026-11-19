@@ -19,11 +19,14 @@ data class BoxSnapshot(val boxId: String, val header: BoxHeader, val items: List
  * Firestore cache keeps it while the phone is offline.
  */
 interface BoxRepository {
-    suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String, cloudConsent: Boolean?): String
+    suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String
     fun watch(boxId: String): Flow<BoxSnapshot>
     fun putItem(boxId: String, item: BoxItem)
     fun removeItem(boxId: String, itemId: String)
     fun setDestination(boxId: String, code: String, recheckAtMs: Long)
+
+    /** The sender's consent choice, with the press time from this phone's clock (ms). */
+    fun setConsent(boxId: String, allowed: Boolean, chosenAtMs: Long)
     fun addCounts(boxId: String, onDevice: Int, inCloud: Int, rulesOnlyRechecks: Int)
 }
 
@@ -31,10 +34,9 @@ class FirestoreBoxRepository : BoxRepository {
     private val db = Firebase.firestore
     private fun box(id: String) = db.collection("boxes").document(id)
 
-    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String, cloudConsent: Boolean?): String {
+    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String {
         val ref = db.collection("boxes").document()
-        val header = BoxHeader(ownerUid, listOf(ownerUid), "", destinationCode, editionId, cloudConsent, BoxSources(0, 0, 0, 0, 0), null)
-        ref.set(BoxDocs.boxToDoc(header) + ("updatedAt" to FieldValue.serverTimestamp())).await()
+        ref.set(BoxDocs.newBoxDoc(ownerUid, destinationCode, editionId) + ("updatedAt" to FieldValue.serverTimestamp())).await()
         return ref.id
     }
 
@@ -44,6 +46,10 @@ class FirestoreBoxRepository : BoxRepository {
 
     override fun removeItem(boxId: String, itemId: String) {
         box(boxId).collection("items").document(itemId).delete()
+    }
+
+    override fun setConsent(boxId: String, allowed: Boolean, chosenAtMs: Long) {
+        box(boxId).update(BoxDocs.consentChange(allowed, chosenAtMs, FieldValue.serverTimestamp()) + ("updatedAt" to FieldValue.serverTimestamp()))
     }
 
     override fun setDestination(boxId: String, code: String, recheckAtMs: Long) {
