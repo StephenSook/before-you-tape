@@ -200,22 +200,50 @@ actor ReadGate {
 }
 
 /// Every cloud read waits for the anonymous sign-in first: AI Logic serves signed-in users only.
-/// A failed sign-in sends nothing to the cloud, and the pause switch is read again after sign-in,
-/// right before anything is sent, because it can change while sign-in runs.
+/// A failed sign-in sends nothing to the cloud. The pause switch is read again after sign-in, and
+/// the upload runs as a task the pause cancels: AI Logic waits for its App Check token and then
+/// sends through URLSession, which refuses a cancelled task and stops one in flight. A reply that
+/// arrives after the pause is not used. Bytes already on the wire cannot be recalled.
 struct SignedInCloudRunner: ItemModelRunner {
     let ensureSignedIn: @Sendable @MainActor () async -> Bool
-    let cloudOpen: @Sendable @MainActor () -> Bool
+    let pause: PauseSwitch
     let inner: any ItemModelRunner
 
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
-        guard await cloudOpen() else { return .failure(ReadError(.cloudPaused)) }
-        return await inner.read(input)
+        let inner = inner
+        guard let upload = await pause.startUnlessPaused({ await inner.read(input) }) else { return .failure(ReadError(.cloudPaused)) }
+        // The upload runs apart from this read, so a read that is cancelled (its time limit) cancels it too.
+        let result = await withTaskCancellationHandler { await upload.task.value } onCancel: { upload.task.cancel() }
+        await pause.finished(upload.id)
+        if await pause.paused { return .failure(ReadError(.cloudPaused)) }
+        return result
     }
 }
 
-/// The pause switch as last applied, shared by every cloud runner.
+/// The pause switch as last applied, shared by every cloud runner. Turning it on cancels every
+/// upload still running.
 @MainActor
 final class PauseSwitch {
-    var paused = RemoteConfigValues.defaults.killCloud
+    var paused = RemoteConfigValues.defaults.killCloud {
+        didSet { if paused { running.values.forEach { $0() } } }
+    }
+    private var running: [UUID: () -> Void] = [:]
+
+    struct Upload<T: Sendable>: Sendable {
+        let id: UUID
+        let task: Task<T, Never>
+    }
+
+    /// Starts the upload unless paused; nil when paused. Checking and starting happen together, so
+    /// a pause cannot slip between them.
+    func startUnlessPaused<T: Sendable>(_ work: @escaping @Sendable () async -> T) -> Upload<T>? {
+        guard !paused else { return nil }
+        let id = UUID()
+        let task = Task.detached { await work() }
+        running[id] = { task.cancel() }
+        return Upload(id: id, task: task)
+    }
+
+    func finished(_ id: UUID) { running[id] = nil }
 }

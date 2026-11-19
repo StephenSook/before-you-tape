@@ -93,7 +93,7 @@ final class AppModel {
         ItemReader(
             device: DeviceRunner(),
             makeCloud: { model in
-                SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() }, cloudOpen: { !pause.paused },
+                SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() }, pause: pause,
                                     inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
             },
             parse: { read in

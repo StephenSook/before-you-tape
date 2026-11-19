@@ -5,6 +5,23 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a pause cancels a cloud upload that is still waiting or running
+- What: the pause was read once after sign-in, but AI Logic then waits for its limited-use App
+  Check token before it sends, so a pause landing in that wait still let the photo go. The upload
+  now runs as a task that the pause cancels: checking the switch and starting the upload happen
+  together, turning the pause on cancels every upload still running, a read that is itself
+  cancelled (its time limit) cancels its upload, and a reply that arrives after the pause is not
+  used. AI Logic sends through URLSession (`data(for:)`), which refuses a cancelled task and
+  stops one in flight.
+- Residual, stated plainly: bytes already on the wire cannot be recalled. A pause published while
+  the app is in the background reaches it when Firebase's real-time listener reconnects after the
+  app returns; a read started in that first moment can still be sent.
+- Source: review.
+- Verified: two tests (a pause while the upload waits for its token cancels it and the read ends
+  paused; cancelling the read cancels the upload) failed, then passed; the sign-in and app wiring
+  tests now use the shared switch; 124 app unit tests pass; `bash ios/scripts/ci-local-ios.sh`
+  exit 0.
+
 ### fix(ios): no lithium item is OK while another item's label must be read again
 - What: the box-wide lithium total was computed from the saved tags of an item whose label must
   be read again, so a restored item that would add lithium under the new edition could leave the
