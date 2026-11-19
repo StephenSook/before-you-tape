@@ -3,6 +3,21 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-19
+
+### fix(ios): rebuild the bundled rules engine so it loads the shipped edition
+- What: the committed `byt-engine.js` was built before main's edition gained `revision` and the
+  ceramic category, so the iPhone's engine refused `rules/edition.json` ("edition.revision: unknown
+  field"); every verdict then failed on a real phone while the country list still showed. Rebuilt
+  with `scripts/build-embed.sh` from main and refreshed `byt-engine.sha256`. The contract test now
+  reads the expected edition id from the shipped edition file, so a new edition cannot leave it
+  pinned to an old id.
+- Source: an engine check on main (the harness loaded the committed bundle and the shipped edition).
+- Verified: `bash ios/scripts/check_engine_bundle.sh` reported the file stale, then fresh (49019
+  bytes, sha256 66057932c332); the contract test failed on the old pinned id, then passed; 32 core
+  tests pass. The CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0 on this tree together with the
+  next commit's category lists, without which the app's category tests fail on main.
+
 ## 2026-11-18
 
 ### fix(ios): drop the reply of a read the pause cancelled, even after a resume

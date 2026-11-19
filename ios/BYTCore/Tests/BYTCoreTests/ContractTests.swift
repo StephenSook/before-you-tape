@@ -36,8 +36,11 @@ import Testing
 
     @Test func theBundledEditionLoadsWithItsId() throws {
         let engine = try RulesEngine()
-        let loaded = try engine.setEdition(editionText())
-        #expect(loaded.editionId == "byt-65f5528fc307")
+        let text = try editionText()
+        let loaded = try engine.setEdition(text)
+        // The shipped edition names itself; the bundled engine must load it as that edition.
+        let shipped = try JSONDecoder().decode(JSONValue.self, from: Data(text.utf8))["editionId"]
+        #expect(shipped == .string(loaded.editionId) && loaded.editionId.hasPrefix("byt-"))
         #expect(!loaded.destinationCodes.isEmpty)
     }
 
