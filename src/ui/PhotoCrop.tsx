@@ -14,7 +14,8 @@ export interface PhotoCropProps {
   cropPart: (source: CropSource, box: Box) => Promise<ImagePart>;
   onSend: (part: ImagePart) => void;
   onCancel: () => void;
-  onError?: (text: string) => void;
+  // The error itself, for the caller to put in plain words.
+  onError?: (e: unknown) => void;
 }
 
 const STEP = 0.02;
@@ -55,7 +56,7 @@ export function PhotoCrop({ source, initialBox, cropPart, onSend, onCancel, onEr
     let current = true;
     const t = setTimeout(() => {
       latest.current.cropPart(source, box).then((part) => { if (current) setPreview({ box, part }); })
-        .catch((e: unknown) => { if (current) latest.current.onError?.(e instanceof Error ? e.message : String(e)); });
+        .catch((e: unknown) => { if (current) latest.current.onError?.(e); });
     }, 120);
     return () => { current = false; clearTimeout(t); };
   }, [source, box]);

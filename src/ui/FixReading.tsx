@@ -45,7 +45,14 @@ function rebase(d: ReadDraft, read: ItemRead, fields: readonly Field[]): ReadDra
 const LABEL: Partial<Record<Field, string>> = { category: "what it is", itemName: "the name", labelText: "the label text", retailBox: "the box" };
 const labelOf = (f: Field) => LABEL[f] ?? [...NUMBER_FIELDS, ...FLAG_FIELDS].find(([k]) => k === f)?.[1] ?? f;
 
-export function FixReading({ read, onSave, focusField }: { read: ItemRead; onSave: (patch: Partial<ItemRead>) => void; focusField?: keyof ItemRead }) {
+// The engine's tags that say the label names a battery.
+const BATTERY_TAGS = new Set(["li_ion", "li_metal", "battery_label", "power_bank_label"]);
+
+export function FixReading({ read, onSave, focusField, labelTags = [] }: {
+  read: ItemRead; onSave: (patch: Partial<ItemRead>) => void; focusField?: keyof ItemRead;
+  // The item's label tags, so a battery the label names (a coin cell) shows its numbers.
+  labelTags?: readonly string[];
+}) {
   // The reading the draft is measured against, the fields the sender edited, and the ones a second look reset.
   const [base, setBase] = useState<ItemRead>(read);
   const [draft, setDraft] = useState<ReadDraft>(() => draftOf(read));
@@ -75,7 +82,7 @@ export function FixReading({ read, onSave, focusField }: { read: ItemRead; onSav
   return (
     <form data-testid="fix-reading" onSubmit={(e) => { e.preventDefault(); save(); }}>
       {reset.length > 0 && <p role="status">The second look changed {reset.map(labelOf).join(", ")}. Check it again before you save.</p>}
-      <ReadFields draft={draft} onChange={change} focusField={focusField} nameLabel="Name" />
+      <ReadFields draft={draft} onChange={change} focusField={focusField} nameLabel="Name" batteryLabel={labelTags.some((t) => BATTERY_TAGS.has(t))} />
       <button type="submit" disabled={!numbersValid(draft)}>Save</button>
     </form>
   );

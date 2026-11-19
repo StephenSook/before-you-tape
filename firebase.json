@@ -15,7 +15,35 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "regex": "^/$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[jJ][uU][dD][gG][eE]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[mM][eE][aA][sS][uU][rR][eE][dD]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[rR][uU][lL][eE][sS]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[rR][aA][nN]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[aA][bB][oO][uU][tT]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[wW][oO][rR][kK][sS][hH][eE][eE][tT]/?$",
+        "destination": "/index.html"
+      },
+      {
+        "regex": "^/[bB][lL][iI][nN][dD]/[^/]+/?$",
         "destination": "/index.html"
       }
     ]

@@ -2,12 +2,14 @@
 // click; the progress bar shows the real download, never a made-up one.
 import type { GateState } from "../ai/port";
 
-export function ReadyButton({ gate, progress, onReady }: { gate: GateState; progress: number | null; onReady: () => void }) {
+// cloudOn: the sender allowed cloud checks and they are not paused. Without them, on a device with no model
+// of its own, the page's cloud line says what that means, so this one says nothing.
+export function ReadyButton({ gate, progress, onReady, cloudOn }: { gate: GateState; progress: number | null; onReady: () => void; cloudOn: boolean }) {
   if (gate === "downloadable") return <button type="button" data-testid="ready-button" onClick={onReady}>Get this laptop ready</button>;
   if (gate === "downloading") {
     const pct = Math.round((progress ?? 0) * 100);
     return <div role="progressbar" aria-label="Getting this laptop ready" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>Getting this laptop ready: {pct}%</div>;
   }
   if (gate === "available") return <p>This laptop checks items itself.</p>;
-  return <p>This device checks items in the cloud.</p>;
+  return cloudOn ? <p>This device checks items in the cloud.</p> : null;
 }

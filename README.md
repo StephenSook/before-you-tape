@@ -30,7 +30,7 @@ npm run lint
 npm run typecheck
 npm run build           # writes dist/, including dist/version.json with the commit SHA
 npm run tone            # fails on long dashes and curly quotes in user-facing text
-npm run guard           # fails on any model call outside Firebase AI Logic
+npm run guard           # fails on any model call outside Firebase AI Logic, speech recognition included (the system voice is allowed)
 npm run hygiene         # flags private notes in tracked files (fails once the repository is public)
 npm run edition:check   # fails when rules/edition.json is out of date with its part files
 npm run build:embed     # the rules engine as one script for the iPhone and Android apps

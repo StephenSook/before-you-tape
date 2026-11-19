@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { ImagePart } from "../ai/port";
 import { CameraError } from "../capture/camera";
+import { CropError } from "../capture/crop";
 import { CameraStage } from "./CameraStage";
 
 const part: ImagePart = { mimeType: "image/jpeg", base64: "/9j/AAAA" };
@@ -12,6 +13,14 @@ const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
 const start = () => userEvent.click(screen.getByRole("button", { name: "Start camera" }));
 
 describe("CameraStage", () => {
+  it("offers Add a photo as a button, with the file picker itself hidden but still reachable", () => {
+    render(<CameraStage openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })} onImage={() => {}} />);
+    const input = screen.getByLabelText("Add a photo");
+    expect(input).toHaveAttribute("type", "file");
+    expect(input).toHaveClass("visually-hidden");
+    expect(input.closest("label")).toHaveClass("button-like");
+  });
+
   // jsdom has no media playback; the stage only asks the video to play.
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
 
@@ -87,6 +96,19 @@ describe("CameraStage", () => {
     await waitFor(() => expect(onImage).toHaveBeenCalledTimes(2));
   });
 
+  it("says in plain words why Check now read nothing, never the raw error", async () => {
+    const onError = vi.fn();
+    const capture = vi.fn(async () => { throw new CropError("empty crop box"); });
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} capture={capture} />);
+    await start();
+    await userEvent.click(screen.getByTestId("check-now"));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("Hold the item inside the box, or type it instead."));
+    capture.mockImplementationOnce(async () => { throw new Error("some internal detail"); });
+    await userEvent.click(screen.getByTestId("check-now"));
+    await waitFor(() => expect(onError).toHaveBeenLastCalledWith("That could not be read. Try again, or type the item."));
+    expect(onError.mock.calls.flat().join(" ")).not.toMatch(/crop box|internal detail/);
+  });
+
   it("opens a crop step for an added photo, turns the camera off, and sends only the part the sender checks", async () => {
     const onImage = vi.fn();
     const stop = vi.fn();
@@ -107,6 +129,17 @@ describe("CameraStage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onImage).toHaveBeenCalledWith(part, "upload");
     expect(screen.queryByTestId("photo-crop")).toBeNull();
+  });
+
+  it("says a crop preview that fails in plain words, never the browser's error", async () => {
+    const onError = vi.fn();
+    const source = document.createElement("canvas");
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} decodeFile={async () => source}
+      cropPart={async () => { throw new Error("the browser could not encode the crop"); }} />);
+    await userEvent.upload(screen.getByTestId("upload-input"), photo);
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(onError).toHaveBeenLastCalledWith("That photo could not be opened. Try another, or type the item.");
+    expect(onError).not.toHaveBeenCalledWith(expect.stringMatching(/encode/));
   });
 
   it("sends nothing when the sender cancels the crop", async () => {

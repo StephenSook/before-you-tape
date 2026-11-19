@@ -80,4 +80,13 @@ describe("FixReading", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSave).toHaveBeenLastCalledWith({ category: "tablet" });
   });
+
+  it("shows the battery numbers when the label's words say battery, even with the battery box clear", () => {
+    const watch: ItemRead = { ...phoneRead, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", volts: 0, milliampHours: 0, batteryWords: false };
+    const { unmount } = render(<FixReading read={watch} onSave={() => {}} />);
+    expect(screen.queryByLabelText("Lithium (grams)")).toBeNull();
+    unmount();
+    render(<FixReading read={watch} onSave={() => {}} labelTags={["label_text", "li_metal"]} />);
+    expect(screen.getByLabelText("Lithium (grams)")).toBeInTheDocument();
+  });
 });

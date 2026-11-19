@@ -811,7 +811,7 @@ var BYT = (() => {
     const readBy = rulesReadBy(dest);
     let destLabel = `${dest.name} rules`;
     if (readBy?.by === "person") destLabel += `: checked by a person on ${readBy.on}`;
-    else if (readBy?.by === "usps_page") destLabel += `: read from the USPS page on ${readBy.on}, not yet checked by a person`;
+    else if (readBy?.by === "usps_page") destLabel += `: read from the USPS page on ${readBy.on}; not yet checked by a person`;
     return [
       layer("usps_export", "USPS export rules", usps?.edition ?? "not loaded", usps?.checkedOn ?? null, Boolean(usps), stale.usps_export, today),
       layer("destination", destLabel, immEdition, d?.checkedOn ?? null, reviewed, stale.destination, today),

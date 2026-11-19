@@ -89,3 +89,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
   .pack-page { padding-bottom: 96px; }
 }
+
+/* The page says what it is for, in one line, and where judges should start. */
+.purpose { font-size: 1.15rem; margin: 0 0 8px; }
+.judge-link { font-weight: 600; }
+a { color: var(--ink); text-underline-offset: 2px; }
+
+/* "Add a photo": a label drawn as a button, around a picker that is hidden but still focusable. */
+.button-like { display: inline-block; padding: 8px 16px; border: 1px solid currentColor; border-radius: 999px; cursor: pointer; }
+.button-like:focus-within { outline: 2px solid var(--focus, currentColor); outline-offset: 2px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
