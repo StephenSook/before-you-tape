@@ -60,7 +60,7 @@ Every cloud model call, all through Firebase AI Logic with App Check, all paused
 | Fallback model | `src/ai/itemRead.ts` | the same | One try on a second model after a 500 or 503 survives the retry, or a 404 says the model is gone |
 | Second look | `src/ai/secondLook.ts` | the same crop and prompt | When the policy names a reason, after an on-device read |
 
-Descriptions for the customs form come later, through the text model, and will be added here.
+No page asks for customs-form descriptions yet. The prompt for them (`describePrompt` in `src/ai/prompts.ts`) and a cloud text model (`createTextCloudModel` in `src/ai/firebaseModels.ts`) are written, but nothing calls them, so they make no cloud call today. If a page starts to use them, that call is added to the table above.
 
 ### What opens a cloud call
 
