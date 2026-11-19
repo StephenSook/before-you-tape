@@ -14,10 +14,18 @@ export interface FirestorePersistence extends BoxPersistence {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+function withoutDisputes(item: BoxItem): BoxItem {
+  const { disputes: _disputes, ...rest } = item;
+  void _disputes;
+  return rest;
+}
+
 export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string)): FirestorePersistence {
   const edition = () => (typeof editionId === "function" ? editionId() : editionId);
   let exists: boolean | null = null;
   let known = new Set<string>();
+  // Items that have a disputes document, so one whose disputes are gone gets its document deleted.
+  let knownDisputed = new Set<string>();
   let queue: Promise<void> = Promise.resolve();
   let error: string | null = null;
   let loading: Promise<unknown> | null = null;
@@ -48,11 +56,17 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       await setDoc(box, merge, { merge: true });
     }
     const now = new Set(s.items.map((i) => i.itemId));
+    // A second look's disputes are their own document, beside the item: the item document never holds them.
+    const disputed = s.items.filter((i) => i.disputes !== undefined && Object.keys(i.disputes).length > 0);
+    const nowDisputed = new Set(disputed.map((i) => i.itemId));
     await Promise.all([
-      ...s.items.map((i) => setDoc(doc(box, "items", i.itemId), i)),
+      ...s.items.map((i) => setDoc(doc(box, "items", i.itemId), withoutDisputes(i))),
+      ...disputed.map((i) => setDoc(doc(box, "disputes", i.itemId), i.disputes!)),
       ...[...known].filter((id) => !now.has(id)).map((id) => deleteDoc(doc(box, "items", id))),
+      ...[...knownDisputed].filter((id) => !nowDisputed.has(id)).map((id) => deleteDoc(doc(box, "disputes", id))),
     ]);
     known = now;
+    knownDisputed = nowDisputed;
   };
 
   return {
@@ -73,8 +87,17 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       const snap = await getDoc(doc(db, "boxes", boxId));
       if (!snap.exists()) { exists = false; return null; }
       exists = true;
-      const items = (await getDocs(collection(db, "boxes", boxId, "items"))).docs.map((d) => d.data() as BoxItem);
+      const [itemDocs, disputeDocs] = await Promise.all([
+        getDocs(collection(db, "boxes", boxId, "items")), getDocs(collection(db, "boxes", boxId, "disputes")),
+      ]);
+      const disputes = new Map(disputeDocs.docs.map((d) => [d.id, d.data() as NonNullable<BoxItem["disputes"]>]));
+      const items = itemDocs.docs.map((d) => {
+        const i = d.data() as BoxItem;
+        const found = disputes.get(i.itemId);
+        return found ? { ...i, disputes: found } : i;
+      });
       known = new Set(items.map((i) => i.itemId));
+      knownDisputed = new Set([...disputes.keys()]);
       const d = snap.data() as Partial<BoxState>;
       return { boxId, destinationCode: d.destinationCode, sources: d.sources, items };
     } catch (e) {

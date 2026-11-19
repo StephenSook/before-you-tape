@@ -86,6 +86,32 @@ describe("firestorePersistence", () => {
     expect(items.every((i) => i.read.labelText === "")).toBe(true);
   });
 
+  it("keeps a second look's disputes in their own document, loads them back onto the item, and deletes them when gone", async () => {
+    const path = (id: string) => `boxes/b1/disputes/${id}`;
+    const disputesAt = (id: string) => admin(async (d) => (await getDoc(doc(d, path(id)))).data());
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.load("b1");
+    p.save(state([item("i1", { disputes }), item("i2")]));
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    // The item document never carries them: the item's own rules stay as they are.
+    expect(await admin(async (d) => (await getDoc(doc(d, "boxes/b1/items/i1"))).data())).not.toHaveProperty("disputes");
+    expect(await disputesAt("i1")).toEqual(disputes);
+    expect(await disputesAt("i2")).toBeUndefined();
+    // A fresh load puts them back on their item, and only there.
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
+    expect(back?.items?.find((i) => i.itemId === "i1")?.disputes).toEqual(disputes);
+    expect(back?.items?.find((i) => i.itemId === "i2")).not.toHaveProperty("disputes");
+    // An item that no longer has disputes, or is removed, leaves no disputes document behind.
+    p.save(state([item("i1"), item("i2", { disputes })]));
+    p.save(state([item("i1")]));
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    expect(await disputesAt("i1")).toBeUndefined();
+    expect(await disputesAt("i2")).toBeUndefined();
+  });
+
   it("keeps saving after another member joins, and never sends membership again", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
     await p.load("b1");
