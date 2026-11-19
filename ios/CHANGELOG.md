@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(ios-core): the engine wrapper asks the web app's check whether a read is of no item
+- What: RulesEngine.isNoItem(read) calls the bridge's isNoItemJson, so the iPhone app finds a read
+  of no item with the web app's own function. A read that is not a whole item read comes back as an
+  engine error rather than a guess.
+- Source: review (whole-repo check).
+- Verified: a contract test for an unknown read, an empty name, a named item, an item seen, and a
+  partial read (refused); it failed to compile before the change and passes after; 33 BYTCore tests
+  pass; the CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### feat(engine): the native bridge answers whether a read is of no item, with the web app's check
 - What: the web app drops a read of no item (a camera pointed at a room: unsure, "other", no label,
   no battery or warning, no real name) instead of adding it as a card. The bridge now exposes that

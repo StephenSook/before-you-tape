@@ -17,6 +17,24 @@ import Testing
                                          "isNoItemJson", "itemReadContract", "labelTagsJson", "parseItemReadJson", "setEdition"])
     }
 
+    /// A read of no item (a camera pointed at a room) is found by the web app's own check, and a
+    /// read that is not a whole item read is refused rather than guessed.
+    @Test func aReadOfNoItemIsFoundByTheWebAppsCheck() throws {
+        let engine = try RulesEngine()
+        func read(_ name: String, category: String = "other", evidence: String = "not_sure") -> JSONValue {
+            .object(["itemName": .string(name), "category": .string(category), "labelText": .string(""), "volts": .number(0),
+                     "milliampHours": .number(0), "wattHours": .number(0), "lithiumGrams": .number(0), "batteryWords": .bool(false),
+                     "liquid": .bool(false), "pressurized": .bool(false), "alcoholOnLabel": .bool(false),
+                     "flammableOnLabel": .bool(false), "glassContainer": .bool(false), "powder": .bool(false),
+                     "retailBox": .string("cannot_tell"), "evidence": .string(evidence)])
+        }
+        #expect(try engine.isNoItem(read("unknown")))
+        #expect(try engine.isNoItem(read("")))
+        #expect(try !engine.isNoItem(read("Water bottle")))
+        #expect(try !engine.isNoItem(read("unknown", evidence: "item_seen")))
+        #expect(throws: EngineError.self) { try engine.isNoItem(.object(["itemName": .string("unknown")])) }
+    }
+
     @Test func aCallBeforeAnEditionIsAnEngineErrorNotACrash() throws {
         let engine = try RulesEngine()
         #expect(throws: EngineError.engine(name: "NoEditionError", message: "no rule edition is loaded; call setEdition first")) {

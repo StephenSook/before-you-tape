@@ -86,6 +86,12 @@ public final class RulesEngine: @unchecked Sendable {
     public func parseItemRead(_ replyText: String) throws -> JSONValue { try call("parseItemReadJson", replyText) }
     /// The item-read fields, their JSON schema and the label text cap.
     public func itemReadContract() throws -> JSONValue { try call("itemReadContract") }
+    /// True for a read of no item (a camera pointed at a room), by the web app's own check; a read
+    /// that is not a whole item read is an engine error.
+    public func isNoItem(_ read: JSONValue) throws -> Bool {
+        guard case let .bool(answer) = try call("isNoItemJson", json(read)) else { throw EngineError.badReply("isNoItemJson: not a bool") }
+        return answer
+    }
 
     // MARK: Plumbing
 
