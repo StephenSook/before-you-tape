@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a blank label edit no longer clears a stale item's warning
+- What: typing nothing or only spaces over the label of an item whose tags another (or an
+  unknown) edition found stamped it with the current edition, so it could show "OK to pack" and
+  release the box's lithium hold. Blank words are not a label now: such an edit keeps the item
+  stale until real words are read, and a label in memory counts only when it has words.
+- Source: review.
+- Verified: a test types "" and then spaces over a restored item's label (still "Check this" with
+  the read-again reason each time), then real words (reason gone); it failed on the old code, then
+  passed; 129 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): label words that differ only by spaces are not new identity evidence
 - What: a label edit counted as new evidence when its raw text changed, so adding a space to an
   unsure item's label set the sender's evidence and could turn "Check this" into "OK to pack".

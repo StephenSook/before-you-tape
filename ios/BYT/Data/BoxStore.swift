@@ -241,7 +241,8 @@ final class BoxStore {
             item.overrides.merge(patch) { _, new in new }
             if let label = patch["labelText"] {
                 item.labelTags = tags(label)
-                item.tagsEdition = tagsEdition(label)
+                // Blank words are not a label: a stale item stays stale until real words are read.
+                if hasWords(label) || !isStale(item) { item.tagsEdition = tagsEdition(label) }
             }
         }
     }
@@ -329,10 +330,15 @@ final class BoxStore {
         return !tagged.isEmpty && tagged != current
     }
 
-    /// The label text this iPhone still holds (a corrected label wins), if any.
+    /// The label text this iPhone still holds (a corrected label wins), if it has any words.
     private func labelInMemory(_ item: BoxItem) -> String? {
-        guard case let .string(text)? = item.overrides["labelText"] ?? item.read["labelText"], !text.isEmpty else { return nil }
+        guard let label = item.overrides["labelText"] ?? item.read["labelText"], hasWords(label), case let .string(text) = label else { return nil }
         return text
+    }
+
+    private func hasWords(_ label: JSONValue?) -> Bool {
+        guard case let .string(text)? = label else { return false }
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Another edition is in force: a label still in memory is read again with its label words.
@@ -381,8 +387,7 @@ final class BoxStore {
     }
 
     private func tagsEdition(_ label: JSONValue?) -> String? {
-        guard case let .string(text)? = label, !text.isEmpty else { return "" }
-        return engine.editionId
+        hasWords(label) ? engine.editionId : ""
     }
 
     private func tags(_ label: JSONValue?) -> [String] {

@@ -124,6 +124,26 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         #expect(restored.result?.items[phoneId]?.level == "ok" && restored.result?.lithium.status == "ok")
     }
 
+    /// Blank words are not a label: typing spaces (or nothing) over a stale item's label keeps it
+    /// stale until real words are read.
+    @Test func aBlankLabelEditKeepsAStaleItemStale() throws {
+        for blank in ["", "   "] {
+            let p = MemoryBoxPersistence()
+            let first = try store(p)
+            let id = first.addManual(Self.lotion)
+            var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(try #require(p.saved.last))) as! [String: Any]
+            json["items"] = (json["items"] as! [[String: Any]]).map { var item = $0; item["tagsEdition"] = nil; return item }
+            let older = try JSONDecoder().decode(BoxSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+            let restored = try store(MemoryBoxPersistence(stored: older))
+            restored.load()
+            restored.override(id, patch: ["labelText": .string(blank)])
+            #expect(restored.result?.items[id]?.level == "check" && restored.result?.items[id]?.hits.first?.text == BoxStore.labelUnknown, "\(blank)")
+            // Real words do read it again.
+            restored.override(id, patch: ["labelText": .string("SHEA BODY LOTION 8 FL OZ")])
+            #expect(restored.result?.items[id]?.hits.first?.text != BoxStore.labelUnknown)
+        }
+    }
+
     /// An item read with no label words has tags that no edition changes: it is not asked for a label.
     @Test func anItemWithNoLabelWordsIsNotAskedForThemUnderANewEdition() throws {
         let p = MemoryBoxPersistence()
