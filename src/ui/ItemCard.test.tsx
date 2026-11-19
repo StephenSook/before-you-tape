@@ -141,11 +141,12 @@ describe("ItemCard", () => {
     expect(row("What it is").getByRole("button", { name: "First read: Power bank" })).toBeInTheDocument();
     expect(row("What it is").getByRole("button", { name: "Second look: Phone" })).toBeInTheDocument();
     expect(row("Battery numbers").getByRole("button", { name: "First read: 3.7 V, 5000 mAh, 18.5 Wh" })).toBeInTheDocument();
-    expect(row("Battery numbers").getByRole("button", { name: "Second look: No numbers" })).toBeInTheDocument();
+    // A zero or empty reading says only that nothing was read, never that nothing is there.
+    expect(row("Battery numbers").getByRole("button", { name: "Second look: No numbers read" })).toBeInTheDocument();
     expect(row("Lithium metal").getByRole("button", { name: "First read: 2.5 g lithium" })).toBeInTheDocument();
-    expect(row("Lithium metal").getByRole("button", { name: "Second look: No lithium metal" })).toBeInTheDocument();
+    expect(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" })).toBeInTheDocument();
     expect(row("Label words").getByRole("button", { name: "First read: flammable" })).toBeInTheDocument();
-    expect(row("Label words").getByRole("button", { name: "Second look: No warning words" })).toBeInTheDocument();
+    expect(row("Label words").getByRole("button", { name: "Second look: No warning words read" })).toBeInTheDocument();
     expect(row("Its box").getByRole("button", { name: "First read: Open or no box" })).toBeInTheDocument();
     expect(row("How it was read").getByRole("button", { name: "First read: Not sure what it is" })).toBeInTheDocument();
     expect(row("How it was read").getByRole("button", { name: "Second look: Read its label" })).toBeInTheDocument();
@@ -153,8 +154,38 @@ describe("ItemCard", () => {
     expect(within(box).queryByRole("group", { name: "Liquid" })).toBeNull();
     await userEvent.click(row("What it is").getByRole("button", { name: "First read: Power bank" }));
     expect(onSettle).toHaveBeenCalledWith("d", "category", "device");
-    await userEvent.click(row("Label words").getByRole("button", { name: "Second look: No warning words" }));
+    // Dropping a word the other read saw asks first.
+    await userEvent.click(row("Label words").getByRole("button", { name: "Second look: No warning words read" }));
+    expect(onSettle).toHaveBeenCalledTimes(1);
+    await userEvent.click(row("Label words").getByRole("button", { name: "Yes, use No warning words read" }));
     expect(onSettle).toHaveBeenLastCalledWith("d", "labelTags", "cloud");
+  });
+
+  it("asks before a pick drops a lithium amount, battery numbers or a hazard the other read saw, and not otherwise", async () => {
+    const disputed = item("f", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", lithiumGrams: 2.5 }, {
+      disputes: {
+        lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
+        battery: { device: { volts: 3, milliampHours: 220, wattHours: 0 }, cloud: { volts: 0, milliampHours: 0, wattHours: 0 }, resolved: false },
+        liquid: { device: true, cloud: false, resolved: false },
+      },
+    });
+    const onSettle = vi.fn();
+    render(<ItemCard item={disputed} verdict={verdictFor(disputed)} crop={null} onSettle={onSettle} />);
+    const row = (name: string) => within(screen.getByRole("group", { name }));
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" }));
+    expect(onSettle).not.toHaveBeenCalled();
+    expect(row("Lithium metal").getByRole("alert")).toHaveTextContent("The first read saw 2.5 g lithium. Use No lithium amount read only if the item really shows that.");
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Keep both for now" }));
+    expect(row("Lithium metal").queryByRole("alert")).toBeNull();
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" }));
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Yes, use No lithium amount read" }));
+    expect(onSettle).toHaveBeenLastCalledWith("f", "lithiumGrams", "cloud");
+    await userEvent.click(row("Battery numbers").getByRole("button", { name: "Second look: No numbers read" }));
+    await userEvent.click(row("Liquid").getByRole("button", { name: "Second look: Not seen" }));
+    expect(onSettle).toHaveBeenCalledTimes(1);
+    // Picking the reading that keeps what was seen needs no question.
+    await userEvent.click(row("Liquid").getByRole("button", { name: "First read: Yes" }));
+    expect(onSettle).toHaveBeenLastCalledWith("f", "liquid", "device");
   });
 
   it("asks nothing about the two reads once every disagreement is settled", () => {

@@ -51,16 +51,36 @@ function readingText(field: DisputeField, value: DisputeValues[DisputeField]): s
     case "battery": {
       const b = value as DisputeValues["battery"];
       const parts = [b.volts > 0 ? `${b.volts} V` : "", b.milliampHours > 0 ? `${b.milliampHours} mAh` : "", b.wattHours > 0 ? `${b.wattHours} Wh` : ""].filter((p) => p !== "");
-      return parts.length > 0 ? parts.join(", ") : "No numbers";
+      return parts.length > 0 ? parts.join(", ") : "No numbers read";
     }
-    case "lithiumGrams": return (value as number) > 0 ? `${value as number} g lithium` : "No lithium metal";
+    // A zero or empty reading says only that nothing was read, never that nothing is there.
+    case "lithiumGrams": return (value as number) > 0 ? `${value as number} g lithium` : "No lithium amount read";
     case "labelTags": {
-      const words = (value as string[]).filter((t) => t !== LABEL_TEXT_TAG).map((t) => t.replace(/_/g, " "));
-      return words.length > 0 ? words.join(", ") : "No warning words";
+      const words = wordsOf(value as string[]).map((t) => t.replace(/_/g, " "));
+      return words.length > 0 ? words.join(", ") : "No warning words read";
     }
-    default: return value ? "Yes" : "No";
+    default: return value ? "Yes" : "Not seen";
   }
 }
+
+const wordsOf = (tags: readonly string[]) => tags.filter((t) => t !== LABEL_TEXT_TAG);
+const FLAG_FIELDS: readonly DisputeField[] = ["batteryWords", "liquid", "pressurized", "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder"];
+
+// Whether picking one reading drops something the other read saw: a lithium amount, battery numbers, a hazard
+// flag or a label word. Such a pick asks the sender to confirm first.
+function dropsWhatOtherSaw(field: DisputeField, picked: DisputeValues[DisputeField], other: DisputeValues[DisputeField]): boolean {
+  if (field === "lithiumGrams") return (picked as number) === 0 && (other as number) > 0;
+  if (field === "battery") {
+    const p = picked as DisputeValues["battery"];
+    const o = other as DisputeValues["battery"];
+    return p.volts === 0 && p.milliampHours === 0 && p.wattHours === 0 && (o.volts > 0 || o.milliampHours > 0 || o.wattHours > 0);
+  }
+  if (field === "labelTags") return wordsOf(other as string[]).some((t) => !(picked as string[]).includes(t));
+  if (FLAG_FIELDS.includes(field)) return picked === false && other === true;
+  return false;
+}
+
+const SIDE_NAME = { device: "first read", cloud: "second look" } as const;
 
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
@@ -70,6 +90,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
   const needsRating = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH");
   const name = item.overrides.itemName ?? item.read.itemName;
   const disputed = openDisputes(item.disputes);
+  const [asking, setAsking] = useState<{ field: DisputeField; side: "device" | "cloud" } | null>(null);
   return (
     <article data-testid="item-card" id={`item-${item.itemId}`} className={newest ? "card newest" : "card"} aria-label={name}>
       {crop && <img data-testid="crop-image" src={`data:${crop.mimeType};base64,${crop.base64}`} alt={`The photo of ${name} that was read`} />}
@@ -87,11 +108,27 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
           <legend>The two reads disagree. Pick what the item shows.</legend>
           {disputed.map((f) => {
             const d = item.disputes![f]!;
+            const pick = (side: "device" | "cloud") => {
+              const other = side === "device" ? "cloud" : "device";
+              if (dropsWhatOtherSaw(f, d[side], d[other])) setAsking({ field: f, side });
+              else { setAsking(null); onSettle?.(item.itemId, f, side); }
+            };
+            const ask = asking?.field === f ? asking : null;
+            const other = ask ? (ask.side === "device" ? "cloud" : "device") : null;
+            const otherSaw = other ? (FLAG_FIELDS.includes(f) ? DISPUTE_LABEL[f].toLowerCase() : readingText(f, d[other])) : "";
+            const picked = ask ? readingText(f, d[ask.side]) : "";
             return (
               <div key={f} role="group" aria-label={DISPUTE_LABEL[f]}>
                 <span>{DISPUTE_LABEL[f]}</span>{" "}
-                <button type="button" onClick={() => onSettle?.(item.itemId, f, "device")}>First read: {readingText(f, d.device)}</button>{" "}
-                <button type="button" onClick={() => onSettle?.(item.itemId, f, "cloud")}>Second look: {readingText(f, d.cloud)}</button>
+                <button type="button" onClick={() => pick("device")}>First read: {readingText(f, d.device)}</button>{" "}
+                <button type="button" onClick={() => pick("cloud")}>Second look: {readingText(f, d.cloud)}</button>
+                {ask && other && (
+                  <>
+                    <p role="alert">The {SIDE_NAME[other]} saw {otherSaw}. Use {picked} only if the item really shows that.</p>
+                    <button type="button" onClick={() => { setAsking(null); onSettle?.(item.itemId, f, ask.side); }}>Yes, use {picked}</button>{" "}
+                    <button type="button" onClick={() => setAsking(null)}>Keep both for now</button>
+                  </>
+                )}
               </div>
             );
           })}
