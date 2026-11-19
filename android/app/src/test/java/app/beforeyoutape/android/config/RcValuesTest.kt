@@ -36,4 +36,17 @@ class RcValuesTest {
         assertEquals(base.getValue("cloud_model_item"), RcValues.parse(base).cloudModelItem)
         assertEquals("", RcValues.parse(base - "cloud_model_item").cloudModelItem)
     }
+
+    /** As on the web: a pin needs a safe id and a 64-hex SHA-256, or it is empty and the built-in edition is used. */
+    @Test fun anEditionPinNeedsASafeIdAndAFullHash() {
+        val sha = "AB".repeat(32)
+        val ok = RcValues.parse(base + ("rules_edition_id" to " byt-abc123 ") + ("rules_edition_sha256" to " $sha "))
+        assertEquals("byt-abc123", ok.rulesEditionId)
+        assertEquals(sha.lowercase(), ok.rulesEditionSha256)
+        for ((id, h) in listOf("Bad ID!" to sha, "byt-abc" to "zz", "" to sha, "byt-abc" to "")) {
+            val v = RcValues.parse(base + ("rules_edition_id" to id) + ("rules_edition_sha256" to h))
+            assertEquals("", v.rulesEditionId)
+            assertEquals("", v.rulesEditionSha256)
+        }
+    }
 }

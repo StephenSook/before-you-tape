@@ -10,6 +10,8 @@ object Copy {
     const val ALLOW = "Allow"
     const val KEEP_ON_PHONE = "Keep everything on this phone"
     const val FOOTER = "Not affiliated with or approved by the US Postal Service."
+    /** The web app's line for a read of no item (src/pages/PackPage.tsx NO_ITEM). */
+    const val NO_ITEM = "Nothing to check there. Hold one item inside the box."
 
     /** What reads labels on this phone, by the on-device model's status. */
     fun modelSentence(s: app.beforeyoutape.android.ai.DeviceModelStatus): String = when (s) {
@@ -40,6 +42,8 @@ object Copy {
     const val ABOUT = "About this phone"
     const val RULES_ON_WEB = "Rules on the web"
     const val BACK = "Back"
+    const val TURN_OFF_CLOUD = "Turn off cloud reads"
+    const val ASK_AGAIN = "Ask me again about cloud reads"
     const val REMOVE = "Remove"
     const val ONE_MORE = "One more"
     const val MODEL_CAN_DOWNLOAD = "This phone can get its own model to read labels, so nothing leaves it."

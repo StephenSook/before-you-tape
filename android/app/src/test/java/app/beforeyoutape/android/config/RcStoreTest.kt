@@ -4,9 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class RcStoreTest {
-    private class FakeSource(var map: Map<String, String>) : RcSource {
+    private class FakeSource(var map: Map<String, String>, var fetched: Boolean = true) : RcSource {
         var onChange: (() -> Unit)? = null
         override fun snapshot() = map
+        override fun fetchedActive() = fetched
         override fun start(onChange: () -> Unit) {
             this.onChange = onChange
         }
@@ -16,6 +17,20 @@ class RcStoreTest {
     @Test fun beforeAnythingLoadsThereIsNoCloudModel() {
         val store = RcStore(FakeSource(emptyMap()))
         assertEquals("", store.current().cloudModelItem)
+    }
+
+    /**
+     * Before a fetched value is active, only the in-app defaults are known, and their kill_cloud is
+     * false; the cloud stays off until the server's own value is in force.
+     */
+    @Test fun theCloudIsHeldUntilAFetchedValueIsActive() {
+        val source = FakeSource(RcDefaultsTest.xmlDefaults(), fetched = false)
+        val store = RcStore(source)
+        store.start()
+        assertEquals(true, store.current().killCloud)
+        source.fetched = true
+        source.onChange!!.invoke()
+        assertEquals(false, store.current().killCloud)
     }
 
     @Test fun aLiveUpdateIsPublished() {
