@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface RcSource {
     fun snapshot(): Map<String, String>
     fun start(onChange: () -> Unit)
+
+    /** Whether a value fetched from the server is active (not only the in-app defaults). */
+    fun fetchedActive(): Boolean
 }
 
 /**
@@ -30,14 +33,22 @@ class RcStore(private val source: RcSource) {
         source.start { publish() }
     }
 
+    /**
+     * Until a value fetched from the server is active, the cloud stays off: the in-app defaults say
+     * kill_cloud is false, and a switch-off on the server must not be missed by a phone that has not
+     * fetched yet. Activated values persist on the device, so after the first fetch this holds offline too.
+     */
     private fun publish() {
-        state.value = RcValues.parse(source.snapshot())
+        val values = RcValues.parse(source.snapshot())
+        state.value = if (source.fetchedActive()) values else values.copy(killCloud = true)
     }
 }
 
 /** Firebase Remote Config with the in-app defaults XML, a fetch at start and a real-time listener. */
 class FirebaseRcSource(private val remote: FirebaseRemoteConfig) : RcSource {
     override fun snapshot(): Map<String, String> = remote.all.mapValues { it.value.asString() }
+
+    override fun fetchedActive(): Boolean = remote.getValue("kill_cloud").source == FirebaseRemoteConfig.VALUE_SOURCE_REMOTE
 
     override fun start(onChange: () -> Unit) {
         remote.setConfigSettingsAsync(remoteConfigSettings { minimumFetchIntervalInSeconds = 300 })

@@ -3,6 +3,16 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The cloud stays off until the server's Remote Config values are active.** Before the first
+  fetch only the in-app defaults are known, and their `kill_cloud` is false, so a switch-off on the
+  server could be missed by a phone that had not fetched yet. `RcStore` now treats the cloud as
+  switched off until a value fetched from the server is active (Firebase reports `kill_cloud`'s
+  source as remote). Activated values persist on the phone, so after the first fetch this also holds
+  offline. Source: whole-repo review. Verified: `RcStoreTest.theCloudIsHeldUntilAFetchedValueIsActive`
+  failed against a stub, then passes; the live check `RcFetchLiveTest` passed on the emulator against
+  the deployed project (fetched=true, killCloud=false, so the cloud opens once the server values
+  arrive). `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **A read of no item is dropped, as on the web.** A cloud or on-device read that is unsure,
   of category `other`, with no label text, no battery, liquid or warning signal and no real name
   (a camera pointed at a room) was added to the box as an item. `NoItem.isNoItem` now applies the
