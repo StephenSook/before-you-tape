@@ -27,6 +27,7 @@ import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
+import app.beforeyoutape.android.ui.AboutInfo
 import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeActions
 import app.beforeyoutape.android.ui.HomeNav
@@ -62,6 +63,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     private val modelChecks = LatestCheck()
     @Volatile private var downloadActive = false
+    @Volatile private var launchChecked = false
 
     // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
     @Volatile private var restored = false
@@ -116,6 +118,12 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         refreshModel()
     }
 
+    /** Wi-Fi or another network that is not billed by the byte. */
+    private fun unmetered(): Boolean {
+        val cm = getApplication<Application>().getSystemService(ConnectivityManager::class.java) ?: return false
+        return cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == true
+    }
+
     private fun online(): Boolean {
         val cm = getApplication<Application>().getSystemService(ConnectivityManager::class.java) ?: return false
         return cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
@@ -154,8 +162,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun crop(crop: BitmapCrop) {
         if (state.value.busy) return
         publish { it.copy(busy = true, message = null) }
+        // The crop belongs to the scan session current now, even if it waits on the worker.
+        val scan = session.currentScan()
         onWorker {
-            val message = session.check(crop)
+            val message = session.check(crop, scan)
             publish { HomeNav.afterCheck(it, message) }
         }
     }
@@ -163,10 +173,25 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun photoFailed() = publish { it.copy(message = Copy.PHOTO_FAILED) }
 
     override fun show(view: HomeView) {
-        // Going back to the camera starts a new scan session (lifts a refusal pause).
-        // A new scan session; the reset itself waits for the next read (a read still running stays in the old one).
+        // Going back to the camera starts a new scan session; its first read lifts a refusal pause.
         if (view == HomeView.CAMERA && state.value.view != HomeView.CAMERA) session.startNewScan()
-        publish { it.copy(view = view, message = null) }
+        val about = if (view == HomeView.ABOUT) aboutInfo() else null
+        publish { it.copy(view = view, message = null, about = about ?: it.about) }
+    }
+
+    /** What About this phone shows, read when it opens. */
+    private fun aboutInfo(): AboutInfo {
+        val app = getApplication<Application>()
+        fun asset(read: () -> String) = runCatching(read).getOrDefault("unknown")
+        return AboutInfo(
+            deviceModel = state.value.deviceModel,
+            cloudModel = rc?.current()?.cloudModelItem?.ifEmpty { null } ?: "not set",
+            appCheckProvider = AppCheckSetup.PROVIDER,
+            editionId = asset { EngineAssets.editionId(app) },
+            bundleCommit = asset { EngineAssets.manifestCommit(app) },
+            bundleSha256 = asset { EngineAssets.manifestSha256(app) },
+            version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: "unknown",
+        )
     }
 
     override fun typed(draft: ReadDraft) {
@@ -213,6 +238,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         viewModelScope.launch {
             val status = ai?.deviceStatus() ?: DeviceModelStatus.UNAVAILABLE
             if (modelChecks.isLatest(check)) state.update { it.copy(deviceModel = ModelReadiness.shown(status, downloadActive)) }
+            // Once, at launch: a downloadable model starts on Wi-Fi; on mobile data the app asks first.
+            if (!launchChecked) {
+                launchChecked = true
+                if (ModelReadiness.startsAtLaunch(status, unmetered())) getModel()
+            }
         }
     }
 
@@ -223,9 +253,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         state.update { it.copy(deviceModel = DeviceModelStatus.DOWNLOADING) }
         viewModelScope.launch {
             try {
-                client.downloadModel().collect { step ->
-                    if (step is ModelDownload.Failed) state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) }
-                }
+                ModelReadiness.collectDownload(client.downloadModel()) { state.update { it.copy(message = Copy.MODEL_DOWNLOAD_FAILED) } }
             } finally {
                 downloadActive = false
                 refreshModel()

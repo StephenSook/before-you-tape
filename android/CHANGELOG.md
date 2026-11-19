@@ -28,6 +28,58 @@ source (plan task or finding) and how it was verified.
   then pass; `BoxLiveTest` passed live on the emulator against the deployed rules (a phone-made
   box with consent null is accepted and read back; a stranger is refused). `setConsent` needs the
   new rules and is not called yet. `bash android/ci-local.sh` and the root CI mirror exit 0.
+- **A downloadable model starts on Wi-Fi at launch.** At launch, the first model check now
+  decides once: a phone whose on-device model can be downloaded starts the download when the
+  network is unmetered (Wi-Fi); on mobile data the app asks first (the existing "Get the model
+  on this phone" button), and a phone with no model never downloads. A failed download says so
+  once and the offer comes back to try again. Source: Android plan Task 16 (model readiness).
+  Verified: `ModelReadinessTest` gains the four plan tests; `startsAtLaunch` stubbed false fails
+  the Wi-Fi test, and stubbed true fails the mobile-data and no-model tests; the real rule passes
+  all. The view model's launch hook itself has no unit test, and no phone available here reports
+  a downloadable model (the emulator and the A16 have none), so that path is untested on a device.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **About this phone.** A new "About this phone" button opens a screen with what reads labels
+  here (one sentence per on-device model status, pinned by tests: no model, ready, can be
+  downloaded, downloading, could not report), the cloud model from Remote Config, the App Check
+  provider (`play_integrity` in a release build, `debug` in a debug build), the rules edition id,
+  the rules bundle's commit and the first 12 characters of its SHA-256 (from the bundle's build
+  manifest), the version, "License: Apache-2.0", and a link to the web app's rules page. A ready
+  model says "On-device model: ready" and is never named: the SDK version in use reports no model
+  name. Source: Android plan Task 16 (About part); the real-phone pass had no About screen to
+  show. Verified: `AboutTest` (4 tests: every status sentence, every row, no model named, the rules
+  link) failed first, then passes; the device tests `AboutPhoneScreenTest.everyRowIsShown` and
+  `theHomeScreenOpensAbout` pass on the emulator, and a control with the screen's rows removed
+  fails both. `bash android/ci-local.sh` and the root CI mirror exit 0.
+- **Evidence: the app on a real phone.** `docs/evidence/android/a16-2026-11-18/` holds 5
+  stills of the release-signed app on a Samsung A16 against the deployed project (cloud
+  consent, home, destination with the camera off, the typed-item form, an "OK to pack"
+  verdict), with a README that also records the release App Check probe on the same phone
+  (Play Integrity token, sign-in, a cloud read of the known label). Source: the real-device
+  pass. Verified: each still is cropped to remove the phone's status and navigation bars and
+  was checked by eye; the root CI mirror (hygiene guard and secret scan included) exits 0.
+
+- **A crop queued from the old scan session no longer uses up the new session's reset.** The
+  reset for a new scan session was a single pending flag, taken by whichever read the worker
+  started next. If a crop was accepted, waited on the worker behind a box update, and the person
+  went to the box and back to the camera before it ran, that old crop took the reset; a refusal
+  from it then counted in the new session. Each crop now carries the scan session that was
+  current when `crop()` accepted it, and the worker resets only when it starts the first read
+  from a newer session. Source: review (second model) of the Android pull request, round 3,
+  finding 1. Verified: `BoxSessionTest.aQueuedCropFromTheOldSessionDoesNotUseUpTheNewSessionsReset`
+  first failed (`expected:<[read, reset, read]> but was:<[reset, read, read]>`), then passes; the
+  earlier session tests still pass. `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A failed model download shows a message instead of crashing the app.** The pinned SDK
+  reports a failed download as a `Failed` step and then ends the flow with the exception. The
+  view model collected the flow with no catch, so the exception escaped its coroutine and the
+  app crashed. `ModelReadiness.collectDownload` now runs the download: a failure, as a step or
+  as the exception, shows "could not download" once and never escapes, and the status is still
+  checked again afterwards. Closing the screen (cancellation) still stops it and is not shown as
+  a failure. Source: review (second model) of the Android pull request, round 3, finding 2.
+  Verified: `ModelReadinessTest` gains three tests; the two throwing cases first failed with the
+  escaped `IllegalStateException`, then pass, and the cancellation case passes. `bash
+  android/ci-local.sh` and the root CI mirror exit 0.
 
 - **An item whose read leaves out optional fields still loads.** The rules require only
   `itemName`, `category`, `labelText` and `evidence` in an item's `read`; the other twelve fields
