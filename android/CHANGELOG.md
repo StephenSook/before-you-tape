@@ -3,6 +3,15 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The shared vectors run inside the app's runtime on a device.** The device-test APK now
+  carries `tests/vectors` as assets (a `copyVectorAssets` build task, so it is always the same
+  files the web app and the JVM tests run), and `DeviceVectorsTest` runs every box, guard and
+  destination vector through the app's own bundled, manifest-checked engine on the device. A
+  wrong expectation planted in one vector is reported, so the run cannot pass by checking nothing.
+  Source: Android plan Task 17 (gate G-A5). Verified: on the emulator (Android 17, API 37): box 29,
+  guards 64, destinations 21, all passed; the planted case is caught. `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
+
 - **A typed "lists alcohol" is the sender's own word.** When the sender types an item and
   ticks that the label lists alcohol, the item now keeps it as their correction
   (`overrides.alcoholOnLabel = true`), as the web app does. With the shared engine's matching
