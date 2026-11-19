@@ -172,6 +172,30 @@ describe("readItem", () => {
     }
   });
 
+  // The answer on this page can be stale (another tab, a missed message), so the server's answer is asked
+  // for right before every call that can reach the cloud; only a server "allowed" opens it.
+  it("asks the server before every call that can reach the cloud, and opens it only when the server says allowed", async () => {
+    const confirm = vi.fn(async () => true);
+    const m = models({ hybrid: fails("QuotaExceededError"), cloud: fails("fetch-error 503"), fallback: ok("in_cloud") });
+    await readItem(m, img, "hybrid", clock(0, 1), () => true, undefined, confirm);
+    // The hybrid call, the cloud call, its retry and the fallback: four asks.
+    expect(confirm).toHaveBeenCalledTimes(4);
+    const no = async () => false;
+    const hybrid = models({ device: ok("on_device") });
+    expect(await readItem(hybrid, img, "hybrid", clock(0, 1), () => true, undefined, no)).toMatchObject({ source: "on_device", route: "device_only" });
+    expect(hybrid.hybrid.generate).not.toHaveBeenCalled();
+    const cloud = models({});
+    await expect(readItem(cloud, img, "cloud_only", clock(0, 1), () => true, undefined, no)).rejects.toMatchObject({ kind: "blocked" });
+    expect(cloud.cloud.generate).not.toHaveBeenCalled();
+    // The server says no before the retry: no retry, no fallback.
+    let answers = [true, false];
+    const retry = models({ cloud: fails("fetch-error 503"), fallback: ok("in_cloud") });
+    await expect(readItem(retry, img, "cloud_only", clock(0, 1), () => true, undefined, async () => answers.shift() ?? false)).rejects.toMatchObject({ kind: "blocked" });
+    expect(retry.cloud.generate).toHaveBeenCalledTimes(1);
+    expect(retry.fallback.generate).not.toHaveBeenCalled();
+    answers = [];
+  });
+
   it("tries the fallback once when the API says the model is gone, without retrying the gone model", async () => {
     for (const msg of [
       "[GoogleGenerativeAI Error]: fetch-error 404 Not Found: models/gemini-2.5-flash is no longer available to new users",

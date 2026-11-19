@@ -96,6 +96,9 @@ export interface BoxStore {
   setDestination(code: string): void;
   setLiveRead(code: string, edition: DestinationEdition): void;
   setConsent(v: boolean | null): void;
+  // The sender's answer as the server has it now: true only when the server says allowed. With no server
+  // to ask, or one that cannot be read, the answer is no.
+  confirmConsent(): Promise<boolean>;
 }
 
 export interface BoxStoreDeps {
@@ -175,11 +178,25 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
 
   // The sender changed consent in another tab on this box: it holds here too, a saved answer that loads
   // later cannot undo it, and listeners hear of it (the Pack page aborts cloud work on a withdrawal).
+  // Tells listeners about a consent change without saving the box: this tab's items may be older than
+  // another tab's, and a save would write them back.
+  let consentVersion = 0;
+  const publishConsent = (v: boolean | null) => {
+    consentChosenHere = true;
+    consentVersion++;
+    cloudConsent = v;
+    state = { ...state, cloudConsent };
+    for (const l of listeners) l(state);
+  };
+  // A withdrawal from another tab holds at once. A grant is never taken from a message: this tab asks
+  // the server and takes it only when the server says allowed and nothing changed here meanwhile.
   deps.consentChannel?.listen((m) => {
     if (m.boxId !== boxId) return;
-    consentChosenHere = true;
-    cloudConsent = m.consent;
-    commit(state.result);
+    if (m.consent !== true) { publishConsent(m.consent); return; }
+    const asked = consentVersion;
+    void deps.persistence.readConsent?.(boxId).then((v) => {
+      if (v === true && asked === consentVersion && cloudConsent !== true) publishConsent(true);
+    });
   });
 
   const ready = deps.persistence.load(boxId).then((saved) => {
@@ -294,8 +311,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       liveRead = { code, edition };
       commit();
     },
+    confirmConsent: async () => (deps.persistence.readConsent ? (await deps.persistence.readConsent(boxId)) === true : false),
     setConsent(v) {
       consentChosenHere = true;
+      consentVersion++;
       cloudConsent = v;
       commit(state.result);
       // Only the page where the sender pressed the button saves consent, and it tells the other tabs.

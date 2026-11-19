@@ -15,8 +15,13 @@ export function browserConsentChannel(): ConsentChannel {
   if (typeof BroadcastChannel === "undefined") return { post: () => {}, listen: () => () => {} };
   const channel = new BroadcastChannel(NAME);
   return {
+    // A closed channel throws; the other tabs still read the server before any cloud call.
     post(m) {
-      channel.postMessage({ boxId: m.boxId, consent: m.consent });
+      try {
+        channel.postMessage({ boxId: m.boxId, consent: m.consent });
+      } catch {
+        // Nothing to tell.
+      }
     },
     listen(f) {
       const onMessage = (e: MessageEvent) => { if (isConsentMessage(e.data)) f({ boxId: e.data.boxId, consent: e.data.consent }); };

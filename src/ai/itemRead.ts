@@ -75,10 +75,17 @@ interface CloudReply { reply: ModelReply; fallbackAfter?: FallbackAfter }
 // checks that signal before it gets its tokens and before the request, so only a request already sent
 // finishes.
 export type StillAllowed = () => boolean;
+// The sender's answer as the server has it, read right before every call that can reach the cloud: the
+// page's own copy can be stale (another tab, a missed message). Only true opens the cloud.
+export type ServerConsent = () => Promise<boolean>;
 const SWITCHED_OFF = "cloud checks were switched off during the read";
 const blocked = () => new ReadFailure("blocked", SWITCHED_OFF);
 
-interface Withdrawal { opts: CallOptions; withdrawn: () => boolean; aborted: () => boolean; settle: <T>(call: Promise<T>) => Promise<T> }
+interface Withdrawal {
+  opts: CallOptions; withdrawn: () => boolean; aborted: () => boolean; settle: <T>(call: Promise<T>) => Promise<T>;
+  // This page still allows the cloud and the server says allowed; an abort while asking ends the read.
+  serverSays: () => Promise<boolean>;
+}
 
 // A call that can reach the cloud settles as blocked the moment its signal aborts, even while it is still
 // waiting (for sign-in, or for the SDK's tokens), so a withdrawn read never leaves the card checking.
@@ -95,17 +102,31 @@ function untilAborted<T>(call: Promise<T>, signal?: AbortSignal): Promise<T> {
   });
 }
 
-function withdrawal(stillAllowed: StillAllowed, signal?: AbortSignal): Withdrawal {
+function withdrawal(stillAllowed: StillAllowed, signal?: AbortSignal, confirm: ServerConsent = async () => true): Withdrawal {
   const aborted = () => signal?.aborted === true;
-  return {
-    opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed },
-    aborted, withdrawn: () => aborted() || !stillAllowed(), settle: (call) => untilAborted(call, signal),
+  const withdrawn = () => aborted() || !stillAllowed();
+  const settle = <T>(call: Promise<T>) => untilAborted(call, signal);
+  // An abort ends the read (the sender withdrew or left); a "no" from here or the server only closes the
+  // cloud, so a hybrid read can still run on the device.
+  const serverSays = async () => {
+    if (aborted()) throw blocked();
+    if (withdrawn()) return false;
+    let yes: boolean;
+    try {
+      yes = await settle(confirm());
+    } catch (e) {
+      if (e instanceof ReadFailure) throw e;
+      yes = false;
+    }
+    if (aborted()) throw blocked();
+    return yes && !withdrawn();
   };
+  return { opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed }, aborted, withdrawn, settle, serverSays };
 }
 
 async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
-    if (w.withdrawn()) throw blocked();
+    if (!(await w.serverSays())) throw blocked();
     try {
       return { reply: await w.settle(models.cloud.generate(ITEM_READ_PROMPT, image, w.opts)) };
     } catch (e) {
@@ -114,7 +135,7 @@ async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): P
       if (c.retry && attempt < 2) continue;
       const status = fallbackStatus(e);
       if (!models.fallback || !status) throw new ReadFailure(c.kind, errorName(e));
-      if (w.withdrawn()) throw blocked();
+      if (!(await w.serverSays())) throw blocked();
       // One try on the fallback model, with no retry of its own.
       try {
         return { reply: await w.settle(models.fallback.generate(ITEM_READ_PROMPT, image, w.opts)), fallbackAfter: status };
@@ -136,9 +157,10 @@ function parseOrFail(reply: ModelReply): ItemRead {
 
 export async function readItem(
   models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
+  confirm?: ServerConsent,
 ): Promise<ReadOutcome> {
   const start = now();
-  const w = withdrawal(stillAllowed, signal);
+  const w = withdrawal(stillAllowed, signal, confirm);
   const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: FallbackAfter, ran: ReadRoute = route): ReadOutcome => {
     const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route: ran, recoveredFrom };
     if (reply.unreported) out.unreported = true;
@@ -163,8 +185,8 @@ export async function readItem(
 
   if (route === "hybrid") {
     // The SDK's hybrid mode may go to the cloud inside the call, so it starts only while the cloud is
-    // allowed; otherwise the read stays on the device-only model.
-    if (w.withdrawn()) return onDevice();
+    // allowed here and on the server; otherwise the read stays on the device-only model.
+    if (!(await w.serverSays())) return onDevice();
     let recoveredFrom: string;
     try {
       const reply = await w.settle(models.hybrid.generate(ITEM_READ_PROMPT, image, w.opts));

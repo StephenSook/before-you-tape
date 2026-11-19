@@ -6,6 +6,7 @@ import type { ItemModels, ModelPort } from "../ai/port";
 import { createBoxStore, type BoxPersistence } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
+import { consentServer } from "../../tests/fakes/consentServer";
 
 const liquidLotionLabelRead: ItemRead = {
   itemName: "Body lotion", category: "lotion_cream", labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0, milliampHours: 0, wattHours: 0,
@@ -15,9 +16,9 @@ const liquidLotionLabelRead: ItemRead = {
 const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
-const persistence: BoxPersistence = { save: () => {}, load: async () => null };
+const persistence = (): BoxPersistence => consentServer();
 let n = 0;
-const newStore = () => createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
@@ -164,6 +165,19 @@ describe("PackPage", () => {
     await act(async () => { finish({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }); for (let i = 0; i < 10; i++) await Promise.resolve(); });
     expect(store.getState().items).toHaveLength(0);
     expect(saveCrop).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing in the cloud when the server says no, even though this page still says allowed", async () => {
+    // Another tab took consent back and this one missed the message: the server's answer decides.
+    const server = consentServer();
+    const store = createBoxStore({ edition: () => ed, persistence: server, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    const { models } = setup({ store });
+    expect(store.getState().cloudConsent).toBe(true);
+    server.set(false);
+    await addPhoto();
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
   });
 
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {

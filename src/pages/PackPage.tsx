@@ -160,7 +160,7 @@ export function PackPage(p: PackPageProps) {
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal, () => store.confirmConsent());
       if (gone.current) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason]);
       looks.current.delete(itemId);
@@ -193,7 +193,7 @@ export function PackPage(p: PackPageProps) {
     setBlocked(null);
     const work = cloudWork();
     try {
-      const outcome = await readItem(models, part, route, now, stillAllowed, work.signal);
+      const outcome = await readItem(models, part, route, now, stillAllowed, work.signal, () => store.confirmConsent());
       if (gone.current) return;
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();

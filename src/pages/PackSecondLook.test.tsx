@@ -9,6 +9,7 @@ import { createBoxStore } from "../data/boxStore";
 import type { SecondLookPolicy } from "../routing/policy";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
+import { consentServer } from "../../tests/fakes/consentServer";
 
 const base: ItemRead = {
   itemName: "Phone", category: "phone", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -26,7 +27,7 @@ const failing = (msg: string): Spy => ({ generate: vi.fn(async () => { throw new
 
 let n = 0;
 function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean; online?: boolean; secondLook?: SecondLookPolicy } = {}) {
-  const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
+  const store = createBoxStore({ edition: () => ed, persistence: consentServer(), now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
   store.setConsent(o.consent ?? true);
   const read = o.device ?? phoneDevice;
   const models = { device: answers(read, "on_device"), hybrid: answers(read, "on_device"), cloud: o.cloud ?? answers(phoneCloud, "in_cloud"), fallback: answers(phoneCloud, "in_cloud") };
