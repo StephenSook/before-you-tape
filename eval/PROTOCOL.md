@@ -62,6 +62,19 @@ change to this file after the freeze fails the manifest test.
   median paired difference between the on-device and cloud paths with a 2,000-sample bootstrap interval
   resampled by item under a fixed seed. The cold first call is reported apart.
 
+## Baselines
+
+- Every report shows two baselines beside each path, on the same rows, with the same metrics and the same two
+  denominators, so a model's numbers have something to beat.
+- **Always "Check this"**: every row is "Check this". Its agreement is the share of rows labelled "Check this",
+  it never calls a hazard OK, and its check rate is 100%. A path that is safe but asks the sender as often as
+  this does is no more useful than not reading at all.
+- **Rules only, no model**: each item typed by hand as a person would type it from the photo, with its category
+  and the printed battery numbers (the set's `printed` field) and nothing read from the label, then judged by the
+  same rule edition. It shows what the rules give with no model. The typed category of each item is recorded with
+  the labels, before the freeze.
+- A path beats a baseline only with no hazard called OK and higher agreement than that baseline.
+
 ## Runs
 
 - Each run records the machine, the Chrome version, the model shown, the rule edition and the date.
