@@ -36,7 +36,7 @@ data class BoxHeader(
  * or typed; its tags travel instead.
  */
 object BoxDocs {
-    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs")
+    private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs", "addedAt")
     private val EMPTY_CUSTOMS: Map<String, Any?> =
         linkedMapOf("description" to "", "lintOk" to false, "weightOz" to null, "valueUsd" to null, "countryOfOrigin" to null, "upc" to null)
 
@@ -96,6 +96,8 @@ object BoxDocs {
         if ("readFallback" in item.extras) doc["readFallback"] = item.extras["readFallback"]
         doc["cropKey"] = item.extras["cropKey"]
         doc["customs"] = item.extras["customs"] ?: EMPTY_CUSTOMS
+        // The web app stamps addedAt (ms since 1970) on new items; kept as it came.
+        if ("addedAt" in item.extras) doc["addedAt"] = item.extras["addedAt"]
         return doc
     }
 
