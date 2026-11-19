@@ -50,7 +50,7 @@ import Testing
             guard let colon = t.firstIndex(of: ":"), t.hasSuffix("\","), let quote = t.firstIndex(of: "\"") else { return nil }
             return (String(t[..<colon]), String(t[t.index(after: quote)..<t.index(t.endIndex, offsetBy: -2)]))
         }
-        #expect(pairs.count == 37)
+        #expect(pairs.count == 38)
         #expect(pairs.map(\.0) == ReadDraft.categories.map(\.id))
         #expect(pairs.map(\.1) == ReadDraft.categories.map(\.label))
     }
