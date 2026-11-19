@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -23,8 +23,9 @@ const phoneOnDevice: ItemRead = { ...read, itemName: "Phone", category: "phone",
 function fakeSource(start: Partial<AppConfig> = {}) {
   let current: AppConfig = { ...CONFIG_DEFAULTS, ...start };
   const listeners = new Set<(c: AppConfig) => void>();
-  const source: ConfigSource = { get: () => current, subscribe: (l) => { listeners.add(l); return () => { listeners.delete(l); }; }, ready: Promise.resolve() };
-  return { source, push: (c: Partial<AppConfig>) => { current = { ...current, ...c }; for (const l of listeners) l(current); } };
+  const retry = vi.fn(async () => {});
+  const source: ConfigSource = { get: () => current, subscribe: (l) => { listeners.add(l); return () => { listeners.delete(l); }; }, ready: Promise.resolve(), retry };
+  return { source, retry, push: (c: Partial<AppConfig>) => { current = { ...current, ...c }; for (const l of listeners) l(current); } };
 }
 
 let n = 0;
@@ -38,7 +39,7 @@ function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "n
   const cfg = fakeSource(start);
   render(<LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
     index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />);
-  return { models, makeModels, push: cfg.push };
+  return { models, makeModels, push: cfg.push, retry: cfg.retry };
 }
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
 // Adds a photo and presses "Check this part" on the crop step, as a sender does.
@@ -99,6 +100,16 @@ describe("LivePack", () => {
     await addPhoto();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are waiting for their settings"));
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("offers to load the cloud settings again while they are not known, and asks Remote Config again", async () => {
+    const { push, retry } = setup();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    await userEvent.click(within(screen.getByTestId("paused-banner")).getByRole("button", { name: "Try again" }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    act(() => push({ killCloud: true, pauseUnknown: undefined }));
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   });
 
   it("passes the second-look policy from Remote Config to the page", async () => {

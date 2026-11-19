@@ -107,6 +107,21 @@ describe("remoteConfigSource", () => {
     expect(source.get()).toEqual({ ...CONFIG_DEFAULTS, killCloud: true, pauseUnknown: true });
   });
 
+  it("fetches again on a retry, and opens cloud checks once Remote Config answers", async () => {
+    rcState.fetchFails = true;
+    const source = remoteConfigSource(app);
+    await source.ready;
+    expect(source.get().killCloud).toBe(true);
+    rcState.fetchFails = false;
+    rcState.values = { kill_cloud: "false" };
+    const seen = vi.fn();
+    source.subscribe(seen);
+    await source.retry?.();
+    expect(fetchAndActivate).toHaveBeenCalledTimes(2);
+    expect(source.get()).toMatchObject({ killCloud: false });
+    expect(seen).toHaveBeenCalledWith(expect.objectContaining({ killCloud: false }));
+  });
+
   it("uses a cached kill_cloud value when the fetch fails", async () => {
     rcState.fetchFails = true;
     rcState.values = { kill_cloud: "false" };

@@ -5,7 +5,7 @@ import type { ItemModels } from "../ai/port";
 import type { ConfigSource } from "../config/remoteConfig";
 import { PackPage, type PackPageProps } from "./PackPage";
 
-export interface LivePackProps extends Omit<PackPageProps, "models" | "config" | "liveConfig"> {
+export interface LivePackProps extends Omit<PackPageProps, "models" | "config" | "liveConfig" | "onRetryConfig"> {
   source: ConfigSource;
   makeModels: (cloudModelItem: string, cloudModelItemFallback: string) => ItemModels;
 }
@@ -16,5 +16,5 @@ export function LivePack({ source, makeModels, ...page }: LivePackProps) {
     () => makeModels(config.cloudModelItem, config.cloudModelItemFallback),
     [makeModels, config.cloudModelItem, config.cloudModelItemFallback],
   );
-  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, pauseUnknown: config.pauseUnknown === true, secondLook: config.secondLook }} liveConfig={source} />;
+  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, pauseUnknown: config.pauseUnknown === true, secondLook: config.secondLook }} liveConfig={source} onRetryConfig={source.retry ? () => { void source.retry?.(); } : undefined} />;
 }

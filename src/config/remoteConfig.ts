@@ -74,6 +74,8 @@ export interface ConfigSource {
   get(): AppConfig;
   subscribe(listener: (c: AppConfig) => void): () => void;
   ready: Promise<void>;
+  // Fetches again, for a sender whose first fetch failed and who presses Try again.
+  retry?(): Promise<void>;
 }
 
 export function remoteConfigSource(app: FirebaseApp, minimumFetchIntervalMillis = 3_600_000): ConfigSource {
@@ -106,5 +108,6 @@ export function remoteConfigSource(app: FirebaseApp, minimumFetchIntervalMillis 
       return () => { listeners.delete(listener); };
     },
     ready,
+    retry: () => fetchAndActivate(rc).then(refresh, refresh),
   };
 }

@@ -45,6 +45,8 @@ export interface PackPageProps {
   newCropKey?: () => string;
   // Why a newer rule edition could not be used, if one was named and failed.
   editionNotice?: string | null;
+  // Asks Remote Config again when its settings have not loaded.
+  onRetryConfig?: () => void;
   // Remote Config as it changes, so a pause stops reads already running the moment it arrives.
   liveConfig?: { get(): { killCloud: boolean }; subscribe(listener: (c: { killCloud: boolean }) => void): () => void };
 }
@@ -238,7 +240,12 @@ export function PackPage(p: PackPageProps) {
           </button>
         </p>
       )}
-      {config.killCloud && <p data-testid="paused-banner" className="banner" role="status">{config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."} Checks on this laptop still work.</p>}
+      {config.killCloud && (
+        <p data-testid="paused-banner" className="banner" role="status">
+          {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."} Checks on this laptop still work.
+          {config.pauseUnknown && p.onRetryConfig && <> <button type="button" onClick={p.onRetryConfig}>Try again</button></>}
+        </p>
+      )}
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
