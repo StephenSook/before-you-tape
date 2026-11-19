@@ -5,6 +5,23 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(ios): the sender can turn cloud checks off and on, and turning them off stops uploads
+- What: the cloud choice was asked once and could not be changed. The check screen now shows it as
+  the web app does ("Cloud checks are on." with "Turn off cloud checks"; "Cloud checks are off.
+  Photos and label words stay on this iPhone." with "Turn on cloud checks"). Turning them on
+  clears the choice, so the cloud question is asked again before the next cloud call. The choice
+  is now part of the upload gate every cloud runner checks at the moment it would send (with the
+  server's pause): turning cloud checks off cancels an upload still running, refuses new ones,
+  and the line says "Cloud checks are off, so this was not checked." The gate is refreshed at
+  start, on new settings, on the answer to the question, on the switch, and before every read.
+- Source: review (whole-repo check).
+- Verified: a test runs an upload through the app's own gate, turns cloud checks off while it
+  waits for its token (cancelled, nothing sent), checks a new upload is refused, then turns them
+  on (choice cleared, gate still closed until the question is answered). Other tests cover the
+  lines and that known settings alone do not open the gate. They failed to compile before the
+  change and pass after. 144 unit tests pass; the CI mirror `bash ios/scripts/ci-local-ios.sh`
+  exit 0, UI test included. The new row was not checked by eye on the simulator.
+
 ### fix(ios): cloud checks wait until Remote Config gives its own kill switch, as in the web app
 - What: the app started on its built-in defaults, where kill_cloud is off, and only later fetched
   Remote Config, so a photo taken before the fetch (or with every fetch failing) could go to the
