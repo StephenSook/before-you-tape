@@ -43,6 +43,9 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -134,12 +137,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
      * Saving only here keeps the saved box in step with the changes: a save from another thread could
      * write an older box over a newer one.
      */
-    private fun onWorker(work: suspend () -> Unit) {
+    private fun onWorker(work: suspend () -> Unit): Job =
         viewModelScope.launch(worker) {
             work()
             if (restored) persistence.save(box.state)
         }
-    }
 
     /** Shows the current box. Runs on any thread, so it never saves. */
     private fun publish(change: (HomeUi) -> HomeUi = { it }) {
@@ -154,6 +156,21 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         }
     }
 
+    /** The read under way, so withdrawing consent can cancel it: its result is dropped and nothing more is sent. */
+    private var readJob: Job? = null
+
+    override fun turnOffCloud() {
+        readJob?.cancel()
+        readJob = null
+        store.setCloudConsent(false)
+        publish { it.copy(consent = false, busy = false, about = it.about?.copy(cloudConsent = false)) }
+    }
+
+    override fun askConsentAgain() {
+        store.clearCloudConsent()
+        publish { it.copy(consent = null, view = HomeView.CAMERA, about = null) }
+    }
+
     override fun consent(allowed: Boolean) {
         store.setCloudConsent(allowed)
         publish { it.copy(consent = allowed) }
@@ -164,8 +181,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         publish { it.copy(busy = true, message = null) }
         // The crop belongs to the scan session current now, even if it waits on the worker.
         val scan = session.currentScan()
-        onWorker {
+        readJob = onWorker {
             val message = session.check(crop, scan)
+            // Consent was withdrawn while the read ran: drop its result.
+            currentCoroutineContext().ensureActive()
             publish { HomeNav.afterCheck(it, message) }
         }
     }
@@ -191,6 +210,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             bundleCommit = asset { EngineAssets.manifestCommit(app) },
             bundleSha256 = asset { EngineAssets.manifestSha256(app) },
             version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: "unknown",
+            cloudConsent = store.cloudConsent(),
         )
     }
 
@@ -220,14 +240,18 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         }
     }
 
-    override fun answer(itemId: String, questionId: String, answerId: String) = onWorker {
-        box.answer(itemId, questionId, answerId)
-        publish()
+    override fun answer(itemId: String, questionId: String, answerId: String) {
+        onWorker {
+            box.answer(itemId, questionId, answerId)
+            publish()
+        }
     }
 
-    override fun quantity(itemId: String, step: Int) = onWorker {
-        box.stepQuantity(itemId, step)
-        publish()
+    override fun quantity(itemId: String, step: Int) {
+        onWorker {
+            box.stepQuantity(itemId, step)
+            publish()
+        }
     }
 
     /** Re-checks the on-device model: at start and whenever the app comes back to the front. */
@@ -261,9 +285,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         }
     }
 
-    override fun remove(itemId: String) = onWorker {
-        box.remove(itemId)
-        publish()
+    override fun remove(itemId: String) {
+        onWorker {
+            box.remove(itemId)
+            publish()
+        }
     }
 
     override fun onCleared() {

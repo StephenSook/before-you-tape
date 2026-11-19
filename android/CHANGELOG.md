@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Cloud consent can be changed in the app, and turning it off stops a read under way.** The
+  consent question was asked once and could not be changed afterwards. The About screen now shows
+  this phone's choice ("Cloud reads: allowed", "off" or "not chosen yet") and a button: "Turn off
+  cloud reads" when they are allowed, "Ask me again about cloud reads" otherwise. Turning them off
+  saves the choice and cancels the read that is running, so its result is dropped and nothing more
+  is sent; asking again forgets the choice so the consent question opens. Reads now run through the
+  one worker helper, which returns its job, so the box is still saved in exactly one place. Source:
+  whole-repo review. Verified: `LocalStoreTest.clearingTheChoiceAsksAgain`, the two new `AboutTest`
+  cases and `ConsentWithdrawalCancelsTheReadTest` failed first (the last one also with the cancel
+  and the active check removed, as a control), then pass; `AboutPhoneScreenTest` passed 4 of 4 on
+  the emulator and failed 2 of 4 with the button choice flipped. `bash android/ci-local.sh` exits 0.
+
 - **The cloud stays off until the server's Remote Config values are active.** Before the first
   fetch only the in-app defaults are known, and their `kill_cloud` is false, so a switch-off on the
   server could be missed by a phone that had not fetched yet. `RcStore` now treats the cloud as

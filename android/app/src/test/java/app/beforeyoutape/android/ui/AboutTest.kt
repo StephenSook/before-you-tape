@@ -31,6 +31,7 @@ class AboutTest {
                 Copy.modelSentence(DeviceModelStatus.UNAVAILABLE),
                 "Cloud model: gemini-3.5-flash-lite",
                 "App Check: play_integrity",
+                "Cloud reads: not chosen yet",
                 "Rules edition: byt-e1710fc2f032",
                 "Rules bundle: 0123456 (abababababab)",
                 "Version 0.1.0",
@@ -50,6 +51,11 @@ class AboutTest {
             val text = About.rows(info.copy(deviceModel = s)).joinToString("\n")
             assertFalse(s.name, text.contains("Nano"))
         }
+    }
+
+    @Test fun theCloudConsentIsShown() {
+        assertEquals(true, About.rows(info.copy(cloudConsent = true)).contains("Cloud reads: allowed"))
+        assertEquals(true, About.rows(info.copy(cloudConsent = false)).contains("Cloud reads: off"))
     }
 
     @Test fun theRulesLinkIsTheWebAppsRulesPage() {

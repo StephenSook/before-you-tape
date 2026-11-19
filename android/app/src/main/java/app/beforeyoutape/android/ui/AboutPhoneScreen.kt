@@ -16,12 +16,21 @@ import androidx.compose.ui.unit.dp
 
 /** About this phone: what reads labels here, the cloud model, App Check, and the rules it runs. */
 @Composable
-fun AboutPhoneScreen(info: AboutInfo, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun AboutPhoneScreen(
+    info: AboutInfo,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onTurnOffCloud: () -> Unit = {},
+    onAskAgain: () -> Unit = {},
+) {
     val uri = LocalUriHandler.current
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val rows = About.rows(info)
         Text(rows.first(), style = MaterialTheme.typography.titleMedium)
         rows.drop(1).forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
+        // Consent can change here at any time: off at once, or asked again from the start.
+        if (info.cloudConsent == true) OutlinedButton(onClick = onTurnOffCloud, modifier = Modifier.fillMaxWidth()) { Text(Copy.TURN_OFF_CLOUD) }
+        else OutlinedButton(onClick = onAskAgain, modifier = Modifier.fillMaxWidth()) { Text(Copy.ASK_AGAIN) }
         TextButton(onClick = { uri.openUri(About.RULES_URL) }) { Text(Copy.RULES_ON_WEB) }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(Copy.BACK) }
     }
