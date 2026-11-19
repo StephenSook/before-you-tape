@@ -3,6 +3,29 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A downloadable model starts on Wi-Fi at launch.** At launch, the first model check now
+  decides once: a phone whose on-device model can be downloaded starts the download when the
+  network is unmetered (Wi-Fi); on mobile data the app asks first (the existing "Get the model
+  on this phone" button), and a phone with no model never downloads. A failed download says so
+  once and the offer comes back to try again. Source: Android plan Task 16 (model readiness).
+  Verified: `ModelReadinessTest` gains the four plan tests; `startsAtLaunch` stubbed false fails
+  the Wi-Fi test, and stubbed true fails the mobile-data and no-model tests; the real rule passes
+  all. The view model's launch hook itself has no unit test, and no phone available here reports
+  a downloadable model (the emulator and the A16 have none), so that path is untested on a device.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **About this phone.** A new "About this phone" button opens a screen with what reads labels
+  here (one sentence per on-device model status, pinned by tests: no model, ready, can be
+  downloaded, downloading, could not report), the cloud model from Remote Config, the App Check
+  provider (`play_integrity` in a release build, `debug` in a debug build), the rules edition id,
+  the rules bundle's commit and the first 12 characters of its SHA-256 (from the bundle's build
+  manifest), the version, "License: Apache-2.0", and a link to the web app's rules page. A ready
+  model says "On-device model: ready" and is never named: the SDK version in use reports no model
+  name. Source: Android plan Task 16 (About part); the real-phone pass had no About screen to
+  show. Verified: `AboutTest` (4 tests: every status sentence, every row, no model named, the rules
+  link) failed first, then passes; the device tests `AboutPhoneScreenTest.everyRowIsShown` and
+  `theHomeScreenOpensAbout` pass on the emulator, and a control with the screen's rows removed
+  fails both. `bash android/ci-local.sh` and the root CI mirror exit 0.
 - **Evidence: the app on a real phone.** `docs/evidence/android/a16-2026-11-18/` holds 5
   stills of the release-signed app on a Samsung A16 against the deployed project (cloud
   consent, home, destination with the camera off, the typed-item form, an "OK to pack"
