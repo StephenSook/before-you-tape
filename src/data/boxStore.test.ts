@@ -306,6 +306,23 @@ describe("createBoxStore", () => {
     expect(s.getState().result.items[id]?.level).toBe("take_out");
   });
 
+  it("keeps a label correction made while the second look ran, so a reload gives the same verdict", async () => {
+    const flammable = { ...liquidLotionRead, labelText: "FLAMMABLE BODY LOTION" };
+    const p = spyPersistence();
+    const s = store({ persistence: p });
+    const id = s.addRead(outcome(flammable, "on_device"), "k");
+    // The sender corrects the label while the cloud read is out; the cloud then reads FLAMMABLE as well.
+    s.override(id, { labelText: "SHEA BODY LOTION 8 FL OZ" });
+    s.applySecondLook(id, mergeReads(flammable, flammable), 900, "reason", flammable.labelText);
+    const before = s.getState().result.items[id]?.level;
+    expect(before).not.toBe("take_out");
+    const saved = p.save.mock.calls.at(-1)![0];
+    expect(saved.items[0]?.labelTags).not.toContain("flammable");
+    const reloaded = store({ persistence: spyPersistence(saved) });
+    await reloaded.ready;
+    expect(reloaded.getState().result.items[id]?.level).toBe(before);
+  });
+
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
     const s = store();
     expect(s.getState().destinationCode).toBe("CA");

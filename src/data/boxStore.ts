@@ -258,9 +258,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       }
       // A second look confirms identity only when both reads see the same kind of item.
       // The tags of every label either read saw, never only the merged one: a hazard word in the shorter
-      // label still counts. The item's tags so far are the first read's.
+      // label still counts. The item's tags so far are the first read's. A label the sender corrected while
+      // the cloud read ran stays theirs: only its tags are saved, so a reload gives the verdict they saw.
       update(itemId, (i) => ({
-        ...i, read: merged, labelTags: [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...tagsOf(cloudLabel)])], secondLook: { ms, reason },
+        ...i, read: merged, secondLook: { ms, reason },
+        labelTags: i.overrides.labelText !== undefined ? i.labelTags : [...new Set([...i.labelTags, ...tagsOf(merged.labelText), ...tagsOf(cloudLabel)])],
         identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
       }));
     },
