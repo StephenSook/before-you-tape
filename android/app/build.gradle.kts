@@ -74,9 +74,31 @@ val copyEngineAssets = tasks.register<CopyEngineAssets>("copyEngineAssets") {
     edition.set(rootProject.layout.projectDirectory.file("../rules/edition.json"))
 }
 
+// The shared vectors (tests/vectors) ship as device-test assets under vectors/, so the device tests
+// run the very files the web app and the JVM tests run.
+abstract class CopyVectorAssets : DefaultTask() {
+    @get:InputDirectory
+    abstract val vectorsDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = File(outputDir.get().asFile, "vectors")
+        out.mkdirs()
+        vectorsDir.get().asFile.listFiles { f -> f.name.endsWith(".json") }!!.forEach { it.copyTo(File(out, it.name), overwrite = true) }
+    }
+}
+
+val copyVectorAssets = tasks.register<CopyVectorAssets>("copyVectorAssets") {
+    vectorsDir.set(rootProject.layout.projectDirectory.dir("../tests/vectors"))
+}
+
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(copyEngineAssets, CopyEngineAssets::outputDir)
+        variant.androidTest?.sources?.assets?.addGeneratedSourceDirectory(copyVectorAssets, CopyVectorAssets::outputDir)
     }
 }
 

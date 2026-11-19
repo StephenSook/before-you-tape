@@ -3,6 +3,35 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Evidence for gate G-A5.** `docs/evidence/android/G-A5.md` records the parity run: on the
+  emulator (Android 17), every shared vector passes in the app's runtime (box 29, guards 64,
+  destinations 21) and QuickJS equals WebView V8 on 426 inputs (114 vectors, 312 labels), WebView
+  145.0.7632.218, rules bundle SHA-256 52e8fb43...60b48 from a clean build of 4c64439, with both
+  controls caught. The A16 run and the live same-box check are listed as not done yet, with what
+  each needs. Source: Android plan Task 17. Verified: the root CI mirror and the Android mirror
+  (its dash and quote guard included) exit 0.
+
+- **QuickJS against WebView V8 on every vector and a 312-label corpus.** `EngineDifferentialTest`
+  loads the same rules bundle and edition into the app's QuickJS runtime and into an
+  `android.webkit.WebView` (V8, test code only), and requires byte-for-byte equal reply text for
+  every box, guard and destination vector and for the label tags of every case in
+  `label-corpus.json`: all 69 distinct vector label texts plus our own cases crossed with no-break
+  spaces, each Unicode hyphen, full-width letters, accented neighbours, a line break inside
+  "ALCOHOL FREE", "0 % alcohol" and empty text (`android/tools/label_corpus.py` builds it,
+  ASCII-escaped). A difference planted on the oracle's side is reported. Source: Android plan
+  Task 17 (gate G-A5). Verified: on the emulator, 426 inputs (312 labels), all equal, WebView
+  145.0.7632.218, bundle SHA-256 52e8fb430508; the planted difference is caught.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **The shared vectors run inside the app's runtime on a device.** The device-test APK now
+  carries `tests/vectors` as assets (a `copyVectorAssets` build task, so it is always the same
+  files the web app and the JVM tests run), and `DeviceVectorsTest` runs every box, guard and
+  destination vector through the app's own bundled, manifest-checked engine on the device. A
+  wrong expectation planted in one vector is reported, so the run cannot pass by checking nothing.
+  Source: Android plan Task 17 (gate G-A5). Verified: on the emulator (Android 17, API 37): box 29,
+  guards 64, destinations 21, all passed; the planted case is caught. `bash android/ci-local.sh`
+  and the root CI mirror exit 0.
+
 - **A typed "lists alcohol" is the sender's own word.** When the sender types an item and
   ticks that the label lists alcohol, the item now keeps it as their correction
   (`overrides.alcoholOnLabel = true`), as the web app does. With the shared engine's matching
