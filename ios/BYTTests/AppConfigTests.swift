@@ -187,6 +187,42 @@ import Testing
         #expect(!m.destinations.contains { $0.code == "ZZ" })
     }
 
+    /// Before Remote Config has given its own kill switch, a photo is not sent to the cloud and the
+    /// line says the settings are on their way; once they arrive, the next photo is read in the cloud.
+    @Test func cloudChecksWaitForTheirSettings() async {
+        let names = Models()
+        let j = FakeItemRunner.Journal()
+        let lotion = BoxStoreTests.lotion
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { name in
+            names.names.append(name)
+            return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
+        }, parse: { $0 })
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        m.network.pathChanged(satisfied: true)
+        m.box?.setConsent(true)
+        #expect(m.config.killCloud && m.config.pauseUnknown)
+        await m.readPhoto(jpeg)
+        #expect(names.names.isEmpty && m.lastRead?.route == .blocked && m.box?.items.isEmpty == true)
+        #expect(m.readLine == "Checking a photo needs the cloud, and cloud checks are waiting for their settings. Try again in a moment.")
+        await m.applyConfig(RemoteConfigValues.defaults)
+        await m.readPhoto(jpeg)
+        #expect(names.names.count == 1 && m.box?.items.count == 1)
+    }
+
+    /// While cloud checks wait for their settings, label words are still read on this iPhone.
+    @Test func wordsAreReadOnThisIPhoneWhileTheCloudWaits() async {
+        let j = FakeItemRunner.Journal()
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))]),
+                                makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+        let ready = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "t", vision: false)
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { ready },
+                         persistence: MemoryBoxPersistence(), reader: reader)
+        #expect(m.config.pauseUnknown)
+        m.network.pathChanged(satisfied: true)
+        await m.readWords("SHEA BODY LOTION 8 FL OZ")
+        #expect(j.events == ["device start", "device end"] && m.lastRead?.source == .onDevice && m.box?.items.count == 1)
+    }
+
     final class Holder: @unchecked Sendable { var model: AppModel? }
 
     /// Pauses the cloud while the on-device read runs, then fails it so the read would fall to the cloud.
@@ -208,7 +244,7 @@ import Testing
         }, parse: { $0 })
         let ready = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "t", vision: false)
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { ready },
-                         persistence: MemoryBoxPersistence(), reader: reader)
+                         persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         holder.model = m
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)

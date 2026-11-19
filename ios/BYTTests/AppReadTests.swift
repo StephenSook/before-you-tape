@@ -12,7 +12,7 @@ import Testing
     func fakeModel(_ j: FakeItemRunner.Journal) -> AppModel {
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         return model
     }
@@ -44,13 +44,32 @@ import Testing
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
         await model.readPhoto(jpeg)
         #expect(!model.askingConsent)
         #expect(model.lastRead?.source == .cloud)
         #expect(model.box?.items.first?.readSource == "phone_cloud")
+        #expect(model.readLine == "Body lotion: OK to pack. Read in the cloud.")
+    }
+
+    /// A photo of no item (the camera pointed at a room) is not added to the box, as the web app
+    /// drops it, and the screen says why; the next photo of a real item is added as usual.
+    @Test func aPhotoOfNoItemIsNotAdded() async throws {
+        let j = FakeItemRunner.Journal()
+        let nothing = BoxStoreTests.read(["itemName": .string("unknown"), "evidence": .string("not_sure")])
+        let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: nothing, tokens: nil)),
+                                                                 .success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        model.network.pathChanged(satisfied: true)
+        model.box?.setConsent(true)
+        await model.readPhoto(jpeg)
+        #expect(model.box?.items.isEmpty == true)
+        #expect(model.readLine == "Nothing to check there. Hold one item inside the box.")
+        await model.readPhoto(jpeg)
+        #expect(model.box?.items.count == 1)
         #expect(model.readLine == "Body lotion: OK to pack. Read in the cloud.")
     }
 
@@ -84,7 +103,7 @@ import Testing
         let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
         let available = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: false)
         let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { available },
-                             persistence: MemoryBoxPersistence(), reader: reader)
+                             persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         await model.readWords("  EAU DE PARFUM ALCOHOL DENAT 50 ML  ")
         #expect(!model.askingConsent)
         #expect(j.events == ["device start", "device end"])
@@ -104,7 +123,7 @@ import Testing
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
         await model.readPhoto(jpeg)
@@ -124,7 +143,7 @@ import Testing
         let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
         let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
         let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { status.now },
-                             persistence: MemoryBoxPersistence(), reader: reader)
+                             persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         #expect(model.onDevice.unavailable == .modelNotReady)
         status.now.unavailable = nil
         model.becameActive()

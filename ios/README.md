@@ -1,8 +1,8 @@
 # Before You Tape for iPhone
 
 A native iPhone client for Before You Tape: point the camera at an item's label, and the app
-reads it, joins the same box as the web app, and shows the same three verdicts from the same
-rules. Work in progress.
+reads it and shows the same three verdicts as the web app, from the same rules. Work in progress.
+The box is kept on the phone only: joining a box started in the web app is not built yet.
 
 - Rules: the web app's own rules engine, built into one file and run in JavaScriptCore, so the
   phone and the laptop run the same code.

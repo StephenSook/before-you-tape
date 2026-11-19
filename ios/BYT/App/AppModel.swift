@@ -23,6 +23,9 @@ final class AppModel {
     /// The last read and the box item it made, for the line under the camera.
     private(set) var lastRead: ReadOutcome?
     private(set) var lastItemId: String?
+    /// True when the last photo was of no item (a camera pointed at a room) and was not added.
+    private(set) var lastWasNoItem = false
+    static let noItem = "Nothing to check there. Hold one item inside the box."
     /// True while the one-time cloud question is on screen; the read waits for the answer.
     private(set) var askingConsent = false
     private var pending: ItemInput?
@@ -30,8 +33,9 @@ final class AppModel {
     private(set) var lastCrop: Data?
     /// The crop waiting for the cloud question, shown in it.
     var pendingCrop: Data? { if case let .photo(crop)? = pending { crop } else { nil } }
-    /// Remote Config as last applied; reads use it at once, with no restart.
-    private(set) var config = RemoteConfigValues.defaults
+    /// Remote Config as last applied; reads use it at once, with no restart. It starts held (no cloud)
+    /// until Remote Config gives a kill switch of its own.
+    private(set) var config: RemoteConfigValues
     /// Why a newer rule edition was not used, when one was named and refused.
     private(set) var editionNotice: String?
     let appVersion: String
@@ -67,7 +71,8 @@ final class AppModel {
          today: @escaping () -> String = { AppModel.localDate(Date()) },
          appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
          fetchEdition: @escaping @Sendable (String) async -> String? = AppModel.firestoreEdition,
-         editionText: String? = AppModel.shippedEdition()) {
+         editionText: String? = AppModel.shippedEdition(), config: RemoteConfigValues = .held) {
+        self.config = config
         self.appVersion = appVersion
         self.fetchEdition = fetchEdition
         self.signIn = signIn
@@ -83,6 +88,7 @@ final class AppModel {
         self.destinations = engine == nil ? [] : editionText.map(Self.destinations(fromEdition:)) ?? []
         self.engine = engine
         let pause = PauseSwitch()
+        pause.paused = config.killCloud
         self.pause = pause
         self.reader = reader ?? engine.map { Self.makeReader(engine: $0, signIn: signIn, pause: pause) }
         let boxId = Self.currentBoxId(defaults)
@@ -92,7 +98,42 @@ final class AppModel {
         }
         // The saved box comes back before anything is added.
         box?.load()
+        refreshCloudGate()
         network.onReconnect = { [weak self] in self?.retryEdition() }
+    }
+
+    /// True while uploads may start: the server has not paused the cloud and the sender allowed it.
+    private var cloudAllowed: Bool { !config.killCloud && box?.cloudConsent == true }
+
+    /// The upload gate every cloud runner checks at the moment it would send. Closing it (a pause,
+    /// or the sender turning cloud checks off) cancels every upload still running.
+    private func refreshCloudGate() { pause.paused = !cloudAllowed }
+
+    struct CloudChoice: Equatable {
+        let line: String
+        let button: String
+    }
+
+    /// The sender's cloud choice and how to change it; nil while it has not been made (the cloud
+    /// question asks it before the first cloud call). As in the web app.
+    var cloudChoice: CloudChoice? {
+        switch box?.cloudConsent {
+        case true?: CloudChoice(line: "Cloud checks are on.", button: "Turn off cloud checks")
+        case false?: CloudChoice(line: "Cloud checks are off. Photos and label words stay on this iPhone.", button: "Turn on cloud checks")
+        case nil: nil
+        }
+    }
+
+    /// Takes the cloud choice back: nothing more is sent, and an upload still running is cancelled.
+    func turnOffCloudChecks() {
+        box?.setConsent(false)
+        refreshCloudGate()
+    }
+
+    /// Clears the choice, so the cloud question is asked again before the next cloud call.
+    func turnOnCloudChecks() {
+        box?.setConsent(nil)
+        refreshCloudGate()
     }
 
     /// The iPhone's own calendar date, YYYY-MM-DD, which the rule layers' freshness is checked against.
@@ -155,6 +196,8 @@ final class AppModel {
 
     private func read(_ input: ItemInput) async {
         guard let reader, let box else { return }
+        // A choice that came back with a late load counts from this read on.
+        refreshCloudGate()
         onDevice = onDeviceStatus()
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
         // Asked once, before the first cloud call: nothing goes to the cloud until the sender picks.
@@ -163,20 +206,23 @@ final class AppModel {
             askingConsent = true
             return
         }
-        // The pause switch is read again, live, before every cloud call of this read.
+        // The pause and the sender's choice are read again, live, before every cloud call of this read.
         var live = reader
-        live.cloudOpen = { [weak self] in !(self?.config.killCloud ?? true) }
+        live.cloudOpen = { [weak self] in self?.cloudAllowed ?? false }
         let outcome = await live.read(input, situation: situation)
         if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
-        lastItemId = box.addRead(outcome, cropFile: nil)
+        // A photo of no item is dropped, as the web app drops it, by the web app's own check.
+        lastWasNoItem = input.kind == .photo && outcome.read.map { (try? engine?.isNoItem($0)) == true } == true
+        lastItemId = lastWasNoItem ? nil : box.addRead(outcome, cropFile: nil)
     }
 
     /// The sender's answer to the cloud question; a waiting photo is read after it.
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
         box?.setConsent(allow)
+        refreshCloudGate()
         guard let input = pending else { return }
         pending = nil
         await read(input)
@@ -185,14 +231,15 @@ final class AppModel {
     private(set) var lastKind: ReadInputKind = .photo
 
     var readLine: String? {
+        if lastWasNoItem { return Self.noItem }
         // The name and the verdict both come from the box item as it is now, corrections included.
         let item = lastItemId.flatMap { id in box?.items.first { $0.itemId == id } }
         return Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind,
-                             name: item.flatMap { FixReadingView.current($0).text("itemName") })
+                             name: item.flatMap { FixReadingView.current($0).text("itemName") }, settingsPending: config.pauseUnknown)
     }
 
     static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo,
-                         name current: String? = nil) -> String? {
+                         name current: String? = nil, settingsPending: Bool = false) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
             // The item's current name wins, even when the sender cleared it; the model's first name
@@ -201,14 +248,18 @@ final class AppModel {
             let name = chosen.isEmpty ? "This item" : chosen
             return "\(name): \(verdict.headline). " + (source == .onDevice ? "Read on this iPhone." : "Read in the cloud.")
         }
+        let waiting = "cloud checks are waiting for their settings. Try again in a moment."
         if outcome.route == .blocked, kind == .labelWords {
-            return "This iPhone cannot read label words right now, and the cloud is not allowed."
+            return settingsPending && consent != false ? "This iPhone cannot read label words right now, and " + waiting
+                                                       : "This iPhone cannot read label words right now, and the cloud is not allowed."
         }
         if outcome.route == .blocked {
-            return consent == false ? "You chose to keep everything on this iPhone, and this iPhone does not read photos yet."
-                                    : "Checking a photo needs the cloud, and the cloud is not allowed yet."
+            if consent == false { return "You chose to keep everything on this iPhone, and this iPhone does not read photos yet." }
+            return settingsPending ? "Checking a photo needs the cloud, and " + waiting
+                                   : "Checking a photo needs the cloud, and the cloud is not allowed yet."
         }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
+        if outcome.failure == .cloudPaused, consent == false { return "Cloud checks are off, so this was not checked." }
         return "That item could not be read. Try another photo."
     }
 
@@ -216,7 +267,7 @@ final class AppModel {
     /// and, only when it checks out, loaded; the box's verdicts are then derived again.
     func applyConfig(_ values: RemoteConfigValues) async {
         config = values
-        pause.paused = values.killCloud
+        refreshCloudGate()
         await followEditionPin()
     }
 
