@@ -5,6 +5,7 @@ import { ed } from "../../tests/engine/helpers";
 import type { ItemRead } from "../shared/itemRead";
 import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
 import { createBoxStore, type BoxItem, type JournalStore } from "./boxStore";
+import { persistenceAfterSignIn } from "./persistence";
 
 const base: ItemRead = {
   itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -170,5 +171,27 @@ describe("saving by explicit operations", () => {
     await settle();
     expect(again.getState().items.map((i) => i.itemId)).toEqual([b]);
     expect(second.o.putItem.mock.calls.map((c) => c[1].itemId)).toEqual([b]);
+  });
+
+  it("keeps edits saved only in this browser waiting for the server, and sends them once a later visit signs in", async () => {
+    const journal = memoryJournal();
+    const local = ops(found([]));
+    const offline = persistenceAfterSignIn(Promise.reject(new Error("offline")), vi.fn(), local.o);
+    const a = make(offline, journal);
+    local.answer();
+    await a.ready;
+    const b = a.addManual(shirt);
+    await a.settled();
+    // Kept in this browser, and still shown as not saved: the server has not got it.
+    expect(local.o.putItem.mock.calls.map((c) => c[1].itemId)).toEqual([b]);
+    expect(a.getState().unsaved).toEqual([b]);
+    const cloud = ops(found([]));
+    const online = persistenceAfterSignIn(Promise.resolve("alice"), () => cloud.o, ops().o);
+    const again = make(online, journal);
+    cloud.answer();
+    await again.ready;
+    await again.settled();
+    expect(cloud.o.putItem.mock.calls.map((c) => c[1].itemId)).toEqual([b]);
+    expect(again.getState().unsaved).toEqual([]);
   });
 });

@@ -218,7 +218,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const publish = () => { for (const l of listeners) l(state); };
   const refreshUnsaved = () => {
     const pending = Object.keys(journal.items);
-    const blocked = loadState === "failed" || (failed.has("meta") && !boxExists);
+    const blocked = loadState === "failed" || (failed.has("meta") && !boxExists) || deps.persistence.localOnly?.() === true;
     unsaved = pending.filter((id) => blocked || failed.has(id));
     state = { ...state, unsaved, loadState };
   };
@@ -254,9 +254,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           try {
             await deps.persistence.putMeta(boxId, meta);
             boxExists = true;
-            serverMeta = stableJson(meta);
             failed.delete("meta");
-            if (journal.meta === sent) journal.meta = null;
+            if (deps.persistence.localOnly?.() !== true) {
+              serverMeta = stableJson(meta);
+              if (journal.meta === sent) journal.meta = null;
+            }
           } catch {
             failed.add("meta");
           }
@@ -267,8 +269,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
-              // A newer edit made while this write was out stays in the journal.
-              if (journal.items[id] === item) {
+              // A write kept only in this browser stays in the journal for the server; a newer edit made while
+              // this write was out stays too.
+              if (journal.items[id] === item && deps.persistence.localOnly?.() !== true) {
                 delete journal.items[id];
                 if (item) server.set(id, stableJson(item));
                 else server.delete(id);

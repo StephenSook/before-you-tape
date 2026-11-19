@@ -19,6 +19,8 @@ export interface BoxOps {
   putItem(boxId: string, item: BoxItem): Promise<void>;
   // One item and its disputes, removed together.
   deleteItem(boxId: string, itemId: string): Promise<void>;
+  // True when the writes land only in this browser (sign-in failed): the store keeps them for the server.
+  localOnly?(): boolean;
 }
 
 // The same JSON text for the same value, whatever order its keys were set in.

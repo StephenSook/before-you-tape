@@ -105,8 +105,10 @@ function paired(item: BoxItem, saved: (Disputes & { itemRev?: string }) | undefi
 // first visit), the box is kept in this browser's storage instead. The store keeps its own journal of what has not
 // reached the server, so a later visit that signs in sends it.
 export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: string) => BoxOps, fallback: BoxOps): BoxOps {
-  const target = signIn.then(make, () => fallback);
+  let local = false;
+  const target = signIn.then(make, () => { local = true; return fallback; });
   return {
+    localOnly: () => local,
     loadBox: (boxId) => target.then((p) => p.loadBox(boxId)),
     putMeta: (boxId, meta) => target.then((p) => p.putMeta(boxId, meta)),
     putItem: (boxId, item) => target.then((p) => p.putItem(boxId, item)),
