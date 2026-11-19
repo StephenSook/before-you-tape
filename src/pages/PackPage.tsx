@@ -295,6 +295,7 @@ export function PackPage(p: PackPageProps) {
                 onFix={(id, patch) => store.override(id, patch)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
                 unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
+                onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={(id) => store.remove(id)}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
                 onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}

@@ -60,6 +60,19 @@ describe("ItemCard", () => {
     expect(screen.getByTestId("service")).toHaveTextContent("Service: Priority Mail International");
   });
 
+  it("lets the sender say how many there are, and remove the item", async () => {
+    const onQuantity = vi.fn();
+    const onRemove = vi.fn();
+    render(<ItemCard item={{ ...perfume, quantity: 2 }} verdict={takeOut} crop={null} onQuantity={onQuantity} onRemove={onRemove} />);
+    const howMany = screen.getByLabelText("How many");
+    expect(howMany).toHaveValue(2);
+    await userEvent.clear(howMany);
+    await userEvent.type(howMany, "3");
+    expect(onQuantity).toHaveBeenLastCalledWith("p", 3);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(onRemove).toHaveBeenCalledWith("p");
+  });
+
   it("keeps the layer list in a closed What we checked disclosure", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
     const details = screen.getByTestId("layer-list").closest("details");

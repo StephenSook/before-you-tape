@@ -55,6 +55,27 @@ describe("PackPage", () => {
     expect(screen.getByRole("link", { name: "Judges: start here" })).toHaveAttribute("href", "/judge");
   });
 
+  it("re-judges the box when the sender changes how many, across the lithium limit and back, and removes an item", async () => {
+    const { store } = setup();
+    await store.ready;
+    const laptop: ItemRead = { ...liquidLotionLabelRead, itemName: "Laptop", category: "laptop", labelText: "11.55V 4380mAh 50.6Wh", liquid: false,
+      volts: 11.55, milliampHours: 4380, wattHours: 50.6, batteryWords: true };
+    act(() => { const id = store.addManual(laptop); store.answer(id, "device_condition", "new_sealed"); });
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    const howMany = within(card).getByLabelText("How many");
+    await userEvent.clear(howMany);
+    await userEvent.type(howMany, "3");
+    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out"));
+    expect(screen.getByTestId("box-summary")).toHaveTextContent("1 to take out");
+    await userEvent.clear(within(screen.getByTestId("item-card")).getByLabelText("How many"));
+    await userEvent.type(within(screen.getByTestId("item-card")).getByLabelText("How many"), "1");
+    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
+    await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: "Remove" }));
+    expect(screen.queryByTestId("item-card")).toBeNull();
+    expect(store.getState().items).toHaveLength(0);
+  });
+
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true } });
     await addPhoto();
