@@ -60,6 +60,43 @@ class BoxDocsContractTest {
         assertEquals(norm(d), norm(BoxDocs.boxToDoc(box)))
     }
 
+    /** Consent lives on each device; the rules refuse a box that carries any consent field. */
+    @Test fun aNewBoxCarriesNoConsentAtAll() {
+        val d = BoxDocs.newBoxDoc("owner-uid", "CA", "byt-e1")
+        for (k in listOf("cloudConsent", "consentChosenAt", "consentAt")) assertTrue(k, k !in d)
+        assertEquals(listOf("owner-uid"), d["memberUids"])
+        assertEquals("", d["joinKeyHash"])
+    }
+
+    /** The model's name for an item never goes to Firestore: the synced read names only the category. */
+    @Test fun anItemDocumentNamesOnlyTheCategory() {
+        val read = ItemReadWire("Brand X Shea Butter Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
+            false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+        val item = BoxLogic.addRead(BoxLogic.empty("CA"), read, listOf("liquid"), Source.IN_CLOUD, 900, "i1").items.single()
+        @Suppress("UNCHECKED_CAST")
+        assertEquals("Lotion or cream", (BoxDocs.itemToDoc(item)["read"] as Map<String, Any?>)["itemName"])
+        assertEquals("Brand X Shea Butter Lotion", item.input.read.itemName)
+    }
+
+    /**
+     * A typed name correction stays on the phone too, and when a correction changes the category,
+     * the synced name is the corrected category's label.
+     */
+    @Test fun aTypedNameCorrectionNeverLeavesThePhone() {
+        val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "", 0.0, 0.0, 0.0, 0.0,
+            false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+        val s = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "i1")
+        val fixed = BoxLogic.override(s, "i1", mapOf("itemName" to JsonPrimitive("Grandma's rose water"), "category" to JsonPrimitive("perfume_fragrance")), null).items.single()
+        val d = BoxDocs.itemToDoc(fixed)
+        @Suppress("UNCHECKED_CAST")
+        val overrides = d["overrides"] as Map<String, Any?>
+        assertTrue("itemName" !in overrides)
+        assertEquals("perfume_fragrance", overrides["category"])
+        @Suppress("UNCHECKED_CAST")
+        assertEquals("Perfume or cologne", (d["read"] as Map<String, Any?>)["itemName"])
+        assertTrue(!d.toString().contains("Grandma"))
+    }
+
     @Test fun anItemDocumentNeverCarriesLabelText() {
         val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
             false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
@@ -109,6 +146,20 @@ class BoxDocsContractTest {
         assertEquals(norm(d["secondLook"]), norm(back["secondLook"]))
         assertEquals(norm(d["readFallback"]), norm(back["readFallback"]))
         assertEquals(norm(d["customs"]), norm(back["customs"]))
+    }
+
+    /** The web app stamps addedAt (ms since 1970) on new items; the phone keeps it on every write. */
+    @Test fun anAddedAtFromTheWebIsKept() {
+        val d = doc("item").toMutableMap().apply { put("addedAt", 1_763_500_000_000L) }
+        assertEquals(1_763_500_000_000L, BoxDocs.itemToDoc(BoxDocs.itemFromDoc("item-1", d))["addedAt"])
+    }
+
+    /** Listed oldest first by addedAt; undated items last, in the order the server gave them. */
+    @Test fun aListedBoxIsSortedByAddedAtWithUndatedItemsLast() {
+        val base = doc("item")
+        fun item(id: String, at: Long?) = BoxDocs.itemFromDoc(id, base.toMutableMap().apply { put("itemId", id); if (at != null) put("addedAt", at) })
+        val server = listOf(item("u1", null), item("late", 300L), item("u2", null), item("early", 100L))
+        assertEquals(listOf("early", "late", "u1", "u2"), BoxDocs.sortedForListing(server).map { it.input.itemId })
     }
 
     @Test fun aPhoneItemCarriesTheWebAppsDefaultsForTheFieldsItDoesNotUse() {
