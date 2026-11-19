@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { ImagePart } from "../ai/port";
 import { CameraError } from "../capture/camera";
+import { CropError } from "../capture/crop";
 import { CameraStage } from "./CameraStage";
 
 const part: ImagePart = { mimeType: "image/jpeg", base64: "/9j/AAAA" };
@@ -93,6 +94,19 @@ describe("CameraStage", () => {
     await waitFor(() => expect(onImage).toHaveBeenCalledWith(part, "check_now"));
     await act(async () => { await userEvent.keyboard(" "); });
     await waitFor(() => expect(onImage).toHaveBeenCalledTimes(2));
+  });
+
+  it("says in plain words why Check now read nothing, never the raw error", async () => {
+    const onError = vi.fn();
+    const capture = vi.fn(async () => { throw new CropError("empty crop box"); });
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} capture={capture} />);
+    await start();
+    await userEvent.click(screen.getByTestId("check-now"));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("Hold the item inside the box, or type it instead."));
+    capture.mockImplementationOnce(async () => { throw new Error("some internal detail"); });
+    await userEvent.click(screen.getByTestId("check-now"));
+    await waitFor(() => expect(onError).toHaveBeenLastCalledWith("That could not be read. Try again, or type the item."));
+    expect(onError.mock.calls.flat().join(" ")).not.toMatch(/crop box|internal detail/);
   });
 
   it("opens a crop step for an added photo, turns the camera off, and sends only the part the sender checks", async () => {

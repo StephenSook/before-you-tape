@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageHow, ImagePart } from "../ai/port";
 import { CameraError, type CameraErrorKind, type openCamera as openCameraFn } from "../capture/camera";
-import { cropToJpeg, decodePhoto } from "../capture/crop";
+import { CropError, cropToJpeg, decodePhoto } from "../capture/crop";
 import { SteadyDetector, type Box, type SteadyConfig, type SteadyEvent } from "../capture/steady";
 import { CROP_LIMITS } from "../shared/cropLimits";
 import { PhotoCrop, type CropSource } from "./PhotoCrop";
@@ -65,6 +65,11 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const latest = useRef({ onImage, onError, capture, autoRead, started });
   useEffect(() => { latest.current = { onImage, onError, capture, autoRead, started }; });
 
+  // What the sender reads when a read or a photo fails: plain words, never the code's own message.
+  const plain = (e: unknown, photo: boolean): string => {
+    if (e instanceof CropError && /empty crop box/.test(e.message)) return "Hold the item inside the box, or type it instead.";
+    return photo ? "That photo could not be opened. Try another, or type the item." : "That could not be read. Try again, or type the item.";
+  };
   const read = useCallback(async (box: Box, how: ImageHow) => {
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
@@ -73,7 +78,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       if (!part) throw new Error("the camera is not ready");
       emit(part, how);
     } catch (e) {
-      fail?.(e instanceof Error ? e.message : String(e));
+      fail?.(plain(e, false));
     }
   }, []);
 
@@ -141,7 +146,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       setEvent(null);
       setPicked((old) => { if (old) release(old); return source; });
     } catch (e) {
-      onError?.(e instanceof Error ? e.message : String(e));
+      onError?.(plain(e, true));
     }
   };
   const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
