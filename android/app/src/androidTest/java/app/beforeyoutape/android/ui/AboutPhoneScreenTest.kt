@@ -30,6 +30,22 @@ class AboutPhoneScreenTest {
         assertTrue(back)
     }
 
+    /** Cloud reads can be turned off here, and asked about again once off. */
+    @Test fun cloudReadsCanBeTurnedOffAndAskedAgain() {
+        val calls = mutableListOf<String>()
+        rule.setContent { AboutPhoneScreen(info.copy(cloudConsent = true), onBack = {}, onTurnOffCloud = { calls += "off" }, onAskAgain = { calls += "again" }) }
+        rule.onNodeWithText(Copy.TURN_OFF_CLOUD).performScrollTo().performClick()
+        assertTrue(calls == listOf("off"))
+    }
+
+    @Test fun withCloudReadsOffTheQuestionCanBeAskedAgain() {
+        val calls = mutableListOf<String>()
+        rule.setContent { AboutPhoneScreen(info.copy(cloudConsent = false), onBack = {}, onTurnOffCloud = { calls += "off" }, onAskAgain = { calls += "again" }) }
+        rule.onNodeWithText(Copy.TURN_OFF_CLOUD).assertDoesNotExist()
+        rule.onNodeWithText(Copy.ASK_AGAIN).performScrollTo().performClick()
+        assertTrue(calls == listOf("again"))
+    }
+
     /** The About button on the home screen opens it, and Back leaves it. */
     @Test fun theHomeScreenOpensAbout() {
         var shown: HomeView? = null

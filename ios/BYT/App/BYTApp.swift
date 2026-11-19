@@ -17,9 +17,13 @@ final class BYTAppCheckFactory: NSObject, AppCheckProviderFactory {
 
 @main
 struct BYTApp: App {
+    /// False in a build without usable Firebase settings: nothing that needs Firebase starts.
+    private let configured: Bool
+
     init() {
         AppCheck.setAppCheckProviderFactory(BYTAppCheckFactory())
-        FirebaseApp.configure()
+        configured = FirebaseSetup.configure()
+        guard configured else { return }
         // The box keeps working offline; writes wait in the cache until the network returns.
         let settings = FirestoreSettings()
         settings.cacheSettings = PersistentCacheSettings(sizeBytes: FirestoreCacheSizeUnlimited as NSNumber)
@@ -27,6 +31,8 @@ struct BYTApp: App {
     }
 
     var body: some Scene {
-        WindowGroup { RootView() }
+        WindowGroup {
+            if configured { RootView() } else { MissingSettingsView() }
+        }
     }
 }

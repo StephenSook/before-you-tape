@@ -117,6 +117,20 @@ class BoxSessionTest {
         assertEquals(listOf("read", "reset", "read"), order)
     }
 
+    /** A read of no item (a camera pointed at a room) adds nothing and says what to do, as the web app does. */
+    @Test fun aReadOfNoItemAddsNothing() = runTest {
+        val box = box()
+        val nothing = read.copy(itemName = "unknown", category = app.beforeyoutape.engine.ItemCategoryWire.other, labelText = "",
+            volts = 0.0, milliampHours = 0.0, wattHours = 0.0, lithiumGrams = 0.0, batteryWords = false, liquid = false, pressurized = false,
+            alcoholOnLabel = false, flammableOnLabel = false, glassContainer = false, powder = false,
+            evidence = app.beforeyoutape.engine.EvidenceWire.not_sure)
+        val s = session(box, ReadOutcome.Read(nothing, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 300))
+        assertEquals(Copy.NO_ITEM, s.check(crop))
+        assertEquals(0, box.state.items.size)
+        val web = java.io.File(System.getProperty("byt.repoRoot")!!, "src/pages/PackPage.tsx").readText()
+        assertTrue(web.contains("const NO_ITEM = \"${Copy.NO_ITEM}\";"))
+    }
+
     @Test fun eachReadGetsItsOwnId() = runTest {
         val box = box()
         val s = session(box, ReadOutcome.Read(read, Source.ON_DEVICE, ReadRoute.DEVICE_ONLY, 300))

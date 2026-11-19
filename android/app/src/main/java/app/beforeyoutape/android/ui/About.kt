@@ -14,6 +14,8 @@ data class AboutInfo(
     val bundleCommit: String,
     val bundleSha256: String,
     val version: String,
+    /** This phone's cloud consent: true allowed, false kept on the phone, null not chosen yet. */
+    val cloudConsent: Boolean? = null,
 )
 
 object About {
@@ -28,6 +30,7 @@ object About {
         if (i.deviceModel == DeviceModelStatus.AVAILABLE) add("On-device model: ready")
         add("Cloud model: ${i.cloudModel}")
         add("App Check: ${i.appCheckProvider}")
+        add("Cloud reads: " + when (i.cloudConsent) { true -> "allowed"; false -> "off"; null -> "not chosen yet" })
         add("Rules edition: ${i.editionId}")
         add("Rules bundle: ${i.bundleCommit.take(7)} (${i.bundleSha256.take(12)})")
         add("Version ${i.version}")

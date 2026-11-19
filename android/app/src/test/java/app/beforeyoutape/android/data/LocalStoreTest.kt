@@ -23,6 +23,14 @@ class LocalStoreTest {
         assertEquals(false, LocalStore(prefs).cloudConsent())
     }
 
+    /** "Ask me again" clears the choice, so the consent question is asked again. */
+    @Test fun clearingTheChoiceAsksAgain() {
+        val store = LocalStore(MapPrefs())
+        store.setCloudConsent(true)
+        store.clearCloudConsent()
+        assertEquals(null, store.cloudConsent())
+    }
+
     @Test fun anUnreadableValueCountsAsUnanswered() {
         val prefs = MapPrefs().apply { values["cloud_consent"] = "maybe" }
         assertNull(LocalStore(prefs).cloudConsent())

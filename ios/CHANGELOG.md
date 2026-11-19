@@ -5,6 +5,32 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### fix(ios): a build without its Firebase settings file shows a plain screen instead of crashing
+- What: GoogleService-Info.plist is not in the repo, and the app called FirebaseApp.configure()
+  unconditionally, which raises when the file is missing (FIRApp.m in the Firebase SDK), so a fresh
+  clone built and then crashed at launch. The app now checks the bundled settings first. When the
+  file is missing, or lacks the app ID, sender ID, API key or project ID that Auth and Firestore
+  need, nothing that needs Firebase starts and one plain screen says what to add and where. With
+  the file in place, startup is unchanged (FirebaseApp.configure() still reads the default file).
+- Source: review (fresh-clone check).
+- Verified: tests for complete settings, no file, an unreadable path and each missing field; they
+  failed to compile before the change and pass after; 138 unit tests pass. On the simulator a build
+  without the plist kept running and showed the plain screen (the old code was not run without the
+  plist here). The CI mirror `bash ios/scripts/ci-local-ios.sh` exit 0.
+
+### build(ios): track the app's package pins so a fresh clone builds the same versions
+- What: the generated Xcode project was untracked as a whole, so the app's package pins (Firebase
+  13.2.0 and the 12 packages beneath it) never reached the repo and a fresh clone resolved
+  whatever versions those packages' ranges allowed that day. The pins file Xcode keeps for the
+  project (BYT.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) is now tracked;
+  the rest of the generated project stays ignored. BYTCore has no remote packages, so it has no
+  pins of its own.
+- Source: review (fresh-clone check).
+- Verified: `xcodegen generate` keeps the file; a simulated fresh clone (a project folder holding
+  only the pins, then XcodeGen, then a resolve into a new derived data folder) left the pins
+  byte-identical; `git status` shows only that file from the generated project. The CI mirror
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### test(ios): run the committed iOS engine bundle against the shipped edition and the box vectors
 - What: `src/embed/iosBundle.test.ts` loads the committed iOS `byt-engine.js` in a fresh V8 context
   with no Node globals (as JavaScriptCore runs it on the phone), expects it to load

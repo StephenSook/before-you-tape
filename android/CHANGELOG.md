@@ -3,6 +3,71 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Android follows the Remote Config edition pin instead of always using the bundled edition.**
+  The app now watches `rules_edition_id` and `rules_edition_sha256`. When they change, it reads the
+  published edition at `ruleEditions/{id}` (signed in, through the deployed rules), checks it on a
+  spare host with `EditionPin.choose`, and only then loads it into the rules in use, re-checks the box
+  and refreshes the destination list; a notice from the check is shown as the web shows it. Each pin
+  change is a new check and only the newest may apply. About shows the edition in use. With the pin
+  empty, as it is today, nothing changes. Source: whole-repo review. Verified:
+  `BoxLogicTest.newRulesRecheckTheBox` failed first, then passes; the live check
+  `EditionPinLiveTest` passed on the emulator against the deployed project (the bundled edition
+  verified on the phone's JavaScript runtime, revision 1; an unpublished edition read nothing through
+  the deployed rules and the built-in edition was kept). `bash android/ci-local.sh` exits 0.
+
+- **A Remote Config edition pin needs a safe id and a full hash, as on the web.** The pin was read
+  as raw text. `RcValues.parse` now keeps it only when the id matches `[a-z0-9-]{1,64}` and the
+  SHA-256 is 64 hex digits (trimmed, the hash lowercased); otherwise both are empty and the bundled
+  edition is used. Source: whole-repo review. Verified:
+  `RcValuesTest.anEditionPinNeedsASafeIdAndAFullHash` failed first (an uppercase hash came through
+  unchanged), then passes.
+
+- **The engine can check a pinned rules edition the way the web does.** `EditionPin.choose`
+  follows the web's rules and words (`src/data/editionSource.ts`): an empty pin, or one naming the
+  bundled edition, uses the bundled edition; a pinned edition is used only when the fetched
+  document has exactly the pinned id and SHA-256, the rules accept it and its revision is higher than
+  the one in use; anything else keeps the edition in use and says why. `EditionCheck.verify` loads a
+  document into a spare host and hashes the engine's own canonical JSON, the text the publish script
+  hashes. One difference from the web: Android needs the rules to parse a document before it can
+  hash it, so a document that is both malformed and wrongly hashed reads "could not be read" rather
+  than "failed its integrity check"; both keep the edition in use. Source: whole-repo review.
+  Verified: `EditionPinTest` (8) and `EditionCheckTest` (2) failed first, then pass; with the hash
+  and revision checks removed, 2 of 8 fail; the bundled edition's hash on Android equals the web's
+  `sha256Hex(canonicalJson(...))` of `rules/edition.json` (checked once against the value the web
+  code prints).
+
+- **Cloud consent can be changed in the app, and turning it off stops a read under way.** The
+  consent question was asked once and could not be changed afterwards. The About screen now shows
+  this phone's choice ("Cloud reads: allowed", "off" or "not chosen yet") and a button: "Turn off
+  cloud reads" when they are allowed, "Ask me again about cloud reads" otherwise. Turning them off
+  saves the choice and cancels the read that is running, so its result is dropped and nothing more
+  is sent; asking again forgets the choice so the consent question opens. Reads now run through the
+  one worker helper, which returns its job, so the box is still saved in exactly one place. Source:
+  whole-repo review. Verified: `LocalStoreTest.clearingTheChoiceAsksAgain`, the two new `AboutTest`
+  cases and `ConsentWithdrawalCancelsTheReadTest` failed first (the last one also with the cancel
+  and the active check removed, as a control), then pass; `AboutPhoneScreenTest` passed 4 of 4 on
+  the emulator and failed 2 of 4 with the button choice flipped. `bash android/ci-local.sh` exits 0.
+
+- **The cloud stays off until the server's Remote Config values are active.** Before the first
+  fetch only the in-app defaults are known, and their `kill_cloud` is false, so a switch-off on the
+  server could be missed by a phone that had not fetched yet. `RcStore` now treats the cloud as
+  switched off until a value fetched from the server is active (Firebase reports `kill_cloud`'s
+  source as remote). Activated values persist on the phone, so after the first fetch this also holds
+  offline. Source: whole-repo review. Verified: `RcStoreTest.theCloudIsHeldUntilAFetchedValueIsActive`
+  failed against a stub, then passes; the live check `RcFetchLiveTest` passed on the emulator against
+  the deployed project (fetched=true, killCloud=false, so the cloud opens once the server values
+  arrive). `bash android/ci-local.sh` and the root CI mirror exit 0.
+
+- **A read of no item is dropped, as on the web.** A cloud or on-device read that is unsure,
+  of category `other`, with no label text, no battery, liquid or warning signal and no real name
+  (a camera pointed at a room) was added to the box as an item. `NoItem.isNoItem` now applies the
+  web app's own rule (`src/shared/noItem.ts`), and such a read adds nothing and shows the web's
+  line, "Nothing to check there. Hold one item inside the box." Source: whole-repo review.
+  Verified: `NoItemTest` (the web's own cases, and the name pattern compared with the web file
+  character for character) and `BoxSessionTest.aReadOfNoItemAddsNothing` (which also checks the
+  line is the web's) failed against stubs, then pass. `bash android/ci-local.sh` and the root CI
+  mirror exit 0; GitHub checks are blocked by the Actions budget, so these local runs are the record.
+
 - **Evidence for gate G-A5.** `docs/evidence/android/G-A5.md` records the parity run: on the
   emulator (Android 17), every shared vector passes in the app's runtime (box 29, guards 64,
   destinations 21) and QuickJS equals WebView V8 on 426 inputs (114 vectors, 312 labels), WebView
