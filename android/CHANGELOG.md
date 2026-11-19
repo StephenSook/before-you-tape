@@ -3,6 +3,14 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The engine host parses a read with the tags of its whole label.** `EngineHost.parseItemReadTagged`
+  calls the bridge's tagged parse and returns a `TaggedRead`: the read, label text clipped to 160
+  characters for showing, with the engine's tags for the whole label. Source: review of the
+  second-look change (the phones tagged the clipped label text). Verified:
+  `EngineHostTest.aParsedReadIsTaggedFromItsWholeLabel` (no hazard word OK; FLAMMABLE past the cap
+  tagged flammable and label_text and not OK, the shown text 160 characters; FLAMMABLE-FREE cut at
+  FLAMMABLE untagged and OK) failed to compile first and passes; `:engine:test` passes.
+
 - **The Android guard refuses speech recognition.** Rule 8 in `android/guard.sh` fails on
   `SpeechRecognizer`, `RecognizerIntent` or `RECOGNIZE_SPEECH` in any Kotlin, XML or config file
   under `android/`; the system voice (`TextToSpeech`) stays allowed. This matches the web guard,
