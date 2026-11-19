@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(ios-core): the engine wrapper parses a read with the tags of its whole label
+- What: `RulesEngine.parseItemReadTagged` calls the bridge's tagged parse and returns the read
+  (label text clipped to 160 characters for showing) with the engine's tags for the whole label.
+  A reply whose read or tags are missing, or whose tags are not all text, is an engine error.
+- Source: review of the second-look change (the phones tagged the clipped label text).
+- Verified: a contract test parses a lotion three ways on the bundled engine and evaluates each:
+  no hazard word is OK; FLAMMABLE past the cap is tagged (flammable, label_text) and not OK, with
+  the shown text 160 characters and without the word; FLAMMABLE-FREE cut at FLAMMABLE is not
+  tagged flammable and is OK. It failed to compile before the wrapper and passes after.
+  `swift test --package-path ios/BYTCore`: 34 tests pass.
+
 ### feat(ios): the sender can turn cloud checks off and on, and turning them off stops uploads
 - What: the cloud choice was asked once and could not be changed. The check screen now shows it as
   the web app does ("Cloud checks are on." with "Turn off cloud checks"; "Cloud checks are off.
