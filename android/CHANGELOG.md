@@ -3,6 +3,17 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A typed name correction never leaves the phone.** The synced item dropped the label text
+  and the model's name, but a sender's typed name correction still went out in
+  `overrides.itemName`. `BoxLogic.forSync` now drops `itemName` from the synced overrides too,
+  and the synced read's name is the label of the corrected category when a correction changed it
+  (falling back to the category id, never free text). Source: automated security review of the
+  previous commit, and the web app's matching rule (typed corrections stay on the device).
+  Verified: `BoxDocsContractTest.aTypedNameCorrectionNeverLeavesThePhone` (a correction to
+  "Grandma's rose water" and perfume) failed first, then passes: no `itemName` in the synced
+  overrides, the read named "Perfume or cologne", and the typed words nowhere in the document.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **Firestore carries no consent and no model names.** Consent is now chosen on each device
   and never stored in Firestore: the box rules refuse `cloudConsent`, `consentChosenAt` and
   `consentAt`. A new box from the phone writes none of them (`BoxDocs.newBoxDoc`); the

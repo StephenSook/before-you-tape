@@ -78,6 +78,25 @@ class BoxDocsContractTest {
         assertEquals("Brand X Shea Butter Lotion", item.input.read.itemName)
     }
 
+    /**
+     * A typed name correction stays on the phone too, and when a correction changes the category,
+     * the synced name is the corrected category's label.
+     */
+    @Test fun aTypedNameCorrectionNeverLeavesThePhone() {
+        val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "", 0.0, 0.0, 0.0, 0.0,
+            false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+        val s = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "i1")
+        val fixed = BoxLogic.override(s, "i1", mapOf("itemName" to JsonPrimitive("Grandma's rose water"), "category" to JsonPrimitive("perfume_fragrance")), null).items.single()
+        val d = BoxDocs.itemToDoc(fixed)
+        @Suppress("UNCHECKED_CAST")
+        val overrides = d["overrides"] as Map<String, Any?>
+        assertTrue("itemName" !in overrides)
+        assertEquals("perfume_fragrance", overrides["category"])
+        @Suppress("UNCHECKED_CAST")
+        assertEquals("Perfume or cologne", (d["read"] as Map<String, Any?>)["itemName"])
+        assertTrue(!d.toString().contains("Grandma"))
+    }
+
     @Test fun anItemDocumentNeverCarriesLabelText() {
         val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
             false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
