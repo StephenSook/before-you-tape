@@ -3,6 +3,18 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **QuickJS against WebView V8 on every vector and a 312-label corpus.** `EngineDifferentialTest`
+  loads the same rules bundle and edition into the app's QuickJS runtime and into an
+  `android.webkit.WebView` (V8, test code only), and requires byte-for-byte equal reply text for
+  every box, guard and destination vector and for the label tags of every case in
+  `label-corpus.json`: all 69 distinct vector label texts plus our own cases crossed with no-break
+  spaces, each Unicode hyphen, full-width letters, accented neighbours, a line break inside
+  "ALCOHOL FREE", "0 % alcohol" and empty text (`android/tools/label_corpus.py` builds it,
+  ASCII-escaped). A difference planted on the oracle's side is reported. Source: Android plan
+  Task 17 (gate G-A5). Verified: on the emulator, 426 inputs (312 labels), all equal, WebView
+  145.0.7632.218, bundle SHA-256 52e8fb430508; the planted difference is caught.
+  `bash android/ci-local.sh` and the root CI mirror exit 0.
+
 - **The shared vectors run inside the app's runtime on a device.** The device-test APK now
   carries `tests/vectors` as assets (a `copyVectorAssets` build task, so it is always the same
   files the web app and the JVM tests run), and `DeviceVectorsTest` runs every box, guard and
