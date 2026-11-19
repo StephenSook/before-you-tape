@@ -15,6 +15,18 @@ export const FLAG_FIELDS: ReadonlyArray<[FlagField, string]> = [
   ["flammableOnLabel", "The label says flammable"], ["glassContainer", "It is in glass"], ["powder", "It is a powder"],
   ["batteryWords", "The label mentions a battery"],
 ];
+// The kinds of item that hold a lithium battery, the categories whose rule tags involve one.
+const BATTERY_CATEGORIES: ReadonlySet<ItemRead["category"]> = new Set([
+  "phone", "tablet", "laptop", "smartwatch", "earbuds", "power_bank", "loose_battery", "battery_toy", "musical_card", "other_electronics", "e_cigarette",
+] as const);
+
+// The battery numbers show for a battery item, a label that mentions a battery, a number already there, or
+// one the card asked for ("Type the rating"); a shirt does not need volts.
+function showsBatteryNumbers(d: ReadDraft, focusField?: keyof ItemRead): boolean {
+  return (d.category !== "" && BATTERY_CATEGORIES.has(d.category)) || d.flags.batteryWords
+    || NUMBER_FIELDS.some(([f]) => d.numbers[f].trim() !== "") || NUMBER_FIELDS.some(([f]) => f === focusField);
+}
+
 const BOX_LABELS: Record<ItemRead["retailBox"], string> = { sealed: "Still sealed in its box", open_or_none: "Opened, or no box", cannot_tell: "Can't tell" };
 
 // The form keeps numbers as typed text so a half-typed value is not lost.
@@ -71,7 +83,7 @@ export function ReadFields({ draft, onChange, focusField, nameLabel }: { draft: 
         <label htmlFor={id("labelText")}>Words on the label</label>{" "}
         <textarea id={id("labelText")} ref={(el) => { refs.current.labelText = el; }} rows={2} value={draft.labelText} onChange={(e) => onChange({ ...draft, labelText: e.target.value })} />
       </p>
-      {NUMBER_FIELDS.map(([f, label]) => (
+      {showsBatteryNumbers(draft, focusField) && NUMBER_FIELDS.map(([f, label]) => (
         <p key={f}>
           <label htmlFor={id(f)}>{label}</label>{" "}
           <input id={id(f)} ref={(el) => { refs.current[f] = el; }} type="number" step="any" inputMode="decimal" aria-invalid={parseNumber(draft.numbers[f]) === null}
