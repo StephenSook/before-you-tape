@@ -171,8 +171,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let errors: Record<string, string> = {};
   const boxId = deps.boxId ?? deps.newId();
   const listeners = new Set<(s: BoxState) => void>();
-  // Each second look's two label texts, kept on this device only, so picking a label brings its text back.
-  const lookLabels = new Map<string, { device: string; cloud: string }>();
+  // Each second look's two label texts and item names, kept on this device only, so picking a label brings its
+  // text back and picking what the item is brings that read's name.
+  const lookLabels = new Map<string, { device: string; cloud: string; deviceName: string; cloudName: string }>();
 
   const evaluate = (): BoxResult => {
     const edition = currentEdition();
@@ -284,7 +285,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       // label still counts. The item's tags so far are the first read's. A label the sender corrected while
       // the cloud read ran stays theirs: only its tags are saved, so a reload gives the verdict they saw.
       update(itemId, (i) => {
-        lookLabels.set(itemId, { device: i.read.labelText, cloud: Array.from(cloudLabel ?? "").slice(0, LABEL_TEXT_MAX).join("") });
+        lookLabels.set(itemId, {
+          device: i.read.labelText, cloud: Array.from(cloudLabel ?? "").slice(0, LABEL_TEXT_MAX).join(""),
+          deviceName: i.read.itemName, cloudName: merged.itemName,
+        });
         const cloudTags = tagsOf(cloudLabel ?? "");
         const found: ReadDisputes = { ...disputes };
         // Label words only one read saw: a dispute of tags (never of label text) the sender settles.
@@ -312,8 +316,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         return { ...next, labelTags: [...(value as string[])], read: text === undefined ? next.read : { ...next.read, labelText: text } };
       }
       const read = { ...next.read, [field]: value } as ItemRead;
-      // Picking what the item is confirms it.
-      return field === "category" ? { ...next, read, identityConfirmedBy: next.identityConfirmedBy ?? "sender" } : { ...next, read };
+      if (field !== "category") return { ...next, read };
+      // Picking what the item is confirms it, and names it as that read did (or by its category, once this
+      // device no longer has that read's name).
+      const names = lookLabels.get(itemId);
+      const itemName = (side === "device" ? names?.deviceName : names?.cloudName) ?? CATEGORY_LABELS[value as ItemRead["category"]];
+      return { ...next, read: { ...read, itemName }, identityConfirmedBy: next.identityConfirmedBy ?? "sender" };
     }),
     setError(itemId, text) {
       errors = { ...errors, [itemId]: text };

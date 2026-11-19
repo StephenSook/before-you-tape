@@ -385,6 +385,8 @@ describe("createBoxStore", () => {
       s.settleDispute(id, "category", "device");
       const i = s.getState().items[0]!;
       expect(i.read.category).toBe("power_bank");
+      // The card names the item as the picked read did, not as the other read did.
+      expect(i.read.itemName).toBe("Power bank");
       expect(i.disputes?.category?.resolved).toBe(true);
       // Picking what the item is confirms it.
       expect(i.identityConfirmedBy).toBe("sender");
@@ -414,6 +416,18 @@ describe("createBoxStore", () => {
       s.settleDispute(id, "evidence", "cloud");
       expect(s.getState().items[0]?.read.evidence).toBe("label_read");
       expect(level(s, id)).toBe("ok");
+    });
+
+    it("names the item by the picked category when this device no longer has that read's name", async () => {
+      const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
+      const p = spyPersistence();
+      look(powerBank, phone, true, p);
+      const saved = p.save.mock.calls.at(-1)![0];
+      const reloaded = store({ persistence: spyPersistence(saved) });
+      await reloaded.ready;
+      const id = reloaded.getState().items[0]!.itemId;
+      reloaded.settleDispute(id, "category", "device");
+      expect(reloaded.getState().items[0]?.read.itemName).toBe("Power bank");
     });
 
     it("settles battery numbers only on a whole set, never on one edited number", () => {
