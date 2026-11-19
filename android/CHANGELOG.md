@@ -26,6 +26,13 @@ source (plan task or finding) and how it was verified.
   link) failed first, then passes; the device tests `AboutPhoneScreenTest.everyRowIsShown` and
   `theHomeScreenOpensAbout` pass on the emulator, and a control with the screen's rows removed
   fails both. `bash android/ci-local.sh` and the root CI mirror exit 0.
+- **Evidence: the app on a real phone.** `docs/evidence/android/a16-2026-11-18/` holds 5
+  stills of the release-signed app on a Samsung A16 against the deployed project (cloud
+  consent, home, destination with the camera off, the typed-item form, an "OK to pack"
+  verdict), with a README that also records the release App Check probe on the same phone
+  (Play Integrity token, sign-in, a cloud read of the known label). Source: the real-device
+  pass. Verified: each still is cropped to remove the phone's status and navigation bars and
+  was checked by eye; the root CI mirror (hygiene guard and secret scan included) exits 0.
 
 - **A crop queued from the old scan session no longer uses up the new session's reset.** The
   reset for a new scan session was a single pending flag, taken by whichever read the worker
