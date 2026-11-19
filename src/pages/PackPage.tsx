@@ -2,7 +2,7 @@
 // route the policy allows, added to the box, and judged by the rules; a country change re-checks the box
 // with no model call. Consent is asked once, before any cloud call. An on-device read the second-look
 // policy names is read again in the cloud (plan Task 21), only when the cloud is allowed.
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
 import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
@@ -133,9 +133,16 @@ export function PackPage(p: PackPageProps) {
   // afterwards adds nothing.
   const inflight = useRef(new Set<AbortController>());
   const gone = useRef(false);
-  useEffect(() => {
+  // A layout cleanup runs while the page is being removed, before any passive one, so a crop handed over
+  // during removal already sees the page gone, and the work already started is aborted then.
+  useLayoutEffect(() => {
     gone.current = false;
-    return () => { gone.current = true; };
+    const work = inflight.current;
+    return () => {
+      gone.current = true;
+      for (const ac of work) ac.abort();
+      work.clear();
+    };
   }, []);
   useEffect(() => {
     const work = inflight.current;
