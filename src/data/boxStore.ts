@@ -6,9 +6,11 @@ import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
 import { resolveDestination } from "../engine/edition";
 import { LABEL_TEXT_TAG, labelTagsOf } from "../engine/facts";
-import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type DisputeField, type ReadDisputes, type RuleEdition } from "../engine/types";
+import {
+  DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type DisputeField, type DisputeValues, type ReadDisputes, type RuleEdition,
+} from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
-import type { ItemRead } from "../shared/itemRead";
+import { LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
 import type { DeviceConsent } from "./deviceConsent";
 
 // Where an item's read came from. The phones use one name each for both of them.
@@ -80,6 +82,8 @@ export interface BoxStore {
   // cloudLabel: the second look's own label text, whose tags count even when the merge kept the other label.
   // disputes: the facts the two reads disagreed on (readDisputes); the store adds label words itself.
   applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string, cloudLabel?: string, disputes?: ReadDisputes): void;
+  // The sender picks which read is right about one disputed fact; that reading is then the item's.
+  settleDispute(itemId: string, field: DisputeField, side: "device" | "cloud"): void;
   setError(itemId: string, text: string): void;
   answer(itemId: string, questionId: string, answerId: string): void;
   override(itemId: string, patch: Partial<ItemRead>): void;
@@ -166,6 +170,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let errors: Record<string, string> = {};
   const boxId = deps.boxId ?? deps.newId();
   const listeners = new Set<(s: BoxState) => void>();
+  // Each second look's two label texts, kept on this device only, so picking a label brings its text back.
+  const lookLabels = new Map<string, { device: string; cloud: string }>();
 
   const evaluate = (): BoxResult => {
     const edition = currentEdition();
@@ -277,6 +283,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       // label still counts. The item's tags so far are the first read's. A label the sender corrected while
       // the cloud read ran stays theirs: only its tags are saved, so a reload gives the verdict they saw.
       update(itemId, (i) => {
+        lookLabels.set(itemId, { device: i.read.labelText, cloud: Array.from(cloudLabel ?? "").slice(0, LABEL_TEXT_MAX).join("") });
         const cloudTags = tagsOf(cloudLabel ?? "");
         const found: ReadDisputes = { ...disputes };
         // Label words only one read saw: a dispute of tags (never of label text) the sender settles.
@@ -292,6 +299,21 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         }, found);
       });
     },
+    settleDispute: (itemId, field, side) => update(itemId, (i) => {
+      const d = i.disputes?.[field];
+      if (!d) return i;
+      const value = d[side];
+      const next: BoxItem = { ...i, disputes: { ...i.disputes, [field]: { ...d, resolved: true } } as ReadDisputes };
+      if (field === "battery") return { ...next, read: { ...next.read, ...(value as DisputeValues["battery"]) } };
+      if (field === "labelTags") {
+        // The label's words come with it; its text too while this device still has it (never after a reload).
+        const text = lookLabels.get(itemId)?.[side];
+        return { ...next, labelTags: [...(value as string[])], read: text === undefined ? next.read : { ...next.read, labelText: text } };
+      }
+      const read = { ...next.read, [field]: value } as ItemRead;
+      // Picking what the item is confirms it.
+      return field === "category" ? { ...next, read, identityConfirmedBy: next.identityConfirmedBy ?? "sender" } : { ...next, read };
+    }),
     setError(itemId, text) {
       errors = { ...errors, [itemId]: text };
       commit(state.result);
@@ -316,6 +338,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     setCustoms: (itemId, patch) => update(itemId, (i) => ({ ...i, customs: { ...i.customs, ...patch } })),
     remove(itemId) {
       items = items.filter((i) => i.itemId !== itemId);
+      lookLabels.delete(itemId);
       const { [itemId]: _gone, ...rest } = errors;
       void _gone;
       errors = rest;

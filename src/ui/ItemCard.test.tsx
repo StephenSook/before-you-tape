@@ -118,4 +118,47 @@ describe("ItemCard", () => {
     rerender(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
     expect(screen.getByTestId("item-card")).not.toHaveClass("newest");
   });
+
+  it("shows both readings of each fact the two reads disagree on, and settles one with one tap", async () => {
+    const disputed = item("d", { ...base, itemName: "Phone", category: "phone", labelText: "LI-ION 3.7V 5000mAh 18.5Wh", volts: 3.7,
+      milliampHours: 5000, wattHours: 18.5, batteryWords: true }, {
+      disputes: {
+        category: { device: "power_bank", cloud: "phone", resolved: false },
+        battery: { device: { volts: 3.7, milliampHours: 5000, wattHours: 18.5 }, cloud: { volts: 0, milliampHours: 0, wattHours: 0 }, resolved: false },
+        lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
+        labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
+        retailBox: { device: "open_or_none", cloud: "sealed", resolved: false },
+        liquid: { device: true, cloud: false, resolved: true },
+      },
+    });
+    const v = verdictFor(disputed);
+    expect(v.level).toBe("check");
+    const onSettle = vi.fn();
+    render(<ItemCard item={disputed} verdict={v} crop={null} onSettle={onSettle} />);
+    const box = screen.getByRole("group", { name: "The two reads disagree. Pick what the item shows." });
+    const row = (name: string) => within(within(box).getByRole("group", { name }));
+    expect(row("What it is").getByRole("button", { name: "First read: Power bank" })).toBeInTheDocument();
+    expect(row("What it is").getByRole("button", { name: "Second look: Phone" })).toBeInTheDocument();
+    expect(row("Battery numbers").getByRole("button", { name: "First read: 3.7 V, 5000 mAh, 18.5 Wh" })).toBeInTheDocument();
+    expect(row("Battery numbers").getByRole("button", { name: "Second look: No numbers" })).toBeInTheDocument();
+    expect(row("Lithium metal").getByRole("button", { name: "First read: 2.5 g lithium" })).toBeInTheDocument();
+    expect(row("Lithium metal").getByRole("button", { name: "Second look: No lithium metal" })).toBeInTheDocument();
+    expect(row("Label words").getByRole("button", { name: "First read: flammable" })).toBeInTheDocument();
+    expect(row("Label words").getByRole("button", { name: "Second look: No warning words" })).toBeInTheDocument();
+    expect(row("Its box").getByRole("button", { name: "First read: Open or no box" })).toBeInTheDocument();
+    // A fact the sender already settled is not asked again.
+    expect(within(box).queryByRole("group", { name: "Liquid" })).toBeNull();
+    await userEvent.click(row("What it is").getByRole("button", { name: "First read: Power bank" }));
+    expect(onSettle).toHaveBeenCalledWith("d", "category", "device");
+    await userEvent.click(row("Label words").getByRole("button", { name: "Second look: No warning words" }));
+    expect(onSettle).toHaveBeenLastCalledWith("d", "labelTags", "cloud");
+  });
+
+  it("asks nothing about the two reads once every disagreement is settled", () => {
+    const settled = item("e", { ...base, itemName: "Phone", category: "phone" }, {
+      identityConfirmedBy: "sender", disputes: { category: { device: "power_bank", cloud: "phone", resolved: true } },
+    });
+    render(<ItemCard item={settled} verdict={verdictFor(settled)} crop={null} onSettle={() => {}} />);
+    expect(screen.queryByRole("group", { name: "The two reads disagree. Pick what the item shows." })).toBeNull();
+  });
 });

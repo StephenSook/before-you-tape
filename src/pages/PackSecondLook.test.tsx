@@ -100,6 +100,18 @@ describe("Pack page second look", () => {
     }
   });
 
+  it("shows both battery readings after a second look, and one tap settles them", async () => {
+    const { store } = setup();
+    await upload();
+    const box = await screen.findByRole("group", { name: "The two reads disagree. Pick what the item shows." });
+    const id = store.getState().items[0]!.itemId;
+    expect(store.getState().result.items[id]?.level).toBe("check");
+    await userEvent.click(within(box).getByRole("button", { name: "Second look: 3.7 V, 2600 mAh, 9.62 Wh" }));
+    expect(store.getState().items[0]?.disputes?.battery?.resolved).toBe(true);
+    expect(store.getState().items[0]?.read.milliampHours).toBe(2600);
+    expect(screen.queryByRole("group", { name: "The two reads disagree. Pick what the item shows." })).toBeNull();
+  });
+
   it("follows a policy that turns the reason off", async () => {
     const { models, store } = setup({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: true, hazardNoLabel: true, identity: true } });
     await upload();

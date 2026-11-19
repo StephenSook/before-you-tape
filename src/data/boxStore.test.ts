@@ -379,6 +379,33 @@ describe("createBoxStore", () => {
       expect(s.getState().items[0]?.disputes).toBeUndefined();
     });
 
+    it("settles a dispute with the reading the sender picks, and judges that reading", () => {
+      const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
+      const { s, id } = look(powerBank, phone);
+      s.settleDispute(id, "category", "device");
+      const i = s.getState().items[0]!;
+      expect(i.read.category).toBe("power_bank");
+      expect(i.disputes?.category?.resolved).toBe(true);
+      // Picking what the item is confirms it.
+      expect(i.identityConfirmedBy).toBe("sender");
+      expect(level(s, id)).toBe("take_out");
+      const wh = look({ ...powerBank, volts: 3.7, milliampHours: 25675, wattHours: 95 }, { ...powerBank, volts: 3.6, milliampHours: 25675, wattHours: 105 });
+      wh.s.settleDispute(wh.id, "battery", "device");
+      expect(wh.s.getState().items[0]?.read).toMatchObject({ volts: 3.7, milliampHours: 25675, wattHours: 95 });
+      expect(wh.s.getState().items[0]?.disputes?.battery?.resolved).toBe(true);
+      // Picking a label brings back that read's label and its words, and only those.
+      const lotion = { ...liquidLotionRead, flammableOnLabel: false };
+      const lab = look({ ...lotion, labelText: "FLAMMABLE BODY LOTION" }, { ...lotion, labelText: "SHEA BUTTER BODY LOTION 8 FL OZ" });
+      expect(level(lab.s, lab.id)).toBe("take_out");
+      lab.s.settleDispute(lab.id, "labelTags", "cloud");
+      expect(lab.s.getState().items[0]?.labelTags).not.toContain("flammable");
+      expect(lab.s.getState().items[0]?.read.labelText).toBe("SHEA BUTTER BODY LOTION 8 FL OZ");
+      expect(level(lab.s, lab.id)).toBe("ok");
+      lab.s.settleDispute(lab.id, "labelTags", "device");
+      expect(lab.s.getState().items[0]?.read.labelText).toBe("FLAMMABLE BODY LOTION");
+      expect(level(lab.s, lab.id)).toBe("take_out");
+    });
+
     it("settles a dispute when the sender fixes that fact, and keeps the disputes in the saved copy", () => {
       const p = spyPersistence();
       const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
