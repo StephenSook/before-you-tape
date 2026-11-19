@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { AboutPage } from "./pages/AboutPage";
 import { BlindRoute } from "./pages/BlindRoute";
 import { JudgeRoute } from "./pages/JudgeRoute";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { PackRoute } from "./pages/PackRoute";
 import { RanPage } from "./pages/RanPage";
 import { RulesRoute } from "./pages/RulesRoute";
@@ -54,7 +55,7 @@ export function AppRoutes() {
       {routeTable(import.meta.env.DEV).map((r) => (
         <Route key={r.path} path={r.path} element={PAGES[r.path] ?? <h1>{r.title}</h1>} />
       ))}
-      <Route path="*" element={<h1>Page not found</h1>} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

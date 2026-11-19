@@ -21,6 +21,20 @@ describe("header", () => {
   });
 });
 
+describe("not found", () => {
+  it("names the missing page and links home and to the sample box", () => {
+    window.history.pushState({}, "", "/no-such-page");
+    try {
+      render(<App />);
+      expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Pack a box" })).toHaveAttribute("href", "/");
+      expect(screen.getByRole("link", { name: "Judges: start here" })).toHaveAttribute("href", "/judge");
+    } finally {
+      window.history.pushState({}, "", "/");
+    }
+  });
+});
+
 describe("routes", () => {
   const publicPaths = ["/", "/judge", "/measured", "/rules", "/ran", "/about", "/worksheet", "/blind/:token"];
 

@@ -15,7 +15,35 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "/",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/judge",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/measured",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/rules",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/ran",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/about",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/worksheet",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/blind/*",
         "destination": "/index.html"
       }
     ]
