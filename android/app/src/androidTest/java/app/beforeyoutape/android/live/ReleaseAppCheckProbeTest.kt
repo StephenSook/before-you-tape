@@ -69,7 +69,7 @@ class ReleaseAppCheckProbeTest {
         val client = AiClient { values }
         val reader = ItemReader(
             // Gate pinned to no model on the phone, so a phone with Gemini Nano still takes the cloud route this probe proves.
-            model = client, parse = { host.parseItemRead(it) }, gate = { DeviceModelStatus.UNAVAILABLE },
+            model = client, parse = { host.parseItemReadTagged(it) }, gate = { DeviceModelStatus.UNAVAILABLE },
             cloud = { CloudState(consent = true, online = true, killCloud = values.killCloud) },
             prompt = { Prompts.ITEM_READ_PROMPT }, signIn = { FirebaseSignIn.ensureSignedIn() },
         )
