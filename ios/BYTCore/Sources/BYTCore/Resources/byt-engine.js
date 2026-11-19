@@ -256,11 +256,18 @@ var BYT = (() => {
   var NEGATED_BEFORE = / ?(?:\b(?:no|non|not|without|zero|free of|free from) ?-? ?|\b0(?:\.0+)? ?% ?)$/i;
   var NEGATED_AFTER = /^ ?(?:-? ?|- ?\n ?)free\b(?! (?:from|of)\b)/i;
   var FREE_AFTER_BREAK = /^\n ?-? ?free\b(?! (?:from|of)\b)/i;
+  var LINE_END_HYPHEN = /(\p{L})-\n(?=\p{L})/gu;
   function labelTagsOf(labelText, edition2) {
     const text = normalizeLabel(labelText);
     if (text === "") return [];
-    const matchText = text.replace(/\n/g, " ");
     const tags = /* @__PURE__ */ new Set([LABEL_TEXT_TAG]);
+    addWordTags(text, edition2, tags);
+    const joined = text.replace(LINE_END_HYPHEN, "$1");
+    if (joined !== text) addWordTags(joined, edition2, tags);
+    return [...tags].sort();
+  }
+  function addWordTags(text, edition2, tags) {
+    const matchText = text.replace(/\n/g, " ");
     for (const w of edition2.labelWords) {
       if (tags.has(w.tag)) continue;
       let freeAfterBreak = false;
@@ -277,7 +284,6 @@ var BYT = (() => {
       }
       if (freeAfterBreak && !tags.has(w.tag)) tags.add(w.tag === "alcohol" ? ALCOHOL_FREE_UNSURE_TAG : w.tag);
     }
-    return [...tags].sort();
   }
   function conditionOf(answer) {
     return answer === "new_sealed" || answer === "new_opened" || answer === "used" || answer === "refurbished_certified" ? answer : "unknown";

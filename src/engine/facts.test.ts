@@ -80,6 +80,17 @@ describe("labelTagsOf", () => {
     expect(tags("MARGARINE\nFREE FROM PALM OIL")).toContain("margarine");
   });
 
+  it("reads a hazard word that wraps with a hyphen at the end of a line", () => {
+    const tags = (t: string) => labelTagsOf(t, ed);
+    expect(tags("EXTREMELY FLAM-\nMABLE")).toContain("flammable");
+    expect(tags("CONTAINS ALCO-\nHOL 70%")).toContain("alcohol");
+    // A negation before the wrapped word still negates it.
+    expect(tags("NON-FLAM-\nMABLE")).not.toContain("flammable");
+    expect(tags("NO FLAM-\nMABLE PARTS")).not.toContain("flammable");
+    // Joining a wrap only ever adds a word: the unjoined text is still read.
+    expect(tags("SHAMPOO-\nALCOHOL 5%")).toContain("alcohol");
+  });
+
   it("reads plurals of the cream and gel words", () => {
     expect(labelTagsOf("ENERGY GELS", ed)).toContain("easily_liquefiable");
     expect(labelTagsOf("HAND CREAMS GIFT SET", ed)).toContain("easily_liquefiable");
