@@ -61,6 +61,9 @@ function buildDeps(): PackDeps | Error {
       consent: deviceConsent(localStorage),
       deviceNames: deviceNames(localStorage),
     });
+    // Items a joined phone (or another member) saves or removes show up here as they reach the server.
+    const live = store;
+    persistence.watch(live.getState().boxId, (change) => live.applyRemote(change));
     // One set of models per pair of model names, so a Remote Config change builds them once.
     const byName = new Map<string, ItemModels>();
     const makeModels = (name: string, fallback: string) => {

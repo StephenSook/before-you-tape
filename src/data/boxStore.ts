@@ -4,7 +4,7 @@
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
-import { resolveDestination } from "../engine/edition";
+import { canonicalJson, resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import type { BoxItemInput, DestinationEdition, RuleEdition } from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
@@ -57,6 +57,8 @@ export interface BoxPersistence {
   load(boxId: string): Promise<Partial<BoxState> | null>;
 }
 
+export interface RemoteChange { items: BoxItem[]; removed: string[] }
+
 // An item's own names, the read's and the sender's correction, kept on this device: the server has only
 // the label of the item's category.
 export interface ItemNames { read: string; override?: string }
@@ -76,6 +78,8 @@ export interface BoxStore {
   addRead(outcome: ReadOutcome, cropKey: string): string;
   addManual(read: ItemRead): string;
   mergeRemoteItem(item: BoxItem): void;
+  // Items another device saved or removed, as the server sends them; this device's own copies change nothing.
+  applyRemote(change: RemoteChange): void;
   confirmIdentity(itemId: string): void;
   applySecondLook(itemId: string, merged: ItemRead, ms: number, reason: string): void;
   setError(itemId: string, text: string): void;
@@ -133,6 +137,13 @@ function forStorage(item: BoxItem): BoxItem {
   return { ...item, read: { ...item.read, labelText: "", itemName: CATEGORY_LABELS[category] }, overrides };
 }
 
+// Puts this device's names back on an item the server sent with its category label.
+function withNames(item: BoxItem, n: ItemNames | undefined): BoxItem {
+  if (n === undefined) return item;
+  const overrides = n.override === undefined ? item.overrides : { ...item.overrides, itemName: n.override };
+  return { ...item, read: { ...item.read, itemName: n.read }, overrides };
+}
+
 const namesOf = (item: BoxItem): ItemNames =>
   item.overrides.itemName === undefined ? { read: item.read.itemName } : { read: item.read.itemName, override: item.overrides.itemName };
 
@@ -185,13 +196,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const known = new Set(items.map((i) => i.itemId));
     // The names kept on this device replace the category labels the server has.
     const names = deps.deviceNames?.recall(boxId) ?? {};
-    const withNames = (saved.items ?? []).map((i) => {
-      const n = names[i.itemId];
-      if (n === undefined) return i;
-      const overrides = n.override === undefined ? i.overrides : { ...i.overrides, itemName: n.override };
-      return { ...i, read: { ...i.read, itemName: n.read }, overrides };
-    });
-    items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
+    const named = (saved.items ?? []).map((i) => withNames(i, names[i.itemId]));
+    items = [...inAddedOrder(named.filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;
     // A box saved before a count existed starts that count at 0.
     if (saved.sources) sources = { ...NO_SOURCES, ...saved.sources };
@@ -241,6 +247,26 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       lastRecheckMs = null;
       commit();
       return itemId;
+    },
+    applyRemote(change) {
+      const names = deps.deviceNames?.recall(boxId) ?? {};
+      let changed = false;
+      for (const remote of change.items) {
+        const local = items.find((i) => i.itemId === remote.itemId);
+        // The server's copy of what this device saved: nothing new, and saving it again would echo.
+        if (local && canonicalJson(forStorage(local)) === canonicalJson(remote)) continue;
+        const item = withNames(remote, names[remote.itemId]);
+        items = local ? items.map((i) => (i.itemId === remote.itemId ? item : i)) : [...items, item];
+        changed = true;
+      }
+      for (const id of change.removed) {
+        if (!items.some((i) => i.itemId === id)) continue;
+        items = items.filter((i) => i.itemId !== id);
+        changed = true;
+      }
+      if (!changed) return;
+      items = inAddedOrder(items);
+      commit();
     },
     mergeRemoteItem(item) {
       items = items.some((i) => i.itemId === item.itemId) ? items.map((i) => (i.itemId === item.itemId ? item : i)) : [...items, item];

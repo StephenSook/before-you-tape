@@ -35,6 +35,7 @@ const phoneItem: BoxItem = {
   customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
 };
 const savedItemWithOldVerdict: BoxItem = { ...phoneItem, itemId: "saved-1", readSource: "on_device" };
+const phoneItemBase: BoxItem = { ...phoneItem, readSource: "phone_on_device" };
 
 describe("createBoxStore", () => {
   it("re-checks on a country change with no model call", () => {
@@ -276,6 +277,34 @@ describe("createBoxStore", () => {
     expect(s.getState().cloudConsent).toBe(false);
     expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
     localStorage.clear();
+  });
+
+  it("takes items another device saved into the box, keeps this device's names, and saves nothing for its own copies", async () => {
+    const names: Record<string, Record<string, { read: string; override?: string }>> = {};
+    const deviceNames = { remember: (b: string, n: Record<string, { read: string; override?: string }>) => { names[b] = { ...n }; }, recall: (b: string) => names[b] ?? {} };
+    const persistence = spyPersistence();
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "sync-box", deviceNames });
+    const mine = s.addRead(outcome({ ...liquidLotionLabelRead, itemName: "SHEA BODY LOTION" }, "on_device"), "k");
+    const stored = persistence.save.mock.calls.at(-1)?.[0].items.find((i) => i.itemId === mine) as BoxItem;
+    const saves = persistence.save.mock.calls.length;
+    const heard = vi.fn();
+    s.subscribe(heard);
+    // The server sends back this device's own item as it stored it: nothing changes, nothing is saved.
+    s.applyRemote({ items: [stored], removed: [] });
+    expect(persistence.save.mock.calls.length).toBe(saves);
+    expect(heard).not.toHaveBeenCalled();
+    // A phone added an item and changed the quantity of this one; the real name stays.
+    // Added on the phone after this device's item.
+    const phoneItem: BoxItem = { ...phoneItemBase, itemId: "from-phone", addedAt: Date.now() + 60_000 };
+    s.applyRemote({ items: [phoneItem, { ...stored, quantity: 3 }], removed: [] });
+    expect(s.getState().items.map((i) => i.itemId)).toEqual([mine, "from-phone"]);
+    const again = s.getState().items.find((i) => i.itemId === mine);
+    expect(again?.quantity).toBe(3);
+    expect(again?.read.itemName).toBe("SHEA BODY LOTION");
+    expect(heard).toHaveBeenCalledTimes(1);
+    // The phone removed its item.
+    s.applyRemote({ items: [], removed: ["from-phone", "never-here"] });
+    expect(s.getState().items.map((i) => i.itemId)).toEqual([mine]);
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {

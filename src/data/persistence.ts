@@ -2,14 +2,15 @@
 // over items with no label text; the rules refuse any that carry it. The first save creates the box with
 // its owner as the only member; later saves merge only the box's contents and never send membership, so a
 // phone that joined is never undone. Saves never wait: Firestore queues them, offline too.
-import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, runTransaction, setDoc, type Firestore } from "firebase/firestore";
-import type { BoxItem, BoxPersistence, BoxState } from "./boxStore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, onSnapshot, runTransaction, setDoc, type Firestore } from "firebase/firestore";
+import type { BoxItem, BoxPersistence, BoxState, RemoteChange } from "./boxStore";
 
 export interface FirestorePersistence extends BoxPersistence {
   // Resolves when every write started so far has finished; for tests and for leaving the page.
   idle(): Promise<void>;
   // The last refused or failed write, or null.
   lastError(): string | null;
+  watch(boxId: string, onChange: (c: RemoteChange) => void): () => void;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -59,6 +60,19 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     save(state) {
       queue = queue.then(() => write(state)).then(() => { error = null; }, (e: unknown) => { error = message(e); });
     },
+    // Items other devices save or remove, as they reach the server. This tab's own writes that the server
+    // has not confirmed are left out; once confirmed they come back unchanged, which the store ignores.
+    watch(boxId, onChange) {
+      return onSnapshot(collection(db, "boxes", boxId, "items"), (snap) => {
+        const change: RemoteChange = { items: [], removed: [] };
+        for (const c of snap.docChanges()) {
+          if (c.doc.metadata.hasPendingWrites) continue;
+          if (c.type === "removed") change.removed.push(c.doc.id);
+          else change.items.push(c.doc.data() as BoxItem);
+        }
+        if (change.items.length > 0 || change.removed.length > 0) onChange(change);
+      }, (e: unknown) => { error = message(e); });
+    },
     load(boxId) {
       const run = loadBox(boxId);
       loading = run;
@@ -89,7 +103,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
 // first visit), the box stays in this browser's storage instead.
 export function persistenceAfterSignIn(
   signIn: Promise<string>, make: (uid: string) => BoxPersistence, fallback: BoxPersistence,
-): BoxPersistence & { idle(): Promise<void> } {
+): BoxPersistence & { idle(): Promise<void>; watch(boxId: string, onChange: (c: RemoteChange) => void): () => void } {
   const target = signIn.then(make, () => fallback);
   let queue: Promise<void> = Promise.resolve();
   return {
@@ -97,6 +111,15 @@ export function persistenceAfterSignIn(
       queue = queue.then(() => target).then((p) => p.save(state));
     },
     load: (boxId) => target.then((p) => p.load(boxId)),
+    // Only Firestore can tell of other devices; the browser-only fallback has nothing to watch.
+    watch(boxId, onChange) {
+      let stop = () => {};
+      let stopped = false;
+      void target.then((p) => {
+        if (!stopped && "watch" in p && typeof p.watch === "function") stop = (p as FirestorePersistence).watch(boxId, onChange);
+      });
+      return () => { stopped = true; stop(); };
+    },
     idle: () => queue.then(() => target).then((p) => ("idle" in p && typeof p.idle === "function" ? (p.idle as () => Promise<void>)() : undefined)),
   };
 }

@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, getDoc, getDocs, collection, setDoc, updateDoc, type Firestore } from "firebase/firestore";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoxItem, BoxState } from "../../src/data/boxStore";
 import { firestorePersistence } from "../../src/data/persistence";
 import { createBoxStore } from "../../src/data/boxStore";
@@ -148,5 +148,22 @@ describe("firestorePersistence", () => {
     expect(b.lastError()).toBeNull();
     expect((await admin((d) => getDoc(doc(d, "boxes/b5")))).data()).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
     expect((await admin((d) => getDoc(doc(d, "boxes/b5/items/late")))).exists()).toBe(true);
+  });
+
+  it("tells this device about items another member of the box saved or removed", async () => {
+    await admin((d) => setDoc(doc(d, "boxes/w1"), { ownerUid: "alice", memberUids: ["alice", "bob"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" }));
+    const laptop = firestorePersistence(db("alice"), "alice", "byt-test");
+    const phone = firestorePersistence(db("bob"), "bob", "byt-test");
+    await laptop.load("w1");
+    await phone.load("w1");
+    const seen: Array<{ items: string[]; removed: string[] }> = [];
+    const stop = laptop.watch("w1", (c) => seen.push({ items: c.items.map((i) => i.itemId), removed: c.removed }));
+    phone.save(state([item("theirs")], { boxId: "w1" }));
+    await phone.idle();
+    await vi.waitFor(() => expect(seen.flatMap((c) => c.items)).toContain("theirs"));
+    phone.save(state([], { boxId: "w1" }));
+    await phone.idle();
+    await vi.waitFor(() => expect(seen.flatMap((c) => c.removed)).toContain("theirs"));
+    stop();
   });
 });
