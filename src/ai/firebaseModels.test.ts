@@ -9,7 +9,7 @@ import { getAI, getGenerativeModel, GoogleAIBackend, Schema, type AI, type Hybri
 import { initializeApp } from "firebase/app";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
-import { createItemModels, createTextCloudModel } from "./firebaseModels";
+import { createItemModels, createTextCloudModel, deviceDownloadModel } from "./firebaseModels";
 import { DEVICE_CREATE_OPTIONS } from "./gate";
 import type { ImagePart } from "./port";
 import { ITEM_READ_SYSTEM } from "./prompts";
@@ -41,6 +41,35 @@ describe("createItemModels", () => {
     expect(h.onDeviceParams?.createOptions?.initialPrompts?.[0]?.role).toBe("system");
     expect(JSON.parse(JSON.stringify(params(2).inCloudParams?.generationConfig?.responseSchema))).toEqual(JSON.parse(JSON.stringify(itemReadCloudSchema())));
     expect(params(2).inCloudParams?.systemInstruction).toBe(ITEM_READ_SYSTEM);
+  });
+
+  it("points the on-device-only models at a host that cannot resolve, and only those", () => {
+    createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm);
+    const opts = spy.mock.calls.map((c) => c[2]);
+    expect(opts[0]).toEqual({ baseUrl: "https://on-device-only.invalid" });
+    expect(opts[1]).toBeUndefined();
+    expect(opts[2]).toBeUndefined();
+    spy.mockClear();
+    deviceDownloadModel(fakeAi());
+    expect(spy.mock.calls[0]?.[2]).toEqual({ baseUrl: "https://on-device-only.invalid" });
+  });
+
+  it("sends nothing to a real host from the on-device-only path, while the hybrid path does reach the cloud", async () => {
+    const hosts: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL | Request) => {
+      hosts.push(new URL(typeof url === "string" ? url : url instanceof URL ? url.href : url.url).host);
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }));
+    // A browser whose Prompt API says its model is available. The SDK has been seen to send the read to the cloud
+    // anyway, without starting the model (docs/evidence/on-device-only-request-2026-11-19.md).
+    const lm = { availability: vi.fn(async () => "available"), create: vi.fn(async () => { throw new Error("the model could not start"); }) };
+    vi.stubGlobal("LanguageModel", lm);
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", lm);
+    await m.device.generate("read this", img).catch(() => undefined);
+    expect(hosts.filter((h) => h !== "on-device-only.invalid")).toEqual([]);
+    // Positive control: the same stub sees a real request when a mode is allowed to use the cloud.
+    await m.hybrid.generate("read this", img).catch(() => undefined);
+    expect(hosts.some((h) => h.endsWith("googleapis.com"))).toBe(true);
   });
 
   it("adds a cloud-only fallback port on its own model, and none when it is empty or the same model", () => {
