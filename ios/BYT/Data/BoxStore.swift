@@ -150,6 +150,8 @@ final class BoxStore {
     static let labelUnknown = "An earlier version of this app saved this item. Photograph or type the label again."
     /// Why a lithium item waits: the box-wide total may be missing an item whose label is read again.
     static let lithiumWaits = "Another item in this box needs its label read again before the lithium total is known."
+    /// The box's lithium line while any item's label must be read again.
+    static let lithiumBoxWaits = "An item in this box needs its label read again before the lithium total is known."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -372,15 +374,15 @@ final class BoxStore {
         }
         var staleInBox = false
         for item in items where isStale(item) {
-            // An item already taken out is not in the box, so it cannot change the box's total.
-            if let level = result.items[item.itemId]?.level, level != "take_out" { staleInBox = true }
+            // Even marked "Take out", the item is in the box until the sender removes it.
+            staleInBox = true
             withhold(item.itemId, item.tagsEdition == nil ? Self.labelUnknown : Self.rulesChanged)
         }
         // The lithium total is box-wide: an item whose label must be read again may add to it, so no
-        // lithium item is OK on that total until it is read.
-        if staleInBox, result.lithium.status == "ok" {
+        // lithium item is OK on that total, and the box says the total waits, until it is read or removed.
+        if staleInBox, result.lithium.status == "ok" || result.lithium.status == "none" {
             result.lithium.status = "depends"
-            result.lithium.text = Self.lithiumWaits
+            result.lithium.text = Self.lithiumBoxWaits
             for id in result.lithium.itemIds { withhold(id, Self.lithiumWaits) }
         }
         return result

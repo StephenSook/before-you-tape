@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): every stale item still in the box holds the lithium total, even one marked "Take out"
+- What: a stale item marked "Take out" did not hold the box's lithium total, although it stays in
+  the box until the sender removes it; and with stale items but no lithium found yet, the box
+  showed no lithium line at all. Every stale item still in the box now holds the total: lithium
+  items the engine found OK stay at "Check this", and the box's lithium line reads "An item in this
+  box needs its label read again before the lithium total is known." until it is read again or
+  removed.
+- Source: review.
+- Verified: two tests (a stale "Take out" perfume holds a new sealed phone at "Check this" until it
+  is removed; a stale item alone shows the waiting line) and the updated hold test failed on the
+  old logic, then passed; 131 app unit tests pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): a blank label edit no longer clears a stale item's warning
 - What: typing nothing or only spaces over the label of an item whose tags another (or an
   unknown) edition found stamped it with the current edition, so it could show "OK to pack" and

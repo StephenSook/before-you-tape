@@ -117,11 +117,43 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         restored.answer(phoneId, question: "device_condition", answer: "new_sealed")
         let phone = try #require(restored.result?.items[phoneId])
         #expect(phone.level == "check" && phone.hits.first?.text == BoxStore.lithiumWaits)
-        #expect(restored.result?.lithium.status == "depends" && restored.result?.lithium.text == BoxStore.lithiumWaits)
+        #expect(restored.result?.lithium.status == "depends" && restored.result?.lithium.text == BoxStore.lithiumBoxWaits)
         #expect(restored.result?.counts.ok == 0)
         // Once that item is out of the box, the phone stands on its own again.
         restored.remove(staleId)
         #expect(restored.result?.items[phoneId]?.level == "ok" && restored.result?.lithium.status == "ok")
+    }
+
+    /// A saved box from an earlier version, with these items, read back under the bundled edition.
+    func restoredOlder(_ reads: [JSONValue]) throws -> (BoxStore, [String]) {
+        let p = MemoryBoxPersistence()
+        let first = try store(p)
+        let ids = reads.map { first.addManual($0) }
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(try #require(p.saved.last))) as! [String: Any]
+        json["items"] = (json["items"] as! [[String: Any]]).map { var item = $0; item["tagsEdition"] = nil; return item }
+        let older = try JSONDecoder().decode(BoxSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+        let restored = try store(MemoryBoxPersistence(stored: older), idPrefix: "later")
+        restored.load()
+        return (restored, ids)
+    }
+
+    /// A stale item marked "Take out" is still in the box until the sender removes it, so it holds
+    /// the lithium total like any other stale item.
+    @Test func aStaleTakeOutItemStillHoldsTheLithiumTotal() throws {
+        let (restored, ids) = try restoredOlder([Self.perfume])
+        let perfume = try #require(restored.result?.items[ids[0]])
+        #expect(perfume.level == "take_out")
+        let phoneId = restored.addManual(Self.phone)
+        restored.answer(phoneId, question: "device_condition", answer: "new_sealed")
+        #expect(restored.result?.items[phoneId]?.level == "check" && restored.result?.items[phoneId]?.hits.first?.text == BoxStore.lithiumWaits)
+        restored.remove(ids[0])
+        #expect(restored.result?.items[phoneId]?.level == "ok")
+    }
+
+    /// With stale items in the box and no lithium found yet, the box still says the total waits.
+    @Test func aStaleItemAloneSaysTheLithiumTotalWaits() throws {
+        let (restored, _) = try restoredOlder([Self.lotion])
+        #expect(restored.result?.lithium.status == "depends" && restored.result?.lithium.text == BoxStore.lithiumBoxWaits)
     }
 
     /// Blank words are not a label: typing spaces (or nothing) over a stale item's label keeps it
