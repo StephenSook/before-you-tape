@@ -69,7 +69,7 @@ describe("ItemCard", () => {
     await userEvent.clear(howMany);
     await userEvent.type(howMany, "3");
     expect(onQuantity).toHaveBeenLastCalledWith("p", 3);
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
     expect(onRemove).toHaveBeenCalledWith("p");
   });
 
@@ -241,5 +241,27 @@ describe("ItemCard", () => {
     render(<ItemCard item={watch} verdict={v} crop={null} />);
     await userEvent.click(screen.getByRole("button", { name: "Type the lithium amount" }));
     expect(screen.getByLabelText("Lithium (grams)")).toHaveFocus();
+  });
+
+  it("marks a count that is not 1 to 99, says why, and puts back the last good count on leaving the field", async () => {
+    const onQuantity = vi.fn();
+    const shirt = item("q", { ...base, itemName: "Shirt", category: "clothing", evidence: "item_seen" }, { identityConfirmedBy: "sender" });
+    render(<ItemCard item={shirt} verdict={verdictFor(shirt)} crop={null} onQuantity={onQuantity} onRemove={() => {}} />);
+    const field = screen.getByLabelText("How many");
+    await userEvent.clear(field);
+    await userEvent.type(field, "100");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription("Type a whole number from 1 to 99.");
+    expect(onQuantity).not.toHaveBeenCalledWith("q", 100);
+    await userEvent.tab();
+    expect(field).toHaveValue(1);
+    expect(field).not.toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByText("Type a whole number from 1 to 99.")).toBeNull();
+  });
+
+  it("names the item on its Remove button", () => {
+    const shirt = item("r", { ...base, itemName: "Shirt", category: "clothing", evidence: "item_seen" });
+    render(<ItemCard item={shirt} verdict={verdictFor(shirt)} crop={null} onRemove={() => {}} />);
+    expect(screen.getByRole("button", { name: "Remove Shirt" })).toBeInTheDocument();
   });
 });

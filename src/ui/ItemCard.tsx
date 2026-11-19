@@ -37,24 +37,34 @@ export interface ItemCardProps {
   onRemove?: (itemId: string) => void;
 }
 
-// "How many" keeps what the sender is typing (an empty field mid-edit) and sends whole numbers from 1 to 99.
-function HowMany({ quantity, onChange }: { quantity: number; onChange: (n: number) => void }) {
+// "How many" keeps what the sender is typing (an empty field mid-edit) and sends whole numbers from 1 to 99. Any
+// other text is marked, says why, and gives way to the last good count when the sender leaves the field, so the
+// field never shows a count the verdict is not using.
+function HowMany({ itemId, quantity, onChange }: { itemId: string; quantity: number; onChange: (n: number) => void }) {
   const [text, setText] = useState(String(quantity));
   const [shown, setShown] = useState(quantity);
   if (shown !== quantity) {
     setShown(quantity);
     setText(String(quantity));
   }
+  const n = Number(text);
+  const valid = text.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 99;
+  const errorId = `how-many-error-${itemId}`;
   return (
-    <label>
-      How many{" "}
-      <input type="number" min={1} max={99} step={1} inputMode="numeric" className="how-many" value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          const n = Number(e.target.value);
-          if (Number.isInteger(n) && n >= 1 && n <= 99) onChange(n);
-        }} />
-    </label>
+    <>
+      <label>
+        How many{" "}
+        <input type="number" min={1} max={99} step={1} inputMode="numeric" className="how-many" value={text}
+          aria-invalid={valid ? undefined : true} aria-describedby={valid ? undefined : errorId}
+          onChange={(e) => {
+            setText(e.target.value);
+            const next = Number(e.target.value);
+            if (e.target.value.trim() !== "" && Number.isInteger(next) && next >= 1 && next <= 99) onChange(next);
+          }}
+          onBlur={() => { if (!valid) setText(String(quantity)); }} />
+      </label>
+      {!valid && <span id={errorId} className="field-error">Type a whole number from 1 to 99.</span>}
+    </>
   );
 }
 
@@ -124,7 +134,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
   const disputed = openDisputes(item.disputes);
   const [asking, setAsking] = useState<{ field: DisputeField; side: "device" | "cloud" } | null>(null);
   return (
-    <article data-testid="item-card" id={`item-${item.itemId}`} className={newest ? "card newest" : "card"} aria-label={name}>
+    <article data-testid="item-card" id={`item-${item.itemId}`} tabIndex={-1} className={newest ? "card newest" : "card"} aria-label={name}>
       {crop && <img data-testid="crop-image" src={`data:${crop.mimeType};base64,${crop.base64}`} alt={`The photo of ${name} that was read`} />}
       <p className="item-name">{name}{item.quantity > 1 ? ` x ${item.quantity}` : ""}</p>
       <VerdictChip level={verdict.level} />
@@ -174,8 +184,8 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {needsLithium && <button type="button" onClick={() => { setFocusField("lithiumGrams"); setFixOpen(true); }}>Type the lithium amount</button>}
       {(onQuantity || onRemove) && (
         <p className="item-controls">
-          {onQuantity && <HowMany quantity={item.quantity} onChange={(n) => onQuantity(item.itemId, n)} />}{" "}
-          {onRemove && <button type="button" onClick={() => onRemove(item.itemId)}>Remove</button>}
+          {onQuantity && <HowMany itemId={item.itemId} quantity={item.quantity} onChange={(n) => onQuantity(item.itemId, n)} />}{" "}
+          {onRemove && <button type="button" aria-label={`Remove ${name}`} onClick={() => onRemove(item.itemId)}>Remove</button>}
         </p>
       )}
       <details open={fixOpen} onToggle={(e) => setFixOpen(e.currentTarget.open)}>

@@ -71,7 +71,7 @@ describe("PackPage", () => {
     await userEvent.clear(within(screen.getByTestId("item-card")).getByLabelText("How many"));
     await userEvent.type(within(screen.getByTestId("item-card")).getByLabelText("How many"), "1");
     await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
-    await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: "Remove" }));
+    await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: /^Remove / }));
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);
   });
@@ -316,5 +316,17 @@ describe("PackPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try opening it again" }));
     await waitFor(() => expect(screen.getByTestId("destination-picker")).toHaveValue("PH"));
     expect(screen.queryByText("Your saved box could not be opened. New items stay on this device until it opens.")).toBeNull();
+  });
+
+  it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
+    const { store } = setup();
+    await store.ready;
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion A" }); store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion B" }); });
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Lotion A" }));
+    expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion A.");
+    expect(document.activeElement).toBe(screen.getByRole("article", { name: "Lotion B" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove Lotion B" }));
+    expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion B.");
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Your box" }));
   });
 });

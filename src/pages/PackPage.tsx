@@ -105,6 +105,24 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
+  // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
+  const [removed, setRemoved] = useState("");
+  const focusAfterRemove = useRef<string | null>(null);
+  const removeItem = (itemId: string) => {
+    const at = state.items.findIndex((i) => i.itemId === itemId);
+    const gone = state.items[at];
+    if (!gone) return;
+    const next = state.items[at + 1] ?? state.items[at - 1];
+    focusAfterRemove.current = next ? `item-${next.itemId}` : "box-heading";
+    store.remove(itemId);
+    setRemoved(`Removed ${gone.overrides.itemName ?? gone.read.itemName}.`);
+  };
+  useEffect(() => {
+    const target = focusAfterRemove.current;
+    if (!target) return;
+    focusAfterRemove.current = null;
+    document.getElementById(target)?.focus();
+  }, [state.items]);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
@@ -285,6 +303,7 @@ export function PackPage(p: PackPageProps) {
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
         </div>
         <div>
+          <p data-testid="removal-notice" role="status" className="removal-notice">{removed}</p>
           <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
@@ -295,7 +314,7 @@ export function PackPage(p: PackPageProps) {
                 onFix={(id, patch) => store.override(id, patch)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
                 unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
-                onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={(id) => store.remove(id)}
+                onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
                 onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}

@@ -15,7 +15,7 @@ export function BoxSummary({ result, itemCount, recheck, limits }: { result: Box
   if (lithium.batteries.max > 0) lithiumParts.push(`${range(lithium.batteries)} of ${limits.maxBatteries} batteries`);
   return (
     <section data-testid="box-summary" aria-label="Your box">
-      <h2>Your box</h2>
+      <h2 id="box-heading" tabIndex={-1}>Your box</h2>
       {itemCount === 0 ? <p>Nothing in the box yet.</p> : (
         <ul>
           {counts.takeOut > 0 && <li>{counts.takeOut} to take out</li>}
