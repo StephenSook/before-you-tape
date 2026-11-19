@@ -29,6 +29,28 @@ describe("findPrivateTerms", () => {
     }
   });
 
+  it("finds the build's process words and a work stream named as a role, and passes branch names", () => {
+    for (const bad of [
+      `the ${j("riv", "al")} projects`,
+      `two ${j("Riv", "als")} shipped`,
+      `the ${j("self", "-", "au", "dit")} list`,
+      `the ${j("grad", "ing")} ${j("k", "it")}`,
+      `a Codex ${j("Clo", "ud")} ${j("sli", "ce")}`,
+      `see ${j("STEP", "HEN")}-${j("PROM", "PT")}.md`,
+      `in ${j("rese", "arch")}/${j("priv", "ate")}/notes.md`,
+      `${j("la", "ne")} A ruling 4`,
+      `${j("La", "ne")} C's fix`,
+      `per ${j("la", "ne")}-b rule`,
+      `import from ./${j("la", "ne")}C`,
+    ]) {
+      const found = findPrivateTerms([file("docs/x.md", `first line\n  ${bad}`)]);
+      expect(found.length, bad).toBe(1);
+      expect(found[0], bad).toMatch(/^docs\/x\.md:2:\d+ /);
+    }
+    const branches = "git checkout lane-web && git merge lane-android; merge lane-ios into main; the second lane of traffic";
+    expect(findPrivateTerms([file("docs/y.md", branches)])).toEqual([]);
+  });
+
   it("passes ordinary text, the author's own name, and words that only contain a term", () => {
     const text = [
       `Copyright 2026 Stephen ${j("Soo", "kra")}`,
