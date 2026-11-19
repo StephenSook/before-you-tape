@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### test(ios): run the committed iOS engine bundle against the shipped edition and the box vectors
+- What: `src/embed/iosBundle.test.ts` loads the committed iOS `byt-engine.js` in a fresh V8 context
+  with no Node globals (as JavaScriptCore runs it on the phone), expects it to load
+  `rules/edition.json`, and runs every case in `tests/vectors/box.json` through it, so a bundle that
+  falls behind the engine or the edition fails the unit tests on any machine, not only on an iPhone.
+- Source: an engine check on main.
+- Verified: against main's committed bundle both tests failed ("EditionError: edition.revision:
+  unknown field"); against the rebuilt bundle both pass; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### ci: check the iOS engine bundle and the iOS model guard in the repository's CI
 - What: the iOS engine bundle went stale on main because only the local iOS mirror checked it.
   The repository's CI job now runs the iOS model guard with its tests and
