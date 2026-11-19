@@ -245,13 +245,15 @@ export function PackPage(p: PackPageProps) {
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
         <p data-testid="suspension-checked">{suspensionChecked}</p>
-        <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} />
+        <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} cloudOn={state.cloudConsent === true && !config.killCloud} />
       </div>
       {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
       {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
       {state.cloudConsent !== null && (
         <p data-testid="cloud-choice">
-          {state.cloudConsent ? "Cloud checks are on." : "Cloud checks are off. Photos and label words stay on this laptop."}{" "}
+          {state.cloudConsent ? "Cloud checks are on." : gate === "available"
+            ? "Cloud checks are off. Photos and label words stay on this laptop."
+            : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
           <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
             {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
           </button>
