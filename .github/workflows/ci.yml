@@ -67,6 +67,9 @@ jobs:
           VITE_USE_EMULATORS: "false"
         run: npm run build
 
+      - name: Build the join functions
+        run: npm run build:functions
+
       - name: Build serves this commit
         run: |
           built=$(python3 -c "import json;print(json.load(open('dist/version.json'))['sha'])")

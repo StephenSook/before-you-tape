@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
+    "build:functions": "esbuild functions/src/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=functions/lib/index.js --external:firebase-functions --external:firebase-admin --log-level=warning",
     "test": "vitest run",
     "test:rules": "npx --yes firebase-tools@15.34.2 emulators:exec --only firestore --project demo-before-you-tape \"vitest run --config vitest.rules.config.ts\"",
     "tone": "tsx scripts/tone-check.ts",
