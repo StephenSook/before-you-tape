@@ -27,6 +27,12 @@ rules_version = '2';
 //   quantity (1 to 99), identityConfirmedBy, labelTags, readSource, readMs, secondLook, readFallback
 //   (optional), cropKey, customs, addedAt (optional: milliseconds since 1970, orders the box on reload).
 //
+// Collection: boxes/{boxId}/disputes
+// Document ID: the item id
+// Fields: the facts a second look's two reads of that item disagreed on (category, retailBox, battery,
+//   lithiumGrams, each hazard flag, labelTags), each { device, cloud, resolved }. No label text: a label
+//   dispute holds tags. Its own document, so it has its own evaluation budget beside the item's.
+//
 // Collections ruleEditions, evalSets, evalPublic, publicStats: written by admin scripts, read by any
 // signed-in user. blindSessions: opened by a reviewer's secret token, calls write-only (see below).
 // Everything else (evalRuns, senderSessions, listingQuota): admin only.
@@ -180,6 +186,44 @@ service cloud.firestore {
         || (v is map && v.keys().hasOnly(['ms', 'reason']) && v.ms is number && isShortString(v.reason, 200));
     }
 
+    // One fact a second look's two reads disagreed on: what each read saw and whether the sender settled it.
+    function isDisputeShape(d) {
+      return d is map && d.keys().hasOnly(['device', 'cloud', 'resolved']) && d.keys().hasAll(['device', 'cloud', 'resolved'])
+        && d.resolved is bool;
+    }
+
+    function isBatteryNumbers(b) {
+      return b is map && b.keys().hasOnly(['volts', 'milliampHours', 'wattHours']) && b.keys().hasAll(['volts', 'milliampHours', 'wattHours'])
+        && isNonNegative(b.volts) && isNonNegative(b.milliampHours) && isNonNegative(b.wattHours);
+    }
+
+    function isTagList(t, tags) {
+      return t is list && t.size() <= 40 && t.hasOnly(tags);
+    }
+
+    function isFlagDispute(m, k) {
+      return !(k in m) || (isDisputeShape(m[k]) && m[k].device is bool && m[k].cloud is bool);
+    }
+
+    // At least one fact, each typed as the read types it. A label dispute holds tags, never label text.
+    function isValidDisputes(m) {
+      let cats = categories();
+      let tags = knownTags();
+      return m.size() >= 1
+        && m.keys().hasOnly(['category', 'retailBox', 'battery', 'lithiumGrams', 'batteryWords', 'liquid', 'pressurized',
+                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags'])
+        && (!('category' in m) || (isDisputeShape(m.category) && m.category.device in cats && m.category.cloud in cats))
+        && (!('retailBox' in m) || (isDisputeShape(m.retailBox) && m.retailBox.device in ['sealed', 'open_or_none', 'cannot_tell']
+                                    && m.retailBox.cloud in ['sealed', 'open_or_none', 'cannot_tell']))
+        && (!('battery' in m) || (isDisputeShape(m.battery) && isBatteryNumbers(m.battery.device) && isBatteryNumbers(m.battery.cloud)))
+        && (!('lithiumGrams' in m) || (isDisputeShape(m.lithiumGrams) && isNonNegative(m.lithiumGrams.device)
+                                       && isNonNegative(m.lithiumGrams.cloud)))
+        && isFlagDispute(m, 'batteryWords') && isFlagDispute(m, 'liquid') && isFlagDispute(m, 'pressurized')
+        && isFlagDispute(m, 'alcoholOnLabel') && isFlagDispute(m, 'flammableOnLabel') && isFlagDispute(m, 'glassContainer')
+        && isFlagDispute(m, 'powder')
+        && (!('labelTags' in m) || (isDisputeShape(m.labelTags) && isTagList(m.labelTags.device, tags) && isTagList(m.labelTags.cloud, tags)));
+    }
+
     function isValidFallback(v) {
       return v is map && v.keys().hasOnly(['after', 'route'])
         && v.after in ['500', '503', '404']
@@ -243,6 +287,14 @@ service cloud.firestore {
         }
         allow read, delete: if isMemberOf(parentBox());
         allow create, update: if isMemberOf(parentBox()) && isValidItem(request.resource.data);
+      }
+
+      match /disputes/{itemId} {
+        function disputesBox() {
+          return get(/databases/$(database)/documents/boxes/$(boxId));
+        }
+        allow read, delete: if isMemberOf(disputesBox());
+        allow create, update: if isMemberOf(disputesBox()) && isValidDisputes(request.resource.data);
       }
     }
 
