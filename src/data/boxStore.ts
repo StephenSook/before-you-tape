@@ -57,10 +57,12 @@ export interface BoxPersistence {
   load(boxId: string): Promise<Partial<BoxState> | null>;
 }
 
-// The model's own item names, kept on this device while the server has only category names.
+// An item's own names, the read's and the sender's correction, kept on this device: the server has only
+// the label of the item's category.
+export interface ItemNames { read: string; override?: string }
 export interface DeviceNames {
-  remember(boxId: string, names: Record<string, string>): void;
-  recall(boxId: string): Record<string, string>;
+  remember(boxId: string, names: Record<string, ItemNames>): void;
+  recall(boxId: string): Record<string, ItemNames>;
 }
 
 export interface BoxStore {
@@ -120,14 +122,19 @@ const EMPTY_CUSTOMS: CustomsLine = { description: "", lintOk: false, weightOz: n
 const clampQuantity = (n: number) => (Number.isFinite(n) ? Math.min(99, Math.max(1, Math.round(n))) : 1);
 
 // The copy that leaves memory: no label text, read or corrected; the tags stand in for it.
-// Before cloud consent the server gets a plain category name in place of the model's own name, which can
-// repeat the label's words; the real name stays on this device. A name the sender typed is theirs and kept.
-function forStorage(item: BoxItem, consented: boolean): BoxItem {
-  const { labelText: _dropped, ...overrides } = item.overrides;
-  void _dropped;
-  const itemName = consented || item.readSource === "manual" ? item.read.itemName : CATEGORY_LABELS[item.read.category];
-  return { ...item, read: { ...item.read, labelText: "", itemName }, overrides };
+// Firestore never gets an item's own name: the model's can repeat the label's words, and the sender's are
+// theirs. It gets the label of the item's category (the corrected one, if the sender changed it); the real
+// names stay on this device.
+function forStorage(item: BoxItem): BoxItem {
+  const { labelText: _text, itemName: _name, ...overrides } = item.overrides;
+  void _text;
+  void _name;
+  const category = item.overrides.category ?? item.read.category;
+  return { ...item, read: { ...item.read, labelText: "", itemName: CATEGORY_LABELS[category] }, overrides };
 }
+
+const namesOf = (item: BoxItem): ItemNames =>
+  item.overrides.itemName === undefined ? { read: item.read.itemName } : { read: item.read.itemName, override: item.overrides.itemName };
 
 export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let items: BoxItem[] = [];
@@ -152,9 +159,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
 
   const commit = (result: BoxResult = evaluate()) => {
     state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors };
-    const consented = cloudConsent === true;
-    deps.persistence.save({ ...state, items: items.map((i) => forStorage(i, consented)) });
-    if (!consented) deps.deviceNames?.remember(boxId, Object.fromEntries(items.filter((i) => i.readSource !== "manual").map((i) => [i.itemId, i.read.itemName])));
+    deps.persistence.save({ ...state, items: items.map(forStorage) });
+    deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
     for (const l of listeners) l(state);
   };
   const update = (itemId: string, change: (item: BoxItem) => BoxItem) => {
@@ -177,11 +183,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
     const known = new Set(items.map((i) => i.itemId));
-    // Names kept on this device replace the category names the server got before consent.
+    // The names kept on this device replace the category labels the server has.
     const names = deps.deviceNames?.recall(boxId) ?? {};
     const withNames = (saved.items ?? []).map((i) => {
-      const name = names[i.itemId];
-      return name === undefined ? i : { ...i, read: { ...i.read, itemName: name } };
+      const n = names[i.itemId];
+      if (n === undefined) return i;
+      const overrides = n.override === undefined ? i.overrides : { ...i.overrides, itemName: n.override };
+      return { ...i, read: { ...i.read, itemName: n.read }, overrides };
     });
     items = [...inAddedOrder(withNames.filter((i) => !known.has(i.itemId))), ...items];
     if (saved.destinationCode) destinationCode = saved.destinationCode;

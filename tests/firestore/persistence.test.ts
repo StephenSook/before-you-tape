@@ -112,7 +112,7 @@ describe("firestorePersistence", () => {
     expect(bob.lastError()).toMatch(/permission/i);
   });
 
-  it("keeps the model's own words for an item out of Firestore before cloud consent", async () => {
+  it("keeps an item's own names out of Firestore: the model's words and the sender's correction", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
     const store = createBoxStore({ edition: () => ed, persistence: p, now: () => 0, today: () => "2026-11-20", newId: () => "item-1", boxId: "b2" });
     await store.ready;
@@ -122,6 +122,11 @@ describe("firestorePersistence", () => {
     expect(items).toHaveLength(1);
     expect(JSON.stringify(items)).not.toContain("SECRET");
     expect(items[0]?.read?.itemName).toBe("Lotion or cream");
+    store.setConsent(true);
+    store.override("item-1", { itemName: "GRANDMA ROSE WATER" });
+    await p.idle();
+    const after = (await admin((d) => getDocs(collection(d, "boxes/b2/items")))).docs.map((d) => d.data());
+    expect(JSON.stringify(after)).not.toMatch(/SECRET|GRANDMA/);
   });
 
   it("deletes the consent an older version saved on a box, and two tabs that both found no box never overwrite it", async () => {
