@@ -15,6 +15,14 @@ const PRIVATE_WORDS = new Set([
   "4e2295dd929e424aa1afde7049924cb231f451c9884d7915ae33690b73b227ec",
   "2c418fc8d1f44da53b8617acd76ae9b81ff81c236e4d4706d20725175e735970",
   "8d5c1c1d3890d7e74e4529250848bd6836eea6ee96bb592ac8cf9ad67ec95174",
+  // Build-process words and phrases (a phrase is two words joined by "-", a space or "/").
+  "1db147fa22abae8a70c94152c9ec8cb82bdd0cc8135730a11879ae9dd7ad0375",
+  "d351547e00f627cb719cd2c26ae78b092f7af87fbb2fbf7b42ff483c29eeb984",
+  "93959d627f900c159eb24d1621ea5a7f540b55b8088de32a3034cebb0c6b7dcc",
+  "dbbf1f13afc72262623e57579bc404f54e2e4a7f3bfd199e9ca321ced7f1ba8f",
+  "4e0ef0580c2537a64530885d1c3910406bec9e383d5e13af1c5ca96913f39b6b",
+  "d148ce894d5bd13ffc6bd2c4b7731613a3f8f6b84fc63f8a6e5718c97f1c3cb8",
+  "e58c6fe1372f09e2f9fd4c8617425e829a6b26e1e7a63fe43a0fd0070c52dd25",
 ]);
 
 // Shapes that are private by form, not by word.
@@ -22,6 +30,8 @@ const PRIVATE_SHAPES: ReadonlyArray<{ kind: string; re: RegExp }> = [
   { kind: "a review rule id", re: /\bHR ?\d{1,3}\b/g },
   { kind: "a private home path", re: /~\/\.claude\b/g },
   { kind: "a private home path", re: /\/Users\/[A-Za-z0-9._-]+\//g },
+  // A build work stream named as a role ("lane A", "lane C's", "lane-b"); branch names such as lane-web do not match.
+  { kind: "a build work stream", re: /\blane[ -][a-d]\b/gi },
 ];
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -42,7 +52,9 @@ export function findPrivateTerms(files: TextFile[]): string[] {
       const between = prev ? f.text.slice(prev.end, m.index) : "";
       const afterAuthor = prev?.word === AUTHOR_GIVEN && /^[ \t]+$/.test(between);
       if (isPrivate(word) && !afterAuthor) at(m.index, "a private word");
-      else if (prev && between === "/" && isPrivate(`${prev.word}/${word}`)) at(m.index, "a private path");
+      else if (prev && ["/", "-", " "].includes(between) && isPrivate(`${prev.word}${between}${word}`)) {
+        at(m.index, between === "/" ? "a private path" : "a private phrase");
+      }
       prev = { word, end: m.index + m[0].length };
     }
     for (const s of PRIVATE_SHAPES) for (const m of f.text.matchAll(s.re)) at(m.index, s.kind);

@@ -28,6 +28,7 @@ var BYT = (() => {
     destinationHitsJson: () => destinationHitsJson,
     editionBodyCanonical: () => editionBodyCanonical,
     evaluateBoxJson: () => evaluateBoxJson,
+    isNoItemJson: () => isNoItemJson,
     itemReadContract: () => itemReadContract,
     labelTagsJson: () => labelTagsJson,
     parseItemReadJson: () => parseItemReadJson,
@@ -994,6 +995,14 @@ var BYT = (() => {
     return { items: result, lithium, destination: dest, notes, counts, editionId: edition2.editionId };
   }
 
+  // src/shared/noItem.ts
+  var NO_NAME = /^(?:an? )?(?:unknown|unidentified|unclear|none|nothing|no item|no object|empty|n\/?a|not sure)(?: (?:item|object|thing))?\.?$/i;
+  function isNoItem(r) {
+    const signal = r.batteryWords || r.liquid || r.pressurized || r.alcoholOnLabel || r.flammableOnLabel || r.glassContainer || r.powder || r.volts > 0 || r.milliampHours > 0 || r.wattHours > 0 || r.lithiumGrams > 0;
+    const name = r.itemName.trim();
+    return r.category === "other" && r.evidence === "not_sure" && r.labelText.trim() === "" && !signal && (name === "" || NO_NAME.test(name));
+  }
+
   // src/embed/bridge.ts
   function clonePlainData(value) {
     if (value === null || typeof value !== "object") {
@@ -1149,6 +1158,9 @@ var BYT = (() => {
   }
   function parseItemReadJson(text) {
     return reply(() => parseItemRead(text));
+  }
+  function isNoItemJson(readJson) {
+    return reply(() => isNoItem(parseItemRead(readJson)));
   }
   function itemReadContract() {
     return reply(() => ({ fields: ITEM_READ_FIELDS, schema: itemReadJsonSchema(), labelTextMax: LABEL_TEXT_MAX }));

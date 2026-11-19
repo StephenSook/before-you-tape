@@ -9,7 +9,8 @@ import { canonicalJson, parseEdition } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import type { RuleHit } from "../engine/types";
 import type { BoxResult } from "../engine/verdict";
-import { ITEM_READ_FIELDS, LABEL_TEXT_MAX } from "../shared/itemRead";
+import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
+import { isNoItem } from "../shared/noItem";
 import * as BYT from "./bridge";
 
 type Reply<T> = { ok: true; value: T } | { ok: false; error: { name: string; message: string } };
@@ -108,6 +109,20 @@ describe("the JSON bridge for native clients", () => {
     for (const label of ["LI-ION 3.7V 5000mAh", "PERFUME \"EAU\" 50 ml\nALCOHOL", "a\\b c </script>", "AEROSOL SPRAY"]) {
       expect(value<string[]>(BYT.labelTagsJson(label)), label).toEqual(labelTagsOf(label, ed));
     }
+  });
+
+  it("finds a read of no item with the web app's own check, and refuses a malformed read", () => {
+    const read = (patch: Partial<ItemRead> = {}): ItemRead => ({
+      itemName: "unknown", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
+      batteryWords: false, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
+      glassContainer: false, powder: false, retailBox: "cannot_tell", evidence: "not_sure", ...patch,
+    });
+    const reads = [read(), read({ itemName: "" }), read({ itemName: "No item" }), read({ itemName: "small box" }),
+      read({ category: "power_bank" }), read({ evidence: "item_seen" }), read({ labelText: "50000mAh" }), read({ liquid: true })];
+    for (const r of reads) expect(value<boolean>(BYT.isNoItemJson(JSON.stringify(r))), r.itemName).toBe(isNoItem(r));
+    expect(value<boolean>(BYT.isNoItemJson(JSON.stringify(read())))).toBe(true);
+    expect(value<boolean>(BYT.isNoItemJson(JSON.stringify(read({ liquid: true }))))).toBe(false);
+    expect(reply(BYT.isNoItemJson("{}")).ok).toBe(false);
   });
 
   it("refuses a malformed item instead of judging it", () => {

@@ -8,6 +8,7 @@ import { labelTagsOf } from "../engine/facts";
 import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type ItemAnswers, type ItemFacts, type RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
 import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
+import { isNoItem } from "../shared/noItem";
 
 // QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
 // (objects, arrays, strings, numbers, booleans, null), so a recursive copy gives what the native
@@ -206,6 +207,11 @@ export function labelTagsJson(labelText: string): string {
 /** A model's reply text checked by the same parser the web app uses (label text clipped). */
 export function parseItemReadJson(text: string): string {
   return reply(() => parseItemRead(text));
+}
+
+/** True for a read of no item (a camera pointed at a room), which the web app drops instead of adding. */
+export function isNoItemJson(readJson: string): string {
+  return reply(() => isNoItem(parseItemRead(readJson)));
 }
 
 /** The item-read fields, their JSON schema and the label text cap, for the native read type's tests. */

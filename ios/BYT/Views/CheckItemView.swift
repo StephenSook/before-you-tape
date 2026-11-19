@@ -22,6 +22,18 @@ struct CheckItemView: View {
                 }
                 // A read that could not be saved says so here, where it was added, not only in the box.
                 if let box = model.box { SaveProblemRow(box: box) }
+                // The sender can take the cloud choice back at any time; turning it on again asks first.
+                if let choice = model.cloudChoice {
+                    VStack(spacing: 8) {
+                        Text(choice.line).font(.callout).multilineTextAlignment(.center)
+                        Button(choice.button) {
+                            if model.box?.cloudConsent == true { model.turnOffCloudChecks() } else { model.turnOnCloudChecks() }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("cloud-choice")
+                }
             }
             .padding()
         }
