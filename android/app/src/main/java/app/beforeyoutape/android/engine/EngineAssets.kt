@@ -18,6 +18,14 @@ object EngineAssets {
 
     fun edition(context: Context): String = text(context, "edition.json")
 
+    /** The bundled rules edition's id. */
+    fun editionId(context: Context): String =
+        Json.parseToJsonElement(edition(context)).jsonObject.getValue("editionId").jsonPrimitive.content
+
+    /** The commit the rules bundle was built from, from its build manifest. */
+    fun manifestCommit(context: Context): String =
+        Json.parseToJsonElement(text(context, "manifest.json")).jsonObject.getValue("commit").jsonPrimitive.content
+
     /** A host with the bundled edition loaded. [expectedSha256] is the manifest's unless a test passes another. */
     fun load(context: Context, expectedSha256: String = manifestSha256(context)): EngineHost {
         val host = EngineHost(QuickJsRuntime(), text(context, "byt-engine.js"), expectedSha256)
