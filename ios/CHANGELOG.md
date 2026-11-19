@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### feat(engine): the native bridge answers whether a read is of no item, with the web app's check
+- What: the web app drops a read of no item (a camera pointed at a room: unsure, "other", no label,
+  no battery or warning, no real name) instead of adding it as a card. The bridge now exposes that
+  same check, isNoItemJson, so the iPhone app can use the web's own function rather than a copy.
+  The iOS engine bundle is rebuilt from it, and the Swift test that pins the bridge's function
+  names lists the new one, both in the same commit, as the bundle check and that pin require.
+- Source: review (whole-repo check).
+- Verified: a bridge test compares isNoItemJson with isNoItem on eight reads and checks that a
+  malformed read is refused; it failed ("isNoItemJson is not a function") before the change and
+  passes after. `bash ios/scripts/check_engine_bundle.sh` reports the bundle fresh. Lint,
+  typecheck, unit tests, tone, guard and `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### docs(ios): the README says the box stays on the phone until joining ships
 - What: the README said the iPhone app joins the same box as the web app. It does not yet: the
   box is kept on the phone only, and joining a box started in the web app is not built. The README

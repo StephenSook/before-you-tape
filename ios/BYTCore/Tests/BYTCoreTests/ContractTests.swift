@@ -14,7 +14,7 @@ import Testing
         let engine = try RulesEngine()
         #expect(engine.bridgeVersion == 1)
         #expect(engine.functionNames == ["canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
-                                         "itemReadContract", "labelTagsJson", "parseItemReadJson", "setEdition"])
+                                         "isNoItemJson", "itemReadContract", "labelTagsJson", "parseItemReadJson", "setEdition"])
     }
 
     @Test func aCallBeforeAnEditionIsAnEngineErrorNotACrash() throws {
