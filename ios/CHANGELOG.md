@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### ci: check the iOS engine bundle and the iOS model guard in the repository's CI
+- What: the iOS engine bundle went stale on main because only the local iOS mirror checked it.
+  The repository's CI job now runs the iOS model guard with its tests and
+  `ios/scripts/check_engine_bundle.sh`, which rebuilds the engine from this commit and fails when
+  the committed bundle or its hash differ, so a change to the web engine or the edition that leaves
+  the iPhone's copy behind fails CI. The bundle stays committed (the Swift package and its tests
+  read it as a resource with no Node step), and CI keeps it honest.
+- Source: an engine check on main.
+- Verified: the three commands pass locally; the bundle check exits 1 with a wrong hash; the
+  workflow file parses; `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### fix(ios): say so when the app's rules will not load, instead of failing every verdict silently
 - What: the app loaded the shipped edition with `try?`, so when the engine refused it (as it did
   with a stale bundle) the error vanished: the country list still showed while every verdict
