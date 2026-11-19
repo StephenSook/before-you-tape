@@ -10,7 +10,7 @@
   "medicine": ["pharmaceutical"],
   "alcohol_drink": ["liquid", "alcohol", "alcoholic_drink"],
   "food_packaged": ["food"],
-  "chocolate": ["chocolate", "food"],
+  "chocolate": ["chocolate", "food", "easily_liquefiable"],
   "coffee": ["coffee", "food"],
   "cooking_oil": ["edible_oil", "liquid", "food"],
   "meat_product": ["meat", "food"],
@@ -35,5 +35,5 @@
   "shoes": ["clothing"],
   "book_paper": [],
   "toy": ["toy"],
-  "other": []
+  "ceramic": ["ceramic"], "other": []
 }

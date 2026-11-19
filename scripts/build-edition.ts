@@ -21,6 +21,7 @@ function destinations(): Record<string, unknown> {
 
 async function build(): Promise<string> {
   const body = {
+    revision: (read("revision.json") as { revision: number }).revision,
     service: "Priority Mail International",
     sources: read("sources.json"),
     limits: read("limits.json"),

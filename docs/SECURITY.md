@@ -61,3 +61,15 @@ Every cloud model call, all through Firebase AI Logic with App Check, all paused
 | Second look | `src/ai/secondLook.ts` | the same crop and prompt | When the policy names a reason, after an on-device read |
 
 Descriptions for the customs form come later, through the text model, and will be added here.
+
+### What opens a cloud call
+
+Each call above starts only when all three hold, checked right before it:
+
+- **Consent, on this device.** Each device asks its own question and keeps its own answer, in this browser's storage (`src/data/deviceConsent.ts`); Firestore holds no consent, and the rules refuse it on a box. The answer is read fresh right before each call, so a change made in another tab counts even before this page hears of it. Only "allowed" opens the cloud. Another tab hears a withdrawal as a storage event and aborts its work that has not been sent. The limit: a request already sent finishes, since a withdrawal cannot recall it.
+- **The pause (`kill_cloud`).** Cloud checks stay off until Remote Config has given this browser a value of its own. If nothing was ever fetched and activated (a first visit with Remote Config blocked or offline), they stay off for the visit. A value fetched and activated earlier is used until the next successful fetch or real-time update replaces it. That is how Remote Config delivers settings, and it is the accepted limit: a new pause reaches a browser on its next fetch or update, not before.
+- **This page.** The page is open, online, and not withdrawn; leaving the page aborts its calls.
+
+### What Firestore keeps
+
+A box and its items, for its members only. Never label text, never consent, and never an item's own name: each item carries the label of its category (for example "Perfume or cologne"), and the model's name or the sender's own words for it stay on the device (`src/data/deviceNames.ts`).

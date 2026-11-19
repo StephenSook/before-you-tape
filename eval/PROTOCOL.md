@@ -31,6 +31,18 @@ change to this file after the freeze fails the manifest test.
   is fine for Canada but barred by the Philippines is one. The manifest check rejects any hazard flag
   that disagrees with the labels.
 
+## Rule changes after labelling
+
+- Two engine rule changes were made after the set was labelled, prompted by items i25 and i20; the labels
+  themselves were not changed. Commit dda2875: chocolate and margarine count as easily liquefiable, so the
+  Philippines line PH-P-01 gives "Check this" (prompted by i25, a chocolate bar). Commit 877f673: a ceramic
+  category, "Check this" for the Philippines under PH-P-01 (prompted by i20, a ceramic mug).
+  `src/eval/ruleChanges.ts` lists them.
+- Every eval report gives two numbers side by side, for every metric, with the same denominator rule: all
+  40 items, and the 38 items that did not prompt any rule change.
+- From the freeze on, no engine change may be prompted by an item in this set. A gap found later is
+  recorded as a miss, and its fix waits for a new set.
+
 ## Metrics
 
 - **Agreement**: rows where the shipped verdict equals the label, over all rows.

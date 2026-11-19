@@ -12,6 +12,23 @@ source (plan task or finding) and how it was verified.
   `BoxLogicTest.aTypedAlcoholLineIsTheSendersOwnWord` failed first (empty overrides), then
   passes; an unticked typed item keeps empty overrides. `bash android/ci-local.sh` and the root
   CI mirror exit 0.
+- **A web `addedAt` survives the phone's sync.** The web app now stamps `addedAt` (ms since
+  1970) on new items. The phone's item mapper dropped any field it did not know, so a phone
+  write would have removed it. `addedAt` now joins the fields kept as they came and is written
+  back unchanged when present; the phone does not stamp it yet. Source: the web app's item
+  contract (`tests/contracts/box-docs.json` now carries `addedAt`). Verified:
+  `BoxDocsContractTest.theFixtureItemDecodesAndEncodesToTheSameDocument` failed first (the
+  round trip lost `addedAt`), then passes; `bash android/ci-local.sh` and the root CI mirror
+  exit 0.
+
+- **The new "ceramic" item category.** The web app adds a 38th category, `ceramic` ("Ceramic
+  or porcelain (mug, plate, vase)"), just before `other`, with rules that use it. The engine's
+  `ItemCategoryWire` and the typed-item form's `ReadCopy.CATEGORIES` gain it in the same place,
+  so the phone can read, type and sync a ceramic item, and the shared ceramic vectors decode.
+  Source: the web app's rule gaps (batch A). Verified: the contract tests that compare the
+  enum order and the form labels with the web files (`ItemReadWireTest`, `CopyTest`), and the
+  shared vectors (`SharedVectorsTest`, which could not decode `ceramic`), failed first and pass
+  now; the enum size guard moves from 37 to 38.
 
 - **The box repository writes through a small store, local first.** `FirestoreBoxRepository`
   now makes its writes through `DocStore` (create, set, update, delete by document path, plus

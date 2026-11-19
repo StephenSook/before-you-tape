@@ -22,7 +22,7 @@ export function BoxSummary({ result, itemCount, recheck, limits }: { result: Box
       )}
       {lithiumParts.length > 0 && <p>Lithium: {lithiumParts.join(", ")}</p>}
       {(lithium.status === "over" || lithium.status === "mixed" || lithium.status === "depends") && <p>{lithium.text}</p>}
-      {recheck && <p data-testid="recheck-line">Re-checked {itemCount} items for {recheck.country} in {recheck.ms} ms. 0 model calls.</p>}
+      {recheck && <p data-testid="recheck-line">Re-checked {itemCount} {itemCount === 1 ? "item" : "items"} for {recheck.country} in {recheck.ms} ms. 0 model calls.</p>}
     </section>
   );
 }

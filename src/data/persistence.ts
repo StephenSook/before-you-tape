@@ -2,7 +2,7 @@
 // over items with no label text; the rules refuse any that carry it. The first save creates the box with
 // its owner as the only member; later saves merge only the box's contents and never send membership, so a
 // phone that joined is never undone. Saves never wait: Firestore queues them, offline too.
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, type Firestore } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, runTransaction, setDoc, type Firestore } from "firebase/firestore";
 import type { BoxItem, BoxPersistence, BoxState } from "./boxStore";
 
 export interface FirestorePersistence extends BoxPersistence {
@@ -32,12 +32,20 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       const snap = await getDoc(box).catch(() => null);
       if (snap) exists = snap.exists();
     }
-    const content = { destinationCode: s.destinationCode, editionId: edition(), cloudConsent: s.cloudConsent, sources: s.sources, lastRecheckMs: s.lastRecheckMs };
-    if (exists === false) {
-      await setDoc(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
+    // Firestore holds no consent: each device keeps its own answer. A merge deletes the answer an older
+    // version of the app saved on the box.
+    const content = { destinationCode: s.destinationCode, editionId: edition(), sources: s.sources, lastRecheckMs: s.lastRecheckMs };
+    const merge = { ...content, cloudConsent: deleteField() };
+    if (exists !== true) {
+      // Create or merge in one transaction, so two tabs that both saw no box never overwrite each other.
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(box);
+        if (snap.exists()) tx.set(box, merge, { merge: true });
+        else tx.set(box, { ownerUid: uid, memberUids: [uid], joinKeyHash: "", ...content });
+      });
       exists = true;
     } else {
-      await setDoc(box, content, { merge: true });
+      await setDoc(box, merge, { merge: true });
     }
     const now = new Set(s.items.map((i) => i.itemId));
     await Promise.all([
@@ -68,7 +76,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       const items = (await getDocs(collection(db, "boxes", boxId, "items"))).docs.map((d) => d.data() as BoxItem);
       known = new Set(items.map((i) => i.itemId));
       const d = snap.data() as Partial<BoxState>;
-      return { boxId, destinationCode: d.destinationCode, cloudConsent: d.cloudConsent, sources: d.sources, items };
+      return { boxId, destinationCode: d.destinationCode, sources: d.sources, items };
     } catch (e) {
       // Not a member, or offline with nothing cached: there is no box to load.
       error = message(e);
