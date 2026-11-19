@@ -211,13 +211,15 @@ final class AppModel {
 
     private func followEditionPin() async {
         let want = Self.pinKey(config)
-        guard want != installedPin, let engine, let bundledEditionText else { return }
+        // Every new wish, even a return to the installed pin, makes any request still running stale.
         editionRequest += 1
         let request = editionRequest
+        guard want != installedPin, let engine, let bundledEditionText else { return }
         let choice = await EditionSource.choose(bundledText: bundledEditionText, wantId: config.rulesEditionId,
                                                 wantSha: config.rulesEditionSha256, fetchRemote: fetchEdition)
-        // A newer request may have started while this one was checked: only the latest installs anything.
-        guard request == editionRequest else { return }
+        // A newer request may have started while this one was checked: only the latest installs
+        // anything, and only for the pin still wanted.
+        guard request == editionRequest, Self.pinKey(config) == want else { return }
         var installed = choice.text
         if (try? engine.setEdition(choice.text)) != nil {
             editionNotice = choice.notice

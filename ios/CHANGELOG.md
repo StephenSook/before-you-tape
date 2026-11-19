@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-18
 
+### fix(ios): a return to the installed rule edition stops any slower request
+- What: the request counter moved only when a pin still had to be installed, so going back to the
+  installed pin left a slower request for another pin current, and it installed when it finished.
+  Every new pin now makes any running request stale, even a return to the installed one, and a
+  finished request installs only while its pin is still the one wanted.
+- Source: review.
+- Verified: a test installs pin A, starts a slow fetch for B, goes back to A and lets B finish;
+  B replaced A on the old code (failed), A stays now (passes); 118 app unit tests pass;
+  `bash ios/scripts/ci-local-ios.sh` exit 0.
+
 ### build(ios): rebuild the bundled rules engine from main's sources
 - What: main's engine now names who read a country's rules (a person or the USPS page) through
   one helper, so the bundled `byt-engine.js` was stale after merging main. Rebuilt with

@@ -96,6 +96,28 @@ import Testing
         #expect(m.box?.result?.editionId == "byt-current" && m.editionNotice == nil)
     }
 
+    /// Going back to the pin already installed cancels a slower request for another pin.
+    @Test func goingBackToTheInstalledPinStopsAnOlderRequest() async throws {
+        let a = try EditionSourceTests.newer(id: "byt-a")
+        let b = try EditionSourceTests.newer(id: "byt-b")
+        let gate = Gate()
+        let m = model(Models(), fetchEdition: { id in
+            if id == "byt-b" { await gate.wait(); return b.text }
+            return a.text
+        })
+        let pinA = RemoteConfigValues.parse(["rules_edition_id": "byt-a", "rules_edition_sha256": a.sha])
+        await m.applyConfig(pinA)
+        #expect(m.box?.result?.editionId == "byt-a")
+        let slow = Task { await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-b", "rules_edition_sha256": b.sha])) }
+        for _ in 0..<1000 where !gate.isWaiting { await Task.yield() }
+        #expect(gate.isWaiting)
+        await m.applyConfig(pinA)
+        gate.release()
+        await slow.value
+        m.box?.reevaluate()
+        #expect(m.box?.result?.editionId == "byt-a")
+    }
+
     /// Fails the first fetch (the document was briefly unavailable), then serves the edition.
     final class FlakyFetch: @unchecked Sendable {
         let text: String
