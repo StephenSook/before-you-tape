@@ -38,6 +38,11 @@ const NO_DEVICE: ModelPort = {
 
 const ON_DEVICE_PARAMS = () => ({ createOptions: DEVICE_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } });
 
+// The on-device-only models send any request they make to a host that cannot resolve (RFC 2606). Measured: when
+// the on-device model fails to start, the SDK's ONLY_ON_DEVICE mode still sends the read to the cloud. The device
+// guard is the first check; this makes sure such a fallback reaches no server.
+export const ON_DEVICE_ONLY_REQUESTS = { baseUrl: "https://on-device-only.invalid" } as const;
+
 const itemCloudParams = (model: string): ModelParams => ({
   model,
   systemInstruction: ITEM_READ_SYSTEM,
@@ -61,7 +66,7 @@ export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallba
     const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
     return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) });
   }
-  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
+  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
   const hybrid = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS(), inCloudParams });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
@@ -78,5 +83,5 @@ export function createTextCloudModel(ai: AI, cloudModel: string, schema: Schema)
 
 // The model handle prepareDeviceModel uses to start the on-device download.
 export function deviceDownloadModel(ai: AI): GenerativeModel {
-  return getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
+  return getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
 }
