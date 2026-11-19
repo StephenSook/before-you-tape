@@ -51,6 +51,8 @@ export interface BoxState {
   sources: BoxSources;
   lastRecheckMs: number | null;
   errors: Record<string, string>;
+  // Items whose last save did not reach the server: what the card shows is on this device only.
+  unsaved?: readonly string[];
 }
 
 export interface BoxPersistence {
@@ -95,6 +97,8 @@ export interface BoxStore {
   setDestination(code: string): void;
   setLiveRead(code: string, edition: DestinationEdition): void;
   setConsent(v: boolean | null): void;
+  // Saves the box again, as it is now (after a save that did not reach the server).
+  retrySave(): void;
   // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
   // a page last rendered, if another tab changed it.
   consentNow(): boolean | null;
@@ -182,10 +186,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
     return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live), deps.today());
   };
-  let state: BoxState = { boxId, destinationCode, items, result: evaluate(), cloudConsent, sources, lastRecheckMs, errors };
+  let unsaved: readonly string[] = [];
+  let state: BoxState = { boxId, destinationCode, items, result: evaluate(), cloudConsent, sources, lastRecheckMs, errors, unsaved };
 
   const commit = (result: BoxResult = evaluate()) => {
-    state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors };
+    state = { boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved };
     deps.persistence.save({ ...state, items: items.map(forStorage) });
     deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
     for (const l of listeners) l(state);
@@ -206,6 +211,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   // Another tab on this device changed the answer.
   deps.consent?.onChange(publishConsent);
+  // The saved copy says which items it could not save; the cards say so, with no new save.
+  deps.persistence.onUnsaved?.((ids) => {
+    unsaved = [...ids];
+    state = { ...state, unsaved };
+    for (const l of listeners) l(state);
+  });
 
   const ready = deps.persistence.load(boxId).then((saved) => {
     if (!saved) return;
@@ -372,6 +383,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit();
     },
     consentNow: () => (deps.consent ? deps.consent.get() : cloudConsent),
+    retrySave: () => commit(),
     setConsent(v) {
       deps.consent?.set(v);
       publishConsent(v);

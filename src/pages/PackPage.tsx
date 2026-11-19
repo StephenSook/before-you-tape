@@ -282,6 +282,7 @@ export function PackPage(p: PackPageProps) {
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
+                unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
                 onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}

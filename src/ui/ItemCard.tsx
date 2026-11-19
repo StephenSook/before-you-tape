@@ -29,6 +29,9 @@ export interface ItemCardProps {
   newest?: boolean;
   // The sender picks which of the two reads is right about one disputed fact.
   onSettle?: (itemId: string, field: DisputeField, side: "device" | "cloud") => void;
+  // The item's last save did not reach the server.
+  unsaved?: boolean;
+  onRetrySave?: () => void;
 }
 
 const LAYER_STATE: Record<LayerStatus["state"], string> = { checked: "checked", stale: "out of date", missing: "not loaded" };
@@ -82,7 +85,7 @@ function dropsWhatOtherSaw(field: DisputeField, picked: DisputeValues[DisputeFie
 
 const SIDE_NAME = { device: "first read", cloud: "second look" } as const;
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle }: ItemCardProps) {
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
@@ -101,6 +104,8 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {checking && <p role="status">Checking again in the cloud.</p>}
       {!checking && item.secondLook && <p data-testid="second-look">{item.secondLook.reason}</p>}
       {error && <p role="alert">{error}</p>}
+      {unsaved && <p role="alert">Not saved yet. This change is only on this device for now.</p>}
+      {unsaved && onRetrySave && <button type="button" onClick={onRetrySave}>Try saving again</button>}
       {error && onRetry && <button type="button" onClick={() => onRetry(item.itemId)}>Try again</button>}
       {!checking && onCloudLook && <button type="button" data-testid="cloud-look" onClick={() => onCloudLook(item.itemId)}>Check it in the cloud</button>}
       {disputed.length > 0 && (

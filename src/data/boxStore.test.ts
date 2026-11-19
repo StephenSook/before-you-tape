@@ -470,6 +470,21 @@ describe("createBoxStore", () => {
     });
   });
 
+  it("says which items did not save, and saves again on request", () => {
+    let report: ((ids: ReadonlySet<string>) => void) | undefined;
+    const p = { ...spyPersistence(), onUnsaved: (l: (ids: ReadonlySet<string>) => void) => { report = l; } };
+    const s = store({ persistence: p });
+    const id = s.addManual(shirtRead);
+    expect(s.getState().unsaved ?? []).toEqual([]);
+    report?.(new Set([id]));
+    expect(s.getState().unsaved).toEqual([id]);
+    const saves = p.save.mock.calls.length;
+    s.retrySave();
+    expect(p.save.mock.calls.length).toBe(saves + 1);
+    report?.(new Set());
+    expect(s.getState().unsaved).toEqual([]);
+  });
+
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
     const s = store();
     expect(s.getState().destinationCode).toBe("CA");

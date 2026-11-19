@@ -195,4 +195,14 @@ describe("ItemCard", () => {
     render(<ItemCard item={settled} verdict={verdictFor(settled)} crop={null} onSettle={() => {}} />);
     expect(screen.queryByRole("group", { name: "The two reads disagree. Pick what the item shows." })).toBeNull();
   });
+
+  it("says when an item has not saved yet, and offers to try again", async () => {
+    const onRetrySave = vi.fn();
+    const { rerender } = render(<ItemCard item={perfume} verdict={takeOut} crop={null} unsaved onRetrySave={onRetrySave} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Not saved yet. This change is only on this device for now.");
+    await userEvent.click(screen.getByRole("button", { name: "Try saving again" }));
+    expect(onRetrySave).toHaveBeenCalledTimes(1);
+    rerender(<ItemCard item={perfume} verdict={takeOut} crop={null} onRetrySave={onRetrySave} />);
+    expect(screen.queryByText("Not saved yet. This change is only on this device for now.")).toBeNull();
+  });
 });
