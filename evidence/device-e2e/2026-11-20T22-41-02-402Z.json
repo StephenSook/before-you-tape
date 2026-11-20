@@ -1,0 +1,52 @@
+{
+  "ranAt": "2026-11-20T22:41:02.402Z",
+  "sha": "11269f775fc6d11828845d28eb498481e17cdd4b",
+  "dirty": false,
+  "route": "device_only",
+  "gate": "available",
+  "chromeVersion": "157.0.8103.80",
+  "os": "macOS 27.0",
+  "machine": {
+    "model": "Mac17,9",
+    "chip": "Apple M5 Pro",
+    "memoryGb": 48
+  },
+  "photos": "eval/set photos own-01, own-18, own-25",
+  "reads": [
+    {
+      "itemId": "own-01",
+      "file": "own-01.jpg",
+      "source": "on_device",
+      "ms": 17587,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "POWER BANK",
+      "category": "power_bank",
+      "evidence": "label_read"
+    },
+    {
+      "itemId": "own-18",
+      "file": "own-18.jpg",
+      "source": "on_device",
+      "ms": 3997,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "24H Moisture Body Lotion",
+      "category": "lotion_cream",
+      "evidence": "label_read"
+    },
+    {
+      "itemId": "own-25",
+      "file": "own-25.jpg",
+      "source": "on_device",
+      "ms": 3864,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "Honey oud",
+      "category": "perfume_fragrance",
+      "evidence": "label_read"
+    }
+  ],
+  "cloudRequestsToAiLogic": 0,
+  "passed": true
+}

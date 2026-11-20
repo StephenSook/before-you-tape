@@ -1,0 +1,47 @@
+{
+  "ranAt": "2026-11-20T22:36:58.315Z",
+  "sha": "800df467bc4715a28e17cddb4004a0c66a8ee38b",
+  "dirty": false,
+  "route": "device_only",
+  "gate": "available",
+  "chromeVersion": "157.0.8103.80",
+  "os": "macOS 27.0",
+  "photos": "eval/set photos own-01, own-18, own-25",
+  "reads": [
+    {
+      "itemId": "own-01",
+      "file": "own-01.jpg",
+      "source": "on_device",
+      "ms": 29345,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "POWER BANK",
+      "category": "power_bank",
+      "evidence": "label_read"
+    },
+    {
+      "itemId": "own-18",
+      "file": "own-18.jpg",
+      "source": "on_device",
+      "ms": 4489,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "shea better 24H Moisture BODY LOTION",
+      "category": "lotion_cream",
+      "evidence": "label_read"
+    },
+    {
+      "itemId": "own-25",
+      "file": "own-25.jpg",
+      "source": "on_device",
+      "ms": 3579,
+      "recoveredFrom": null,
+      "error": null,
+      "itemName": "Honey oud",
+      "category": "perfume_fragrance",
+      "evidence": "label_read"
+    }
+  ],
+  "cloudRequestsToAiLogic": 0,
+  "passed": true
+}
