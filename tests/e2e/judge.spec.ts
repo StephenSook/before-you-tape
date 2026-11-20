@@ -28,3 +28,14 @@ test("the heading uses the self-hosted display font, loaded from this site", asy
   expect(await page.getByRole("heading", { level: 1 }).evaluate((h) => getComputedStyle(h).fontFamily)).toMatch(/^"?Bricolage Grotesque/);
   expect(new Set(fontHosts)).toEqual(new Set([new URL(page.url()).origin]));
 });
+
+// WCAG reflow: at 320 CSS px nothing scrolls sideways, even before the web fonts arrive. A native select sizes
+// itself to its longest option, and the fallback font a phone or a Linux browser draws it in is wider.
+test("the page fits a 320 px screen even before the web fonts load", async ({ page }) => {
+  await page.route(/\.woff2$/, (r) => r.abort());
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/judge");
+  await expect(page.getByTestId("destination-picker")).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, "no sideways page scroll").toBeLessThanOrEqual(0);
+});
