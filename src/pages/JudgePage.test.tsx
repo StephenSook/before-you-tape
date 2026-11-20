@@ -90,6 +90,11 @@ describe("JudgePage", () => {
     expect(screen.queryByTestId("recorded-reads")).toBeNull();
   });
 
+  it("links the public source code", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
+  });
+
   it("names the rule and its section behind each verdict", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });

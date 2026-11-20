@@ -23,6 +23,11 @@ import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
 import { VerdictChip } from "../ui/VerdictChip";
+import manifest from "../../eval/set/manifest.json";
+
+// A tracked eval photo (the /judge sample's body lotion) for a sender with no camera or no item at hand.
+const SAMPLE_ITEM = manifest.items.find((i) => i.itemId === "own-18")!;
+const SAMPLE_PHOTO = { url: SAMPLE_ITEM.photo, sha256: SAMPLE_ITEM.photoSha256, alt: SAMPLE_ITEM.alt };
 
 export interface PackConfig {
   killCloud: boolean;
@@ -32,6 +37,8 @@ export interface PackConfig {
 }
 
 export interface PackPageProps {
+  // Loads the sample photo's bytes; the page fetches it from the site when none is given.
+  loadSample?: (url: string) => Promise<ArrayBuffer>;
   store: BoxStore;
   models: ItemModels;
   gate: GateState;
@@ -62,6 +69,8 @@ const SETTINGS_WAIT_MS = 10_000;
 const READ_TIMEOUT_MS = 45_000;
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
+const GATE_SLOW = "This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.";
+const CHOICE_CHANGED = "Your cloud choice changed while this laptop was getting ready. Add the photo again.";
 const TOO_SLOW = "The check took too long. Try again or type the item.";
 const SECOND_LOOK_TOO_SLOW = "The cloud step took too long. Try again.";
 
@@ -315,7 +324,37 @@ export function PackPage(p: PackPageProps) {
     // The press this read answers to: its own, or for a camera frame the newest one when it started. Its
     // notice shows only while no newer press has come since.
     const owner = press ?? presses.current;
-    let route = chooseImageRoute(how, { gate, ...cloudInputs() });
+    // Notices and the blocked line after a wait belong to the newest press only: an older one never covers it.
+    const say = (text: string | null) => { if (presses.current === owner) setNotice(text); };
+    // A press before the page knows whether this laptop has its own model waits for that answer, with a limit,
+    // instead of being routed as if there were none: refused with cloud checks off, or sent to the cloud with
+    // them on. A camera frame is never read then (it needs the model), so only a press waits.
+    // A change to the cloud choice during the wait (off, or off and back on) ends it: the photo is dropped, so
+    // it never goes anywhere the sender did not choose at the moment it would be read.
+    let waited = false;
+    if (press !== null && live.current.gate === "checking") {
+      waited = true;
+      const consentAtPress = store.consentNow();
+      // Every change is caught as it is announced, so turning cloud checks off and straight back on counts too.
+      let changed = false;
+      const offConsent = store.subscribe(() => { if (store.consentNow() !== consentAtPress) changed = true; });
+      setNotice(null);
+      setBlocked(null);
+      setWaiting((w) => w + 1);
+      let known: boolean;
+      try {
+        known = await waitUntilFalse(() => live.current.gate === "checking", settingsWaitMs, () => gone.current || changed);
+      } finally {
+        offConsent();
+        if (!gone.current) setWaiting((w) => w - 1);
+      }
+      if (gone.current) return;
+      if (changed || store.consentNow() !== consentAtPress) { say(CHOICE_CHANGED); return; }
+      if (!known) { say(GATE_SLOW); return; }
+    }
+    // After a wait, the inputs as they are now (the connection may have changed), not as they were at the press.
+    const inputs = waited ? liveInputs : cloudInputs;
+    let route = chooseImageRoute(how, { gate: live.current.gate, ...inputs() });
     if (route === "skip") return;
     // A photo added before Remote Config has given its settings (cloud checks stay off until it does) waits
     // for them, with a limit, instead of being turned away by that default and lost when they land a moment
@@ -333,15 +372,18 @@ export function PackPage(p: PackPageProps) {
       }
       if (gone.current) return;
       // Cloud checks taken back during the wait end it, and the notice says that, whatever else holds.
-      if (store.consentNow() !== true) { setNotice(blockedText({ ...liveInputs(), killCloud: false, online: true })); return; }
+      if (store.consentNow() !== true) { say(blockedText({ ...liveInputs(), killCloud: false, online: true })); return; }
       route = chooseImageRoute(how, { gate: live.current.gate, ...liveInputs() });
       if (route === "skip") return;
       if (route === "blocked") {
-        setNotice(!live.current.online ? blockedText(liveInputs()) : arrived ? blockedText(liveInputs(), false) : SETTINGS_SLOW);
+        say(!live.current.online ? blockedText(liveInputs()) : arrived ? blockedText(liveInputs(), false) : SETTINGS_SLOW);
         return;
       }
     }
-    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
+    if (route === "blocked") {
+      if (presses.current === owner) { setNotice(null); setBlocked({ text: blockedText(inputs(), live.current.pauseUnknown), when: situationOf(inputs()) }); }
+      return;
+    }
     // A frame the camera read by itself leaves the notices of the sender's presses in place.
     if (press !== null) {
       setNotice(null);
@@ -354,7 +396,7 @@ export function PackPage(p: PackPageProps) {
       const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
       limit.clear();
       if (gone.current || limit.over) return;
-      if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
+      if (isNoItem(outcome.read)) { say(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));
@@ -370,7 +412,7 @@ export function PackPage(p: PackPageProps) {
     } catch (e) {
       limit.clear();
       if (gone.current || limit.over) return;
-      setNotice(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
+      say(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
     } finally {
       work.end();
     }
@@ -409,8 +451,9 @@ export function PackPage(p: PackPageProps) {
       {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
       {state.cloudConsent !== null && (
         <p data-testid="cloud-choice">
-          {state.cloudConsent ? "Cloud checks are on." : gate === "available"
-            ? "Cloud checks are off. Photos and label words stay on this laptop."
+          {state.cloudConsent ? "Cloud checks are on." : gate === "checking" ? "Cloud checks are off."
+            : gate === "available"
+            ? "Cloud checks are off. Photos and label text stay on this laptop."
             : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
           <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
             {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
@@ -419,7 +462,8 @@ export function PackPage(p: PackPageProps) {
       )}
       {config.killCloud && (
         <p data-testid="paused-banner" className="banner" role="status">
-          {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."} Checks on this laptop still work.
+          {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}
+          {gate === "available" ? " Checks on this laptop still work." : ""}
           {config.pauseUnknown && p.onRetryConfig && <> <button type="button" onClick={p.onRetryConfig}>Try again</button></>}
         </p>
       )}
@@ -436,7 +480,7 @@ export function PackPage(p: PackPageProps) {
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
-            onTypeIt={() => setTyping(true)} />
+            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}

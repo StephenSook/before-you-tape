@@ -5,6 +5,7 @@ import type { GateState } from "../ai/port";
 // cloudOn: the sender allowed cloud checks and they are not paused. Without them, on a device with no model
 // of its own, the page's cloud line says what that means, so this one says nothing.
 export function ReadyButton({ gate, progress, onReady, cloudOn }: { gate: GateState; progress: number | null; onReady: () => void; cloudOn: boolean }) {
+  if (gate === "checking") return null;
   if (gate === "downloadable") return <button type="button" data-testid="ready-button" onClick={onReady}>Get this laptop ready</button>;
   if (gate === "downloading") {
     const pct = Math.round((progress ?? 0) * 100);
