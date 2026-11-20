@@ -21,6 +21,16 @@ describe("DestinationPicker", () => {
     expect(onChange).toHaveBeenCalledWith("PH");
   });
 
+  it("shows no country until there is one, and counts a pick of the first one", async () => {
+    const onChange = vi.fn();
+    render(<DestinationPicker index={index} readBy={{ CA: "person" }} value="" onChange={onChange} />);
+    expect(screen.getByTestId("destination-picker")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "Choose a country" })).toBeInTheDocument();
+    expect(screen.queryByTestId("live-read-notice")).toBeNull();
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(onChange).toHaveBeenCalledWith("CA");
+  });
+
   it("tells the sender to read the listing for a country we have not reviewed", () => {
     render(<DestinationPicker index={index} readBy={{ CA: "usps_page", PH: "usps_page" }} value="GH" onChange={() => {}} />);
     const notice = screen.getByTestId("live-read-notice");

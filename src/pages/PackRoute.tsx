@@ -16,7 +16,7 @@ import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
 import { saveCrop } from "../data/crops";
-import { currentBoxId, localPersistence } from "../data/localPersistence";
+import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
@@ -51,6 +51,7 @@ function buildDeps(): PackDeps | Error {
     store = createBoxStore({
       edition: () => edition,
       persistence,
+      journal: localJournal(localStorage),
       now: () => Date.now(),
       // The device's own local calendar date, which counts the rule layers' age (docs/LIMITS.md).
       today: () => new Date().toLocaleDateString("en-CA"),

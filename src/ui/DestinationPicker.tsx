@@ -13,6 +13,8 @@ export function DestinationPicker({ index, readBy, value, onChange }: { index: r
     <div>
       <label htmlFor="destination">To</label>{" "}
       <select id="destination" data-testid="destination-picker" value={value} onChange={(e) => onChange(e.target.value)}>
+        {/* No country yet (the saved box is still being read): nothing is chosen, so any pick counts. */}
+        {value === "" && <option value="" disabled>Choose a country</option>}
         {index.map((d) => (
           <option key={d.code} value={d.code}>{readBy[d.code] ? `${d.name} (${READ_BY[readBy[d.code]!]})` : d.name}</option>
         ))}
