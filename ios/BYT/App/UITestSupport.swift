@@ -11,7 +11,7 @@ enum UITestSupport {
     static let onDevice = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "UI test", vision: false)
 
     static func reader() -> ItemReader {
-        ItemReader(device: FixedRunner(), makeCloud: { _ in FixedRunner() }, parse: { $0 })
+        ItemReader(device: FixedRunner(), makeCloud: { _ in FixedRunner() }, parse: { ParsedRead(read: $0) })
     }
 
     /// Every model call the fixed reader takes, counted where the reader is called.

@@ -92,6 +92,14 @@ class EngineHost(private val runtime: JsRuntime, bundle: String, expectedSha256:
     /** A model's reply checked by the web app's own parser; a bad reply is an EngineError("InvalidReadError"). */
     fun parseItemRead(text: String): ItemReadWire = json.decodeFromJsonElement(ItemReadWire.serializer(), call("parseItemReadJson", text))
 
+    /**
+     * The same parser, with the engine's tags for the reply's whole label: the read keeps clipped label text,
+     * and the tags come from the text before the cut. Save these as the item's labelTags; never tag the
+     * clipped text.
+     */
+    fun parseItemReadTagged(text: String): TaggedRead =
+        json.decodeFromJsonElement(TaggedRead.serializer(), call("parseItemReadTaggedJson", text))
+
     fun itemReadContract(): ItemReadContract = json.decodeFromJsonElement(ItemReadContract.serializer(), call("itemReadContract"))
 
     override fun close() = runtime.close()

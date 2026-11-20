@@ -7,7 +7,7 @@ import { evaluateDestination } from "../engine/destination";
 import { labelTagsOf } from "../engine/facts";
 import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type ItemAnswers, type ItemFacts, type RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
-import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, type ItemReadField } from "../shared/itemRead";
+import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, parseItemReadWithLabel, type ItemReadField } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
 
 // QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
@@ -207,6 +207,19 @@ export function labelTagsJson(labelText: string): string {
 /** A model's reply text checked by the same parser the web app uses (label text clipped). */
 export function parseItemReadJson(text: string): string {
   return reply(() => parseItemRead(text));
+}
+
+/**
+ * A model's reply checked by the same parser, with the engine's tags for its whole label. The read's label text
+ * is clipped for showing; the tags come from the label before the cut, so a hazard word past the cap counts and a
+ * cut ("FLAMMABLE-FREE" ending at "FLAMMABLE") never makes one. A native client saves these tags as the item's
+ * labelTags and never tags the clipped text itself.
+ */
+export function parseItemReadTaggedJson(text: string): string {
+  return reply(() => {
+    const { read, fullLabelText } = parseItemReadWithLabel(text);
+    return { read, labelTags: labelTagsOf(fullLabelText, current()) };
+  });
 }
 
 /** True for a read of no item (a camera pointed at a room), which the web app drops instead of adding. */
