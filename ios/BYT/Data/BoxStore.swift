@@ -51,6 +51,9 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     var readMs: Double
     var readFallback: FallbackAfter?
     var cropFile: String?
+    /// The whole label a photo read returned, before the read's text was clipped: in memory only, so a
+    /// new edition can tag it again. Never saved.
+    var wholeLabel: String?
 
     var id: String { itemId }
 
@@ -69,6 +72,7 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
             copy.read = .object(r)
         }
         copy.overrides["labelText"] = nil
+        copy.wholeLabel = nil
         return copy
     }
 }
@@ -202,9 +206,11 @@ final class BoxStore {
     func addRead(_ outcome: ReadOutcome, cropFile: String?) -> String? {
         guard let read = outcome.read, let source = outcome.source else { return nil }
         let itemId = newId()
-        items.append(BoxItem(itemId: itemId, read: read, labelTags: tags(read["labelText"]), tagsEdition: tagsEdition(read["labelText"]),
+        // The parser's tags are from the whole label; the read's own text is clipped and is never tagged.
+        items.append(BoxItem(itemId: itemId, read: read, labelTags: outcome.labelTags, tagsEdition: tagsEdition(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
-                             readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile))
+                             readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile,
+                             wholeLabel: outcome.wholeLabel))
         sources.add(\.onDevice, source == .onDevice ? 1 : 0)
         sources.add(\.inCloud, source == .cloud ? 1 : 0)
         sources.add(\.cloudFallbacks, outcome.fallbackAfter == nil ? 0 : 1)
@@ -345,7 +351,10 @@ final class BoxStore {
 
     /// The label text this iPhone still holds (a corrected label wins), if it has any words.
     private func labelInMemory(_ item: BoxItem) -> String? {
-        guard let label = item.overrides["labelText"] ?? item.read["labelText"], hasWords(label), case let .string(text) = label else { return nil }
+        // A corrected label first, then the whole label a photo read returned; the read's clipped text last
+        // (a typed read, whose label is never clipped).
+        let whole = item.wholeLabel.map { JSONValue.string($0) }
+        guard let label = item.overrides["labelText"] ?? whole ?? item.read["labelText"], hasWords(label), case let .string(text) = label else { return nil }
         return text
     }
 

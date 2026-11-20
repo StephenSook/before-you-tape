@@ -28,18 +28,17 @@ class BoxSessionTest {
     private val result = BoxResult(emptyMap(), LithiumBox("none", emptyList(), emptyList(), ""), emptyList(), BoxCounts(0, 0, 0), "byt-x")
     private fun box() = BoxController(BoxLogic.empty("CA"), { _, _, _ -> result }, today = { "2026-11-20" })
     private var ids = 0
-    private fun session(box: BoxController, outcome: ReadOutcome, tags: (String) -> List<String> = { listOf("liquid") }) =
-        BoxSession(box, reader = { outcome }, tags = tags, newId = { "item-${++ids}" }, resetRun = {})
+    private fun session(box: BoxController, outcome: ReadOutcome) =
+        BoxSession(box, reader = { outcome }, newId = { "item-${++ids}" }, resetRun = {})
 
-    @Test fun aReadIsAddedWithTheEngineTagsOfItsLabel() = runTest {
+    /** The item keeps the tags the parser gave for the whole label; the read's own text is clipped and never tagged. */
+    @Test fun aReadIsAddedWithTheTagsTheParserGaveForItsWholeLabel() = runTest {
         val box = box()
-        val seen = mutableListOf<String>()
-        val message = session(box, ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900), tags = { seen += it; listOf("liquid") }).check(crop)
+        val message = session(box, ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900, listOf("flammable", "label_text"))).check(crop)
         assertNull(message)
-        assertEquals(listOf("SHEA LOTION 8 FL OZ"), seen)
         val item = box.state.items.single()
         assertEquals("item-1", item.input.itemId)
-        assertEquals(listOf("liquid"), item.input.labelTags)
+        assertEquals(listOf("flammable", "label_text"), item.input.labelTags)
         assertEquals("phone_cloud", item.readSource)
         assertEquals(900.0, item.readMs, 0.0)
     }
@@ -65,8 +64,8 @@ class BoxSessionTest {
         var resets = 0
         val s = BoxSession(
             box,
-            reader = { if (paused) ReadOutcome.Blocked(BlockReason.REFUSALS_PAUSED) else ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900) },
-            tags = { emptyList() }, newId = { "n" }, resetRun = { resets++; paused = false },
+            reader = { if (paused) ReadOutcome.Blocked(BlockReason.REFUSALS_PAUSED) else ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900, emptyList()) },
+            newId = { "n" }, resetRun = { resets++; paused = false },
         )
         assertEquals(Copy.blocked(BlockReason.REFUSALS_PAUSED), s.check(crop))
         s.startNewScan()
@@ -84,7 +83,7 @@ class BoxSessionTest {
         val s = BoxSession(
             box,
             reader = { order += "read starts"; gate.await(); order += "read ends (its refusal counts)"; ReadOutcome.Failed(FailReason.REFUSED, retryable = true) },
-            tags = { emptyList() }, newId = { "n" }, resetRun = { order += "reset" },
+            newId = { "n" }, resetRun = { order += "reset" },
         )
         val slow = async { s.check(crop) }
         kotlinx.coroutines.yield()
@@ -107,7 +106,7 @@ class BoxSessionTest {
         val s = BoxSession(
             box,
             reader = { order += "read"; ReadOutcome.Failed(FailReason.REFUSED, retryable = true) },
-            tags = { emptyList() }, newId = { "n" }, resetRun = { order += "reset" },
+            newId = { "n" }, resetRun = { order += "reset" },
         )
         val accepted = s.currentScan()
         s.startNewScan()
@@ -124,7 +123,7 @@ class BoxSessionTest {
             volts = 0.0, milliampHours = 0.0, wattHours = 0.0, lithiumGrams = 0.0, batteryWords = false, liquid = false, pressurized = false,
             alcoholOnLabel = false, flammableOnLabel = false, glassContainer = false, powder = false,
             evidence = app.beforeyoutape.engine.EvidenceWire.not_sure)
-        val s = session(box, ReadOutcome.Read(nothing, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 300))
+        val s = session(box, ReadOutcome.Read(nothing, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 300, emptyList()))
         assertEquals(Copy.NO_ITEM, s.check(crop))
         assertEquals(0, box.state.items.size)
         val web = java.io.File(System.getProperty("byt.repoRoot")!!, "src/pages/PackPage.tsx").readText()
@@ -133,7 +132,7 @@ class BoxSessionTest {
 
     @Test fun eachReadGetsItsOwnId() = runTest {
         val box = box()
-        val s = session(box, ReadOutcome.Read(read, Source.ON_DEVICE, ReadRoute.DEVICE_ONLY, 300))
+        val s = session(box, ReadOutcome.Read(read, Source.ON_DEVICE, ReadRoute.DEVICE_ONLY, 300, emptyList()))
         s.check(crop)
         s.check(crop)
         assertEquals(listOf("item-1", "item-2"), box.state.items.map { it.input.itemId })
