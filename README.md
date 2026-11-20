@@ -9,7 +9,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 ## How it works
 
 1. Hold an item to the camera, add a photo, or type what the label says. With no camera or no item at hand, "Try a sample photo" sends one of our test photos through the same read and the same cloud choice.
-2. Firebase AI Logic reads the label. It runs on the device when the browser has a built-in model, and in the cloud only after the sender says yes to cloud checks. The item-read models are set up in `src/ai/firebaseModels.ts`.
+2. Firebase AI Logic reads the label. It runs on the device when the browser has a built-in model, and in the cloud only after the sender says yes to cloud checks. The item-read models are set up in `src/ai/firebaseModels.ts`. If a read fails or takes too long, nothing is guessed: the page says so, "Type an item" stays on the page, and the rules decide the typed item with no model call.
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
