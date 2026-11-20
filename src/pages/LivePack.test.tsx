@@ -29,7 +29,7 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 }
 
 let n = 0;
-function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api") {
+function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: { settingsWaitMs?: number } = {}) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
   const hybrid = () => (gate === "available" ? port(phoneOnDevice, "on_device") : port());
@@ -38,7 +38,7 @@ function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "n
   store.setConsent(true);
   const cfg = fakeSource(start);
   render(<LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-    index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />);
+    index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online {...page} />);
   return { models, makeModels, push: cfg.push, retry: cfg.retry };
 }
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
@@ -94,11 +94,36 @@ describe("LivePack", () => {
   });
 
   it("says cloud checks wait for their settings while the pause is not known yet, and reads nothing in the cloud", async () => {
-    const { models, push } = setup();
+    const { models, push } = setup({}, "no_api", { settingsWaitMs: 50 });
     act(() => push({ killCloud: true, pauseUnknown: true }));
     expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load. Checks on this laptop still work.");
     await addPhoto();
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are waiting for their settings"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are still waiting for their settings"));
+    for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  // A photo added in the first moment, before Remote Config has answered, used to be turned away by the
+  // fail-closed default; the notice vanished when the settings landed, and the photo was lost with no word.
+  it("holds a photo added before the settings load, says it is getting ready, and reads it once they arrive", async () => {
+    const { models, push } = setup();
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    await addPhoto();
+    expect(await screen.findByTestId("getting-ready")).toHaveTextContent("Getting ready to check. One moment.");
+    for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    expect(await screen.findByTestId("item-card")).toBeInTheDocument();
+    expect(Object.values(models).reduce((k, m) => k + m.cloud.generate.mock.calls.length, 0)).toBe(1);
+    expect(screen.queryByTestId("getting-ready")).toBeNull();
+  });
+
+  it("keeps its notice when the settings do not load in time, even after they arrive later", async () => {
+    const { models, push } = setup({}, "no_api", { settingsWaitMs: 50 });
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    await addPhoto();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are still waiting for their settings. Try again in a moment, or type the item."));
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are still waiting for their settings. Try again in a moment, or type the item.");
+    expect(screen.queryByTestId("item-card")).toBeNull();
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 

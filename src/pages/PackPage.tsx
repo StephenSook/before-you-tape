@@ -50,6 +50,25 @@ export interface PackPageProps {
   onRetryConfig?: () => void;
   // Remote Config as it changes, so a pause stops reads already running the moment it arrives.
   liveConfig?: { get(): { killCloud: boolean }; subscribe(listener: (c: { killCloud: boolean }) => void): () => void };
+  // How long a photo added before the cloud settings load waits for them, and how long any one read may take.
+  settingsWaitMs?: number;
+  readTimeoutMs?: number;
+}
+
+// Remote Config usually answers within a second or two of the page opening.
+const SETTINGS_WAIT_MS = 10_000;
+// A cloud read takes about 2 s and an on-device one under 10 s; anything far past that is not coming back.
+const READ_TIMEOUT_MS = 45_000;
+const GETTING_READY = "Getting ready to check. One moment.";
+const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
+const TOO_SLOW = "The check took too long. Try again or type the item.";
+const SECOND_LOOK_TOO_SLOW = "The cloud step took too long. Try again.";
+
+// Waits until `pending` reads false, the limit passes or `stop` reads true; says whether `pending` cleared.
+async function waitUntilFalse(pending: () => boolean, ms: number, stop: () => boolean): Promise<boolean> {
+  const until = Date.now() + ms;
+  while (pending() && Date.now() < until && !stop()) await new Promise((r) => setTimeout(r, 50));
+  return !pending();
 }
 
 const BLOCKED = "This device can't read photos on its own, and cloud checks are off. Type the item instead.";
@@ -108,6 +127,8 @@ export function PackPage(p: PackPageProps) {
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
+  const settingsWaitMs = p.settingsWaitMs ?? SETTINGS_WAIT_MS;
+  const readTimeoutMs = p.readTimeoutMs ?? READ_TIMEOUT_MS;
   const [checking, setChecking] = useState<Record<string, boolean>>({});
   // Items the camera read by itself on this device whose cloud look waits for the sender's press.
   const [offered, setOffered] = useState<Record<string, boolean>>({});
@@ -117,8 +138,10 @@ export function PackPage(p: PackPageProps) {
 
   // The switch and the connection as they are now, for a read that started earlier: before each further
   // cloud call (a retry, the fallback model, a recovery) the read asks whether the cloud is still allowed.
-  const live = useRef({ killCloud: config.killCloud, online: p.online });
-  useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online }; });
+  const live = useRef({ killCloud: config.killCloud, online: p.online, pauseUnknown: config.pauseUnknown === true, gate });
+  useEffect(() => { live.current = { killCloud: config.killCloud, online: p.online, pauseUnknown: config.pauseUnknown === true, gate }; });
+  // A photo added while that is still true waits for the settings rather than being turned away.
+  const [gettingReady, setGettingReady] = useState(false);
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
   // again, so every decision to use the cloud reads the source itself when there is one.
   const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
@@ -155,8 +178,17 @@ export function PackPage(p: PackPageProps) {
   const cloudWork = () => {
     const ac = new AbortController();
     inflight.current.add(ac);
-    return { signal: ac.signal, end: () => { inflight.current.delete(ac); } };
+    return { signal: ac.signal, abort: () => ac.abort(), end: () => { inflight.current.delete(ac); } };
   };
+  // Stops a piece of work that has run too long: the abort ends any cloud call (the SDK checks the signal),
+  // and the caller drops whatever comes back afterwards, an on-device answer included.
+  const timeLimit = (ms: number, work: { abort: () => void }, onLate: () => void) => {
+    const t = { over: false, clear: () => clearTimeout(id) };
+    const id = setTimeout(() => { t.over = true; work.abort(); if (!gone.current) onLate(); }, ms);
+    return t;
+  };
+  // Waits until Remote Config has given its settings, or the limit passes; says which.
+  const settingsArrive = (ms: number) => waitUntilFalse(() => live.current.pauseUnknown, ms, () => gone.current);
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
@@ -169,12 +201,16 @@ export function PackPage(p: PackPageProps) {
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
+    const limit = timeLimit(readTimeoutMs, work, () => { store.setError(itemId, SECOND_LOOK_TOO_SLOW); setChecking((c) => ({ ...c, [itemId]: false })); });
     try {
       const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, stillAllowed, work.signal);
-      if (gone.current) return;
+      limit.clear();
+      if (gone.current || limit.over) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel, out.disputes);
       looks.current.delete(itemId);
     } catch (e) {
+      limit.clear();
+      if (limit.over) return;
       const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
       if (kind === "cloud_unreachable") waitingForOnline.current.add(itemId);
       store.setError(itemId, SECOND_LOOK_FAILURE[kind]);
@@ -198,15 +234,31 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
     if (gone.current) return;
-    const route = chooseImageRoute(how, { gate, ...cloudInputs() });
+    let route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
-    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), config.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
+    // A photo added before Remote Config has given its settings (cloud checks stay off until it does) waits
+    // for them, with a limit, instead of being turned away by that default and lost when they land a moment
+    // later. If they do not come in time, the notice stays until the sender acts again.
+    if (route === "blocked" && live.current.pauseUnknown) {
+      setNotice(null);
+      setBlocked(null);
+      setGettingReady(true);
+      const arrived = await settingsArrive(settingsWaitMs);
+      if (gone.current) return;
+      setGettingReady(false);
+      route = chooseImageRoute(how, { gate: live.current.gate, ...cloudInputs() });
+      if (route === "skip") return;
+      if (route === "blocked" && !arrived) { setNotice(SETTINGS_SLOW); return; }
+    }
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
     setNotice(null);
     setBlocked(null);
     const work = cloudWork();
+    const limit = timeLimit(readTimeoutMs, work, () => setNotice(TOO_SLOW));
     try {
       const outcome = await readItem(models, part, route, now, stillAllowed, work.signal);
-      if (gone.current) return;
+      limit.clear();
+      if (gone.current || limit.over) return;
       if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
       const key = newCropKey();
       const itemId = store.addRead(outcome, key);
@@ -221,6 +273,8 @@ export function PackPage(p: PackPageProps) {
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
     } catch (e) {
+      limit.clear();
+      if (limit.over) return;
       setNotice(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
     } finally {
       work.end();
@@ -267,6 +321,7 @@ export function PackPage(p: PackPageProps) {
       )}
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
+      {gettingReady && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
