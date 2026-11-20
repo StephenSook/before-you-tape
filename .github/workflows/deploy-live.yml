@@ -26,6 +26,8 @@ permissions:
   id-token: write
   actions: read
 
+# One deploy at a time. GitHub keeps only the newest waiting run in a group, so a manual run started while
+# a deploy is waiting replaces it: start a manual run only when no deploy is running or waiting.
 concurrency:
   group: deploy-live
   cancel-in-progress: false
@@ -39,13 +41,14 @@ jobs:
     runs-on: ubuntu-24.04
     # Above the sum of every step's own limit, so a slow step fails (and the rollback runs) before the job's
     # own limit cancels it: a cancelled job runs no rollback.
-    timeout-minutes: 75
+    timeout-minutes: 80
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       EXPECT_LIVE_SHA: ${{ inputs.expect_live_sha }}
       SITE: before-you-tape-2026
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -66,16 +69,20 @@ jobs:
           echo "successful CI push runs on main for $SHA: $n"
           [ "$n" -ge 1 ]
 
+      # A rollback drill must deploy: if main has moved on, it fails instead of finishing green with nothing run.
       - name: Still the head of main
         id: head
+        timeout-minutes: 1
         run: |
           main=$(git ls-remote origin refs/heads/main | cut -f1)
           echo "CI passed on: $SHA"
           echo "main is now:  $main"
           if [ "$main" = "$SHA" ]; then echo "current=true" >> "$GITHUB_OUTPUT"; else echo "current=false" >> "$GITHUB_OUTPUT"; echo "A newer main commit exists; its own run deploys it."; fi
+          if [ -n "$EXPECT_LIVE_SHA" ] && [ "$main" != "$SHA" ]; then echo "rollback drill: main moved on, so no drill ran"; exit 1; fi
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 3
         with:
           node-version: 22
           cache: npm
@@ -181,9 +188,10 @@ jobs:
           BYT_LIVE: "1"
         run: npx playwright test --project=live tests/e2e/roundtrip.live.spec.ts
 
-      # Any failure after the deploy step started puts the recorded release back (unless it is still live)
-      # and proves it: the live channel must hold the recorded version, and its version.json must name the
-      # recorded commit and dirty flag. The run still fails, so the bad commit is fixed and merged again.
+      # Any failure after the deploy step started puts the recorded release back and proves it: the live channel
+      # must hold the recorded version, and its version.json must name the recorded commit and dirty flag. It
+      # clones only over a release this deploy made (the deploy account, after the record time), never over
+      # one someone else published, and a drill fails if there was nothing to roll back. The run still fails.
       - name: Roll back to the release that was live before
         if: failure() && steps.deploy.outcome != 'skipped' && steps.before.outputs.version != ''
         timeout-minutes: 8
@@ -191,4 +199,7 @@ jobs:
           VERSION: ${{ steps.before.outputs.version }}
           BEFORE_SHA: ${{ steps.before.outputs.sha }}
           BEFORE_DIRTY: ${{ steps.before.outputs.dirty }}
-        run: npx tsx scripts/live-release.ts restore --version "$VERSION" --sha "$BEFORE_SHA" --dirty "$BEFORE_DIRTY"
+          RECORDED_AT: ${{ steps.before.outputs.recorded_at }}
+        run: |
+          if [ -n "$EXPECT_LIVE_SHA" ]; then drill="--require-clone"; else drill=""; fi
+          npx tsx scripts/live-release.ts restore --version "$VERSION" --sha "$BEFORE_SHA" --dirty "$BEFORE_DIRTY" --since "$RECORDED_AT" $drill

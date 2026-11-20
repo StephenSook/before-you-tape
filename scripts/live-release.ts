@@ -1,37 +1,50 @@
 // The live hosting release, for the deploy's rollback (.github/workflows/deploy-live.yml).
-//   record [--drill-sha <sha>]                       before a deploy: writes version, sha and dirty to $GITHUB_OUTPUT
-//   restore --version <id> --sha <sha> --dirty <b>   after a failed check: puts that release back and proves it
-// A release is the live channel's version id together with the commit and dirty flag its version.json names.
-// record trusts a reading only if the live version did not change while version.json was read. Without
-// --drill-sha a failed reading is a warning (the deploy goes ahead with no rollback); with it, the reading
-// must succeed and name that commit, clean, or the run stops before deploying.
+//   record [--drill-sha <sha>]
+//     before a deploy: writes version, sha, dirty and recorded_at to $GITHUB_OUTPUT
+//   restore --version <id> --sha <sha> --dirty <b> --since <iso> [--require-clone]
+//     after a failed check: puts that release back and proves it
+// A release is the live channel's version id together with the commit and dirty flag its version.json names,
+// read with the version on both sides so a release that changed mid-read is not trusted. record without
+// --drill-sha turns a failed reading into a warning (the deploy goes ahead with no rollback); with it, the
+// reading must succeed and name that commit, clean, or the run stops before deploying.
+// restore clones only over a release this deploy made (the deploy account, at or after the record time),
+// never over one a person or another tool published, and keeps within a fixed time so the step's own limit
+// never cuts it off mid-verdict.
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const SITE = "before-you-tape-2026";
+const DEPLOYER = "byt-deploy@before-you-tape-2026.iam.gserviceaccount.com";
 const CLI = ["--yes", "firebase-tools@15.34.2"];
+// Under the workflow's 8-minute limit for the rollback step.
+const RESTORE_BUDGET_MS = 6.5 * 60_000;
 
 export interface Served { sha: string; dirty: boolean }
 export interface Release { version: string; sha: string; dirty: boolean }
+export interface LiveRelease { version: string; time: string; user: string }
 export interface Live {
-  version(): Promise<string>;
+  release(): Promise<LiveRelease>;
   served(): Promise<Served>;
   clone(version: string): Promise<void>;
   sleep(ms: number): Promise<void>;
+  now(): number;
 }
+export interface RestoreOptions { since: string; deployer: string; requireClone: boolean; budgetMs: number }
 
-export function liveVersionOf(channelList: unknown): string {
-  const channels = (channelList as { result?: { channels?: unknown } }).result?.channels;
+export function liveReleaseOf(channelList: unknown): LiveRelease {
+  const channels = (channelList as { result?: { channels?: unknown } } | null)?.result?.channels;
   if (!Array.isArray(channels)) throw new Error("the channel list has no channels");
-  const live = (channels as Array<{ name?: unknown; release?: { version?: { name?: unknown } } }>)
-    .find((c) => typeof c.name === "string" && c.name.endsWith("/channels/live"));
+  type Channel = { name?: unknown; release?: { releaseTime?: unknown; releaseUser?: { email?: unknown }; version?: { name?: unknown } } };
+  const live = (channels as Channel[]).find((c) => typeof c.name === "string" && c.name.endsWith("/channels/live"));
   const name = live?.release?.version?.name;
   if (typeof name !== "string") throw new Error("the live channel has no released version");
   const version = name.slice(name.lastIndexOf("/") + 1);
   if (!/^[0-9a-f]+$/.test(version)) throw new Error(`unexpected version name ${name}`);
-  return version;
+  const time = live?.release?.releaseTime;
+  const user = live?.release?.releaseUser?.email;
+  return { version, time: typeof time === "string" ? time : "", user: typeof user === "string" ? user : "" };
 }
 
 export function servedOf(body: unknown): Served {
@@ -43,30 +56,60 @@ export function servedOf(body: unknown): Served {
 }
 
 export async function readRelease(live: Live): Promise<Release> {
-  const before = await live.version();
+  const before = await live.release();
   const served = await live.served();
-  const after = await live.version();
-  if (before !== after) throw new Error(`live changed while it was read (${before} then ${after})`);
-  return { version: before, ...served };
+  const after = await live.release();
+  if (before.version !== after.version) throw new Error(`live changed while it was read (${before.version} then ${after.version})`);
+  return { version: before.version, ...served };
 }
 
-export function isRestored(want: Release, version: string, served: Served): boolean {
-  return version === want.version && served.sha === want.sha && served.dirty === want.dirty;
+export function isRestored(want: Release, now: Release): boolean {
+  return now.version === want.version && now.sha === want.sha && now.dirty === want.dirty;
 }
 
-// Clones the recorded version back unless it is still live (a deploy that failed before publishing), then
-// waits until the live channel holds that version and its version.json names the recorded commit and flag.
-export async function restore(live: Live, want: Release, attempts = 20): Promise<{ cloned: boolean }> {
-  const cloned = (await live.version()) !== want.version;
-  if (cloned) await live.clone(want.version);
-  for (let i = 1; i <= attempts; i++) {
+// "still_live": nothing to roll back. "ours": the live release was made by the deploy account at or after
+// the record time, so this deploy made it. "not_ours": someone or something else did; it is left alone.
+export function rollbackDecision(current: LiveRelease, want: Release, since: string, deployer: string): "still_live" | "ours" | "not_ours" {
+  if (current.version === want.version) return "still_live";
+  const at = Date.parse(current.time);
+  return current.user === deployer && Number.isFinite(at) && at >= Date.parse(since) ? "ours" : "not_ours";
+}
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+export async function restore(live: Live, want: Release, o: RestoreOptions): Promise<{ cloned: boolean }> {
+  const deadline = live.now() + o.budgetMs;
+  let current: LiveRelease | null = null;
+  while (current === null) {
     try {
-      const version = await live.version();
-      const served = await live.served();
-      console.log(`attempt ${i}: live version ${version}, commit ${served.sha}, dirty ${served.dirty}`);
-      if (isRestored(want, version, served)) return { cloned };
+      current = await live.release();
     } catch (e) {
-      console.log(`attempt ${i}: ${e instanceof Error ? e.message : String(e)}`);
+      console.log(`reading the live release: ${message(e)}`);
+      if (live.now() >= deadline) throw new Error(`ROLLBACK DID NOT START: the live release could not be read: ${message(e)}`, { cause: e });
+      await live.sleep(5000);
+    }
+  }
+  const decision = rollbackDecision(current, want, o.since, o.deployer);
+  if (decision === "not_ours") {
+    throw new Error(`live was changed by someone else (version ${current.version} by ${current.user || "unknown"} at ${current.time || "unknown"}); not rolling back`);
+  }
+  if (decision === "still_live" && o.requireClone) throw new Error("rollback drill: the deploy never replaced the recorded release, so there was nothing to roll back");
+  const cloned = decision === "ours";
+  if (cloned) {
+    try {
+      await live.clone(want.version);
+    } catch (e) {
+      // A clone whose answer was lost may still have applied; the checks below decide.
+      console.log(`clone: ${message(e)}`);
+    }
+  }
+  for (let i = 1; live.now() < deadline; i++) {
+    try {
+      const now = await readRelease(live);
+      console.log(`attempt ${i}: live version ${now.version}, commit ${now.sha}, dirty ${now.dirty}`);
+      if (isRestored(want, now)) return { cloned };
+    } catch (e) {
+      console.log(`attempt ${i}: ${message(e)}`);
     }
     await live.sleep(5000);
   }
@@ -74,14 +117,15 @@ export async function restore(live: Live, want: Release, attempts = 20): Promise
 }
 
 const realLive: Live = {
-  version: async () => liveVersionOf(JSON.parse(execFileSync("npx", [...CLI, "hosting:channel:list", "--project", SITE, "--json"], { encoding: "utf8", timeout: 90_000 }))),
+  release: async () => liveReleaseOf(JSON.parse(execFileSync("npx", [...CLI, "hosting:channel:list", "--project", SITE, "--json"], { encoding: "utf8", timeout: 45_000 }))),
   served: async () => {
     const r = await fetch(`https://${SITE}.web.app/version.json?t=${Date.now()}`, { headers: { "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(10_000) });
     if (!r.ok) throw new Error(`version.json answered ${r.status}`);
     return servedOf(await r.json());
   },
-  clone: async (version) => { execFileSync("npx", [...CLI, "hosting:clone", `${SITE}@${version}`, `${SITE}:live`, "--project", SITE], { stdio: "inherit", timeout: 120_000 }); },
+  clone: async (version) => { execFileSync("npx", [...CLI, "hosting:clone", `${SITE}@${version}`, `${SITE}:live`, "--project", SITE], { stdio: "inherit", timeout: 60_000 }); },
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  now: () => Date.now(),
 };
 
 function arg(argv: readonly string[], flag: string): string | undefined {
@@ -93,6 +137,7 @@ async function main(argv: readonly string[]): Promise<void> {
   const [command] = argv;
   if (command === "record") {
     const drill = arg(argv, "--drill-sha");
+    const recordedAt = new Date().toISOString();
     let release: Release;
     try {
       release = await readRelease(realLive);
@@ -100,34 +145,35 @@ async function main(argv: readonly string[]): Promise<void> {
         throw new Error(`a rollback drill needs live to serve ${drill}, clean, before it starts; it serves ${release.sha} dirty ${release.dirty}`);
       }
     } catch (e) {
-      const why = e instanceof Error ? e.message : String(e);
-      if (drill !== undefined) throw new Error(`rollback drill stopped before deploying: ${why}`, { cause: e });
-      console.log(`::warning::No rollback is possible for this deploy: the live release could not be read (${why})`);
+      if (drill !== undefined) throw new Error(`rollback drill stopped before deploying: ${message(e)}`, { cause: e });
+      console.log(`::warning::No rollback is possible for this deploy: the live release could not be read (${message(e)})`);
       return;
     }
-    console.log(`Live before this deploy: version ${release.version}, commit ${release.sha}, dirty ${release.dirty}`);
+    console.log(`Live before this deploy: version ${release.version}, commit ${release.sha}, dirty ${release.dirty}, recorded at ${recordedAt}`);
     const out = process.env.GITHUB_OUTPUT;
-    if (out) appendFileSync(out, `version=${release.version}\nsha=${release.sha}\ndirty=${release.dirty}\n`);
+    if (out) appendFileSync(out, `version=${release.version}\nsha=${release.sha}\ndirty=${release.dirty}\nrecorded_at=${recordedAt}\n`);
     return;
   }
   if (command === "restore") {
     const version = arg(argv, "--version") ?? "";
     const sha = arg(argv, "--sha") ?? "";
     const dirty = arg(argv, "--dirty");
-    if (!/^[0-9a-f]+$/.test(version) || !/^[0-9a-f]{40}$/.test(sha) || (dirty !== "true" && dirty !== "false")) {
-      throw new Error("restore needs --version <hex id> --sha <40-character commit> --dirty true|false");
+    const since = arg(argv, "--since") ?? "";
+    if (!/^[0-9a-f]+$/.test(version) || !/^[0-9a-f]{40}$/.test(sha) || (dirty !== "true" && dirty !== "false") || !Number.isFinite(Date.parse(since))) {
+      throw new Error("restore needs --version <hex id> --sha <40-character commit> --dirty true|false --since <ISO time>");
     }
     console.log(`::error::A check after the deploy failed. Restoring version ${version} (commit ${sha}) to live.`);
-    const { cloned } = await restore(realLive, { version, sha, dirty: dirty === "true" });
+    const { cloned } = await restore(realLive, { version, sha, dirty: dirty === "true" },
+      { since, deployer: DEPLOYER, requireClone: argv.includes("--require-clone"), budgetMs: RESTORE_BUDGET_MS });
     console.log(`::warning::Rolled back: live serves version ${version}, commit ${sha} again${cloned ? "" : " (it was still live; nothing was cloned)"}`);
     return;
   }
-  throw new Error("usage: live-release.ts record [--drill-sha <sha>] | restore --version <id> --sha <sha> --dirty <true|false>");
+  throw new Error("usage: live-release.ts record [--drill-sha <sha>] | restore --version <id> --sha <sha> --dirty <true|false> --since <iso> [--require-clone]");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main(process.argv.slice(2)).catch((err: unknown) => {
-    console.error(err instanceof Error ? err.message : err);
+    console.error(message(err));
     process.exit(1);
   });
 }
