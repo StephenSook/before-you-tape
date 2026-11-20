@@ -4,7 +4,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 
 **Live:** https://before-you-tape-2026.web.app
 
-**Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call.
+**Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call. The box starts in the Philippines. USPS suspends mail to Canada from November 29, 2026, so pick Canada to see the app follow it.
 
 ## How it works
 
