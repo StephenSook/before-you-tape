@@ -283,12 +283,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
-              // A write kept only in this browser stays in the journal for the server; a newer edit made while
-              // this write was out (a change, or a removal now waiting as a delete) stays too.
-              if (journal.items[id] === item && deps.persistence.localOnly?.() !== true) {
-                delete journal.items[id];
+              // A write kept only in this browser stays in the journal for the server. A write that landed is
+              // what the server now holds, even when a newer edit made meanwhile (a change, or a removal now
+              // waiting as a delete) stays in the journal to be sent next.
+              if (deps.persistence.localOnly?.() !== true) {
                 if (item) server.set(id, stableJson(item));
                 else server.delete(id);
+                if (journal.items[id] === item) delete journal.items[id];
               }
             } catch {
               // The item was removed while its first write was out, and that write did not land: the server never

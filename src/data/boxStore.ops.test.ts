@@ -277,4 +277,25 @@ describe("saving by explicit operations", () => {
     expect(srv.stored.size).toBe(0);
     expect(s.getState().unsaved).toEqual([]);
   });
+
+  it("deletes an item whose first save landed under a newer edit, even when the edit's save fails after removal", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    s.setQuantity(a, 2);
+    srv.land(a);
+    await settle();
+    await settle();
+    s.remove(a);
+    srv.fail(a);
+    await s.settled();
+    expect(srv.o.deleteItem.mock.calls.map((c) => c[1])).toEqual([a]);
+    expect(srv.stored.has(a)).toBe(false);
+    expect(s.getState().unsaved).toEqual([]);
+    const again = make(srv.o);
+    await again.ready;
+    expect(again.getState().items).toEqual([]);
+  });
 });
