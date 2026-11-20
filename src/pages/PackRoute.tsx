@@ -92,7 +92,8 @@ function buildDeps(): PackDeps | Error {
 
 export function PackRoute() {
   const [deps] = useState(buildDeps);
-  const [gate, setGate] = useState<GateState>("no_api");
+  // Unknown until checkGate answers (a few seconds on a cold page); a press meanwhile waits for it.
+  const [gate, setGate] = useState<GateState>("checking");
   const [progress, setProgress] = useState<number | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [editionNotice, setEditionNotice] = useState<string | null>(null);

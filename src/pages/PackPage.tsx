@@ -69,6 +69,7 @@ const SETTINGS_WAIT_MS = 10_000;
 const READ_TIMEOUT_MS = 45_000;
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
+const GATE_SLOW = "This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.";
 const TOO_SLOW = "The check took too long. Try again or type the item.";
 const SECOND_LOOK_TOO_SLOW = "The cloud step took too long. Try again.";
 
@@ -322,7 +323,23 @@ export function PackPage(p: PackPageProps) {
     // The press this read answers to: its own, or for a camera frame the newest one when it started. Its
     // notice shows only while no newer press has come since.
     const owner = press ?? presses.current;
-    let route = chooseImageRoute(how, { gate, ...cloudInputs() });
+    // A press before the page knows whether this laptop has its own model waits for that answer, with a limit,
+    // instead of being routed as if there were none: refused with cloud checks off, or sent to the cloud with
+    // them on. A camera frame is never read then (it needs the model), so only a press waits.
+    if (press !== null && live.current.gate === "checking") {
+      setNotice(null);
+      setBlocked(null);
+      setWaiting((w) => w + 1);
+      let known: boolean;
+      try {
+        known = await waitUntilFalse(() => live.current.gate === "checking", settingsWaitMs, () => gone.current);
+      } finally {
+        if (!gone.current) setWaiting((w) => w - 1);
+      }
+      if (gone.current) return;
+      if (!known) { if (presses.current === owner) setNotice(GATE_SLOW); return; }
+    }
+    let route = chooseImageRoute(how, { gate: live.current.gate, ...cloudInputs() });
     if (route === "skip") return;
     // A photo added before Remote Config has given its settings (cloud checks stay off until it does) waits
     // for them, with a limit, instead of being turned away by that default and lost when they land a moment
@@ -416,7 +433,8 @@ export function PackPage(p: PackPageProps) {
       {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
       {state.cloudConsent !== null && (
         <p data-testid="cloud-choice">
-          {state.cloudConsent ? "Cloud checks are on." : gate === "available"
+          {state.cloudConsent ? "Cloud checks are on." : gate === "checking" ? "Cloud checks are off."
+            : gate === "available"
             ? "Cloud checks are off. Photos and label text stay on this laptop."
             : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
           <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
