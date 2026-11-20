@@ -15,7 +15,7 @@ import Testing
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { name in
             models.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
-        }, parse: { $0 })
+        }, parse: { ParsedRead(read: $0) })
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader,
                          appVersion: appVersion, fetchEdition: fetchEdition)
         m.network.pathChanged(satisfied: true)
@@ -196,7 +196,7 @@ import Testing
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { name in
             names.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
-        }, parse: { $0 })
+        }, parse: { ParsedRead(read: $0) })
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
@@ -213,7 +213,7 @@ import Testing
     @Test func wordsAreReadOnThisIPhoneWhileTheCloudWaits() async {
         let j = FakeItemRunner.Journal()
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))]),
-                                makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+                                makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
         let ready = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "t", vision: false)
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { ready },
                          persistence: MemoryBoxPersistence(), reader: reader)
@@ -241,7 +241,7 @@ import Testing
         let reader = ItemReader(device: PausingDevice(holder: holder), makeCloud: { name in
             names.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [])
-        }, parse: { $0 })
+        }, parse: { ParsedRead(read: $0) })
         let ready = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "t", vision: false)
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { ready },
                          persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)

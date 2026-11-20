@@ -19,10 +19,21 @@ struct TokenUse: Equatable, Sendable {
     var output: Int
 }
 
-/// One model answer: the item read as the web app's JSON shape, and what it cost.
+/// One model answer: the item read as the web app's JSON shape, and what it cost. After the parser,
+/// it also carries the tags of its whole label and that label (kept in memory only).
 struct ItemReply: Equatable, Sendable {
     var read: JSONValue
     var tokens: TokenUse?
+    var labelTags: [String] = []
+    var wholeLabel: String?
+}
+
+/// A read the engine's parser accepted: label text clipped for showing, the engine's tags for the
+/// whole label, and the whole label itself, which stays in memory and is never saved.
+struct ParsedRead: Equatable, Sendable {
+    var read: JSONValue
+    var labelTags: [String] = []
+    var wholeLabel: String?
 }
 
 /// A failed read, and whether the web app's rule gives it one try on the fallback model.
@@ -64,6 +75,10 @@ struct ReadOutcome: Equatable, Sendable {
     var records: [RouteRecord]
     /// Set when the read moved to the fallback model, and why ("500", "503" or "404").
     var fallbackAfter: FallbackAfter?
+    /// The engine's tags for the read's whole label, and that label; the box saves the tags and never
+    /// tags the clipped text the read shows.
+    var labelTags: [String] = []
+    var wholeLabel: String?
 }
 
 /// Reads one item by the router's plan. Code picks the path; a model never does. Never throws,
@@ -73,9 +88,9 @@ struct ItemReader: Sendable {
 
     var device: any ItemModelRunner
     var makeCloud: @Sendable (String) -> any ItemModelRunner
-    /// The web app's own parser (the rules engine's parseItemRead); nil means it refused the answer.
+    /// The web app's own parser (the rules engine's tagged parse); nil means it refused the answer.
     /// Required, so no caller can skip it.
-    var parse: @Sendable (JSONValue) -> JSONValue?
+    var parse: @Sendable (JSONValue) -> ParsedRead?
     /// Read again before every cloud call (the first, a retry, the fallback): false when the cloud
     /// was paused since the read began, and then no cloud call is made.
     var cloudOpen: @Sendable @MainActor () -> Bool = { true }
@@ -84,7 +99,7 @@ struct ItemReader: Sendable {
     private let gate = ReadGate()
 
     init(device: any ItemModelRunner, makeCloud: @escaping @Sendable (String) -> any ItemModelRunner,
-         parse: @escaping @Sendable (JSONValue) -> JSONValue?) {
+         parse: @escaping @Sendable (JSONValue) -> ParsedRead?) {
         self.device = device
         self.makeCloud = makeCloud
         self.parse = parse
@@ -143,7 +158,11 @@ struct ItemReader: Sendable {
             let start = ContinuousClock.now
             var result = await Timeout.run(seconds: seconds) { await runner.read(input) } ?? .failure(ReadError(.timeout))
             if case let .success(reply) = result {
-                if let checked = parse(reply.read) { result = .success(ItemReply(read: checked, tokens: reply.tokens)) } else { result = .failure(ReadError(.parseFailed)) }
+                if let checked = parse(reply.read) {
+                    result = .success(ItemReply(read: checked.read, tokens: reply.tokens, labelTags: checked.labelTags, wholeLabel: checked.wholeLabel))
+                } else {
+                    result = .failure(ReadError(.parseFailed))
+                }
             }
             let elapsed = ContinuousClock.now - start
             let ms = Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15
@@ -153,7 +172,7 @@ struct ItemReader: Sendable {
                 records.append(RouteRecord(kind: input.kind, path: path, model: model, reason: decision.reason, latencyMs: ms,
                                            blocked: nil, inputTokens: reply.tokens?.input, outputTokens: reply.tokens?.output))
                 return ReadOutcome(read: reply.read, source: path, route: decision.route, failure: nil, records: records,
-                                   fallbackAfter: fallbackAfter)
+                                   fallbackAfter: fallbackAfter, labelTags: reply.labelTags, wholeLabel: reply.wholeLabel)
             case let .failure(error):
                 let failure = error.failure
                 let blocked: BlockKind? = failure == .guardrailBlock ? .guardrail : failure == .refusal ? .refusal : nil

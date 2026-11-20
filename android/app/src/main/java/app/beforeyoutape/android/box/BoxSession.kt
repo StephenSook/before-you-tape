@@ -5,14 +5,13 @@ import app.beforeyoutape.android.capture.CropImage
 import app.beforeyoutape.android.ui.Copy
 
 /**
- * One "Check now": the crop goes to the reader, and a read is added to the box with the engine's
- * tags for its label text (the box then re-checks itself). A blocked or failed read adds nothing
- * and gives the one line that says why.
+ * One "Check now": the crop goes to the reader, and a read is added to the box with the tags the
+ * parser gave for its whole label (the box then re-checks itself); the read's clipped text is never
+ * tagged. A blocked or failed read adds nothing and gives the one line that says why.
  */
 class BoxSession(
     private val box: BoxController,
     private val reader: suspend (CropImage) -> ReadOutcome,
-    private val tags: (String) -> List<String>,
     private val newId: () -> String,
     private val resetRun: () -> Unit,
 ) {
@@ -47,7 +46,7 @@ class BoxSession(
     private fun outcome(out: ReadOutcome): String? = when (out) {
         // A read of no item (a camera pointed at a room) is dropped, never added, as on the web.
         is ReadOutcome.Read -> if (NoItem.isNoItem(out.read)) Copy.NO_ITEM else {
-            box.addRead(out.read, tags(out.read.labelText), out.source, out.ms, newId())
+            box.addRead(out.read, out.labelTags, out.source, out.ms, newId())
             null
         }
         is ReadOutcome.Blocked -> Copy.blocked(out.reason)

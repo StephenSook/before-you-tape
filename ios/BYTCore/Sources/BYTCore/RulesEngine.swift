@@ -84,6 +84,18 @@ public final class RulesEngine: @unchecked Sendable {
     public func labelTags(_ labelText: String) throws -> JSONValue { try call("labelTagsJson", labelText) }
     /// A model's reply checked by the same parser the web app uses.
     public func parseItemRead(_ replyText: String) throws -> JSONValue { try call("parseItemReadJson", replyText) }
+    /// The same parser, with the engine's tags for the reply's whole label: the read keeps clipped label
+    /// text, and the tags come from the text before the cut. Save these as the item's labelTags; never tag
+    /// the clipped text.
+    public func parseItemReadTagged(_ replyText: String) throws -> (read: JSONValue, labelTags: [String]) {
+        let value = try call("parseItemReadTaggedJson", replyText)
+        guard let read = value["read"], case let .array(tags)? = value["labelTags"] else {
+            throw EngineError.badReply("parseItemReadTaggedJson: no read or tags")
+        }
+        let strings = tags.compactMap { if case let .string(s) = $0 { s } else { nil } }
+        guard strings.count == tags.count else { throw EngineError.badReply("parseItemReadTaggedJson: a tag is not a string") }
+        return (read, strings)
+    }
     /// The item-read fields, their JSON schema and the label text cap.
     public func itemReadContract() throws -> JSONValue { try call("itemReadContract") }
     /// True for a read of no item (a camera pointed at a room), by the web app's own check; a read

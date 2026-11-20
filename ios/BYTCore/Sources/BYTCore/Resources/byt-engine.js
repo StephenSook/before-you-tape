@@ -32,6 +32,7 @@ var BYT = (() => {
     itemReadContract: () => itemReadContract,
     labelTagsJson: () => labelTagsJson,
     parseItemReadJson: () => parseItemReadJson,
+    parseItemReadTaggedJson: () => parseItemReadTaggedJson,
     setEdition: () => setEdition
   });
 
@@ -1160,6 +1161,12 @@ var BYT = (() => {
   }
   function parseItemReadJson(text) {
     return reply(() => parseItemRead(text));
+  }
+  function parseItemReadTaggedJson(text) {
+    return reply(() => {
+      const { read, fullLabelText } = parseItemReadWithLabel(text);
+      return { read, labelTags: labelTagsOf(fullLabelText, current()) };
+    });
   }
   function isNoItemJson(readJson) {
     return reply(() => isNoItem(parseItemRead(readJson)));

@@ -57,14 +57,62 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "\(idPrefix)-\(n)" }, now: { 1000 })
     }
 
+    /// A read as the app's parser hands it over: with the engine's tags for its label (these labels are
+    /// all under the cap, so the whole label is the text the read shows).
     func outcome(_ read: JSONValue, _ source: ReadPath, fallbackAfter: FallbackAfter? = nil) -> ReadOutcome {
-        ReadOutcome(read: read, source: source, route: .hybrid, failure: nil,
-                    records: [RouteRecord(kind: .photo, path: source, model: "m", reason: .onDeviceDefault, latencyMs: 1200, blocked: nil)],
-                    fallbackAfter: fallbackAfter)
+        var tags: [String] = []
+        if case let .string(label)? = read["labelText"], !label.isEmpty, let engine = try? Self.bundledEngine(),
+           case let .array(values)? = try? engine.labelTags(label) {
+            tags = values.compactMap { if case let .string(s) = $0 { s } else { nil } }
+        }
+        return ReadOutcome(read: read, source: source, route: .hybrid, failure: nil,
+                           records: [RouteRecord(kind: .photo, path: source, model: "m", reason: .onDeviceDefault, latencyMs: 1200, blocked: nil)],
+                           fallbackAfter: fallbackAfter, labelTags: tags)
     }
 
     static let markedLotion = read(["itemName": .string("Body lotion"), "category": .string("lotion_cream"),
                                     "labelText": .string("BODY LOTION ZQXWORD"), "liquid": .bool(true)])
+
+    /// A photo read as the app's parser gives it: tags from the whole label, the shown text clipped.
+    func parsed(_ engine: RulesEngine, _ label: String) throws -> ReadOutcome {
+        let raw = Self.read(["itemName": .string("Body lotion"), "category": .string("lotion_cream"), "labelText": .string(label),
+                             "liquid": .bool(true), "retailBox": .string("sealed")])
+        let p = try engine.parseItemReadTagged(String(decoding: try JSONEncoder().encode(raw), as: UTF8.self))
+        var o = outcome(p.read, .onDevice)
+        o.labelTags = p.labelTags
+        o.wholeLabel = label
+        return o
+    }
+    static func x(_ n: Int) -> String { String(repeating: "x", count: n) }
+
+    /// A hazard word past the label cap counts, and a cut that ends "FLAMMABLE-FREE" at "FLAMMABLE"
+    /// never makes one: the item keeps the tags of its whole label, and the saved copy keeps no label.
+    @Test func aPhotoReadKeepsTheTagsOfItsWholeLabelNotTheClippedText() throws {
+        let engine = try Self.bundledEngine()
+        func level(_ label: String) throws -> (String?, [String], BoxSnapshot?) {
+            let p = MemoryBoxPersistence()
+            let s = try store(p, engine: engine)
+            let id = try #require(s.addRead(try parsed(engine, label), cropFile: nil))
+            return (s.result?.items[id]?.level, s.items[0].labelTags, p.saved.last)
+        }
+        // The same lotion with no hazard word is OK, so the checks below are not vacuous.
+        #expect(try level(Self.x(155) + " LOTION").0 == "ok")
+        let past = try level(Self.x(155) + " FLAMMABLE")
+        #expect(past.1.contains("flammable") && past.0 != "ok")
+        #expect(past.2?.items.first?.wholeLabel == nil && past.2?.items.first?.labelTags.contains("flammable") == true)
+        let cut = try level(Self.x(150) + " FLAMMABLE-FREE LOTION")
+        #expect(!cut.1.contains("flammable") && cut.0 == "ok")
+    }
+
+    /// A new edition reads the whole label still in memory again, never the clipped text shown.
+    @Test func aNewEditionReadsTheWholeLabelAgainNotTheClippedText() throws {
+        let engine = try Self.bundledEngine()
+        let s = try store(engine: engine)
+        _ = try #require(s.addRead(try parsed(engine, Self.x(155) + " ZQXWORD"), cropFile: nil))
+        _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        s.reevaluate()
+        #expect(s.items[0].labelTags.contains("alcohol") && s.items[0].tagsEdition == "byt-more-words")
+    }
 
     /// The saved copy keeps only the tags an edition found in the label. Under a newer edition with
     /// other label words those tags may be wrong, and the label is gone: never OK, read it again.

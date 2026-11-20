@@ -97,7 +97,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val reader: ItemReader? = ai?.let { client ->
         ItemReader(
             model = client,
-            parse = { text -> requireNotNull(host).parseItemRead(text) },
+            parse = { text -> requireNotNull(host).parseItemReadTagged(text) },
             gate = { client.deviceStatus() },
             cloud = { CloudState(store.cloudConsent(), online(), rc?.current()?.killCloud ?: true) },
             prompt = { Prompts.ITEM_READ_PROMPT },
@@ -108,7 +108,6 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val session = BoxSession(
         box,
         reader = { crop -> reader?.read(crop) ?: ReadOutcome.Failed(FailReason.CLOUD_ERROR, retryable = false) },
-        tags = { text -> host?.labelTags(text) ?: emptyList() },
         newId = { UUID.randomUUID().toString() },
         resetRun = { reader?.resetRun() },
     )
@@ -279,9 +278,10 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         val read = ReadDrafts.read(draft) ?: return
         onWorker {
             val h = host ?: return@onWorker publish { it.copy(message = Copy.RULES_NOT_LOADED) }
-            // A typed item goes through the web app's own read parser, like a model read.
-            val parsed = h.parseItemRead(Json.encodeToString(ItemReadWire.serializer(), read))
-            box.addManual(parsed, h.labelTags(parsed.labelText), UUID.randomUUID().toString())
+            // A typed item goes through the web app's own read parser, like a model read, and keeps the tags
+            // of its whole label.
+            val parsed = h.parseItemReadTagged(Json.encodeToString(ItemReadWire.serializer(), read))
+            box.addManual(parsed.read, parsed.labelTags, UUID.randomUUID().toString())
             publish { it.copy(view = HomeView.BOX, message = null) }
         }
     }
