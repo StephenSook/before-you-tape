@@ -208,4 +208,73 @@ describe("saving by explicit operations", () => {
     expect(t.getState().destinationKnown).toBe(true);
     expect(t.getState().destinationCode).toBe("CA");
   });
+
+  // A server whose item writes wait until the test lets each one land (or fail), and which keeps what landed.
+  function slowServer() {
+    const stored = new Map<string, BoxItem>();
+    const waiting: Array<{ id: string; land: () => void; fail: () => void }> = [];
+    const o = {
+      loadBox: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => ({ status: "found", box: { boxId: "b1", destinationCode: "CA", sources, items: [...stored.values()] } })),
+      putMeta: vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>(async () => {}),
+      putItem: vi.fn<(boxId: string, item: BoxItem) => Promise<void>>((_b, item) => new Promise<void>((resolve, reject) => {
+        waiting.push({ id: item.itemId, land: () => { stored.set(item.itemId, item); resolve(); }, fail: () => reject(new Error("offline")) });
+      })),
+      deleteItem: vi.fn<(boxId: string, itemId: string) => Promise<void>>(async (_b, itemId) => { stored.delete(itemId); }),
+    } satisfies BoxOps;
+    const next = (id: string) => {
+      const i = waiting.findIndex((w) => w.id === id);
+      if (i < 0) throw new Error(`no write waiting for ${id}`);
+      return waiting.splice(i, 1)[0]!;
+    };
+    return { o, stored, land: (id: string) => next(id).land(), fail: (id: string) => next(id).fail() };
+  }
+
+  it("deletes an item removed while its first save was still on the way, so a reload does not bring it back", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    s.remove(a);
+    srv.land(a);
+    await s.settled();
+    expect(srv.o.deleteItem.mock.calls.map((c) => c[1])).toEqual([a]);
+    expect(srv.stored.has(a)).toBe(false);
+    expect(s.getState().unsaved).toEqual([]);
+    const again = make(srv.o);
+    await again.ready;
+    expect(again.getState().items).toEqual([]);
+  });
+
+  it("removes and adds again while the first save is on the way: the first goes, the second stays", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    s.remove(a);
+    const b = s.addManual(shirt);
+    srv.land(a);
+    await settle();
+    await settle();
+    srv.land(b);
+    await s.settled();
+    expect(srv.o.deleteItem.mock.calls.map((c) => c[1])).toEqual([a]);
+    expect([...srv.stored.keys()]).toEqual([b]);
+    expect(s.getState().unsaved).toEqual([]);
+  });
+
+  it("sends no delete for an item whose first save failed after it was removed: the server never had it", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    s.remove(a);
+    srv.fail(a);
+    await s.settled();
+    expect(srv.o.deleteItem).not.toHaveBeenCalled();
+    expect(srv.stored.size).toBe(0);
+    expect(s.getState().unsaved).toEqual([]);
+  });
 });

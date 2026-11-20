@@ -216,6 +216,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const journal: Journal = deps.journal?.read(boxId) ?? { meta: null, items: {} };
   // The writes that failed last time ("meta" or an item id); they wait for a retry or the next edit.
   const failed = new Set<string>();
+  // Items whose write is on its way: until it settles, the server may or may not have them.
+  const inFlight = new Set<string>();
   const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
   const storedJson = (i: BoxItem) => stableJson(forStorage(i));
   const keepJournal = () => deps.journal?.write(boxId, journal);
@@ -237,7 +239,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       if (server.get(i.itemId) === j) delete journal.items[i.itemId];
       else journal.items[i.itemId] = forStorage(i);
     }
-    for (const id of Object.keys(journal.items)) if (!now.has(id) && !server.has(id)) delete journal.items[id];
+    // A removed item the server has, or may have (its write is on its way), is deleted there; one never sent is
+    // only dropped from the journal.
+    for (const id of Object.keys(journal.items)) {
+      if (now.has(id)) continue;
+      if (server.has(id) || inFlight.has(id)) journal.items[id] = null;
+      else delete journal.items[id];
+    }
     for (const id of server.keys()) if (!now.has(id)) journal.items[id] = null;
     if (loadState === "ready" && stableJson(metaOf()) !== serverMeta) journal.meta = metaOf();
     keepJournal();
@@ -270,19 +278,29 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         }
         if (boxExists) {
           await Promise.all(Object.entries(journal.items).map(async ([id, item]) => {
+            inFlight.add(id);
             try {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
               // A write kept only in this browser stays in the journal for the server; a newer edit made while
-              // this write was out stays too.
+              // this write was out (a change, or a removal now waiting as a delete) stays too.
               if (journal.items[id] === item && deps.persistence.localOnly?.() !== true) {
                 delete journal.items[id];
                 if (item) server.set(id, stableJson(item));
                 else server.delete(id);
               }
             } catch {
-              failed.add(id);
+              // The item was removed while its first write was out, and that write did not land: the server never
+              // had it, so there is nothing to delete.
+              if (item && journal.items[id] === null && !server.has(id)) {
+                delete journal.items[id];
+                failed.delete(id);
+              } else {
+                failed.add(id);
+              }
+            } finally {
+              inFlight.delete(id);
             }
           }));
         }
