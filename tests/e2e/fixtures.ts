@@ -19,12 +19,21 @@ export function appCheckDebugToken(): string | null {
   return process.env.APPCHECK_DEBUG_TOKEN?.trim() || null;
 }
 
+// The only origins that get the App Check debug token: the deployed app and the local preview and dev server.
+export const TOKEN_ORIGINS = ["https://before-you-tape-2026.web.app", "https://before-you-tape-2026.firebaseapp.com", "http://localhost:4173", "http://localhost:5173"];
+
 export const test = base.extend<{ appCheckToken: string | null }>({
   appCheckToken: [
     async ({ page }, use) => {
       const token = appCheckDebugToken();
-      // The App Check SDK reads this global when it starts, so it must exist before the app loads.
-      if (token) await page.addInitScript((t) => { (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = t; }, token);
+      // The App Check SDK reads this global when it starts, so it must exist before the app loads. It is set
+      // only on this app's own origins: a page or frame of any other site (a probe pointed at a wrong URL, a
+      // third-party frame) never sees the token.
+      if (token) {
+        await page.addInitScript(({ t, origins }) => {
+          if (origins.includes(location.origin)) (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = t;
+        }, { t: token, origins: TOKEN_ORIGINS });
+      }
       await use(token);
     },
     { auto: true },
