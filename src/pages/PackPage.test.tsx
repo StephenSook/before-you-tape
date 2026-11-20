@@ -242,6 +242,11 @@ describe("PackPage", () => {
     localStorage.clear();
   });
 
+  it("says photos and label text stay on this laptop when cloud checks are off and it reads on its own", () => {
+    setup({ gate: "available" }, false);
+    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off. Photos and label text stay on this laptop.");
+  });
+
   it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));

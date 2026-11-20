@@ -14,4 +14,9 @@ describe("RanPage", () => {
     expect(within(row(/Change the country/)).getByText(/0 model calls/)).toBeInTheDocument();
     expect(within(row(/Check it in the cloud/)).getByText(/only when you press it/)).toBeInTheDocument();
   });
+
+  it("says what the saved box list holds, and that it never holds the photo or the label text", () => {
+    render(<RanPage />);
+    expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
+  });
 });
