@@ -82,5 +82,6 @@ jobs:
         env:
           BYT_LIVE: "1"
           BYT_LIVE_URL: ${{ inputs.site }}
-          APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
-        run: npx playwright test --project=live tests/e2e/read.live.spec.ts
+          APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
+        # The token reaches only this app's pages (token-origin), and one real read comes back as a read.
+        run: npx playwright test --project=live tests/e2e/token-origin.spec.ts tests/e2e/read.live.spec.ts
