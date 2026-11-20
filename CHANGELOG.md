@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The README says the Android judge build will be linked there when it ships, so nothing implies a download exists before it does. Source: review. Verified: no README line links an APK file; tone passes.
+
 - The README says the release gate fails today on purpose, and why: no person has checked the Canada and Philippines listings yet, and the USPS service alerts, last read 2026-11-17, would read stale on the last judging day. It also says what makes it pass. Source: whole-repo review (clean-clone pass). Verified: `npm run release:gate` on main prints exactly these four failures; tone and hygiene pass.
 - CI, the deploy, the daily live probe and the Android workflow now run on Node.js 24, and `engines` asks for 24.12 or newer. The Firebase SDK in the lockfile (firebase 13.4 and its `@firebase/*` packages, and `@firebase/rules-unit-testing` 6.0) declares Node 24.12 or newer, while everything ran on 22 and `engines` said 22. The README says the same. Source: whole-repo review (clean-clone pass). Verified: the PR's CI runs a clean `npm ci`, every unit and rules test, the build and the browser checks on Node 24.
 
