@@ -269,6 +269,9 @@ export function PackPage(p: PackPageProps) {
     if (gone.current) return;
     // Only a sender's press counts here: a frame the camera read by itself must not hide a press's notice.
     const press = how === "steady" ? null : ++presses.current;
+    // The press this read answers to: its own, or for a camera frame the newest one when it started. Its
+    // notice shows only while no newer press has come since.
+    const owner = press ?? presses.current;
     let route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
     // Registered now, so taking back consent, a pause or leaving the page also ends a press still waiting.
@@ -294,14 +297,17 @@ export function PackPage(p: PackPageProps) {
         if (route === "blocked") {
           // Cloud checks taken back during the wait: say that, not that the settings are still loading.
           const withdrawn = store.consentNow() !== true;
-          setNotice(withdrawn ? blockedText({ ...liveInputs(), killCloud: false }) : arrived || work.signal.aborted ? blockedText(liveInputs(), live.current.pauseUnknown) : SETTINGS_SLOW);
+          setNotice(withdrawn ? blockedText({ ...liveInputs(), killCloud: false, online: true }) : arrived || work.signal.aborted ? blockedText(liveInputs(), live.current.pauseUnknown) : SETTINGS_SLOW);
           return;
         }
       }
       if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
-      setNotice(null);
-      setBlocked(null);
-      const limit = timeLimit(readTimeoutMs, work, () => { if (press !== null && presses.current === press) setNotice(TOO_SLOW); });
+      // A frame the camera read by itself leaves the notices of the sender's presses in place.
+      if (press !== null) {
+        setNotice(null);
+        setBlocked(null);
+      }
+      const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === owner) setNotice(TOO_SLOW); });
       try {
         const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
         limit.clear();
