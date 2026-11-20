@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- CI now runs the browser checks that need App Check: the accessibility pass, the smoke checks, the Pack page with the model host answered by the test, and the check that the debug token reaches only this app's own pages. The CI debug token is set only as that one step's environment and is never printed; the secrets ledger names the step. These checks make no model call. Source: plan item 10. Verified: the workflow parses; the specs run in CI with the token (see the run on this pull request).
+
 - The test for removing an item while its second look runs now also checks that the removal aborts the cloud call's signal, so a request still waiting for its tokens sends nothing. Source: review of the card controls. Verified: the test fails on the commit before the fix ("expected false to be true") and passes; unit suite, lint, typecheck, tone and guard pass.
 
 - Removing an item now stops its second look if one is already running. Before, the look ran on: a failed cloud call was retried and could go to the fallback model with the removed item's photo, and its answer or error was then applied to an item no longer in the box. Now each item's look can be stopped by its id, every further cloud call checks that the item is still in the box, and what a stopped look brings back is dropped. The "Removed" notice timer is now cleared by a newer removal and when the page goes. Source: review of the card controls. Verified: a new test (a look still waiting on the cloud when its item is removed, then a 503: no retry, no fallback call, no error kept) failed first ("called 1 times, but got 2 times") and passes; unit suite, lint, typecheck, tone and guard pass.
