@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A metrics test now fails if "hazard called OK" is ever counted per row instead of per item. The old test had a single OK row, so it also passed with per-row counting. The new case calls one hazard item OK in both countries and another hazard never, and expects 1 of 2 with the matching exact bound. Source: whole-repo review (metrics). Verified: it passes on the current code; with the count changed to per row it fails while the old test still passes; the change was then restored and lint, typecheck and the unit suite pass.
 - The README says the release gate fails today on purpose, and why: no person has checked the Canada and Philippines listings yet, and the USPS service alerts, last read 2026-11-17, would read stale on the last judging day. It also says what makes it pass. Source: whole-repo review (clean-clone pass). Verified: `npm run release:gate` on main prints exactly these four failures; tone and hygiene pass.
 - CI, the deploy, the daily live probe and the Android workflow now run on Node.js 24, and `engines` asks for 24.12 or newer. The Firebase SDK in the lockfile (firebase 13.4 and its `@firebase/*` packages, and `@firebase/rules-unit-testing` 6.0) declares Node 24.12 or newer, while everything ran on 22 and `engines` said 22. The README says the same. Source: whole-repo review (clean-clone pass). Verified: the PR's CI runs a clean `npm ci`, every unit and rules test, the build and the browser checks on Node 24.
 
