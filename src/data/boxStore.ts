@@ -236,7 +236,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const now = new Set(items.map((i) => i.itemId));
     for (const i of items) {
       const j = storedJson(i);
-      if (server.get(i.itemId) === j) delete journal.items[i.itemId];
+      // While a write of this item is out, the server's copy is about to change: a copy equal to the old one is
+      // kept in the journal too, so it is sent after that write lands (a change and back, such as 1 to 3 to 1).
+      if (server.get(i.itemId) === j && !inFlight.has(i.itemId)) delete journal.items[i.itemId];
       else journal.items[i.itemId] = forStorage(i);
     }
     // A removed item the server has, or may have (its write is on its way), is deleted there; one never sent is
@@ -289,7 +291,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (deps.persistence.localOnly?.() !== true) {
                 if (item) server.set(id, stableJson(item));
                 else server.delete(id);
-                if (journal.items[id] === item) delete journal.items[id];
+                // Done with this item unless a different copy was recorded while the write was out.
+                const now = journal.items[id];
+                if (now === item || (now && item && stableJson(now) === stableJson(item))) delete journal.items[id];
               }
             } catch {
               // The item was removed while its first write was out, and that write did not land: the server never
