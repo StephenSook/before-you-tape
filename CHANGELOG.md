@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Known limits say which label languages the rules read: the 100 label words in the rule edition are English only, and the on-device model is asked for English text in and out, so on a label in another language the verdict rests on the read's category, numbers and yes-or-no facts and on the sender's answers. Source: review. Verified: every `labelWords` pattern in rules/edition.json is ASCII English, the negation words in src/engine/facts.ts are English, and src/ai/gate.ts asks for `languages: ["en"]`; tone passes.
+
 - CI, the deploy, the daily live probe and the Android workflow now run on Node.js 24, and `engines` asks for 24.12 or newer. The Firebase SDK in the lockfile (firebase 13.4 and its `@firebase/*` packages, and `@firebase/rules-unit-testing` 6.0) declares Node 24.12 or newer, while everything ran on 22 and `engines` said 22. The README says the same. Source: whole-repo review (clean-clone pass). Verified: the PR's CI runs a clean `npm ci`, every unit and rules test, the build and the browser checks on Node 24.
 
 - A copy of the source with no git history, such as a ZIP download, now builds. The build used to stop with an error when git could not name the commit; now dist/version.json records the commit as "unknown" and the tree as dirty, and the build warns. CI and the deploy still check that the built commit is the real one. Source: whole-repo review (clean-clone pass). Verified: new unit tests for the version record (clean, dirty, no git, not a commit) failed first and pass; a build with git pointed at a missing directory finishes with sha "unknown", and a normal build records the HEAD commit; lint, typecheck, tone and the unit suite pass.
