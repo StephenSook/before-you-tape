@@ -67,6 +67,22 @@ describe("JudgePage", () => {
     expect(screen.getByTestId("cloud-settings-note")).toHaveTextContent("If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.");
   });
 
+  it("shows recorded on-device reads only from a record it is given, closed, and says it is a replay", () => {
+    const recorded = { ranAt: "2026-11-21T10:00:00.000Z", sha: "a".repeat(40), chromeVersion: "157.0.8103.80", os: "macOS 27.0",
+      reads: [{ itemId: "own-18", category: "lotion_cream", ms: 2900 }, { itemId: "own-01", category: "power_bank", ms: 3100 }] };
+    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={recorded} />);
+    const block = screen.getByTestId("recorded-reads");
+    expect(block.tagName).toBe("DETAILS");
+    expect(block).not.toHaveAttribute("open");
+    expect(within(block).getByText("Recorded on-device reads")).toBeInTheDocument();
+    expect(block).toHaveTextContent("Recorded November 21, 2026, Chrome 157.0.8103.80 on macOS 27.0. A replay, not a live read.");
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
+    expect(block).toHaveTextContent("2,900 ms");
+    unmount();
+    render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={null} />);
+    expect(screen.queryByTestId("recorded-reads")).toBeNull();
+  });
+
   it("names the rule and its section behind each verdict", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });

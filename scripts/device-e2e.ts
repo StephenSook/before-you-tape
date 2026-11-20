@@ -3,12 +3,15 @@
 // reads up to three photos, and passes only when every read ran on the device and not one request
 // went to the AI Logic cloud host. Writes evidence/device-e2e/<time>.json.
 //
-// Env: BYT_NANO_PROFILE (Chrome profile with the model), BYT_DEVICE_E2E_PHOTOS (a folder of .jpg files).
-// Optional: BYT_DEVICE_E2E_LABEL (describes the photos in the evidence), CHROME_PATH.
+// Env: BYT_NANO_PROFILE (Chrome profile with the model), and either BYT_DEVICE_E2E_EVAL_ITEMS (eval/set item
+// ids, comma separated: each photo must match its tracked SHA-256) or BYT_DEVICE_E2E_PHOTOS (a folder of .jpg
+// files). Optional: BYT_DEVICE_E2E_LABEL (describes the photos in the evidence), CHROME_PATH.
+// The record names the Chrome version and the operating system it ran on.
 // Never touches a profile another live Chrome holds, and closes the Chrome and dev server it started.
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, readlinkSync, writeFileSync } from "node:fs";
-import { hostname } from "node:os";
+import { hostname, platform, release } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
@@ -35,7 +38,33 @@ export function profileLockState(target: string | null, host: string, isAlive: (
   return isAlive(Number(m[2])) ? "in_use" : "stale";
 }
 
-export interface E2ERead { file: string; source: string | null; ms: number | null; recoveredFrom: string | null; error: string | null }
+interface EvalManifest { items: { itemId: string; photo: string; photoSha256: string }[] }
+export interface E2EPhoto { file: string; base64: string; itemId?: string }
+
+// Named eval/set photos, read from public/ and checked byte for byte against the manifest, so the record
+// says exactly which tracked photo was read.
+export function evalPhotos(list: string, manifest: EvalManifest, readFile: (path: string) => Buffer): E2EPhoto[] {
+  const ids = list.split(",").map((s) => s.trim()).filter((s) => s !== "");
+  if (ids.length === 0) throw new Error("no eval/set item named in BYT_DEVICE_E2E_EVAL_ITEMS");
+  if (ids.length > MAX_PHOTOS) throw new Error(`name at most ${MAX_PHOTOS} eval/set items`);
+  return ids.map((id) => {
+    const item = manifest.items.find((i) => i.itemId === id);
+    if (!item) throw new Error(`${id} is not in eval/set/manifest.json`);
+    const bytes = readFile(join("public", item.photo));
+    if (createHash("sha256").update(bytes).digest("hex") !== item.photoSha256) throw new Error(`${id}: the file does not match its tracked SHA-256`);
+    return { file: basename(item.photo), itemId: id, base64: bytes.toString("base64") };
+  });
+}
+
+// The operating system as a person would name it: "macOS 27.0" from sw_vers, otherwise the kernel release.
+export function osName(os: string, kernel: string, productVersion: () => string): string {
+  if (os === "darwin") {
+    try { return `macOS ${productVersion().trim()}`; } catch { return `macOS (kernel ${kernel})`; }
+  }
+  return `${os === "linux" ? "Linux" : os} ${kernel}`;
+}
+
+export interface E2ERead { file: string; itemId?: string; source: string | null; ms: number | null; recoveredFrom: string | null; error: string | null }
 
 export function e2ePassed(reads: readonly E2ERead[], cloudRequests: number): boolean {
   return reads.length > 0 && cloudRequests === 0 && reads.every((r) => r.error === null && r.source === "on_device");
@@ -61,15 +90,18 @@ function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): Promise<
 
 async function main(): Promise<void> {
   const profile = resolve(requireEnv(process.env, "BYT_NANO_PROFILE"));
-  const photosDir = resolve(requireEnv(process.env, "BYT_DEVICE_E2E_PHOTOS"));
+  const evalItems = process.env.BYT_DEVICE_E2E_EVAL_ITEMS?.trim();
+  const photosDir = evalItems ? null : resolve(requireEnv(process.env, "BYT_DEVICE_E2E_PHOTOS"));
   for (const p of [profile, photosDir]) {
-    if (p.split(sep).includes("secrets")) throw new Error(`refusing a path inside a secrets folder: ${p}`);
+    if (p && p.split(sep).includes("secrets")) throw new Error(`refusing a path inside a secrets folder: ${p}`);
   }
   const lock = profileLockState(readLock(profile), hostname(), isAlive);
   if (lock === "in_use") throw new Error(`the Chrome profile is in use by another Chrome (${readLock(profile)}); not touching it`);
 
-  const photos = readdirSync(photosDir).filter((f) => /\.jpe?g$/i.test(f)).sort().slice(0, MAX_PHOTOS)
-    .map((file) => ({ file, base64: readFileSync(join(photosDir, file)).toString("base64") }));
+  const photos: E2EPhoto[] = evalItems
+    ? evalPhotos(evalItems, JSON.parse(readFileSync("eval/set/manifest.json", "utf8")) as EvalManifest, (p) => readFileSync(p))
+    : readdirSync(photosDir!).filter((f) => /\.jpe?g$/i.test(f)).sort().slice(0, MAX_PHOTOS)
+      .map((file) => ({ file, base64: readFileSync(join(photosDir!, file)).toString("base64") }));
   if (photos.length === 0) throw new Error(`no .jpg files in ${photosDir}`);
 
   const chromePath = process.env.CHROME_PATH?.trim() || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -82,6 +114,7 @@ async function main(): Promise<void> {
     await waitForLine(chrome, /DevTools listening/, 30_000);
 
     const browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
+    const chromeVersion = browser.version();
     const context = browser.contexts()[0] ?? (await browser.newContext());
     const page = await context.newPage();
     let cloudRequests = 0;
@@ -90,7 +123,7 @@ async function main(): Promise<void> {
     if (token) await page.addInitScript((t) => { (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = t; }, token);
     await page.goto(`http://localhost:${VITE_PORT}/scripts/device-e2e/harness.html`);
     await page.waitForSelector("body[data-ready='1']", { timeout: 60_000 });
-    const result = await page.evaluate((ps) => window.bytDeviceE2E(ps), photos);
+    const result = await page.evaluate((ps) => window.bytDeviceE2E(ps), photos.map(({ file, base64 }) => ({ file, base64 })));
     await page.close();
     // Quit Chrome the normal way so it releases its profile lock; the finally block is only a fallback.
     const cdp = await browser.newBrowserCDPSession();
@@ -102,10 +135,13 @@ async function main(): Promise<void> {
     const sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     // dirty: the tree had changes, so the commit alone does not describe the code that ran.
     const dirty = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim() !== "";
+    const itemOf = new Map(photos.map((p) => [p.file, p.itemId]));
+    const reads = result.reads.map((r) => (itemOf.get(r.file) ? { itemId: itemOf.get(r.file), ...r } : r));
     const record = {
       ranAt: new Date().toISOString(), sha, dirty, route: "device_only", gate: result.gate,
-      photos: process.env.BYT_DEVICE_E2E_LABEL?.trim() || `files from ${basename(photosDir)}/`,
-      reads: result.reads, cloudRequestsToAiLogic: cloudRequests, passed,
+      chromeVersion, os: osName(platform(), release(), () => execFileSync("sw_vers", ["-productVersion"], { encoding: "utf8" })),
+      photos: process.env.BYT_DEVICE_E2E_LABEL?.trim() || (evalItems ? `eval/set photos ${photos.map((p) => p.itemId).join(", ")}` : `files from ${basename(photosDir!)}/`),
+      reads, cloudRequestsToAiLogic: cloudRequests, passed,
     };
     const dir = join(process.cwd(), "evidence", "device-e2e");
     mkdirSync(dir, { recursive: true });

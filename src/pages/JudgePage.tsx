@@ -9,7 +9,11 @@ import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
+import manifest from "../../eval/set/manifest.json";
+import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
+import type { ItemCategory } from "../shared/itemRead";
+import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { QuestionRow } from "../ui/QuestionRow";
@@ -20,7 +24,11 @@ export interface JudgePageProps {
   index: readonly DestinationIndexEntry[];
   today: string;
   now?: () => number;
+  // A tracked record of the app's own read on Chrome's built-in model (src/judge/recordedReads.ts), or none.
+  recorded?: RecordedReads | null;
 }
+
+const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
 
 function sampleStore(edition: RuleEdition, today: string, now: () => number): BoxStore {
   const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now, today: () => today,
@@ -36,7 +44,7 @@ function sampleStore(edition: RuleEdition, today: string, now: () => number): Bo
   return store;
 }
 
-export function JudgePage({ edition, index, today, now = () => performance.now() }: JudgePageProps) {
+export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null }: JudgePageProps) {
   const [store] = useState(() => sampleStore(edition, today, now));
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -93,6 +101,23 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
           </article>
         );
       })}
+      {recorded && (
+        <details data-testid="recorded-reads" className="recorded-reads">
+          <summary>Recorded on-device reads</summary>
+          <p>
+            Recorded {longDate(recorded.ranAt.slice(0, 10))}, Chrome {recorded.chromeVersion} on {recorded.os}. A replay, not a live read.
+            The app's own read ran on Chrome's built-in model, with no call to the cloud model.
+          </p>
+          <ul>
+            {recorded.reads.map((r) => (
+              <li key={r.itemId}>
+                {PHOTO_ALT.get(r.itemId) ?? r.itemId}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
+                {r.ms.toLocaleString("en-US")} ms
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

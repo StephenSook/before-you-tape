@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { e2ePassed, profileLockState, requireEnv } from "./device-e2e";
+import { createHash } from "node:crypto";
+import { e2ePassed, evalPhotos, osName, profileLockState, requireEnv } from "./device-e2e";
 
 describe("device-e2e helpers", () => {
   it("names a missing environment variable instead of skipping", () => {
@@ -25,5 +26,22 @@ describe("device-e2e helpers", () => {
     expect(e2ePassed([read("on_device")], 1)).toBe(false);
     expect(e2ePassed([], 0)).toBe(false);
     expect(e2ePassed([{ ...read("on_device"), error: "device_failed" }], 0)).toBe(false);
+  });
+
+  it("reads named eval/set photos only when each file is the exact tracked photo", () => {
+    const bytes = Buffer.from("a photo");
+    const sha = createHash("sha256").update(bytes).digest("hex");
+    const manifest = { items: [{ itemId: "own-18", photo: "/eval/items/own-18.jpg", photoSha256: sha }, { itemId: "own-01", photo: "/eval/items/own-01.jpg", photoSha256: "0".repeat(64) }] };
+    const read = (path: string) => { if (!path.endsWith("own-18.jpg") && !path.endsWith("own-01.jpg")) throw new Error("no file"); return bytes; };
+    expect(evalPhotos("own-18", manifest, read)).toEqual([{ file: "own-18.jpg", itemId: "own-18", base64: bytes.toString("base64") }]);
+    expect(() => evalPhotos("own-01", manifest, read)).toThrow(/own-01: the file does not match its tracked SHA-256/);
+    expect(() => evalPhotos("nope", manifest, read)).toThrow(/nope is not in eval\/set/);
+    expect(() => evalPhotos("own-18,own-18,own-18,own-18", manifest, read)).toThrow(/at most 3/);
+    expect(() => evalPhotos(" , ", manifest, read)).toThrow(/no eval\/set item/);
+  });
+
+  it("names the operating system with its product version", () => {
+    expect(osName("darwin", "25.0.0", () => "27.0")).toBe("macOS 27.0");
+    expect(osName("linux", "6.8.0", () => { throw new Error("no sw_vers"); })).toBe("Linux 6.8.0");
   });
 });
