@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The README links `docs/TEST-MATRIX.md` once, from the line that names the platforms. Source: review. Verified: the link target exists and is tracked; tone passes.
+
 - `docs/TEST-MATRIX.md` lists what ran where: one row for each platform and read path, with the mode and the line of code that sets it, the model as the record names it, the hardware and software, the channel, the date, the result and the tracked evidence file. A path with no record says "No tracked run yet", and anything a record does not say reads "Not recorded". `scripts/test-matrix.test.ts` fails when an evidence file is not tracked in git, when a row with no evidence does not say so, or when a cited line no longer holds the mode it names. Source: review. Verified: the checker passes on the document and fails on an untracked evidence path, a cited line without its mode, and a row with no evidence that does not say so; every row was taken from its tracked evidence file.
 
 - The README says the Android judge build will be linked there when it ships, so nothing implies a download exists before it does. Source: review. Verified: no README line links an APK file; tone passes.
