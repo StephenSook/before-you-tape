@@ -331,15 +331,20 @@ describe("PackPage", () => {
       let call = 0;
       models.device.generate.mockImplementation(async () => {
         call++;
-        if (call === 1) { await new Promise((r) => setTimeout(r, 60)); throw new Error("the model failed"); }
+        if (call === 1) { await new Promise((r) => setTimeout(r, 400)); throw new Error("the model failed"); }
         return { text: JSON.stringify(nothing), source: "on_device" };
       });
       const view = render(page(store, models, "checking"));
-      await trySample();
+      // The older press waits for the model check, then starts its read (the slow one that fails).
       await trySample();
       view.rerender(page(store, models, "available"));
-      expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
-      await act(async () => { await new Promise((r) => setTimeout(r, 120)); });
+      await waitFor(() => expect(call).toBe(1));
+      // The newer press reads at once and finds nothing there.
+      await trySample();
+      // The alert can exist a moment before its text, so wait for the text itself.
+      await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box."));
+      // The older read fails after the newer notice is up; it must not replace it.
+      await act(async () => { await new Promise((r) => setTimeout(r, 600)); });
       expect(screen.getByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
       expect(call).toBe(2);
     });
