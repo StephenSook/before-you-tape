@@ -17,7 +17,7 @@ The same rules also run in an iPhone app that is not part of this entry ([`ios/R
 
 ## Run it
 
-Requirements: Node.js 22 and npm. The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
+Requirements: Node.js 24.12 or newer and npm (the Firebase SDK this app uses needs it). The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
 
 1. `npm ci`
 2. Copy `.env.example` to `.env.local` and fill in your own Firebase web config and reCAPTCHA Enterprise site key. Never commit `.env.local`.
