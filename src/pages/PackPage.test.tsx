@@ -115,11 +115,14 @@ describe("PackPage", () => {
 
   it("says ahead of time when the post office will stop taking mail to the destination, and suspends it from that day", () => {
     // The bundled edition: USPS announced Canada's suspension from 2026-11-29; the page's date is 2026-11-20.
-    setup();
+    const store = newStore();
+    store.setDestination("CA");
+    setup({ store });
     expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
     expect(screen.queryByTestId("suspended-banner")).toBeNull();
     cleanup();
     const later = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-29", newId: () => `id-${n++}` });
+    later.setDestination("CA");
     setup({ store: later });
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Canada is suspended.");
     expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
@@ -142,12 +145,13 @@ describe("PackPage", () => {
     const { models } = setup();
     await addPhoto();
     const card = await screen.findByTestId("item-card");
-    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    // A new box starts in the Philippines, where liquid lotion is out; Canada takes it.
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
     expect(within(card).getByTestId("crop-image")).toHaveAttribute("src", expect.stringMatching(/^data:image\/jpeg/));
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "PH");
-    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(screen.getByTestId("recheck-line")).toHaveTextContent("0 model calls");
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
   });
@@ -304,7 +308,10 @@ describe("PackPage", () => {
   });
 
   it("adds a typed item with no model call, and judges it", async () => {
-    const { models } = setup();
+    // Canada, where a liquid lotion is OK to pack.
+    const store = newStore();
+    store.setDestination("CA");
+    const { models } = setup({ store });
     await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
     const form = screen.getByTestId("add-by-hand");
     await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
@@ -318,7 +325,10 @@ describe("PackPage", () => {
   });
 
   it("applies a fixed reading to the verdict", async () => {
-    const { store } = setup();
+    // Canada, where a body lotion is OK to pack until its label says flammable.
+    const canada = newStore();
+    canada.setDestination("CA");
+    const { store } = setup({ store: canada });
     await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
     const form = screen.getByTestId("add-by-hand");
     await userEvent.selectOptions(within(form).getByLabelText("What is it?"), "lotion_cream");
