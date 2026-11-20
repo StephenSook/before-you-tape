@@ -629,10 +629,15 @@ var BYT = (() => {
     list(s.codes, "suspensions.codes").forEach((c, i) => {
       if (typeof c !== "string" || !/^[A-Z]{2}$/.test(c)) fail(`suspensions.codes[${i}]`, "expected a two-letter code");
     });
+    const announced = /* @__PURE__ */ new Set();
     if (s.upcoming !== void 0) list(s.upcoming, "suspensions.upcoming").forEach((x, i) => {
       const u = obj(x, `suspensions.upcoming[${i}]`);
       keys(u, ["code", "from"], [], `suspensions.upcoming[${i}]`);
       if (typeof u.code !== "string" || !/^[A-Z]{2}$/.test(u.code)) fail(`suspensions.upcoming[${i}].code`, "expected a two-letter code");
+      const code = u.code;
+      if (announced.has(code)) fail(`suspensions.upcoming[${i}].code`, "listed twice");
+      if (s.codes.includes(code)) fail(`suspensions.upcoming[${i}].code`, "already suspended");
+      announced.add(code);
       isoDate(u.from, `suspensions.upcoming[${i}].from`);
     });
     list(e.stopWords, "stopWords").forEach((w, i) => str(w, `stopWords[${i}]`));
@@ -656,8 +661,9 @@ var BYT = (() => {
     return JSON.stringify(value);
   }
   function resolveDestination(e, code, live, today) {
-    const ahead = today === void 0 ? void 0 : e.suspensions.upcoming?.find((u) => u.code === code);
-    const started = ahead !== void 0 && today !== void 0 && today >= ahead.from;
+    const day = today !== void 0 && isCalendarDate(today) ? today : void 0;
+    const ahead = day === void 0 ? void 0 : e.suspensions.upcoming?.find((u) => u.code === code);
+    const started = ahead !== void 0 && day !== void 0 && day >= ahead.from;
     const suspended = e.suspensions.codes.includes(code) || started;
     const stored = e.destinations[code] ?? null;
     const edition2 = stored ?? live ?? null;

@@ -44,6 +44,11 @@ describe("evaluateDestination", () => {
     expect(from).toMatchObject({ suspended: true });
     expect(from.suspendsFrom).toBeUndefined();
     expect(evaluateDestination(liquidLotion, {}, from).map((x) => x.ruleId)).toEqual(["DEST-SUSPENDED"]);
+    // A date that is not a real YYYY-MM-DD day neither notes nor starts it (the stale-layer check holds the box).
+    for (const bad of ["", "11/29/2026", "not-a-date", "2026-11-31"]) {
+      const d = resolveDestination(e, "CA", undefined, bad);
+      expect([d.suspended, d.suspendsFrom], bad).toEqual([false, undefined]);
+    }
     // Without a date (a page that lists a country's rules, the shared vectors), nothing changes.
     const undated = resolveDestination(e, "CA");
     expect(undated.suspended).toBe(false);

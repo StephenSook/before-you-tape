@@ -71,6 +71,10 @@ describe("rule edition", () => {
     const { upcoming: _none, ...older } = bundled.suspensions as typeof bundled.suspensions & { upcoming?: unknown };
     void _none;
     expect(parseEdition({ ...bundled, suspensions: older }).suspensions.upcoming).toBeUndefined();
+    const twice = [{ code: "CA", from: "2026-12-01" }, { code: "CA", from: "2026-11-29" }];
+    expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, upcoming: twice } })).toThrow(/suspensions\.upcoming\[1\]\.code/);
+    const both = { ...bundled.suspensions, codes: [...bundled.suspensions.codes, "CA"], upcoming };
+    expect(() => parseEdition({ ...bundled, suspensions: both })).toThrow(/suspensions\.upcoming\[0\]\.code/);
     for (const bad of [[{ code: "Canada", from: "2026-11-29" }], [{ code: "CA", from: "2026-11-31" }], [{ code: "CA", from: "2026-11-29", text: "USPS words" }], [{ code: "CA" }]]) {
       expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, upcoming: bad } }), JSON.stringify(bad)).toThrow(/suspensions\.upcoming/);
     }

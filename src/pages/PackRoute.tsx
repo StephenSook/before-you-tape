@@ -9,6 +9,7 @@ import { prepareDeviceModel } from "../ai/deviceModel";
 import { afterSignIn } from "../ai/authGate";
 import { createItemModels } from "../ai/firebaseModels";
 import { checkGate } from "../ai/gate";
+import { localDay } from "../shared/localDay";
 import type { GateState, ItemModels } from "../ai/port";
 import { openCamera } from "../capture/camera";
 import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
@@ -54,7 +55,7 @@ function buildDeps(): PackDeps | Error {
       journal: localJournal(localStorage),
       now: () => Date.now(),
       // The device's own local calendar date, which counts the rule layers' age (docs/LIMITS.md).
-      today: () => new Date().toLocaleDateString("en-CA"),
+      today: () => localDay(),
       newId,
       boxId: currentBoxId(localStorage, newId),
       consent: deviceConsent(localStorage),

@@ -288,10 +288,17 @@ export function parseEdition(json: unknown): RuleEdition {
   list(s.codes, "suspensions.codes").forEach((c, i) => {
     if (typeof c !== "string" || !/^[A-Z]{2}$/.test(c)) fail(`suspensions.codes[${i}]`, "expected a two-letter code");
   });
+  // One date per country, and never a country that is already suspended: either would leave it unclear when
+  // the suspension starts.
+  const announced = new Set<string>();
   if (s.upcoming !== undefined) list(s.upcoming, "suspensions.upcoming").forEach((x, i) => {
     const u = obj(x, `suspensions.upcoming[${i}]`);
     keys(u, ["code", "from"], [], `suspensions.upcoming[${i}]`);
     if (typeof u.code !== "string" || !/^[A-Z]{2}$/.test(u.code)) fail(`suspensions.upcoming[${i}].code`, "expected a two-letter code");
+    const code = u.code as string;
+    if (announced.has(code)) fail(`suspensions.upcoming[${i}].code`, "listed twice");
+    if ((s.codes as unknown[]).includes(code)) fail(`suspensions.upcoming[${i}].code`, "already suspended");
+    announced.add(code);
     isoDate(u.from, `suspensions.upcoming[${i}].from`);
   });
 
@@ -333,8 +340,10 @@ export function editionSha256(e: RuleEdition): Promise<string> {
 // today (YYYY-MM-DD) decides an announced suspension: suspended from its date, and before it noted with the
 // date it starts. Without today (a page that lists a country's rules), only the current list counts.
 export function resolveDestination(e: RuleEdition, code: string, live?: DestinationEdition, today?: string): DestinationContext {
-  const ahead = today === undefined ? undefined : e.suspensions.upcoming?.find((u) => u.code === code);
-  const started = ahead !== undefined && today !== undefined && today >= ahead.from;
+  // Only a real YYYY-MM-DD day is compared; any other date leaves the box to the stale-layer check.
+  const day = today !== undefined && isCalendarDate(today) ? today : undefined;
+  const ahead = day === undefined ? undefined : e.suspensions.upcoming?.find((u) => u.code === code);
+  const started = ahead !== undefined && day !== undefined && day >= ahead.from;
   const suspended = e.suspensions.codes.includes(code) || started;
   const stored = e.destinations[code] ?? null;
   const edition = stored ?? live ?? null;
