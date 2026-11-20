@@ -17,7 +17,7 @@ The same rules also run in an iPhone app that is not part of this entry ([`ios/R
 
 ## Run it
 
-Requirements: Node.js 22 and npm. The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
+Requirements: Node.js 24.12 or newer and npm (the Firebase SDK this app uses needs it). The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
 
 1. `npm ci`
 2. Copy `.env.example` to `.env.local` and fill in your own Firebase web config and reCAPTCHA Enterprise site key. Never commit `.env.local`.
@@ -28,7 +28,7 @@ npm run test            # unit tests
 npm run test:rules      # Firestore rules tests in the local emulator
 npm run lint
 npm run typecheck
-npm run build           # writes dist/, including dist/version.json with the commit SHA
+npm run build           # writes dist/, including dist/version.json with the commit SHA ("unknown" in a copy with no git history)
 npm run tone            # fails on long dashes and curly quotes in user-facing text
 npm run guard           # fails on any model call outside Firebase AI Logic, speech recognition included (the system voice is allowed)
 npm run hygiene         # flags private notes in tracked files (fails once the repository is public)
