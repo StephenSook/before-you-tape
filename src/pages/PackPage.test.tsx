@@ -2,7 +2,7 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
-import type { ItemModels, ModelPort } from "../ai/port";
+import type { ItemModels, ModelPort, ModelReply } from "../ai/port";
 import { noPersistence, type LoadResult } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
@@ -53,6 +53,20 @@ describe("PackPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Check a box before you tape it" })).toBeInTheDocument();
     expect(screen.getByTestId("purpose")).toHaveTextContent("Show each item, and see if it may go in the box to the country you pick.");
     expect(screen.getByRole("link", { name: "Judges: start here" })).toHaveAttribute("href", "/judge");
+  });
+
+  it("ends a read that takes too long with a plain notice, and drops its reply if it comes later", async () => {
+    let answer: (v: ModelReply) => void = () => {};
+    const hung: ModelPort & { generate: ReturnType<typeof vi.fn> } = { generate: vi.fn((): Promise<ModelReply> => new Promise((r) => { answer = r; })) };
+    const { store } = setup({ models: { ...spyModels(), cloud: hung }, readTimeoutMs: 50 });
+    await addPhoto();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The check took too long. Try again or type the item."));
+    expect(hung.generate).toHaveBeenCalledTimes(1);
+    expect((hung.generate.mock.calls[0]![2] as { signal?: AbortSignal }).signal?.aborted).toBe(true);
+    await act(async () => { answer({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }); await Promise.resolve(); });
+    expect(store.getState().items).toEqual([]);
+    expect(screen.queryByTestId("item-card")).toBeNull();
+    expect(screen.getByRole("alert")).toHaveTextContent("The check took too long. Try again or type the item.");
   });
 
   it("makes no model call when the cloud is paused", async () => {

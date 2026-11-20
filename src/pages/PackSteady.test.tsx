@@ -67,6 +67,18 @@ describe("PackPage when the camera reads by itself", () => {
     await waitFor(() => expect(m.cloud.generate).toHaveBeenCalledTimes(1));
   });
 
+  it("says so when a read the camera started by itself takes too long, instead of ending with nothing", async () => {
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => "id-1" });
+    store.setConsent(true);
+    const hung = { generate: vi.fn(() => new Promise<never>(() => {})) };
+    render(<PackPage store={store} models={{ device: hung, hybrid: hung, cloud: port(base, "in_cloud") }} gate="available" config={{ killCloud: false }}
+      openCamera={camera} index={index} saveCrop={async () => {}} online readTimeoutMs={50} />);
+    await startCamera();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The check took too long. Try again or type the item."));
+    expect(hung.generate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("item-card")).toBeNull();
+  });
+
   it("reads nothing by itself when this device has no model of its own", async () => {
     const { m } = setup("no_api", base);
     await startCamera();
