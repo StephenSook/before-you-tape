@@ -60,6 +60,8 @@ describe("PackPage", () => {
     const { store } = setup({ models: { ...spyModels(), cloud: hung }, readTimeoutMs: 50 });
     await addPhoto();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The check took too long. Try again or type the item."));
+    expect(hung.generate).toHaveBeenCalledTimes(1);
+    expect((hung.generate.mock.calls[0]![2] as { signal?: AbortSignal }).signal?.aborted).toBe(true);
     await act(async () => { answer({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }); await Promise.resolve(); });
     expect(store.getState().items).toEqual([]);
     expect(screen.queryByTestId("item-card")).toBeNull();

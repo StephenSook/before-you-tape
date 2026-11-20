@@ -141,6 +141,31 @@ describe("Pack page second look", () => {
     expect(store.getState().items[0]?.read.milliampHours).toBe(2600);
   });
 
+  it("runs one second look at a time for an item, so a second Try again while one runs starts nothing", async () => {
+    const cloud = failing("fetch-error 403");
+    setup({ cloud });
+    await upload();
+    expect(await screen.findByRole("alert")).toHaveTextContent("The cloud step was refused. Try a normal browser window.");
+    cloud.generate.mockImplementation(() => new Promise<never>(() => {}));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Checking again in the cloud.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(cloud.generate).toHaveBeenCalledTimes(2);
+  });
+
+  it("ends a second look that takes too long with a plain notice, not as if cloud checks were off", async () => {
+    const cloud: Spy = { generate: vi.fn(() => new Promise<never>(() => {})) };
+    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
+    store.setConsent(true);
+    render(<PackPage store={store} models={{ device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud }} gate="available" config={{ killCloud: false }}
+      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
+      saveCrop={async () => {}} online readTimeoutMs={50} />);
+    await upload();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The cloud step took too long. Try again."));
+    expect(screen.queryByText("Checking again in the cloud.")).toBeNull();
+    expect(store.getState().items[0]?.read.milliampHours).toBe(2500);
+  });
+
   it("runs a second look that failed for no connection again once the page is back online", async () => {
     const cloud = failing("Failed to fetch");
     const { store, rerender } = setup({ cloud });
