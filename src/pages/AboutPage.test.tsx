@@ -13,6 +13,11 @@ describe("AboutPage", () => {
     expect(screen.getByText(/Not affiliated with or approved by the US Postal Service/)).toBeInTheDocument();
   });
 
+  it("links the public source code", () => {
+    render(<AboutPage />);
+    expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
+  });
+
   it("credits every published eval photo, linking each open license and source", () => {
     render(<AboutPage />);
     const credits = within(screen.getByRole("list", { name: "Photo credits" })).getAllByRole("listitem");

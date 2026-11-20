@@ -10,6 +10,7 @@ import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
 import { SAMPLE_BOX } from "../judge/sampleBox";
+import { SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { QuestionRow } from "../ui/QuestionRow";
@@ -61,7 +62,9 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         Nine real items from our test photos. We typed in what each label says, so this page needs no camera, no built-in
         model and no sign-in. The app's own rules decide each verdict, here in your browser.
       </p>
-      <p><a href="/">Check your own box</a></p>
+      <p>
+        <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
+      </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
