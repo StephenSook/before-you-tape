@@ -4,7 +4,8 @@ import { mergeReads, readDisputes } from "../ai/secondLook";
 import type { InferenceSourceName } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { ed } from "../../tests/engine/helpers";
-import { createBoxStore, type BoxItem, type BoxPersistence, type BoxState } from "./boxStore";
+import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
+import { createBoxStore, type BoxItem, type BoxState } from "./boxStore";
 import { deviceConsent } from "./deviceConsent";
 
 const base: ItemRead = {
@@ -23,10 +24,23 @@ const oneCellPhoneRead: ItemRead = {
 };
 
 const outcome = (read: ItemRead, source: InferenceSourceName): ReadOutcome => ({ read, source, ms: 1200, route: "hybrid", recoveredFrom: null });
-const spyPersistence = (loaded: Partial<BoxState> | null = null) =>
-  ({ save: vi.fn<(s: BoxState) => void>(), load: vi.fn(async () => loaded) }) satisfies BoxPersistence;
+// A server for the box in memory: each operation changes it, and saved() reads what it holds.
+const spyPersistence = (loaded: Partial<BoxState> | null = null) => {
+  let box: Partial<BoxState> | null = loaded ? { ...loaded, items: [...(loaded.items ?? [])] } : null;
+  return {
+    loadBox: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => (box ? { status: "found", box: structuredClone(box) } : { status: "missing" })),
+    putMeta: vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>(async (_b, meta) => { box = { ...(box ?? { items: [] }), ...meta }; }),
+    putItem: vi.fn<(boxId: string, item: BoxItem) => Promise<void>>(async (_b, item) => {
+      const items = box?.items ?? [];
+      box = { ...(box ?? {}), items: items.some((i) => i.itemId === item.itemId) ? items.map((i) => (i.itemId === item.itemId ? item : i)) : [...items, item] };
+    }),
+    deleteItem: vi.fn<(boxId: string, itemId: string) => Promise<void>>(async (_b, itemId) => { box = { ...(box ?? {}), items: (box?.items ?? []).filter((i) => i.itemId !== itemId) }; }),
+    saved: () => box,
+  } satisfies BoxOps & { saved: () => Partial<BoxState> | null };
+};
+const writes = (p: ReturnType<typeof spyPersistence>) => p.putMeta.mock.calls.length + p.putItem.mock.calls.length + p.deleteItem.mock.calls.length;
 let ids = 0;
-const store = (o: { persistence?: BoxPersistence } = {}) => createBoxStore({
+const store = (o: { persistence?: BoxOps } = {}) => createBoxStore({
   edition: () => ed, persistence: o.persistence ?? spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
 });
 
@@ -92,22 +106,24 @@ describe("createBoxStore", () => {
     expect(s.getState().sources.secondLooks).toBe(1);
   });
 
-  it("hands persistence an item with no label text and with its label tags", () => {
+  it("hands persistence an item with no label text and with its label tags", async () => {
     const p = spyPersistence();
     const s = store({ persistence: p });
     s.addRead(outcome(perfumeLabelRead, "on_device"), "k");
-    const saved = p.save.mock.calls.at(-1)![0].items[0]!;
+    await s.settled();
+    const saved = p.saved()!.items![0]!;
     expect(saved.read.labelText).toBe("");
     expect(saved.labelTags).toContain("alcohol");
     expect(s.getState().items[0]?.read.labelText).toBe(perfumeLabelRead.labelText);
   });
 
-  it("keeps a corrected label's tags when the corrected text itself is not saved", () => {
+  it("keeps a corrected label's tags when the corrected text itself is not saved", async () => {
     const p = spyPersistence();
     const s = store({ persistence: p });
     const id = s.addRead(outcome({ ...base, category: "lotion_cream", labelText: "BODY LOTION" }, "on_device"), "k");
     s.override(id, { labelText: "BODY LOTION ALCOHOL DENAT 8 FL OZ" });
-    const saved = p.save.mock.calls.at(-1)![0].items[0]!;
+    await s.settled();
+    const saved = p.saved()!.items![0]!;
     expect(saved.overrides.labelText).toBeUndefined();
     expect(saved.labelTags).toEqual(expect.arrayContaining(["alcohol", "liquid"]));
   });
@@ -232,7 +248,8 @@ describe("createBoxStore", () => {
     const typed = s.addManual({ ...lotion, itemName: "My aunt's lotion" });
     // A correction that names it and changes its kind: the label follows the corrected kind.
     s.override(read, { itemName: "Grandma's rose water", category: "perfume_fragrance" });
-    const saved = () => persistence.save.mock.calls.at(-1)?.[0].items ?? [];
+    await s.settled();
+    const saved = () => persistence.saved()?.items ?? [];
     expect(saved().find((i) => i.itemId === read)?.read.itemName).toBe("Perfume or cologne");
     expect(saved().find((i) => i.itemId === typed)?.read.itemName).toBe("Lotion or cream");
     expect(saved().find((i) => i.itemId === read)?.overrides).not.toHaveProperty("itemName");
@@ -256,11 +273,11 @@ describe("createBoxStore", () => {
     const persistence = spyPersistence();
     const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent });
     expect(s.getState().cloudConsent).toBe(true);
-    const saves = persistence.save.mock.calls.length;
+    const saves = writes(persistence);
     s.setConsent(false);
     expect(consent.get()).toBe(false);
     expect(s.consentNow()).toBe(false);
-    expect(persistence.save.mock.calls.length).toBe(saves);
+    expect(writes(persistence)).toBe(saves);
     localStorage.clear();
   });
 
@@ -316,8 +333,9 @@ describe("createBoxStore", () => {
     s.applySecondLook(id, mergeReads(flammable, flammable), 900, "reason", flammable.labelText);
     const before = s.getState().result.items[id]?.level;
     expect(before).not.toBe("take_out");
-    const saved = p.save.mock.calls.at(-1)![0];
-    expect(saved.items[0]?.labelTags).not.toContain("flammable");
+    await s.settled();
+    const saved = p.saved()!;
+    expect(saved.items?.[0]?.labelTags).not.toContain("flammable");
     const reloaded = store({ persistence: spyPersistence(saved) });
     await reloaded.ready;
     expect(reloaded.getState().result.items[id]?.level).toBe(before);
@@ -329,7 +347,7 @@ describe("createBoxStore", () => {
       volts: 3.7, milliampHours: 5000, wattHours: 18.5, batteryWords: true, retailBox: "sealed" };
     const level = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.level;
     // Adds the device read, answers as a sender would, then lands the second look.
-    const look = (device: ItemRead, cloud: ItemRead, withDisputes = true, p?: BoxPersistence) => {
+    const look = (device: ItemRead, cloud: ItemRead, withDisputes = true, p?: BoxOps) => {
       const s = store(p ? { persistence: p } : {});
       const id = s.addRead(outcome(device, "on_device"), "k");
       s.answer(id, "device_condition", "new_sealed");
@@ -421,8 +439,8 @@ describe("createBoxStore", () => {
     it("names the item by the picked category when this device no longer has that read's name", async () => {
       const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
       const p = spyPersistence();
-      look(powerBank, phone, true, p);
-      const saved = p.save.mock.calls.at(-1)![0];
+      await look(powerBank, phone, true, p).s.settled();
+      const saved = p.saved()!;
       const reloaded = store({ persistence: spyPersistence(saved) });
       await reloaded.ready;
       const id = reloaded.getState().items[0]!.itemId;
@@ -458,31 +476,18 @@ describe("createBoxStore", () => {
       expect(early.getState().items[0]?.disputes?.battery?.resolved).toBe(false);
     });
 
-    it("settles a dispute when the sender fixes that fact, and keeps the disputes in the saved copy", () => {
+    it("settles a dispute when the sender fixes that fact, and keeps the disputes in the saved copy", async () => {
       const p = spyPersistence();
       const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
       const { s, id } = look(powerBank, phone, true, p);
-      expect(p.save.mock.calls.at(-1)![0].items[0]?.disputes?.category?.resolved).toBe(false);
+      await s.settled();
+      expect(p.saved()!.items?.[0]?.disputes?.category?.resolved).toBe(false);
       s.override(id, { category: "power_bank" });
       expect(s.getState().items[0]?.disputes?.category?.resolved).toBe(true);
       expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-DISPUTE");
-      expect(p.save.mock.calls.at(-1)![0].items[0]?.disputes?.category?.resolved).toBe(true);
+      await s.settled();
+      expect(p.saved()!.items?.[0]?.disputes?.category?.resolved).toBe(true);
     });
-  });
-
-  it("says which items did not save, and saves again on request", () => {
-    let report: ((ids: ReadonlySet<string>) => void) | undefined;
-    const p = { ...spyPersistence(), onUnsaved: (l: (ids: ReadonlySet<string>) => void) => { report = l; } };
-    const s = store({ persistence: p });
-    const id = s.addManual(shirtRead);
-    expect(s.getState().unsaved ?? []).toEqual([]);
-    report?.(new Set([id]));
-    expect(s.getState().unsaved).toEqual([id]);
-    const saves = p.save.mock.calls.length;
-    s.retrySave();
-    expect(p.save.mock.calls.length).toBe(saves + 1);
-    report?.(new Set());
-    expect(s.getState().unsaved).toEqual([]);
   });
 
   it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
