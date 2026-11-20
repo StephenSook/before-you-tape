@@ -8,6 +8,7 @@ import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
+import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
@@ -424,6 +425,11 @@ export function PackPage(p: PackPageProps) {
       )}
       {p.editionNotice && <p data-testid="edition-notice" className="banner" role="status">{p.editionNotice}</p>}
       {dest.suspended && <p data-testid="suspended-banner" className="banner" role="status">Mail service to {countryName(dest.code, index)} is suspended. {suspensionChecked}.</p>}
+      {!dest.suspended && dest.suspendsFrom && (
+        <p data-testid="suspension-ahead-banner" className="banner" role="status">
+          The post office stops taking mail to {countryName(dest.code, index)} on {longDate(dest.suspendsFrom)}. Mail this box before then.
+        </p>
+      )}
       {waiting > 0 && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}

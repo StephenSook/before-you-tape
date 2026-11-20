@@ -177,7 +177,8 @@ export function evaluateBoxJson(inputJson: string): string {
     const input = object(inputJson);
     const items = checkItems(input.items);
     const live = input.live === undefined ? undefined : (plain(input.live, "live") as unknown as DestinationEdition);
-    return evaluateBox(items, e, resolveDestination(e, str(input, "code"), live), str(input, "today"));
+    const today = str(input, "today");
+    return evaluateBox(items, e, resolveDestination(e, str(input, "code"), live, today), today);
   });
 }
 

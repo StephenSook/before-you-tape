@@ -1,5 +1,6 @@
 // /rules: every rule the app applies, in our words, with where it comes from. Read straight from the rule
 // edition the app runs, so this page and the verdicts cannot drift apart.
+import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
@@ -64,6 +65,9 @@ export function RulesPage({ edition, index }: { edition: RuleEdition; index: rea
           {edition.suspensions.updated}, checked {edition.suspensions.checkedOn}.{" "}
           <a href={edition.suspensions.url} target="_blank" rel="noreferrer">Service alerts</a>
         </p>
+        {(edition.suspensions.upcoming ?? []).map((u) => (
+          <p key={u.code}>From {longDate(u.from)}, the post office will not take mail to: {countryName(u.code)}.</p>
+        ))}
       </section>
     </div>
   );

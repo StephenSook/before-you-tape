@@ -121,7 +121,8 @@ export interface RuleEdition {
   questions: Question[];
   rules: Rule[];
   destinations: Record<string, DestinationEdition>;
-  suspensions: { updated: string; checkedOn: string; url: string; codes: string[] };
+  // codes: suspended now. upcoming: suspensions the post office has announced for a later date (ISO "from").
+  suspensions: { updated: string; checkedOn: string; url: string; codes: string[]; upcoming?: Array<{ code: string; from: string }> };
   stopWords: string[];
   worksheetFields: WorksheetFieldSpec[];
 }
@@ -217,5 +218,7 @@ export interface DestinationContext {
   name: string;
   reviewState: "reviewed" | "live_unreviewed" | "not_loaded" | "no_list_furnished";
   suspended: boolean;
+  // The date an announced suspension starts, while it is still ahead of the date the box was judged on.
+  suspendsFrom?: string;
   edition: DestinationEdition | null;
 }
