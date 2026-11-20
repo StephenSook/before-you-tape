@@ -99,7 +99,9 @@ describe("LivePack", () => {
   it("says cloud checks wait for their settings while the pause is not known yet, and reads nothing in the cloud", async () => {
     const { models, push } = setup({}, "no_api", { settingsWaitMs: 50 });
     act(() => push({ killCloud: true, pauseUnknown: true }));
-    expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load. Checks on this laptop still work.");
+    expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load.");
+    // This laptop has no model of its own, so the banner does not say checks on it still work.
+    expect(screen.getByTestId("paused-banner")).not.toHaveTextContent("still work");
     await addPhoto();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are still waiting for their settings"));
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
