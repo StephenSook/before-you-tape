@@ -4,7 +4,8 @@
 // set's real photos read on the device with no call to the cloud model.
 
 export interface RecordedRead { itemId: string; category: string | null; ms: number }
-export interface RecordedReads { ranAt: string; sha: string; chromeVersion: string; os: string; reads: RecordedRead[] }
+export interface RecordedMachine { model: string; chip: string; memoryGb: number }
+export interface RecordedReads { ranAt: string; sha: string; chromeVersion: string; os: string; machine?: RecordedMachine; reads: RecordedRead[] }
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -19,7 +20,11 @@ function qualify(r: unknown, evalIds: ReadonlySet<string>): RecordedReads | null
     if (!isObj(x) || !text(x.itemId) || !evalIds.has(x.itemId) || x.source !== "on_device" || x.error !== null || typeof x.ms !== "number") return null;
     reads.push({ itemId: x.itemId, category: text(x.category) ? x.category : null, ms: x.ms });
   }
-  return { ranAt: r.ranAt, sha: r.sha, chromeVersion: r.chromeVersion, os: r.os, reads };
+  // The machine is shown only when the record names all of it.
+  const m = r.machine;
+  const machine = isObj(m) && text(m.model) && text(m.chip) && typeof m.memoryGb === "number" && m.memoryGb > 0
+    ? { model: m.model, chip: m.chip, memoryGb: m.memoryGb } : undefined;
+  return { ranAt: r.ranAt, sha: r.sha, chromeVersion: r.chromeVersion, os: r.os, ...(machine ? { machine } : {}), reads };
 }
 
 // The newest record that counts, or null: /judge then shows no recorded block at all.

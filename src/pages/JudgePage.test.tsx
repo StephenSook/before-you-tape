@@ -77,8 +77,15 @@ describe("JudgePage", () => {
     expect(within(block).getByText("Recorded on-device reads")).toBeInTheDocument();
     expect(block).toHaveTextContent("Recorded November 21, 2026, Chrome 157.0.8103.80 on macOS 27.0. A replay, not a live read.");
     expect(within(block).getAllByRole("listitem")).toHaveLength(2);
-    expect(block).toHaveTextContent("2,900 ms");
+    // The first read also starts the model, so its time is marked and never reads as a typical one.
+    expect(within(block).getAllByRole("listitem")[0]).toHaveTextContent("2,900 ms (first read, includes the model's start)");
+    expect(within(block).getAllByRole("listitem")[1]).toHaveTextContent("3,100 ms");
+    expect(within(block).getAllByRole("listitem")[1]).not.toHaveTextContent("first read");
     unmount();
+    const withMachine = { ...recorded, machine: { model: "Mac17,9", chip: "Apple M5 Pro", memoryGb: 48 } };
+    const second = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={withMachine} />);
+    expect(screen.getByTestId("recorded-reads")).toHaveTextContent("Chrome 157.0.8103.80 on macOS 27.0, Apple M5 Pro, 48 GB memory (Mac17,9).");
+    second.unmount();
     render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={null} />);
     expect(screen.queryByTestId("recorded-reads")).toBeNull();
   });

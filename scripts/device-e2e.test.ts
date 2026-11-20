@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { e2ePassed, evalPhotos, osName, profileLockState, requireEnv } from "./device-e2e";
+import { e2ePassed, evalPhotos, machineOf, osName, profileLockState, requireEnv } from "./device-e2e";
 
 describe("device-e2e helpers", () => {
   it("names a missing environment variable instead of skipping", () => {
@@ -38,6 +38,13 @@ describe("device-e2e helpers", () => {
     expect(() => evalPhotos("nope", manifest, read)).toThrow(/nope is not in eval\/set/);
     expect(() => evalPhotos("own-18,own-18,own-18,own-18", manifest, read)).toThrow(/at most 3/);
     expect(() => evalPhotos(" , ", manifest, read)).toThrow(/no eval\/set item/);
+  });
+
+  it("names the machine from sysctl: model identifier, chip and memory, and leaves out what it cannot read", () => {
+    const values: Record<string, string> = { "hw.model": "Mac17,9\n", "machdep.cpu.brand_string": "Apple M5 Pro\n", "hw.memsize": "51539607552\n" };
+    expect(machineOf((k) => values[k] ?? (() => { throw new Error(k); })())).toEqual({ model: "Mac17,9", chip: "Apple M5 Pro", memoryGb: 48 });
+    expect(machineOf(() => { throw new Error("no sysctl"); })).toEqual({});
+    expect(machineOf((k) => (k === "hw.memsize" ? "not a number" : "x"))).toEqual({ model: "x", chip: "x" });
   });
 
   it("names the operating system with its product version", () => {

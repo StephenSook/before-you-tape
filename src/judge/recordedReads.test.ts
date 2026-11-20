@@ -29,6 +29,13 @@ describe("pickRecordedReads", () => {
     }
   });
 
+  it("keeps the machine a record names, and leaves it out when the record has none", () => {
+    const machine = { model: "Mac17,9", chip: "Apple M5 Pro", memoryGb: 48 };
+    expect(pickRecordedReads([record({ machine })], ids)?.machine).toEqual(machine);
+    expect(pickRecordedReads([record()], ids)?.machine).toBeUndefined();
+    expect(pickRecordedReads([record({ machine: { chip: 5 } })], ids)?.machine).toBeUndefined();
+  });
+
   it("shows nothing for the first on-device record, which read generated labels and recorded no versions", async () => {
     const { default: first } = await import("../../evidence/device-e2e/2026-11-18T08-58-25-728Z.json");
     expect(pickRecordedReads([first], ids)).toBeNull();

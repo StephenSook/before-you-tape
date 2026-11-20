@@ -105,14 +105,15 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         <details data-testid="recorded-reads" className="recorded-reads">
           <summary>Recorded on-device reads</summary>
           <p>
-            Recorded {longDate(recorded.ranAt.slice(0, 10))}, Chrome {recorded.chromeVersion} on {recorded.os}. A replay, not a live read.
+            Recorded {longDate(recorded.ranAt.slice(0, 10))}, Chrome {recorded.chromeVersion} on {recorded.os}
+            {recorded.machine ? `, ${recorded.machine.chip}, ${recorded.machine.memoryGb} GB memory (${recorded.machine.model})` : ""}. A replay, not a live read.
             The app's own read ran on Chrome's built-in model, with no call to the cloud model.
           </p>
           <ul>
-            {recorded.reads.map((r) => (
+            {recorded.reads.map((r, i) => (
               <li key={r.itemId}>
                 {PHOTO_ALT.get(r.itemId) ?? r.itemId}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
-                {r.ms.toLocaleString("en-US")} ms
+                {r.ms.toLocaleString("en-US")} ms{i === 0 ? " (first read, includes the model's start)" : ""}
               </li>
             ))}
           </ul>

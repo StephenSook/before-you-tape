@@ -56,6 +56,19 @@ export function evalPhotos(list: string, manifest: EvalManifest, readFile: (path
   });
 }
 
+// The machine, from sysctl: its model identifier, chip and memory. A value it cannot read is left out, never guessed.
+export function machineOf(sysctl: (key: string) => string): { model?: string; chip?: string; memoryGb?: number } {
+  const read = (key: string) => { try { return sysctl(key).trim() || undefined; } catch { return undefined; } };
+  const out: { model?: string; chip?: string; memoryGb?: number } = {};
+  const model = read("hw.model");
+  const chip = read("machdep.cpu.brand_string");
+  const bytes = Number(read("hw.memsize"));
+  if (model) out.model = model;
+  if (chip) out.chip = chip;
+  if (Number.isFinite(bytes) && bytes > 0) out.memoryGb = Math.round(bytes / 2 ** 30);
+  return out;
+}
+
 // The operating system as a person would name it: "macOS 27.0" from sw_vers, otherwise the kernel release.
 export function osName(os: string, kernel: string, productVersion: () => string): string {
   if (os === "darwin") {
@@ -140,6 +153,7 @@ async function main(): Promise<void> {
     const record = {
       ranAt: new Date().toISOString(), sha, dirty, route: "device_only", gate: result.gate,
       chromeVersion, os: osName(platform(), release(), () => execFileSync("sw_vers", ["-productVersion"], { encoding: "utf8" })),
+      machine: machineOf((k) => execFileSync("sysctl", ["-n", k], { encoding: "utf8" })),
       photos: process.env.BYT_DEVICE_E2E_LABEL?.trim() || (evalItems ? `eval/set photos ${photos.map((p) => p.itemId).join(", ")}` : `files from ${basename(photosDir!)}/`),
       reads, cloudRequestsToAiLogic: cloudRequests, passed,
     };
