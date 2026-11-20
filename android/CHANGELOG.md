@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The consent choice no longer says "Keep everything on this phone".** It now reads "Check on this
+  phone only": the box list still saves each item's category, battery numbers and answers to the
+  account, so "everything" was not true. The web button changes the same way ("Check on this laptop
+  only"), and `CopyTest` still pins the Android text to the web text with "laptop" as "phone".
+  Source: review of the consent copy. Verified: the web consent test fails on the old label and
+  passes; `CopyTest` runs in Android CI.
+
 - **Android says it runs no cloud second look.** `docs/LIMITS.md` now states that Android does not run
   the cloud second look: on a phone with an on-device model, that one read and the rules decide, and
   the card says which read it was ("Read on this phone"). Two copy tests pin it: no on-screen text
