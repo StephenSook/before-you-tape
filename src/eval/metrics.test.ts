@@ -39,6 +39,15 @@ describe("computeEvalMetrics", () => {
     expect(computeEvalMetrics(setOneHazardOneBenign, runWith({ perfume: { CA: "ok", PH: "take_out" }, shirt: { CA: "ok", PH: "ok" } })).hazardCalledOk)
       .toMatchObject({ k: 1, n: 1 }));
 
+  it("counts a hazard item called OK in both countries once, over the hazard items, not their rows", () => {
+    const twoHazards = set([
+      item("perfume", true, { CA: "take_out", PH: "take_out" }), item("bank", true, { CA: "take_out", PH: "take_out" }), item("shirt", false, { CA: "ok", PH: "ok" }),
+    ]);
+    const m = computeEvalMetrics(twoHazards, runWith({ perfume: { CA: "ok", PH: "ok" }, bank: { CA: "take_out", PH: "check" }, shirt: { CA: "ok", PH: "ok" } }));
+    expect(m.hazardCalledOk).toMatchObject({ k: 1, n: 2 });
+    expect(m.hazardCalledOk.upper95).toBeCloseTo(clopperPearsonUpper(1, 2, 0.05), 9);
+  });
+
   it("scores agreement with the labels and the check rate per row", () => {
     const m = computeEvalMetrics(setOneHazardOneBenign, runWith({ perfume: { CA: "check", PH: "take_out" }, shirt: { CA: "ok", PH: "check" } }));
     expect(m.truthAgreement).toEqual({ k: 2, n: 4 });

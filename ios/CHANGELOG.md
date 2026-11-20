@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### docs(ios): list the app tests that fail on this Mac's simulator
+- What: the iPhone README lists four app tests that fail in the local CI mirror today (three
+  SignedInCloudTests crash in the test process; LoopUITests cannot find "Check an item"), with
+  the symptom and where each was first seen.
+- Source: review, so the failures are on record and not silent.
+- Verified: each failure was reproduced on the simulator at 02ba81c and at 018c4b3 (Xcode 27.2,
+  iOS 27.2); the README reads back with the table. Docs only; no code changed.
+
 ### fix(ios): a photo read keeps the tags of its whole label, never of the clipped text
 - What: the box tagged a photo read's label text after the parser had clipped it to 160
   characters, and the engine trusts tags that cover the label. A hazard word past the cap was
