@@ -202,6 +202,8 @@ describe("Pack page second look", () => {
     const cloudCalls = cloud.generate.mock.calls.length;
     const itemId = store.getState().items[0]!.itemId;
     await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
+    // Removal aborts the call itself, so a request still waiting for its tokens sends nothing.
+    expect((cloud.generate.mock.calls[0]![2] as { signal?: AbortSignal }).signal?.aborted).toBe(true);
     // A 503 would be retried, then sent to the fallback model, if the look were still running.
     await act(async () => { fail(new Error("503 Service Unavailable")); await new Promise((r) => setTimeout(r, 50)); });
     expect(cloud.generate).toHaveBeenCalledTimes(cloudCalls);
