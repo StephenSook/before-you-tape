@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /judge and /about link the public source code ("Source code on GitHub"). Source: review of the judge pages. Verified: new /judge and /about tests failed first and pass; unit suite, lint, typecheck, tone and guard pass.
+
 - The consent choice that keeps checks off the cloud now says "Check on this laptop only" instead of "Keep everything on this laptop": the box list still saves each item's category, battery numbers, answers and label words found to the account, so "everything" was not true. The Android button changes the same way. Source: review of the consent copy. Verified: the consent test fails on the old label and passes; unit suite, lint, typecheck, tone and guard pass.
 - A new box, and the /judge sample box, now start in the Philippines instead of Canada, because USPS suspends mail to Canada from November 29, 2026, before judging starts. /judge keeps Canada as a live example of the rules following USPS: one line says "USPS stops taking mail to Canada on November 29, 2026. Pick Canada to see the app say so." ("stopped" from that day), built from the rule edition's announced suspensions; picking Canada before then shows the same banner as the Pack page, and from that day the cards say mail to Canada is suspended. The README says where the box starts and why. Tests that check a Canada verdict now pick Canada. Source: the USPS update. Verified: new /judge and store tests failed first and pass; unit suite (686), the browser checks without App Check, lint, typecheck, tone and guard pass.
 

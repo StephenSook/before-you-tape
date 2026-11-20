@@ -3,6 +3,7 @@
 import manifest from "../../eval/set/manifest.json";
 import type { SetManifest } from "../eval/loadSet";
 import { OWN_PHOTO_LICENSE } from "../eval/manifest";
+import { SOURCE_URL } from "../ui/sourceLink";
 
 const items = (manifest as SetManifest).items;
 
@@ -29,7 +30,10 @@ export function AboutPage() {
         <li>Photos and label words stay on this device. Your box list is saved so it survives a reload, without them.</li>
       </ul>
       <p>Not affiliated with or approved by the US Postal Service.</p>
-      <p><a href="/judge">Try the sample box</a> · <a href="/">Check your own box</a></p>
+      <p>
+        <a href="/judge">Try the sample box</a> · <a href="/">Check your own box</a> ·{" "}
+        <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
+      </p>
 
       <h2>Photo credits</h2>
       <p>The test photos on this site. Each published copy was changed as noted.</p>
