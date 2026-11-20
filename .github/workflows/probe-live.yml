@@ -1,14 +1,17 @@
 name: Live probe
 
-# Once a day through the judging window. The probe job, with no credential: the site serves main, the page
+# Twice a day through the judging window, at two offset times, since GitHub delays and drops scheduled runs.
+# The probe job, with no credential: the site serves main, the page
 # loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
 # shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
-# The read job, with the CI App Check debug token: one real read through the live app comes back as a read.
+# The read job, with the CI App Check debug token: one real read through the live app comes back as a read,
+# once a UTC day. The fresh job fails when the scheduled run before this one started more than 36 hours ago.
 # The probe reports itself retired after 2026-12-17; delete this file then.
 # A manual run can probe another site, so a wrong URL proves the probe fails.
 on:
   schedule:
     - cron: "23 13 * * *"
+    - cron: "47 1 * * *"
   workflow_dispatch:
     inputs:
       site:
@@ -18,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   probe:
@@ -54,19 +58,48 @@ jobs:
           BYT_LIVE_URL: ${{ inputs.site }}
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
 
+  # A cron is no liveness guarantee: this fails when the scheduled run before this one started more than 36
+  # hours ago, so a long silence shows red on the next run. It counts runs of any result, because a failed run
+  # is already red, and counting only passing ones would keep this red after one bad day. It cannot alarm when
+  # no run starts at all.
+  fresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: The scheduled run before this one started under 36 hours ago
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f per_page=5 \
+            --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})][0].created_at // empty')
+          if [ -z "$last" ]; then echo "No earlier scheduled run found"; exit 1; fi
+          hours=$(python3 -c 'import sys, datetime as d; t = d.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00")); print(int((d.datetime.now(d.timezone.utc) - t).total_seconds() // 3600))' "$last")
+          echo "The scheduled run before this one started at $last, $hours hours ago"
+          if [ "$hours" -ge 36 ]; then echo "::error::No scheduled run started for $hours hours"; exit 1; fi
+
   # One real read through the live app's cloud path, with the CI App Check debug token: the reply must parse
   # as a complete read (tests/e2e/read.live.spec.ts). A paused API, a refused token or a quota error fails it,
   # and so does a missing token, so this job is never green without a real read. One read a day (the app may
-  # retry once or try its fallback model on an error). Its own job, so the checks above keep their own verdict.
+  # retry once or try its fallback model on an error): a scheduled run skips the read when a scheduled run
+  # already passed this UTC day. Its own job, so the checks above keep their own verdict.
   read:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      # Retired with the probe after the judging window: no model calls and no token use after it.
-      - name: Still in the judging window
+      # Retired with the probe after the judging window: no model calls and no token use after it. A scheduled
+      # run also skips the read when a scheduled run already passed this UTC day.
+      - name: Still in the judging window, and not read yet today
         id: window
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$(date -u +%Y%m%d)" -gt 20261217 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "The live read retired after 2026-12-17."; else echo "open=true" >> "$GITHUB_OUTPUT"; fi
+          if [ "$(date -u +%Y%m%d)" -gt 20261217 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "The live read retired after 2026-12-17."; exit 0; fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            passed=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f status=success \
+              -f created=">=$(date -u +%Y-%m-%d)" --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length')
+            if [ "$passed" -gt 0 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "A scheduled run already passed today, read included."; exit 0; fi
+          fi
+          echo "open=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.window.outputs.open == 'true'
