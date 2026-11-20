@@ -15,8 +15,8 @@ class CopyTest {
         assertEquals(sentence.replace("this laptop", "this phone"), Copy.CONSENT)
         assertTrue(web.contains(">Allow<"))
         assertEquals("Allow", Copy.ALLOW)
-        assertTrue(web.contains(">Keep everything on this laptop<"))
-        assertEquals("Keep everything on this phone", Copy.KEEP_ON_PHONE)
+        assertTrue(web.contains(">Check on this laptop only<"))
+        assertEquals("Check on this phone only", Copy.KEEP_ON_PHONE)
     }
 
     private fun webFile(path: String) = File(System.getProperty("byt.repoRoot")!!, path).readText()
