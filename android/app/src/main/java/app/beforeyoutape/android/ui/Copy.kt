@@ -8,7 +8,7 @@ object Copy {
     /** The web app's consent sentence, with "laptop" changed to "phone" and nothing else. */
     const val CONSENT = "To check items when this phone can't, a cropped photo of the item and the words on its label go to Google's Gemini. Allow?"
     const val ALLOW = "Allow"
-    const val KEEP_ON_PHONE = "Keep everything on this phone"
+    const val KEEP_ON_PHONE = "Check on this phone only"
     const val FOOTER = "Not affiliated with or approved by the US Postal Service."
     /** The web app's line for a read of no item (src/pages/PackPage.tsx NO_ITEM). */
     const val NO_ITEM = "Nothing to check there. Hold one item inside the box."
