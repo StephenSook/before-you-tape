@@ -229,4 +229,40 @@ describe("ItemCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Type the lithium amount" }));
     expect(screen.getByLabelText("Lithium (grams)")).toHaveFocus();
   });
+
+  it("links each rule the verdict rests on, once each, inside What we checked", () => {
+    render(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
+    const checked = within(screen.getByText("What we checked").closest("details")!);
+    const unique = [...new Map(takeOut.hits.filter((h) => !h.section.startsWith("Before You Tape: ")).map((h) => [`${h.section}|${h.url}`, h])).values()];
+    expect(unique.length).toBeGreaterThan(0);
+    const links = checked.getAllByRole("link", { name: /^Rule: / });
+    expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual(unique.map((h) => [`Rule: ${h.section}`, h.url]));
+  });
+
+  it("names the app's own checks in What we checked as plain text, never as a rule link", () => {
+    expect(identityCheck.hits.map((h) => h.section)).toContain("Before You Tape: identity check");
+    render(<ItemCard item={shirtSeen} verdict={identityCheck} crop={null} />);
+    const list = screen.getByTestId("rule-list");
+    expect(within(list).getByText("Before You Tape: identity check").closest("a")).toBeNull();
+    expect(within(list).queryByRole("link", { name: /Before You Tape/ })).toBeNull();
+  });
+
+  it("shows the battery numbers the verdict rests on for a battery item, and nothing for a book", () => {
+    const phone = item("b1", { ...base, itemName: "Phone", category: "phone", labelText: "3.7V 2000mAh 7.4Wh", volts: 3.7, milliampHours: 2000,
+      wattHours: 7.4, batteryWords: true, retailBox: "sealed" }, { answers: { device_condition: "new_sealed", cell_count: "one" } });
+    const { unmount } = render(<ItemCard item={phone} verdict={verdictFor(phone)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Label read: 3.7 V, 2,000 mAh, 7.4 Wh");
+    unmount();
+    const typed = { ...phone, overrides: { wattHours: 7.5 } };
+    const r2 = render(<ItemCard item={typed} verdict={verdictFor(typed)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Typed by you: 3.7 V, 2,000 mAh, 7.5 Wh");
+    r2.unmount();
+    const coin = item("b2", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", lithiumGrams: 0.1 });
+    const r3 = render(<ItemCard item={coin} verdict={verdictFor(coin)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Label read: 0.1 g lithium");
+    r3.unmount();
+    const book = item("b3", { ...base, itemName: "Book", category: "book_paper", evidence: "item_seen" });
+    render(<ItemCard item={book} verdict={verdictFor(book)} crop={null} />);
+    expect(screen.queryByTestId("battery-numbers")).toBeNull();
+  });
 });
