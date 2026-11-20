@@ -208,18 +208,21 @@ export function PackPage(p: PackPageProps) {
   // taken back, a pause announced, the page left); says whether the settings came.
   const settingsArrive = (ms: number, signal: AbortSignal) =>
     waitUntilFalse(() => live.current.pauseUnknown, ms, () => gone.current || signal.aborted);
-  // Second looks running now, one per item: a retry pressed while one runs starts nothing.
+  // Second looks running now, one per item. A retry asked for while one runs (a press, or the page coming
+  // back online) is kept and runs once the current one ends, if the item still needs it.
   const looking = useRef(new Set<string>());
+  const lookAgain = useRef(new Set<string>());
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
     if (!look) return;
-    if (!shouldRunSecondLook(look.reason, cloudInputs())) {
-      if (!p.online) { waitingForOnline.current.add(itemId); store.setError(itemId, SECOND_LOOK_FAILURE.cloud_unreachable); }
+    if (looking.current.has(itemId)) { lookAgain.current.add(itemId); return; }
+    // The inputs as they are now: this may run after a wait or a reconnect, long after the render it closes over.
+    if (!shouldRunSecondLook(look.reason, liveInputs())) {
+      if (!live.current.online) { waitingForOnline.current.add(itemId); store.setError(itemId, SECOND_LOOK_FAILURE.cloud_unreachable); }
       else store.setError(itemId, SECOND_LOOK_FAILURE.blocked);
       return;
     }
-    if (looking.current.has(itemId)) return;
     looking.current.add(itemId);
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
@@ -246,6 +249,7 @@ export function PackPage(p: PackPageProps) {
       looking.current.delete(itemId);
       work.end();
       setChecking((c) => ({ ...c, [itemId]: false }));
+      if (lookAgain.current.delete(itemId) && !gone.current && looks.current.has(itemId)) void secondLook(itemId);
     }
   };
 
@@ -263,7 +267,8 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
     if (gone.current) return;
-    const press = ++presses.current;
+    // Only a sender's press counts here: a frame the camera read by itself must not hide a press's notice.
+    const press = how === "steady" ? null : ++presses.current;
     let route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
     // Registered now, so taking back consent, a pause or leaving the page also ends a press still waiting.
@@ -286,12 +291,17 @@ export function PackPage(p: PackPageProps) {
         if (gone.current) return;
         route = work.signal.aborted ? "blocked" : chooseImageRoute(how, { gate: live.current.gate, ...liveInputs() });
         if (route === "skip") return;
-        if (route === "blocked") { setNotice(arrived || work.signal.aborted ? blockedText(liveInputs(), live.current.pauseUnknown) : SETTINGS_SLOW); return; }
+        if (route === "blocked") {
+          // Cloud checks taken back during the wait: say that, not that the settings are still loading.
+          const withdrawn = store.consentNow() !== true;
+          setNotice(withdrawn ? blockedText({ ...liveInputs(), killCloud: false }) : arrived || work.signal.aborted ? blockedText(liveInputs(), live.current.pauseUnknown) : SETTINGS_SLOW);
+          return;
+        }
       }
       if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
       setNotice(null);
       setBlocked(null);
-      const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === press) setNotice(TOO_SLOW); });
+      const limit = timeLimit(readTimeoutMs, work, () => { if (press !== null && presses.current === press) setNotice(TOO_SLOW); });
       try {
         const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
         limit.clear();

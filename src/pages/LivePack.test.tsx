@@ -136,7 +136,7 @@ describe("LivePack", () => {
     expect(await screen.findByTestId("getting-ready")).toBeInTheDocument();
     act(() => store.setConsent(false));
     await waitFor(() => expect(screen.queryByTestId("getting-ready")).toBeNull());
-    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
     act(() => store.setConsent(true));
     act(() => push({ killCloud: false, pauseUnknown: undefined }));
     await new Promise((r) => setTimeout(r, 150));
