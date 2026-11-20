@@ -21,7 +21,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   probe:
@@ -65,13 +64,17 @@ jobs:
   fresh:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
+    permissions:
+      actions: read
     steps:
       - name: The scheduled run before this one started under 36 hours ago
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          last=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f per_page=5 \
-            --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})][0].created_at // empty')
+          # Run ids only grow, so the newest run with a smaller id is the one before this; a newer queued run is
+          # skipped. Its start time, not its creation time, is when it ran.
+          last=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f per_page=20 \
+            --jq '[.workflow_runs[] | select(.id < ${{ github.run_id }})][0] | (.run_started_at // .created_at) // empty')
           if [ -z "$last" ]; then echo "No earlier scheduled run found"; exit 1; fi
           hours=$(python3 -c 'import sys, datetime as d; t = d.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00")); print(int((d.datetime.now(d.timezone.utc) - t).total_seconds() // 3600))' "$last")
           echo "The scheduled run before this one started at $last, $hours hours ago"
@@ -85,6 +88,9 @@ jobs:
   read:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     steps:
       # Retired with the probe after the judging window: no model calls and no token use after it. A scheduled
       # run also skips the read when a scheduled run already passed this UTC day.
