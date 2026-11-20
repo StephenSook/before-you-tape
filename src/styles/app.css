@@ -13,6 +13,9 @@ body {
 }
 
 button, input, select { font: inherit; color: inherit; }
+/* A select is as wide as its longest option; on a narrow screen, or in a wider fallback font before the web
+   fonts load, that can be wider than the page. It never grows past the space it sits in. */
+select { max-width: 100%; }
 
 h1, h2, h3, .item-name { font-family: var(--font-display); line-height: 1.15; }
 h1 { font-size: 2rem; font-weight: 800; }
