@@ -9,8 +9,13 @@ describe("AboutPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "About Before You Tape" })).toBeInTheDocument();
     expect(screen.getByText(/The rules run in your browser/)).toBeInTheDocument();
     expect(screen.getByText(/only if you allow it/)).toBeInTheDocument();
-    expect(screen.getByText(/Photos and label words stay on this device/)).toBeInTheDocument();
+    expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
     expect(screen.getByText(/Not affiliated with or approved by the US Postal Service/)).toBeInTheDocument();
+  });
+
+  it("links the public source code", () => {
+    render(<AboutPage />);
+    expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
   });
 
   it("credits every published eval photo, linking each open license and source", () => {

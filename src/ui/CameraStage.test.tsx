@@ -5,6 +5,12 @@ import type { ImagePart } from "../ai/port";
 import { CameraError } from "../capture/camera";
 import { CropError } from "../capture/crop";
 import { CameraStage } from "./CameraStage";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import manifest from "../../eval/set/manifest.json";
+
+const sampleItem = manifest.items.find((i) => i.itemId === "own-18")!;
 
 const part: ImagePart = { mimeType: "image/jpeg", base64: "/9j/AAAA" };
 const fakeStream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
@@ -129,6 +135,41 @@ describe("CameraStage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onImage).toHaveBeenCalledWith(part, "upload");
     expect(screen.queryByTestId("photo-crop")).toBeNull();
+  });
+
+  it("runs a sample photo through the same crop step and the same upload path, labelled as a sample", async () => {
+    const onImage = vi.fn();
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    const decodeFile = vi.fn<(f: File) => Promise<HTMLCanvasElement>>(async () => document.createElement("canvas"));
+    const loadSample = vi.fn(async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    render(<CameraStage openCamera={okCamera} onImage={onImage} decodeFile={decodeFile} cropPart={async () => part}
+      sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }} loadSample={loadSample} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    expect(await screen.findByTestId("sample-note")).toHaveTextContent(`Sample photo from our test set: ${sampleItem.alt}. It is not your item.`);
+    expect(loadSample).toHaveBeenCalledWith(sampleItem.photo);
+    // The same decode as a photo the sender adds: the file holds the tracked bytes.
+    const file = decodeFile.mock.calls[0]![0];
+    expect(Buffer.from(await file.arrayBuffer()).equals(bytes)).toBe(true);
+    await screen.findByRole("img", { name: "The part that will be checked" });
+    await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
+    expect(onImage).toHaveBeenCalledWith(part, "upload");
+    expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
+  });
+
+  it("opens nothing when the sample photo does not match its tracked SHA-256", async () => {
+    const onError = vi.fn();
+    const decodeFile = vi.fn(async () => document.createElement("canvas"));
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} decodeFile={decodeFile}
+      sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }} loadSample={async () => new TextEncoder().encode("not the photo").buffer} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("The sample photo did not load as it should. Add a photo, or type the item."));
+    expect(decodeFile).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("sample-note")).toBeNull();
+  });
+
+  it("keeps the tracked sample photo byte for byte as the eval set records it", () => {
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(sampleItem.photoSha256);
   });
 
   it("says a crop preview that fails in plain words, never the browser's error", async () => {
