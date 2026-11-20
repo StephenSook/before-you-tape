@@ -193,6 +193,23 @@ describe("Pack page second look", () => {
     expect(store.getState().items[0]?.read.milliampHours).toBe(2500);
   });
 
+  it("stops a second look already running when its item is removed: no retry, no fallback model, and its answer is dropped", async () => {
+    let fail: (e: Error) => void = () => {};
+    const cloud: Spy = { generate: vi.fn(() => new Promise<never>((_r, reject) => { fail = reject; })) };
+    const { store, models } = setup({ cloud });
+    await upload();
+    expect(await screen.findByText("Checking again in the cloud.")).toBeInTheDocument();
+    const cloudCalls = cloud.generate.mock.calls.length;
+    const itemId = store.getState().items[0]!.itemId;
+    await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
+    // A 503 would be retried, then sent to the fallback model, if the look were still running.
+    await act(async () => { fail(new Error("503 Service Unavailable")); await new Promise((r) => setTimeout(r, 50)); });
+    expect(cloud.generate).toHaveBeenCalledTimes(cloudCalls);
+    expect(models.fallback.generate).not.toHaveBeenCalled();
+    expect(store.getState().items).toEqual([]);
+    expect(store.getState().errors[itemId]).toBeUndefined();
+  });
+
   it("never sends a removed item's photo to the cloud, even when its look was waiting for the connection", async () => {
     const cloud = failing("Failed to fetch");
     const { rerender } = setup({ cloud });

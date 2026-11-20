@@ -138,12 +138,20 @@ export function PackPage(p: PackPageProps) {
     looks.current.delete(itemId);
     waitingForOnline.current.delete(itemId);
     lookAgain.current.delete(itemId);
+    // A look already running is stopped: no retry and no fallback model, and what it brings back is dropped.
+    lookWork.current.get(itemId)?.();
     setCrops((c) => { const { [itemId]: _gone, ...rest } = c; void _gone; return rest; });
-    // Emptied first, so the same words for a second removal are read out again.
+    // Emptied first, so the same words for a second removal are read out again. A newer removal replaces a
+    // notice still waiting, and leaving the page clears it.
     const text = `Removed ${removedItem.overrides.itemName ?? removedItem.read.itemName}.`;
     setRemoved("");
-    setTimeout(() => { if (!gone.current) setRemoved(text); }, 50);
+    removalNotice.current?.();
+    const clear = () => { clearTimeout(id); timers.current.delete(clear); if (removalNotice.current === clear) removalNotice.current = null; };
+    const id = setTimeout(() => { clear(); if (!gone.current) setRemoved(text); }, 50);
+    timers.current.add(clear);
+    removalNotice.current = clear;
   };
+  const removalNotice = useRef<(() => void) | null>(null);
   useEffect(() => {
     const target = focusAfterRemove.current;
     if (!target) return;
@@ -239,12 +247,15 @@ export function PackPage(p: PackPageProps) {
   // back online) is kept and runs once the current one ends, if the item still needs it.
   const looking = useRef(new Set<string>());
   const lookAgain = useRef(new Set<string>());
+  // How to stop each item's running look, for a removal.
+  const lookWork = useRef(new Map<string, () => void>());
+  const inBox = (itemId: string) => store.getState().items.some((i) => i.itemId === itemId);
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
     if (!look) return;
     // An item removed from the box is never sent to the cloud again.
-    if (!store.getState().items.some((i) => i.itemId === itemId)) { looks.current.delete(itemId); return; }
+    if (!inBox(itemId)) { looks.current.delete(itemId); return; }
     if (looking.current.has(itemId)) { lookAgain.current.add(itemId); return; }
     // The inputs as they are now: this may run after a wait or a reconnect, long after the render it closes over.
     if (!shouldRunSecondLook(look.reason, liveInputs())) {
@@ -256,26 +267,28 @@ export function PackPage(p: PackPageProps) {
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
+    lookWork.current.set(itemId, work.abort);
     const limit = timeLimit(readTimeoutMs, work, () => {
       if (looks.current.has(itemId)) store.setError(itemId, SECOND_LOOK_TOO_SLOW);
       setChecking((c) => ({ ...c, [itemId]: false }));
     });
     const { models: m } = live.current;
     try {
-      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, stillAllowed, work.signal);
+      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, () => stillAllowed() && inBox(itemId), work.signal);
       limit.clear();
-      if (gone.current || limit.over) return;
+      if (gone.current || limit.over || !inBox(itemId)) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel, out.disputes);
       looks.current.delete(itemId);
     } catch (e) {
       limit.clear();
-      // A look ended by leaving the page, or by its time limit, says nothing more.
-      if (gone.current || limit.over) return;
+      // A look ended by leaving the page, by its time limit, or by removing its item says nothing more.
+      if (gone.current || limit.over || !inBox(itemId)) return;
       const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
       if (kind === "cloud_unreachable") waitingForOnline.current.add(itemId);
       store.setError(itemId, SECOND_LOOK_FAILURE[kind]);
     } finally {
       looking.current.delete(itemId);
+      lookWork.current.delete(itemId);
       work.end();
       setChecking((c) => ({ ...c, [itemId]: false }));
       if (lookAgain.current.delete(itemId) && !gone.current && looks.current.has(itemId)) void secondLook(itemId);
