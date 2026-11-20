@@ -1,6 +1,7 @@
 package app.beforeyoutape.android.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -45,6 +46,18 @@ class CopyTest {
 
     @Test fun theFooterDisclaimsThePostalService() {
         assertEquals("Not affiliated with or approved by the US Postal Service.", Copy.FOOTER)
+    }
+
+    /** Android runs no cloud second look, so nothing on screen may say or imply one. */
+    @Test fun noCopyMentionsASecondLook() {
+        for (text in Copy.ALL) {
+            assertFalse(text, text.contains("second look", ignoreCase = true) || text.contains("looked again", ignoreCase = true))
+        }
+    }
+
+    /** A read on this phone's own model says so on its card: that one read and the rules decide. */
+    @Test fun anOnDeviceReadSaysItWasReadOnThisPhone() {
+        assertEquals("Read on this phone", Copy.source("phone_on_device"))
     }
 
     @Test fun noCopyUsesADashOrACurlyQuote() {
