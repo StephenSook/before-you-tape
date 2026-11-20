@@ -622,12 +622,18 @@ var BYT = (() => {
     const dests = obj(e.destinations, "destinations");
     for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questions, producible);
     const s = obj(e.suspensions, "suspensions");
-    keys(s, ["updated", "checkedOn", "url", "codes"], [], "suspensions");
+    keys(s, ["updated", "checkedOn", "url", "codes"], ["upcoming"], "suspensions");
     isoDate(s.updated, "suspensions.updated");
     isoDate(s.checkedOn, "suspensions.checkedOn");
     https(s.url, "suspensions.url");
     list(s.codes, "suspensions.codes").forEach((c, i) => {
       if (typeof c !== "string" || !/^[A-Z]{2}$/.test(c)) fail(`suspensions.codes[${i}]`, "expected a two-letter code");
+    });
+    if (s.upcoming !== void 0) list(s.upcoming, "suspensions.upcoming").forEach((x, i) => {
+      const u = obj(x, `suspensions.upcoming[${i}]`);
+      keys(u, ["code", "from"], [], `suspensions.upcoming[${i}]`);
+      if (typeof u.code !== "string" || !/^[A-Z]{2}$/.test(u.code)) fail(`suspensions.upcoming[${i}].code`, "expected a two-letter code");
+      isoDate(u.from, `suspensions.upcoming[${i}].from`);
     });
     list(e.stopWords, "stopWords").forEach((w, i) => str(w, `stopWords[${i}]`));
     list(e.worksheetFields, "worksheetFields").forEach((x, i) => {
@@ -649,8 +655,10 @@ var BYT = (() => {
     }
     return JSON.stringify(value);
   }
-  function resolveDestination(e, code, live) {
-    const suspended = e.suspensions.codes.includes(code);
+  function resolveDestination(e, code, live, today) {
+    const ahead = today === void 0 ? void 0 : e.suspensions.upcoming?.find((u) => u.code === code);
+    const started = ahead !== void 0 && today !== void 0 && today >= ahead.from;
+    const suspended = e.suspensions.codes.includes(code) || started;
     const stored = e.destinations[code] ?? null;
     const edition2 = stored ?? live ?? null;
     let reviewState = "not_loaded";
@@ -659,12 +667,14 @@ var BYT = (() => {
       else if (stored && stored.reviewed) reviewState = "reviewed";
       else reviewState = "live_unreviewed";
     }
-    return { code, name: edition2?.name ?? code, reviewState, suspended, edition: edition2 };
+    return { code, name: edition2?.name ?? code, reviewState, suspended, ...ahead && !suspended ? { suspendsFrom: ahead.from } : {}, edition: edition2 };
   }
 
   // src/engine/destination.ts
   var SUSPENSIONS_URL = "https://about.usps.com/newsroom/service-alerts/international/";
   var COUNTRY_INDEX_URL = "https://pe.usps.com/text/imm/immctry.htm";
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var longDate = (iso) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`;
   var SECTION_NAME = {
     prohibitions: "Prohibitions",
     restrictions: "Restrictions",
@@ -681,6 +691,16 @@ var BYT = (() => {
         section: "USPS international service alerts",
         url: SUSPENSIONS_URL,
         text: `Mail to ${dest.name} is suspended right now. Nothing in this box can go until service returns.`
+      });
+    }
+    if (!dest.suspended && dest.suspendsFrom) {
+      hits.push({
+        ruleId: "DEST-SUSPENSION-AHEAD",
+        layer: "destination",
+        level: "note",
+        section: "USPS international service alerts",
+        url: SUSPENSIONS_URL,
+        text: `The post office stops taking mail to ${dest.name} on ${longDate(dest.suspendsFrom)}. Mail this box before then.`
       });
     }
     if (dest.reviewState === "not_loaded" || dest.reviewState === "live_unreviewed") {
@@ -1139,7 +1159,8 @@ var BYT = (() => {
       const input = object(inputJson);
       const items = checkItems(input.items);
       const live = input.live === void 0 ? void 0 : plain(input.live, "live");
-      return evaluateBox(items, e, resolveDestination(e, str2(input, "code"), live), str2(input, "today"));
+      const today = str2(input, "today");
+      return evaluateBox(items, e, resolveDestination(e, str2(input, "code"), live, today), today);
     });
   }
   function destinationHitsJson(inputJson) {

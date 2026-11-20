@@ -65,6 +65,17 @@ describe("rule edition", () => {
     expect(() => parseEdition(withRule({ section: "" }))).toThrow(EditionError);
   });
 
+  it("accepts a suspension announced for a later date, and an edition with none", () => {
+    const upcoming = [{ code: "CA", from: "2026-11-29" }];
+    expect(parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, upcoming } }).suspensions.upcoming).toEqual(upcoming);
+    const { upcoming: _none, ...older } = bundled.suspensions as typeof bundled.suspensions & { upcoming?: unknown };
+    void _none;
+    expect(parseEdition({ ...bundled, suspensions: older }).suspensions.upcoming).toBeUndefined();
+    for (const bad of [[{ code: "Canada", from: "2026-11-29" }], [{ code: "CA", from: "2026-11-31" }], [{ code: "CA", from: "2026-11-29", text: "USPS words" }], [{ code: "CA" }]]) {
+      expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, upcoming: bad } }), JSON.stringify(bad)).toThrow(/suspensions\.upcoming/);
+    }
+  });
+
   it("rejects dates that do not exist on the calendar", () => {
     for (const bad of ["2026-13-01", "2026-02-30", "2026-00-10", "2026-11-31"]) {
       expect(() => parseEdition({ ...bundled, suspensions: { ...bundled.suspensions, checkedOn: bad } }), bad).toThrow(/checkedOn/);

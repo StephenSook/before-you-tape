@@ -281,12 +281,18 @@ export function parseEdition(json: unknown): RuleEdition {
   for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questions, producible);
 
   const s = obj(e.suspensions, "suspensions");
-  keys(s, ["updated", "checkedOn", "url", "codes"], [], "suspensions");
+  keys(s, ["updated", "checkedOn", "url", "codes"], ["upcoming"], "suspensions");
   isoDate(s.updated, "suspensions.updated");
   isoDate(s.checkedOn, "suspensions.checkedOn");
   https(s.url, "suspensions.url");
   list(s.codes, "suspensions.codes").forEach((c, i) => {
     if (typeof c !== "string" || !/^[A-Z]{2}$/.test(c)) fail(`suspensions.codes[${i}]`, "expected a two-letter code");
+  });
+  if (s.upcoming !== undefined) list(s.upcoming, "suspensions.upcoming").forEach((x, i) => {
+    const u = obj(x, `suspensions.upcoming[${i}]`);
+    keys(u, ["code", "from"], [], `suspensions.upcoming[${i}]`);
+    if (typeof u.code !== "string" || !/^[A-Z]{2}$/.test(u.code)) fail(`suspensions.upcoming[${i}].code`, "expected a two-letter code");
+    isoDate(u.from, `suspensions.upcoming[${i}].from`);
   });
 
   list(e.stopWords, "stopWords").forEach((w, i) => str(w, `stopWords[${i}]`));
@@ -324,8 +330,12 @@ export function editionSha256(e: RuleEdition): Promise<string> {
   return sha256Hex(canonicalJson(e));
 }
 
-export function resolveDestination(e: RuleEdition, code: string, live?: DestinationEdition): DestinationContext {
-  const suspended = e.suspensions.codes.includes(code);
+// today (YYYY-MM-DD) decides an announced suspension: suspended from its date, and before it noted with the
+// date it starts. Without today (a page that lists a country's rules), only the current list counts.
+export function resolveDestination(e: RuleEdition, code: string, live?: DestinationEdition, today?: string): DestinationContext {
+  const ahead = today === undefined ? undefined : e.suspensions.upcoming?.find((u) => u.code === code);
+  const started = ahead !== undefined && today !== undefined && today >= ahead.from;
+  const suspended = e.suspensions.codes.includes(code) || started;
   const stored = e.destinations[code] ?? null;
   const edition = stored ?? live ?? null;
   let reviewState: DestinationContext["reviewState"] = "not_loaded";
@@ -334,5 +344,5 @@ export function resolveDestination(e: RuleEdition, code: string, live?: Destinat
     else if (stored && stored.reviewed) reviewState = "reviewed";
     else reviewState = "live_unreviewed";
   }
-  return { code, name: edition?.name ?? code, reviewState, suspended, edition };
+  return { code, name: edition?.name ?? code, reviewState, suspended, ...(ahead && !suspended ? { suspendsFrom: ahead.from } : {}), edition };
 }

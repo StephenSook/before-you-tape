@@ -64,7 +64,7 @@ export function rulesOnlyRun(set: EvalSet, typed: Record<string, ItemCategory>, 
       labelTags: labelTagsOf(read.labelText, edition),
     };
     return set.destinations.map((destination): EvalRow => {
-      const level = evaluateBox([item], edition, resolveDestination(edition, destination), meta.date).items[i.itemId]!.level;
+      const level = evaluateBox([item], edition, resolveDestination(edition, destination, undefined, meta.date), meta.date).items[i.itemId]!.level;
       return { itemId: i.itemId, destination, device: null, cloud: null, shipped: { level, source: "rules_only", secondLook: false } };
     });
   });

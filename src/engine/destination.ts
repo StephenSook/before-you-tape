@@ -5,6 +5,10 @@ import type { DestinationContext, DestinationLine, ItemAnswers, ItemFacts, RuleH
 const SUSPENSIONS_URL = "https://about.usps.com/newsroom/service-alerts/international/";
 const COUNTRY_INDEX_URL = "https://pe.usps.com/text/imm/immctry.htm";
 
+// "2026-11-29" as "November 29, 2026", the same in every engine (no locale formatting).
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export const longDate = (iso: string): string => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`;
+
 const SECTION_NAME: Record<DestinationLine["section"], string> = {
   prohibitions: "Prohibitions",
   restrictions: "Restrictions",
@@ -19,6 +23,12 @@ export function evaluateDestination(facts: ItemFacts, answers: ItemAnswers, dest
     hits.push({
       ruleId: "DEST-SUSPENDED", layer: "destination", level: "check", section: "USPS international service alerts",
       url: SUSPENSIONS_URL, text: `Mail to ${dest.name} is suspended right now. Nothing in this box can go until service returns.`,
+    });
+  }
+  if (!dest.suspended && dest.suspendsFrom) {
+    hits.push({
+      ruleId: "DEST-SUSPENSION-AHEAD", layer: "destination", level: "note", section: "USPS international service alerts",
+      url: SUSPENSIONS_URL, text: `The post office stops taking mail to ${dest.name} on ${longDate(dest.suspendsFrom)}. Mail this box before then.`,
     });
   }
   if (dest.reviewState === "not_loaded" || dest.reviewState === "live_unreviewed") {

@@ -35,4 +35,11 @@ describe("RulesPage", () => {
     expect(s).toHaveTextContent("Haiti");
     expect(s).toHaveTextContent(`checked ${ed.suspensions.checkedOn}`);
   });
+
+  it("lists a suspension the post office has announced for a later date, with its start date", () => {
+    render(<RulesPage edition={ed} index={index} />);
+    const s = screen.getByRole("region", { name: "Suspended mail service" });
+    expect(s).toHaveTextContent("From November 29, 2026, the post office will not take mail to: Canada.");
+    expect(s).not.toHaveTextContent("Congo");
+  });
 });

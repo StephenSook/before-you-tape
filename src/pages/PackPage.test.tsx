@@ -113,6 +113,18 @@ describe("PackPage", () => {
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
   });
 
+  it("says ahead of time when the post office will stop taking mail to the destination, and suspends it from that day", () => {
+    // The bundled edition: USPS announced Canada's suspension from 2026-11-29; the page's date is 2026-11-20.
+    setup();
+    expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
+    expect(screen.queryByTestId("suspended-banner")).toBeNull();
+    cleanup();
+    const later = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-29", newId: () => `id-${n++}` });
+    setup({ store: later });
+    expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Canada is suspended.");
+    expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
+  });
+
   it("says when the post office suspension list was checked, next to the destination", () => {
     setup();
     expect(screen.getByTestId("suspension-checked")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);

@@ -197,7 +197,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const evaluate = (): BoxResult => {
     const edition = currentEdition();
     const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
-    return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live), deps.today());
+    const today = deps.today();
+    return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live, today), today);
   };
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
