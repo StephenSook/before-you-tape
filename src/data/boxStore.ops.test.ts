@@ -298,4 +298,29 @@ describe("saving by explicit operations", () => {
     await again.ready;
     expect(again.getState().items).toEqual([]);
   });
+
+  it("saves a change back to the saved value made while another save of the item is out", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    srv.land(a);
+    await s.settled();
+    s.setQuantity(a, 3);
+    await settle();
+    s.setQuantity(a, 1);
+    srv.land(a);
+    await settle();
+    await settle();
+    // The first save, the change to 3, and the change back to 1.
+    expect(srv.o.putItem.mock.calls.map((c) => c[1].quantity)).toEqual([1, 3, 1]);
+    srv.land(a);
+    await s.settled();
+    expect(srv.stored.get(a)?.quantity).toBe(1);
+    expect(s.getState().unsaved).toEqual([]);
+    const again = make(srv.o);
+    await again.ready;
+    expect(again.getState().items.find((i) => i.itemId === a)?.quantity).toBe(1);
+  });
 });
