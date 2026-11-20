@@ -233,10 +233,18 @@ describe("ItemCard", () => {
   it("links each rule the verdict rests on, once each, inside What we checked", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
     const checked = within(screen.getByText("What we checked").closest("details")!);
-    const unique = [...new Map(takeOut.hits.map((h) => [`${h.section}|${h.url}`, h])).values()];
+    const unique = [...new Map(takeOut.hits.filter((h) => !h.section.startsWith("Before You Tape: ")).map((h) => [`${h.section}|${h.url}`, h])).values()];
     expect(unique.length).toBeGreaterThan(0);
     const links = checked.getAllByRole("link", { name: /^Rule: / });
     expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual(unique.map((h) => [`Rule: ${h.section}`, h.url]));
+  });
+
+  it("names the app's own checks in What we checked as plain text, never as a rule link", () => {
+    expect(identityCheck.hits.map((h) => h.section)).toContain("Before You Tape: identity check");
+    render(<ItemCard item={shirtSeen} verdict={identityCheck} crop={null} />);
+    const list = screen.getByTestId("rule-list");
+    expect(within(list).getByText("Before You Tape: identity check").closest("a")).toBeNull();
+    expect(within(list).queryByRole("link", { name: /Before You Tape/ })).toBeNull();
   });
 
   it("shows the battery numbers the verdict rests on for a battery item, and nothing for a book", () => {

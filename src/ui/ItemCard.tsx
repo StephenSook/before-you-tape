@@ -105,13 +105,18 @@ function batteryLine(item: BoxItem): string | null {
   return `${typed ? "Typed by you" : "Label read"}: ${parts.join(", ")}`;
 }
 
+// The section the engine gives its own checks (identity, reading, disagreeing reads, item count, rule layers).
+const OWN_CHECK = "Before You Tape: ";
+
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
   const numbers = batteryLine(item);
-  // Each rule the verdict rests on, once: the section it cites and the page it links to.
-  const rules = [...new Map(verdict.hits.map((h) => [`${h.section}|${h.url}`, h])).values()];
+  // Each published rule the verdict cites, once, as a link to its page. The app's own checks ("Before You Tape: ...")
+  // are not published rules and no rule page explains them, so they are named once each as plain text.
+  const rules = [...new Map(verdict.hits.filter((h) => !h.section.startsWith(OWN_CHECK)).map((h) => [`${h.section}|${h.url}`, h])).values()];
+  const ownChecks = [...new Set(verdict.hits.filter((h) => h.section.startsWith(OWN_CHECK)).map((h) => h.section))];
   const needsIdentity = verdict.hits.some((h) => h.ruleId === "DATA-IDENTITY");
   const needsRating = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-NO-WH");
   const needsLithium = verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-METAL-UNKNOWN");
@@ -181,11 +186,12 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
             <li key={l.id}>{layerLine(l)}</li>
           ))}
         </ul>
-        {rules.length > 0 && (
+        {rules.length + ownChecks.length > 0 && (
           <ul data-testid="rule-list">
             {rules.map((h) => (
               <li key={`${h.section}|${h.url}`}><a href={h.url} target="_blank" rel="noopener noreferrer">Rule: {h.section}</a></li>
             ))}
+            {ownChecks.map((section) => <li key={section}>{section}</li>)}
           </ul>
         )}
         <p data-testid="service">Service: {verdict.service}</p>
