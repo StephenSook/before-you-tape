@@ -1,8 +1,9 @@
 name: Live probe
 
-# Once a day through the judging window, with no credential: the site serves main, the page loads,
-# robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
+# Once a day through the judging window. The probe job, with no credential: the site serves main, the page
+# loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
 # shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
+# The read job, with the CI App Check debug token: one real read through the live app comes back as a read.
 # The probe reports itself retired after 2026-12-17; delete this file then.
 # A manual run can probe another site, so a wrong URL proves the probe fails.
 on:
@@ -52,3 +53,34 @@ jobs:
           BYT_LIVE: "1"
           BYT_LIVE_URL: ${{ inputs.site }}
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
+
+  # One real read through the live app's cloud path, with the CI App Check debug token: the reply must parse
+  # as a read with a known category (tests/e2e/read.live.spec.ts). A paused API, a refused token or a quota
+  # error fails it, and so does a missing token, so this job is never green without a real read. It makes
+  # one model call a day. Its own job, so the checks above keep their own verdict.
+  read:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        timeout-minutes: 5
+        run: npm ci
+
+      - name: Install the test browser
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      - name: One real read on the live site
+        timeout-minutes: 4
+        env:
+          BYT_LIVE: "1"
+          BYT_LIVE_URL: ${{ inputs.site }}
+          APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
+        run: npx playwright test --project=live tests/e2e/read.live.spec.ts
