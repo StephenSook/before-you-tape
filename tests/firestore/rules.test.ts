@@ -83,8 +83,9 @@ describe("boxes", () => {
     });
     await assertFails(deleteDoc(doc(bob, "boxes/b3")));
     await assertFails(deleteDoc(doc(alice, "boxes/b3")));
-    await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")));
-    await assertFails(setDoc(doc(bob, "boxes/b3"), boxFor("bob")));
+    expect((await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")))).exists()).toBe(true);
+    const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
+    await assertFails(setDoc(doc(eve, "boxes/b3"), boxFor("eve")));
   });
 });
 
