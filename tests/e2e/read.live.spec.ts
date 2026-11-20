@@ -12,7 +12,10 @@ test("a real cloud read on the live site comes back as a read", async ({ page, a
   test.setTimeout(90_000);
   expect(appCheckToken, "no App Check debug token: APPCHECK_DEBUG_TOKEN_CI in CI, or APPCHECK_DEBUG_TOKEN locally").toBeTruthy();
   const replies: Array<{ status: number; body: unknown }> = [];
+  // Status codes only, for the failure message: the App Check debug-token exchanges and the model calls.
+  const exchanges: number[] = [];
   page.on("response", async (r) => {
+    if (r.url().includes(":exchangeDebugToken")) exchanges.push(r.status());
     if (!r.url().includes(":generateContent")) return;
     replies.push({ status: r.status(), body: await r.json().catch(() => null) });
   });
@@ -23,7 +26,12 @@ test("a real cloud read on the live site comes back as a read", async ({ page, a
   await expect(send).toBeEnabled({ timeout: 20_000 });
   await send.click();
   const card = page.getByTestId("item-card");
-  await expect(card.getByTestId("verdict-chip")).toBeVisible({ timeout: 60_000 });
+  try {
+    await expect(card.getByTestId("verdict-chip")).toBeVisible({ timeout: 60_000 });
+  } catch (e) {
+    const shown = (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(0, 600);
+    throw new Error(`no read came back. App Check debug exchanges: ${JSON.stringify(exchanges)}; model calls: ${JSON.stringify(replies.map((r) => r.status))}; the page shows: ${shown}`, { cause: e });
+  }
   await expect(card.getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
   await expect.poll(() => replies.length, { timeout: 10_000 }).toBeGreaterThan(0);
   const first = replies[0]!;
