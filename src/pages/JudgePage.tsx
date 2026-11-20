@@ -2,6 +2,7 @@
 // from the eval photo set, with what each label says typed in by us, judged by the app's own rules engine in
 // the browser. Switching the country re-checks the whole box with no model call.
 import { useState, useSyncExternalStore } from "react";
+import { noPersistence } from "../data/boxOps";
 import { createBoxStore, type BoxItem, type BoxStore } from "../data/boxStore";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
@@ -21,7 +22,7 @@ export interface JudgePageProps {
 }
 
 function sampleStore(edition: RuleEdition, today: string, now: () => number): BoxStore {
-  const store = createBoxStore({ edition: () => edition, persistence: { save: () => {}, load: async () => null }, now, today: () => today,
+  const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now, today: () => today,
     newId: () => crypto.randomUUID(), boxId: "sample" });
   for (const s of SAMPLE_BOX) {
     const item: BoxItem = {

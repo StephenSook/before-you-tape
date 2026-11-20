@@ -25,7 +25,9 @@ export interface SetManifest {
 }
 
 export interface LabelRow { expected: Level; section: string; evidence?: string; note?: string }
-export interface SetLabels { setId: string; status: string; items: Record<string, Record<string, LabelRow>> }
+// typed: each item's category as a person would type it from the photo, for the rules-only baseline. It is
+// recorded with the labels, before the freeze.
+export interface SetLabels { setId: string; status: string; items: Record<string, Record<string, LabelRow>>; typed?: Record<string, { category: string }> }
 
 export function buildEvalSet(manifest: SetManifest, labels: SetLabels): EvalSet {
   if (labels.setId !== manifest.setId) throw new Error(`labels are for set "${labels.setId}", not "${manifest.setId}"`);
