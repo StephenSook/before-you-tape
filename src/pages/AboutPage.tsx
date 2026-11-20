@@ -3,6 +3,7 @@
 import manifest from "../../eval/set/manifest.json";
 import type { SetManifest } from "../eval/loadSet";
 import { OWN_PHOTO_LICENSE } from "../eval/manifest";
+import { BOX_LIST_SAVED } from "../ui/boxListCopy";
 import { SOURCE_URL } from "../ui/sourceLink";
 
 const items = (manifest as SetManifest).items;
@@ -27,7 +28,7 @@ export function AboutPage() {
           If it does not, and only if you allow it, the part of the photo inside the box you place and the words on its
           label go to Google's Gemini through Firebase AI Logic. You can turn this off again at any time.
         </li>
-        <li>Photos and label words stay on this device. Your box list is saved so it survives a reload, without them.</li>
+        <li>{BOX_LIST_SAVED}</li>
       </ul>
       <p>Not affiliated with or approved by the US Postal Service.</p>
       <p>
