@@ -90,10 +90,12 @@ function buildDeps(): PackDeps | Error {
   return built;
 }
 
+// Unknown until checkGate answers (a few seconds on a cold page); a press meanwhile waits for it.
+export const INITIAL_GATE: GateState = "checking";
+
 export function PackRoute() {
   const [deps] = useState(buildDeps);
-  // Unknown until checkGate answers (a few seconds on a cold page); a press meanwhile waits for it.
-  const [gate, setGate] = useState<GateState>("checking");
+  const [gate, setGate] = useState<GateState>(INITIAL_GATE);
   const [progress, setProgress] = useState<number | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [editionNotice, setEditionNotice] = useState<string | null>(null);

@@ -108,7 +108,7 @@ describe("PackPage", () => {
   });
 
   it("makes no model call when the cloud is paused", async () => {
-    const { models } = setup({ config: { killCloud: true } });
+    const { models } = setup({ config: { killCloud: true }, gate: "available" });
     await addPhoto();
     await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this laptop still work."));
     expect(models.cloud.generate).not.toHaveBeenCalled();
@@ -288,10 +288,78 @@ describe("PackPage", () => {
   });
 
   describe("a press before the page knows whether this laptop has its own model", () => {
-    const page = (store: ReturnType<typeof newStore>, models: ReturnType<typeof spyModels>, gate: PackPageProps["gate"], settingsWaitMs = 10_000) => (
-      <PackPage store={store} models={models} gate={gate} config={{ killCloud: false }} openCamera={okCamera} index={index}
-        saveCrop={async () => {}} online loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
+    const page = (store: ReturnType<typeof newStore>, models: ReturnType<typeof spyModels>, gate: PackPageProps["gate"], settingsWaitMs = 10_000,
+      online = true, config: PackPageProps["config"] = { killCloud: false }) => (
+      <PackPage store={store} models={models} gate={gate} config={config} openCamera={okCamera} index={index}
+        saveCrop={async () => {}} online={online} loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
     );
+
+    it("drops the press when the cloud choice changes while it waits, and says so", async () => {
+      const store = newStore();
+      store.setConsent(true);
+      const models = spyModels();
+      const view = render(page(store, models, "checking"));
+      await trySample();
+      await screen.findByTestId("getting-ready");
+      act(() => { store.setConsent(false); store.setConsent(true); });
+      view.rerender(page(store, models, "no_api"));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this laptop was getting ready. Add the photo again.");
+      expect(models.cloud.generate).not.toHaveBeenCalled();
+      expect(models.hybrid.generate).not.toHaveBeenCalled();
+      expect(models.device.generate).not.toHaveBeenCalled();
+    });
+
+    it("decides with the connection as it is after the wait, not as it was at the press", async () => {
+      const store = newStore();
+      store.setConsent(true);
+      const models = spyModels();
+      const view = render(page(store, models, "checking", 10_000, false));
+      await trySample();
+      await screen.findByTestId("getting-ready");
+      view.rerender(page(store, models, "checking", 10_000, true));
+      view.rerender(page(store, models, "no_api", 10_000, true));
+      const card = await screen.findByTestId("item-card");
+      expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
+      expect(models.cloud.generate).toHaveBeenCalledTimes(1);
+    });
+
+    it("never lets an older press's failure cover a newer press's notice", async () => {
+      const store = newStore();
+      store.setConsent(false);
+      const models = spyModels();
+      const nothing: ItemRead = { ...liquidLotionLabelRead, itemName: "", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
+      let call = 0;
+      models.device.generate.mockImplementation(async () => {
+        call++;
+        if (call === 1) { await new Promise((r) => setTimeout(r, 60)); throw new Error("the model failed"); }
+        return { text: JSON.stringify(nothing), source: "on_device" };
+      });
+      const view = render(page(store, models, "checking"));
+      await trySample();
+      await trySample();
+      view.rerender(page(store, models, "available"));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
+      await act(async () => { await new Promise((r) => setTimeout(r, 120)); });
+      expect(screen.getByRole("alert")).toHaveTextContent("Nothing to check there. Hold one item inside the box.");
+      expect(call).toBe(2);
+    });
+
+    it("says nothing about checks on this laptop while it is not known whether it has a model", () => {
+      render(page(newStore(), spyModels(), "checking", 10_000, true, { killCloud: true }));
+      expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused.");
+      expect(screen.getByTestId("paused-banner")).not.toHaveTextContent("still work");
+    });
+
+    it("says so plainly, with cloud checks on, when the check does not finish in time, and reads nothing", async () => {
+      const store = newStore();
+      store.setConsent(true);
+      const models = spyModels();
+      render(page(store, models, "checking", 50));
+      await trySample();
+      expect(await screen.findByRole("alert")).toHaveTextContent("This laptop is still checking whether it can read photos itself.");
+      expect(models.cloud.generate).not.toHaveBeenCalled();
+      expect(models.hybrid.generate).not.toHaveBeenCalled();
+    });
 
     it("waits, then reads on this laptop when it has a model and cloud checks are off", async () => {
       const store = newStore();
