@@ -40,7 +40,20 @@ export interface CameraStageProps {
   onError?: (text: string) => void;
   // The camera may read an item that sits still by itself. Only true when that read stays on this device.
   autoRead?: boolean;
+  // A tracked test photo a sender with no camera or no item can try. It goes through the same crop step and the
+  // same upload path as a photo they add, so the same route and consent decide where it is read.
+  sample?: { url: string; sha256: string; alt: string };
+  loadSample?: (url: string) => Promise<ArrayBuffer>;
 }
+
+const fetchSample = async (url: string): Promise<ArrayBuffer> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`sample photo: HTTP ${res.status}`);
+  return res.arrayBuffer();
+};
+const SAMPLE_FAILED = "The sample photo did not load as it should. Add a photo, or type the item.";
+const bytesSha256 = async (bytes: ArrayBuffer): Promise<string> =>
+  Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 const cropWithLimits = (source: CropSource, box: Box) => cropToJpeg(source, box, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality);
 const release = (s: CropSource) => (s as Partial<ImageBitmap>).close?.();
@@ -51,7 +64,7 @@ const CAMERA_TEXT: Record<CameraErrorKind, string> = {
   busy: "The camera is in use by another app. Add a photo instead.",
 };
 
-export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false }: CameraStageProps) {
+export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample }: CameraStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const [started, setStarted] = useState(false);
@@ -59,6 +72,9 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   // A photo the sender added, waiting for them to place the box and press Check this part.
   const [picked, setPicked] = useState<CropSource | null>(null);
   const [event, setEvent] = useState<SteadyEvent | null>(null);
+  // The picked photo is the sample, and the last photo sent was the sample: both are said on the page.
+  const [fromSample, setFromSample] = useState(false);
+  const [sampleSent, setSampleSent] = useState(false);
 
   // The latest callbacks, kept in refs so a parent re-render never restarts the frame watch: a fresh
   // detector would see the item still in the zone and read it a second time.
@@ -138,8 +154,10 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   }, [read]);
 
   // An added photo turns the camera off and opens the crop step; nothing is read yet.
-  const onFile = async (file: File | undefined) => {
+  const onFile = async (file: File | undefined, isSample = false) => {
     if (!file) return;
+    setFromSample(isSample);
+    setSampleSent(false);
     try {
       const source = await (decodeFile ?? decodePhoto)(file);
       setStarted(false);
@@ -150,12 +168,24 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     }
   };
   const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
+  // The sample is used only when its bytes are the tracked photo's; then it is an added photo like any other.
+  const trySample = async () => {
+    if (!sample) return;
+    try {
+      const bytes = await loadSample(sample.url);
+      if ((await bytesSha256(bytes)) !== sample.sha256) { onError?.(SAMPLE_FAILED); return; }
+      await onFile(new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" }), true);
+    } catch {
+      onError?.(SAMPLE_FAILED);
+    }
+  };
 
   if (picked) {
     return (
       <section data-testid="stage" className="stage" aria-label="Camera">
+        {fromSample && sample && <p data-testid="sample-note" className="stage-line">Sample photo from our test set: {sample.alt}. It is not your item.</p>}
         <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
-          onSend={(part) => { closePicked(); onImage(part, "upload"); }} onCancel={closePicked} />
+          onSend={(part) => { closePicked(); setSampleSent(fromSample); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
     );
   }
@@ -193,7 +223,9 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
           <input ref={uploadRef} data-testid="upload-input" className="visually-hidden" type="file" accept="image/*" {...(phone ? { capture: "environment" } : {})}
             onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
+        {sample && <>{" "}<button type="button" data-testid="sample-photo" onClick={() => void trySample()}>Try a sample photo</button></>}
       </p>
+      {sampleSent && <p data-testid="sample-sent" className="stage-line">The last check used a sample photo from our test set, not your item.</p>}
     </section>
   );
 }

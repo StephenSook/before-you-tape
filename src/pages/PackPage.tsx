@@ -23,6 +23,11 @@ import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
 import { VerdictChip } from "../ui/VerdictChip";
+import manifest from "../../eval/set/manifest.json";
+
+// A tracked eval photo (the /judge sample's body lotion) for a sender with no camera or no item at hand.
+const SAMPLE_ITEM = manifest.items.find((i) => i.itemId === "own-18")!;
+const SAMPLE_PHOTO = { url: SAMPLE_ITEM.photo, sha256: SAMPLE_ITEM.photoSha256, alt: SAMPLE_ITEM.alt };
 
 export interface PackConfig {
   killCloud: boolean;
@@ -32,6 +37,8 @@ export interface PackConfig {
 }
 
 export interface PackPageProps {
+  // Loads the sample photo's bytes; the page fetches it from the site when none is given.
+  loadSample?: (url: string) => Promise<ArrayBuffer>;
   store: BoxStore;
   models: ItemModels;
   gate: GateState;
@@ -436,7 +443,7 @@ export function PackPage(p: PackPageProps) {
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
-            onTypeIt={() => setTyping(true)} />
+            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}

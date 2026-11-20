@@ -7,6 +7,9 @@ import { noPersistence, type LoadResult } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import manifest from "../../eval/set/manifest.json";
 import { deviceConsent } from "../data/deviceConsent";
 
 const liquidLotionLabelRead: ItemRead = {
@@ -26,6 +29,18 @@ const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
 // Adds a photo and presses "Check this part" on the crop step, as a sender does.
 const addPhoto = async () => {
   await userEvent.upload(screen.getByTestId("upload-input"), photo);
+  const send = await screen.findByRole("button", { name: "Check this part" });
+  await waitFor(() => expect(send).toBeEnabled());
+  await userEvent.click(send);
+};
+
+// The tracked sample photo's own bytes, as the page would fetch them.
+const sampleBytes = readFileSync(join(process.cwd(), "public", manifest.items.find((i) => i.itemId === "own-18")!.photo));
+const loadSample = async () => sampleBytes.buffer.slice(sampleBytes.byteOffset, sampleBytes.byteOffset + sampleBytes.byteLength);
+// Presses "Try a sample photo", then "Check this part" on the crop step, as a judge with no camera does.
+const trySample = async () => {
+  await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+  await screen.findByTestId("sample-note");
   const send = await screen.findByRole("button", { name: "Check this part" });
   await waitFor(() => expect(send).toBeEnabled());
   await userEvent.click(send);
@@ -240,6 +255,36 @@ describe("PackPage", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
     localStorage.clear();
+  });
+
+  it("offers a sample photo that waits for the cloud choice like any photo, and makes no model call before it", async () => {
+    const { models } = setup({ loadSample }, null);
+    await trySample();
+    expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
+    expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+    expect(models.device.generate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("item-card")).toBeNull();
+  });
+
+  it("reads the sample photo on this laptop only, with cloud checks off, and never sends it to the cloud", async () => {
+    const { models } = setup({ loadSample, gate: "available" }, false);
+    await trySample();
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read on this laptop");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+    expect(models.device.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the sample photo in the cloud after Allow when this laptop has no model of its own", async () => {
+    const { models } = setup({ loadSample, gate: "no_api" }, null);
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    await trySample();
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
+    expect(models.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
   it("says photos and label text stay on this laptop when cloud checks are off and it reads on its own", () => {
