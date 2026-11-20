@@ -32,6 +32,40 @@ export interface ItemCardProps {
   // The item's last save did not reach the server.
   unsaved?: boolean;
   onRetrySave?: () => void;
+  // How many of this item go in the box (the lithium count depends on it), and taking it out of the box.
+  onQuantity?: (itemId: string, n: number) => void;
+  onRemove?: (itemId: string) => void;
+}
+
+// "How many" keeps what the sender is typing (an empty field mid-edit) and sends a whole number from 1 to 99 only
+// when the sender leaves the field or presses Enter, so the counts passed on the way (1, then 10, on the way to
+// 100) are never saved. Any other text is marked, says why, and gives way to the last good count on leaving.
+function HowMany({ itemId, quantity, onChange }: { itemId: string; quantity: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(quantity));
+  const [shown, setShown] = useState(quantity);
+  if (shown !== quantity) {
+    setShown(quantity);
+    setText(String(quantity));
+  }
+  const n = Number(text);
+  const valid = text.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 99;
+  const errorId = `how-many-error-${itemId}`;
+  return (
+    <>
+      <label>
+        How many{" "}
+        <input type="number" min={1} max={99} step={1} inputMode="numeric" className="how-many" value={text}
+          aria-invalid={valid ? undefined : true} aria-describedby={valid ? undefined : errorId}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          onBlur={() => {
+            if (!valid) setText(String(quantity));
+            else if (n !== quantity) onChange(n);
+          }} />
+      </label>
+      {!valid && <span id={errorId} className="field-error">Type a whole number from 1 to 99.</span>}
+    </>
+  );
 }
 
 // A layer's freshness. "Checked" would read as a person's check, which the destination line describes itself.
@@ -108,7 +142,7 @@ function batteryLine(item: BoxItem): string | null {
 // The section the engine gives its own checks (identity, reading, disagreeing reads, item count, rule layers).
 const OWN_CHECK = "Before You Tape: ";
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave }: ItemCardProps) {
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave, onQuantity, onRemove }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   const reason = verdict.hits[0]?.text;
@@ -124,7 +158,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
   const disputed = openDisputes(item.disputes);
   const [asking, setAsking] = useState<{ field: DisputeField; side: "device" | "cloud" } | null>(null);
   return (
-    <article data-testid="item-card" id={`item-${item.itemId}`} className={newest ? "card newest" : "card"} aria-label={name}>
+    <article data-testid="item-card" id={`item-${item.itemId}`} tabIndex={-1} className={newest ? "card newest" : "card"} aria-label={name}>
       {crop && <img data-testid="crop-image" src={`data:${crop.mimeType};base64,${crop.base64}`} alt={`The photo of ${name} that was read`} />}
       <p className="item-name">{name}{item.quantity > 1 ? ` x ${item.quantity}` : ""}</p>
       <VerdictChip level={verdict.level} />
@@ -173,6 +207,12 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {needsIdentity && <button type="button" data-testid="confirm-identity" onClick={() => onConfirm?.(item.itemId)}>Yes, this is {name}</button>}
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}
       {needsLithium && <button type="button" onClick={() => { setFocusField("lithiumGrams"); setFixOpen(true); }}>Type the lithium amount</button>}
+      {(onQuantity || onRemove) && (
+        <p className="item-controls">
+          {onQuantity && <HowMany itemId={item.itemId} quantity={item.quantity} onChange={(n) => onQuantity(item.itemId, n)} />}{" "}
+          {onRemove && <button type="button" aria-label={`Remove ${name}`} onClick={() => onRemove(item.itemId)}>Remove</button>}
+        </p>
+      )}
       <details open={fixOpen} onToggle={(e) => setFixOpen(e.currentTarget.open)}>
         <summary>Fix this reading</summary>
         {/* Keyed on the overrides, so the form starts again from what the sender sees after each save. */}

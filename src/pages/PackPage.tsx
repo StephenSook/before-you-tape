@@ -124,6 +124,40 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
+  // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
+  const [removed, setRemoved] = useState("");
+  const focusAfterRemove = useRef<string | null>(null);
+  const removeItem = (itemId: string) => {
+    const at = state.items.findIndex((i) => i.itemId === itemId);
+    const removedItem = state.items[at];
+    if (!removedItem) return;
+    const next = state.items[at + 1] ?? state.items[at - 1];
+    focusAfterRemove.current = next ? `item-${next.itemId}` : "box-heading";
+    store.remove(itemId);
+    // A removed item's photo goes nowhere: its waiting and queued second looks are dropped with it.
+    looks.current.delete(itemId);
+    waitingForOnline.current.delete(itemId);
+    lookAgain.current.delete(itemId);
+    // A look already running is stopped: no retry and no fallback model, and what it brings back is dropped.
+    lookWork.current.get(itemId)?.();
+    setCrops((c) => { const { [itemId]: _gone, ...rest } = c; void _gone; return rest; });
+    // Emptied first, so the same words for a second removal are read out again. A newer removal replaces a
+    // notice still waiting, and leaving the page clears it.
+    const text = `Removed ${removedItem.overrides.itemName ?? removedItem.read.itemName}.`;
+    setRemoved("");
+    removalNotice.current?.();
+    const clear = () => { clearTimeout(id); timers.current.delete(clear); if (removalNotice.current === clear) removalNotice.current = null; };
+    const id = setTimeout(() => { clear(); if (!gone.current) setRemoved(text); }, 50);
+    timers.current.add(clear);
+    removalNotice.current = clear;
+  };
+  const removalNotice = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const target = focusAfterRemove.current;
+    if (!target) return;
+    focusAfterRemove.current = null;
+    document.getElementById(target)?.focus();
+  }, [state.items]);
   const edition = store.edition();
   const now = p.now ?? (() => performance.now());
   const newCropKey = p.newCropKey ?? (() => crypto.randomUUID());
@@ -213,10 +247,15 @@ export function PackPage(p: PackPageProps) {
   // back online) is kept and runs once the current one ends, if the item still needs it.
   const looking = useRef(new Set<string>());
   const lookAgain = useRef(new Set<string>());
+  // How to stop each item's running look, for a removal.
+  const lookWork = useRef(new Map<string, () => void>());
+  const inBox = (itemId: string) => store.getState().items.some((i) => i.itemId === itemId);
 
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
     if (!look) return;
+    // An item removed from the box is never sent to the cloud again.
+    if (!inBox(itemId)) { looks.current.delete(itemId); return; }
     if (looking.current.has(itemId)) { lookAgain.current.add(itemId); return; }
     // The inputs as they are now: this may run after a wait or a reconnect, long after the render it closes over.
     if (!shouldRunSecondLook(look.reason, liveInputs())) {
@@ -228,26 +267,28 @@ export function PackPage(p: PackPageProps) {
     setOffered((o) => ({ ...o, [itemId]: false }));
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
+    lookWork.current.set(itemId, work.abort);
     const limit = timeLimit(readTimeoutMs, work, () => {
       if (looks.current.has(itemId)) store.setError(itemId, SECOND_LOOK_TOO_SLOW);
       setChecking((c) => ({ ...c, [itemId]: false }));
     });
     const { models: m } = live.current;
     try {
-      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, stillAllowed, work.signal);
+      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, () => stillAllowed() && inBox(itemId), work.signal);
       limit.clear();
-      if (gone.current || limit.over) return;
+      if (gone.current || limit.over || !inBox(itemId)) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel, out.disputes);
       looks.current.delete(itemId);
     } catch (e) {
       limit.clear();
-      // A look ended by leaving the page, or by its time limit, says nothing more.
-      if (gone.current || limit.over) return;
+      // A look ended by leaving the page, by its time limit, or by removing its item says nothing more.
+      if (gone.current || limit.over || !inBox(itemId)) return;
       const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
       if (kind === "cloud_unreachable") waitingForOnline.current.add(itemId);
       store.setError(itemId, SECOND_LOOK_FAILURE[kind]);
     } finally {
       looking.current.delete(itemId);
+      lookWork.current.delete(itemId);
       work.end();
       setChecking((c) => ({ ...c, [itemId]: false }));
       if (lookAgain.current.delete(itemId) && !gone.current && looks.current.has(itemId)) void secondLook(itemId);
@@ -335,6 +376,8 @@ export function PackPage(p: PackPageProps) {
   };
 
   const newestItem = state.items.at(-1);
+  // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
+  const removedUnsaved = (state.unsaved ?? []).filter((id) => !state.items.some((i) => i.itemId === id)).length;
   const newestVerdict = newestItem ? state.result.items[newestItem.itemId] : undefined;
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -393,6 +436,13 @@ export function PackPage(p: PackPageProps) {
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
         </div>
         <div>
+          <p data-testid="removal-notice" role="status" className="removal-notice">{removed}</p>
+          {removedUnsaved > 0 && (
+            <p data-testid="removal-unsaved" className="banner" role="alert">
+              {removedUnsaved === 1 ? "A removal is not saved yet." : `${removedUnsaved} removals are not saved yet.`}{" "}
+              <button type="button" onClick={() => store.retrySave()}>Try saving again</button>
+            </p>
+          )}
           <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
@@ -403,6 +453,7 @@ export function PackPage(p: PackPageProps) {
                 onFix={(id, patch) => store.override(id, patch)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
                 unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
+                onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
                 onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}
