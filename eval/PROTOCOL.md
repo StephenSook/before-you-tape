@@ -30,6 +30,10 @@ change to this file after the freeze fails the manifest test.
 - A hazard item is an item whose label is not "OK to pack" for at least one destination; a lotion that
   is fine for Canada but barred by the Philippines is one. The manifest check rejects any hazard flag
   that disagrees with the labels.
+- The blind check's calls (a second person's verdict for each item and destination, made without seeing the
+  labels) are scored against the labels: agreement over the same rows, and Cohen's kappa over the three
+  verdicts. Both are shown beside the model numbers, so a reader sees how often two people agree before
+  reading how often a model agrees with the labels.
 
 ## Rule changes after labelling
 
