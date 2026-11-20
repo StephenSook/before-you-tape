@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The destination picker no longer makes the page scroll sideways on a narrow screen. A native select is as wide as its longest option, and before the web fonts load it is drawn in the fallback font, which on Linux and some phones is wider: on main, the /judge page at 390 px scrolled 6 px sideways in one CI run and not in the run before it. A select now never grows past the space it sits in. Source: the accessibility check on main. Verified: a new check (/judge at 320 px with the web fonts blocked) failed first with 40 px of sideways scroll and passes; /judge at 390 and 320 px, fonts loaded or blocked, shows no overflow; unit suite, lint, typecheck, tone and guard pass.
+
 - The CI step that needs the App Check debug token runs only on main and on this repository's own branches. A pull request from a fork gets no secrets from GitHub, so it skips the step instead of failing CI. The step's comment now says that the workflow never prints the token while the Firebase SDK logs it to the browser console, which the checks do not record. Source: review of the CI step. Verified: the workflow parses; this pull request's own run executes the step.
 
 - CI now runs the browser checks that need App Check: the accessibility pass, the smoke checks, the Pack page with the model host answered by the test, and the check that the debug token reaches only this app's own pages. The CI debug token is set only as that one step's environment and the workflow never prints it; the secrets ledger names the step. These checks make no model call. Source: plan item 10. Verified: the workflow parses; the specs run in CI with the token (see the run on this pull request).
