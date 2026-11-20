@@ -1,5 +1,7 @@
 // /ran: where each step runs and what leaves the device. It follows the routing in src/routing/policy.ts
 // (chooseImageRoute, chooseReadRoute, shouldRunSecondLook) and the cloud switch the sender controls.
+import { BOX_LIST_SAVED } from "../ui/boxListCopy";
+
 const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Type an item", runs: "No model. The rules run in your browser.", leaves: "Nothing." },
   { action: "Hold an item still in front of the camera", runs: "The built-in model on this device, if it has one. Otherwise nothing runs until you press Check now.", leaves: "Nothing: a read the camera starts by itself uses this device, never the cloud." },
@@ -20,7 +22,7 @@ export function RanPage() {
           {ROWS.map((r) => <tr key={r.action}><td>{r.action}</td><td>{r.runs}</td><td>{r.leaves}</td></tr>)}
         </tbody>
       </table>
-      <p>Photos and label words are kept on this device. Your box list is saved without them, so it survives a reload.</p>
+      <p>{BOX_LIST_SAVED}</p>
     </div>
   );
 }

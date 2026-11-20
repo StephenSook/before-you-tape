@@ -410,7 +410,7 @@ export function PackPage(p: PackPageProps) {
       {state.cloudConsent !== null && (
         <p data-testid="cloud-choice">
           {state.cloudConsent ? "Cloud checks are on." : gate === "available"
-            ? "Cloud checks are off. Photos and label words stay on this laptop."
+            ? "Cloud checks are off. Photos and label text stay on this laptop."
             : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
           <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
             {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
