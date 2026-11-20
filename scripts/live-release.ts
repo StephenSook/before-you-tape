@@ -18,8 +18,9 @@ import { pathToFileURL } from "node:url";
 const SITE = "before-you-tape-2026";
 const DEPLOYER = "byt-deploy@before-you-tape-2026.iam.gserviceaccount.com";
 const CLI = ["--yes", "firebase-tools@15.34.2"];
-// Under the workflow's 8-minute limit for the rollback step.
-const RESTORE_BUDGET_MS = 6.5 * 60_000;
+// New checks start only within this time. One check can take about 100 s (two channel reads of up to 45 s
+// and a 10 s fetch), so the last one still ends inside the workflow's 8-minute limit for the rollback step.
+const RESTORE_BUDGET_MS = 5 * 60_000;
 
 export interface Served { sha: string; dirty: boolean }
 export interface Release { version: string; sha: string; dirty: boolean }
@@ -99,7 +100,9 @@ export async function restore(live: Live, want: Release, o: RestoreOptions): Pro
     try {
       await live.clone(want.version);
     } catch (e) {
-      // A clone whose answer was lost may still have applied; the checks below decide.
+      // A drill must prove its own clone worked, so a failed clone fails it. Otherwise a clone whose answer
+      // was lost may still have applied, and the checks below decide.
+      if (o.requireClone) throw new Error(`rollback drill: the clone command failed: ${message(e)}`, { cause: e });
       console.log(`clone: ${message(e)}`);
     }
   }

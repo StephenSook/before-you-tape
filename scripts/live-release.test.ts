@@ -103,6 +103,11 @@ describe("restoring a release", () => {
     expect(live.clones).toEqual([]);
   });
 
+  it("fails a drill whose clone command fails, even if the recorded release then shows up", async () => {
+    const live = fakeLive([rel("v2"), rel("v1")], [{ sha, dirty: false }], new Error("clone refused"));
+    await expect(restore(live, want, { ...opts, requireClone: true })).rejects.toThrow(/drill: the clone command failed: clone refused/);
+  });
+
   it("fails a drill whose deploy never replaced the recorded release, since nothing was rolled back", async () => {
     const live = fakeLive([rel("v1")], [{ sha, dirty: false }]);
     await expect(restore(live, want, { ...opts, requireClone: true })).rejects.toThrow(/drill.*nothing to roll back/);
