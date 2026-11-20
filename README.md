@@ -35,6 +35,7 @@ npm run hygiene         # flags private notes in tracked files (fails once the r
 npm run edition:check   # fails when rules/edition.json is out of date with its part files
 npm run build:embed     # the rules engine as one script for the iPhone and Android apps
 npm run release:gate    # run before a release (see below)
+npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval baseline on eval/set, no model call (eval/PROTOCOL.md)
 ```
 
 ## Checks on every push
