@@ -46,6 +46,8 @@ npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval b
 
 `npm run release:gate` fails while any country listing has not been checked line by line by a person, or while any rule layer would be past its limit on the last judging day. It is run before a release, not on every commit.
 
+It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-17, so that layer would read stale on the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
+
 ## Security you can check
 
 - **App Check is enforced for Firebase AI Logic.** A model call with the site's public web key but no App Check token is refused with HTTP 401 "Firebase App Check token is invalid." The exact `curl` is in [`docs/SECURITY.md`](docs/SECURITY.md#check-it-yourself), and the daily probe makes the same call.
