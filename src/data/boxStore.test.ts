@@ -54,15 +54,18 @@ const savedItemWithOldVerdict: BoxItem = { ...phoneItem, itemId: "saved-1", read
 describe("createBoxStore", () => {
   it("re-checks on a country change with no model call", () => {
     const s = store();
+    s.setDestination("CA");
     const id = s.addManual(liquidLotionRead);
     expect(s.getState().result.items[id]?.headline).toBe("OK to pack");
+    const rechecks = s.getState().sources.rulesOnlyRechecks;
     s.setDestination("PH");
     expect(s.getState().result.items[id]?.headline).toBe("Take it out");
-    expect(s.getState().sources.rulesOnlyRechecks).toBe(1);
+    expect(s.getState().sources.rulesOnlyRechecks).toBe(rechecks + 1);
   });
 
   it("keeps the re-check time only until the box changes, so it never describes a later read", () => {
     const s = store();
+    s.setDestination("CA");
     s.addManual(liquidLotionRead);
     s.setDestination("PH");
     expect(s.getState().lastRecheckMs).not.toBeNull();
@@ -195,7 +198,8 @@ describe("createBoxStore", () => {
     const before = s.getState().result;
     const seen = vi.fn();
     s.subscribe(seen);
-    const newer = { ...ed, editionId: "byt-newer000001", destinations: { ...ed.destinations, CA: { ...ed.destinations.CA!, checkedOn: "2026-11-25" } } };
+    const code = s.getState().destinationCode;
+    const newer = { ...ed, editionId: "byt-newer000001", destinations: { ...ed.destinations, [code]: { ...ed.destinations[code]!, checkedOn: "2026-11-25" } } };
     s.setEdition(newer);
     expect(s.edition().editionId).toBe("byt-newer000001");
     expect(seen).toHaveBeenCalledTimes(1);
@@ -327,6 +331,8 @@ describe("createBoxStore", () => {
     const flammable = { ...liquidLotionRead, labelText: "FLAMMABLE BODY LOTION" };
     const p = spyPersistence();
     const s = store({ persistence: p });
+    // Canada, where an unflammable body lotion is OK to pack.
+    s.setDestination("CA");
     const id = s.addRead(outcome(flammable, "on_device"), "k");
     // The sender corrects the label while the cloud read is out; the cloud then reads FLAMMABLE as well.
     s.override(id, { labelText: "SHEA BODY LOTION 8 FL OZ" });
@@ -349,6 +355,8 @@ describe("createBoxStore", () => {
     // Adds the device read, answers as a sender would, then lands the second look.
     const look = (device: ItemRead, cloud: ItemRead, withDisputes = true, p?: BoxOps) => {
       const s = store(p ? { persistence: p } : {});
+      // Canada, where these items are OK to pack once their reads agree.
+      s.setDestination("CA");
       const id = s.addRead(outcome(device, "on_device"), "k");
       s.answer(id, "device_condition", "new_sealed");
       s.answer(id, "cell_count", "one");
@@ -453,6 +461,7 @@ describe("createBoxStore", () => {
       const whole = `${"x".repeat(150)} FLAMMABLE-FREE LOTION`;
       const cloud = { ...lotion, labelText: Array.from(whole).slice(0, 160).join("") };
       const s = store();
+      s.setDestination("CA");
       const id = s.addRead(outcome(lotion, "on_device"), "k");
       s.applySecondLook(id, mergeReads(lotion, cloud), 900, "reason", whole, readDisputes(lotion, cloud));
       expect(s.getState().items[0]?.labelTags).not.toContain("flammable");
@@ -490,9 +499,9 @@ describe("createBoxStore", () => {
     });
   });
 
-  it("removes an item, records errors and customs, and starts in Canada with consent unanswered", () => {
+  it("removes an item, records errors and customs, and starts in the Philippines with consent unanswered", () => {
     const s = store();
-    expect(s.getState().destinationCode).toBe("CA");
+    expect(s.getState().destinationCode).toBe("PH");
     expect(s.getState().cloudConsent).toBeNull();
     const id = s.addManual(shirtRead);
     s.setError(id, "Could not read this one");

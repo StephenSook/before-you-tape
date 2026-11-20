@@ -133,7 +133,8 @@ export interface BoxStoreDeps {
   deviceNames?: DeviceNames;
 }
 
-const DEFAULT_DESTINATION = "CA";
+// A new box starts in the Philippines: Canada's mail is suspended from 2026-11-29 (rules/suspensions.json).
+const DEFAULT_DESTINATION = "PH";
 
 // Items in the order they were added. The server returns them by id, which is random; an item saved before
 // addedAt existed keeps its place after the dated ones.

@@ -4,6 +4,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { noPersistence } from "../data/boxOps";
 import { createBoxStore, type BoxItem, type BoxStore } from "../data/boxStore";
+import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
@@ -43,6 +44,14 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
     return r ? [[d.code, r.by] as const] : [];
   }));
   const country = index.find((d) => d.code === state.destinationCode)?.name ?? state.destinationCode;
+  const dest = state.result.destination;
+  // A suspension the post office has announced, for a country a judge can pick: the rules follow USPS.
+  const examples = (edition.suspensions.upcoming ?? []).flatMap((u) => {
+    const name = index.find((d) => d.code === u.code)?.name;
+    if (!name) return [];
+    const verb = today >= u.from ? "stopped" : "stops";
+    return [`USPS ${verb} taking mail to ${name} on ${longDate(u.from)}. Pick ${name} to see the app say so.`];
+  });
   const byId = new Map(SAMPLE_BOX.map((s) => [s.itemId, s]));
 
   return (
@@ -54,7 +63,13 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       </p>
       <p><a href="/">Check your own box</a></p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
+      {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+      {!dest.suspended && dest.suspendsFrom && (
+        <p data-testid="suspension-ahead-banner" className="banner" role="status">
+          The post office stops taking mail to {country} on {longDate(dest.suspendsFrom)}. Mail this box before then.
+        </p>
+      )}
       <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
         recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country }} />
       {state.items.map((item) => {

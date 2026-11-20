@@ -13,10 +13,12 @@ test("the sample box works with no sign-in, camera or model", async ({ page }) =
   const cards = page.getByTestId("sample-card");
   await expect(cards).toHaveCount(9);
   const lotion = cards.filter({ has: page.locator(".item-name", { hasText: "Body lotion" }) });
-  await expect(lotion.getByTestId("verdict-chip")).toHaveText("OK to pack");
-  await expect(lotion.getByRole("img")).toHaveJSProperty("complete", true);
-  await page.getByTestId("destination-picker").selectOption("PH");
+  // The sample box starts in the Philippines, where liquid lotion is out; Canada takes it.
+  await expect(page.getByTestId("destination-picker")).toHaveValue("PH");
   await expect(lotion.getByTestId("verdict-chip")).toHaveText("Take it out");
+  await expect(lotion.getByRole("img")).toHaveJSProperty("complete", true);
+  await page.getByTestId("destination-picker").selectOption("CA");
+  await expect(lotion.getByTestId("verdict-chip")).toHaveText("OK to pack");
   await expect(page.getByTestId("recheck-line")).toContainText("0 model calls");
   expect(googleApis).toEqual([]);
 });
