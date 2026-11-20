@@ -23,6 +23,8 @@ Requirements: Node.js 24.12 or newer and npm (the Firebase SDK this app uses nee
 2. Copy `.env.example` to `.env.local` and fill in your own Firebase web config and reCAPTCHA Enterprise site key. Never commit `.env.local`.
 3. `npm run dev` starts the local server.
 
+A browser on localhost does not pass App Check: this project's reCAPTCHA key allows only the deployed site. Cloud checks there need an App Check debug token registered in the Firebase console; the browser tests take one from `APPCHECK_DEBUG_TOKEN` and set it in the page (`tests/e2e/fixtures.ts`). With your own Firebase project, you can add localhost to your own reCAPTCHA key instead.
+
 ```bash
 npm run test            # unit tests
 npm run test:rules      # Firestore rules tests in the local emulator

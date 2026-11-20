@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The README says a browser on localhost does not pass App Check, because the project's reCAPTCHA key allows only the deployed site, so cloud checks there need a registered App Check debug token (the browser tests take one from APPCHECK_DEBUG_TOKEN), or localhost added to your own project's key. Source: review of the README. Verified: matched to src/firebase/app.ts and tests/e2e/fixtures.ts; tone and hygiene pass.
+
 - /measured and /worksheet are no longer served: their pages are not built, and each showed only a heading. Both now get the site's not-found page, and a test fails if any public route has no built page. Source: review of the public routes. Verified: the route and hosting tests failed first (the routes were listed and served) and pass; unit suite, lint, typecheck, tone and guard pass.
 
 - The consent choice that keeps checks off the cloud now says "Check on this laptop only" instead of "Keep everything on this laptop": the box list still saves each item's category, battery numbers, answers and label words found to the account, so "everything" was not true. The Android button changes the same way. Source: review of the consent copy. Verified: the consent test fails on the old label and passes; unit suite, lint, typecheck, tone and guard pass.
