@@ -10,3 +10,4 @@ What the app cannot catch on its own, and what it relies on the sender for.
 - Opening a box never writes to it. An item saved with a second look that was changed elsewhere since opens held at "Check this", and that held state is saved only when the sender next edits the item; until then a reload holds it again.
 - A saved box this device is not allowed to read (for example one made by another sign-in on the same browser) stays "could not be opened". New edits stay on this device and are not saved; the app does not start a new box in its place.
 - An item changed on one device while it was offline, and removed on another device meanwhile, comes back when the first device saves its change: the saves go item by item, and the later save wins.
+- Android does not run the cloud second look. On a phone with an on-device model, that one read and the rules decide, and the card says which read it was.

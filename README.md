@@ -13,7 +13,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
-The same rules run in the iPhone app ([`ios/README.md`](ios/README.md)) and the Android app ([`android/RELEASE.md`](android/RELEASE.md)).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)).
 
 ## Run it
 

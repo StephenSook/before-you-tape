@@ -3,6 +3,13 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **Android says it runs no cloud second look.** `docs/LIMITS.md` now states that Android does not run
+  the cloud second look: on a phone with an on-device model, that one read and the rules decide, and
+  the card says which read it was ("Read on this phone"). Two copy tests pin it: no on-screen text
+  mentions a second look, and an on-device read is labelled "Read on this phone". Source: review of
+  what Android claims. Verified: both tests failed against a planted copy line naming a second look,
+  then pass on the real copy (`CopyTest` 7 of 7); `Copy.kt` was restored byte for byte.
+
 - **A photo read keeps the tags of its whole label, never of the clipped text.** The box tagged a
   read's label text after the parser had clipped it to 160 characters, and the engine trusts tags
   that cover the label, so a hazard word past the cap was lost (FLAMMABLE could read "OK to pack")
