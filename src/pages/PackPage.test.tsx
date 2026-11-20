@@ -66,10 +66,12 @@ describe("PackPage", () => {
     const howMany = within(card).getByLabelText("How many");
     await userEvent.clear(howMany);
     await userEvent.type(howMany, "3");
+    await userEvent.tab();
     await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out"));
     expect(screen.getByTestId("box-summary")).toHaveTextContent("1 to take out");
     await userEvent.clear(within(screen.getByTestId("item-card")).getByLabelText("How many"));
     await userEvent.type(within(screen.getByTestId("item-card")).getByLabelText("How many"), "1");
+    await userEvent.tab();
     await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
     await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: /^Remove / }));
     expect(screen.queryByTestId("item-card")).toBeNull();
@@ -332,15 +334,31 @@ describe("PackPage", () => {
     expect(screen.queryByText("Your saved box could not be opened. New items stay on this device until it opens.")).toBeNull();
   });
 
+  it("says a removal is not saved yet when its delete fails, and offers to save again", async () => {
+    const ops = { ...noPersistence(), deleteItem: vi.fn<(boxId: string, itemId: string) => Promise<void>>(async () => { throw new Error("offline"); }) };
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    setup({ store });
+    await store.ready;
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" }); });
+    await store.settled();
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Lotion" }));
+    await store.settled();
+    expect(await screen.findByTestId("removal-unsaved")).toHaveTextContent("A removal is not saved yet.");
+    ops.deleteItem.mockResolvedValue(undefined);
+    await userEvent.click(within(screen.getByTestId("removal-unsaved")).getByRole("button", { name: "Try saving again" }));
+    await store.settled();
+    await waitFor(() => expect(screen.queryByTestId("removal-unsaved")).toBeNull());
+  });
+
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
     const { store } = setup();
     await store.ready;
     act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion A" }); store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion B" }); });
     await userEvent.click(await screen.findByRole("button", { name: "Remove Lotion A" }));
-    expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion A.");
+    await waitFor(() => expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion A."));
     expect(document.activeElement).toBe(screen.getByRole("article", { name: "Lotion B" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove Lotion B" }));
-    expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion B.");
+    await waitFor(() => expect(screen.getByTestId("removal-notice")).toHaveTextContent("Removed Lotion B."));
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Your box" }));
   });
 });

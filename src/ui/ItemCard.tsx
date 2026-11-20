@@ -37,9 +37,9 @@ export interface ItemCardProps {
   onRemove?: (itemId: string) => void;
 }
 
-// "How many" keeps what the sender is typing (an empty field mid-edit) and sends whole numbers from 1 to 99. Any
-// other text is marked, says why, and gives way to the last good count when the sender leaves the field, so the
-// field never shows a count the verdict is not using.
+// "How many" keeps what the sender is typing (an empty field mid-edit) and sends a whole number from 1 to 99 only
+// when the sender leaves the field or presses Enter, so the counts passed on the way (1, then 10, on the way to
+// 100) are never saved. Any other text is marked, says why, and gives way to the last good count on leaving.
 function HowMany({ itemId, quantity, onChange }: { itemId: string; quantity: number; onChange: (n: number) => void }) {
   const [text, setText] = useState(String(quantity));
   const [shown, setShown] = useState(quantity);
@@ -56,12 +56,12 @@ function HowMany({ itemId, quantity, onChange }: { itemId: string; quantity: num
         How many{" "}
         <input type="number" min={1} max={99} step={1} inputMode="numeric" className="how-many" value={text}
           aria-invalid={valid ? undefined : true} aria-describedby={valid ? undefined : errorId}
-          onChange={(e) => {
-            setText(e.target.value);
-            const next = Number(e.target.value);
-            if (e.target.value.trim() !== "" && Number.isInteger(next) && next >= 1 && next <= 99) onChange(next);
-          }}
-          onBlur={() => { if (!valid) setText(String(quantity)); }} />
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          onBlur={() => {
+            if (!valid) setText(String(quantity));
+            else if (n !== quantity) onChange(n);
+          }} />
       </label>
       {!valid && <span id={errorId} className="field-error">Type a whole number from 1 to 99.</span>}
     </>

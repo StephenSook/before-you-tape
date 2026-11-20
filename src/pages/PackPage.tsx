@@ -129,12 +129,20 @@ export function PackPage(p: PackPageProps) {
   const focusAfterRemove = useRef<string | null>(null);
   const removeItem = (itemId: string) => {
     const at = state.items.findIndex((i) => i.itemId === itemId);
-    const gone = state.items[at];
-    if (!gone) return;
+    const removedItem = state.items[at];
+    if (!removedItem) return;
     const next = state.items[at + 1] ?? state.items[at - 1];
     focusAfterRemove.current = next ? `item-${next.itemId}` : "box-heading";
     store.remove(itemId);
-    setRemoved(`Removed ${gone.overrides.itemName ?? gone.read.itemName}.`);
+    // A removed item's photo goes nowhere: its waiting and queued second looks are dropped with it.
+    looks.current.delete(itemId);
+    waitingForOnline.current.delete(itemId);
+    lookAgain.current.delete(itemId);
+    setCrops((c) => { const { [itemId]: _gone, ...rest } = c; void _gone; return rest; });
+    // Emptied first, so the same words for a second removal are read out again.
+    const text = `Removed ${removedItem.overrides.itemName ?? removedItem.read.itemName}.`;
+    setRemoved("");
+    setTimeout(() => { if (!gone.current) setRemoved(text); }, 50);
   };
   useEffect(() => {
     const target = focusAfterRemove.current;
@@ -235,6 +243,8 @@ export function PackPage(p: PackPageProps) {
   const secondLook = async (itemId: string) => {
     const look = looks.current.get(itemId);
     if (!look) return;
+    // An item removed from the box is never sent to the cloud again.
+    if (!store.getState().items.some((i) => i.itemId === itemId)) { looks.current.delete(itemId); return; }
     if (looking.current.has(itemId)) { lookAgain.current.add(itemId); return; }
     // The inputs as they are now: this may run after a wait or a reconnect, long after the render it closes over.
     if (!shouldRunSecondLook(look.reason, liveInputs())) {
@@ -353,6 +363,8 @@ export function PackPage(p: PackPageProps) {
   };
 
   const newestItem = state.items.at(-1);
+  // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
+  const removedUnsaved = (state.unsaved ?? []).filter((id) => !state.items.some((i) => i.itemId === id)).length;
   const newestVerdict = newestItem ? state.result.items[newestItem.itemId] : undefined;
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -412,6 +424,12 @@ export function PackPage(p: PackPageProps) {
         </div>
         <div>
           <p data-testid="removal-notice" role="status" className="removal-notice">{removed}</p>
+          {removedUnsaved > 0 && (
+            <p data-testid="removal-unsaved" className="banner" role="alert">
+              {removedUnsaved === 1 ? "A removal is not saved yet." : `${removedUnsaved} removals are not saved yet.`}{" "}
+              <button type="button" onClick={() => store.retrySave()}>Try saving again</button>
+            </p>
+          )}
           <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {

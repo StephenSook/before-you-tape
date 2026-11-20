@@ -68,6 +68,10 @@ describe("ItemCard", () => {
     expect(howMany).toHaveValue(2);
     await userEvent.clear(howMany);
     await userEvent.type(howMany, "3");
+    // Saved on leaving the field, not on each key.
+    expect(onQuantity).not.toHaveBeenCalled();
+    await userEvent.tab();
+    expect(onQuantity).toHaveBeenCalledTimes(1);
     expect(onQuantity).toHaveBeenLastCalledWith("p", 3);
     await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
     expect(onRemove).toHaveBeenCalledWith("p");
@@ -252,7 +256,8 @@ describe("ItemCard", () => {
     await userEvent.type(field, "100");
     expect(field).toHaveAttribute("aria-invalid", "true");
     expect(field).toHaveAccessibleDescription("Type a whole number from 1 to 99.");
-    expect(onQuantity).not.toHaveBeenCalledWith("q", 100);
+    // The counts passed on the way (1, then 10) are never saved.
+    expect(onQuantity).not.toHaveBeenCalled();
     await userEvent.tab();
     expect(field).toHaveValue(1);
     expect(field).not.toHaveAttribute("aria-invalid", "true");

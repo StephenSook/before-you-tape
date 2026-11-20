@@ -193,6 +193,20 @@ describe("Pack page second look", () => {
     expect(store.getState().items[0]?.read.milliampHours).toBe(2500);
   });
 
+  it("never sends a removed item's photo to the cloud, even when its look was waiting for the connection", async () => {
+    const cloud = failing("Failed to fetch");
+    const { rerender } = setup({ cloud });
+    await upload();
+    expect(await screen.findByRole("alert")).toHaveTextContent("No connection. This check will run when you are back online.");
+    cloud.generate.mockResolvedValue({ text: JSON.stringify(phoneCloud), source: "in_cloud" });
+    const calls = cloud.generate.mock.calls.length;
+    await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
+    rerender(false);
+    rerender(true);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(cloud.generate).toHaveBeenCalledTimes(calls);
+  });
+
   it("runs a second look that failed for no connection again once the page is back online", async () => {
     const cloud = failing("Failed to fetch");
     const { store, rerender } = setup({ cloud });
