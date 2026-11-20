@@ -47,6 +47,14 @@ if (releasePassword != null) {
     }
 }
 
+// versionCode is the HEAD commit's time (epoch seconds), so every newer build installs as an update
+// over an older one (android/check-version-code.sh checks the built APK). A shallow CI checkout still
+// has its HEAD commit; with no git at all the build falls back to 1.
+val headCommitTime: Int = providers.exec {
+    commandLine("git", "log", "-1", "--format=%ct")
+    isIgnoreExitValue = true
+}.standardOutput.asText.get().trim().toIntOrNull() ?: 1
+
 // The rules bundle built from the web repo (android/build/embed, made by :engine:buildEmbed) and
 // the bundled rules edition ship as app assets under engine/.
 abstract class CopyEngineAssets : DefaultTask() {
@@ -110,7 +118,7 @@ android {
         applicationId = "app.beforeyoutape.android"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        versionCode = headCommitTime
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Tests that call the live Firebase project run only when asked for.

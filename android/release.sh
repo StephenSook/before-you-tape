@@ -32,4 +32,6 @@ align=$?
 set -e
 echo "zipalign 16 KB check exit: $align"
 [ "$align" -eq 0 ]
+# A newer release must install as an update over an older one: versionCode is the HEAD commit time.
+./check-version-code.sh "$apk"
 echo "release APK: $apk"
