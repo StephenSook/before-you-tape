@@ -297,7 +297,10 @@ service cloud.firestore {
         && isValidBox(request.resource.data)
         && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash'])
         && consentUntouchedOrDeleted();
-      allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+      // No client deletes a box. A deleted box would leave its items and disputes behind (a delete does not
+      // reach subcollections), and its id would read as free, so anyone could start it again and become the
+      // member of those items.
+      allow delete: if false;
 
       match /items/{itemId} {
         function parentBox() {

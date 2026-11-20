@@ -73,12 +73,19 @@ describe("boxes", () => {
     await assertFails(setDoc(doc(nobody, "boxes/b2"), boxFor("alice")));
   });
 
-  it("lets only the owner delete a box", async () => {
+  // No app deletes a box. A deleted box would leave its items behind, and its free id could then be started
+  // again by anyone, who would become the member of those items.
+  it("never lets a client delete a box, so its items stay with it and its id is never free again", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
-      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/b3"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
+      const admin = c.firestore() as unknown as Firestore;
+      await setDoc(doc(admin, "boxes/b3"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
+      await setDoc(doc(admin, "boxes/b3/items/i1"), itemDoc);
     });
     await assertFails(deleteDoc(doc(bob, "boxes/b3")));
-    await assertSucceeds(deleteDoc(doc(alice, "boxes/b3")));
+    await assertFails(deleteDoc(doc(alice, "boxes/b3")));
+    expect((await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")))).exists()).toBe(true);
+    const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
+    await assertFails(setDoc(doc(eve, "boxes/b3"), boxFor("eve")));
   });
 });
 

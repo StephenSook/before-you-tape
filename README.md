@@ -13,7 +13,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
-The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build will be linked here when it ships.
 
 ## Run it
 
@@ -35,6 +35,7 @@ npm run hygiene         # flags private notes in tracked files (fails once the r
 npm run edition:check   # fails when rules/edition.json is out of date with its part files
 npm run build:embed     # the rules engine as one script for the iPhone and Android apps
 npm run release:gate    # run before a release (see below)
+npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval baseline on eval/set, no model call (eval/PROTOCOL.md)
 ```
 
 ## Checks on every push
