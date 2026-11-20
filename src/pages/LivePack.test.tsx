@@ -5,6 +5,7 @@ import { ed } from "../../tests/engine/helpers";
 import type { ItemModels, ModelPort } from "../ai/port";
 import { CONFIG_DEFAULTS } from "../config/defaults";
 import type { AppConfig, ConfigSource } from "../config/remoteConfig";
+import { noPersistence } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { LivePack } from "./LivePack";
@@ -35,7 +36,7 @@ function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "n
   // Keyed by the main name only; the tests read the fallback name from the calls.
   const hybrid = () => (gate === "available" ? port(phoneOnDevice, "on_device") : port());
   const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: hybrid(), cloud: port(), fallback: port() }));
-  const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
+  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
   store.setConsent(true);
   const cfg = fakeSource(start);
   const ui = (over: PageOver) => <LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
@@ -80,7 +81,7 @@ describe("LivePack", () => {
     let signal: AbortSignal | undefined;
     const cloud = { generate: vi.fn((_p: string, _i?: unknown, o?: { signal?: AbortSignal }) => { signal = o?.signal; return new Promise<never>(() => {}); }) };
     const makeModels = () => ({ device: port(), hybrid: port(), cloud, fallback: port() });
-    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
     store.setConsent(true);
     const cfg = fakeSource();
     render(<LivePack source={cfg.source} makeModels={makeModels} store={store} gate="no_api" openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}

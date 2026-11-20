@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import type { ItemModels, ModelPort, ModelReply } from "../ai/port";
-import { createBoxStore, type BoxPersistence } from "../data/boxStore";
+import { noPersistence, type LoadResult } from "../data/boxOps";
+import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
 import { deviceConsent } from "../data/deviceConsent";
@@ -16,7 +17,7 @@ const liquidLotionLabelRead: ItemRead = {
 const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnType<typeof vi.fn> } =>
   ({ generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source })) });
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
-const persistence = (): BoxPersistence => ({ save: () => {}, load: async () => null });
+const persistence = () => noPersistence();
 let n = 0;
 const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
@@ -294,5 +295,19 @@ describe("PackPage", () => {
     await userEvent.click(within(fix).getByRole("button", { name: "Save" }));
     expect(store.getState().items[0]?.overrides).toEqual({ flammableOnLabel: true });
     expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+  });
+
+  it("shows no country while the box loads, and offers to read a box again whose read failed", async () => {
+    let answer: (r: LoadResult) => void = () => {};
+    const loadBox = vi.fn(() => new Promise<LoadResult>((r) => { answer = r; }));
+    const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox }, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    setup({ store });
+    expect(screen.getByTestId("destination-picker")).toHaveValue("");
+    await act(async () => { answer({ status: "failed", error: "offline" }); await store.ready; });
+    expect(screen.getByRole("alert")).toHaveTextContent("Your saved box could not be opened. New items stay on this device until it opens.");
+    loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "PH", items: [] } });
+    await userEvent.click(screen.getByRole("button", { name: "Try opening it again" }));
+    await waitFor(() => expect(screen.getByTestId("destination-picker")).toHaveValue("PH"));
+    expect(screen.queryByText("Your saved box could not be opened. New items stay on this device until it opens.")).toBeNull();
   });
 });

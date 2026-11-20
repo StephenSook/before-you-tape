@@ -5,6 +5,7 @@ import { ed } from "../../tests/engine/helpers";
 import type { ModelPort } from "../ai/port";
 import { ITEM_READ_PROMPT } from "../ai/prompts";
 import { SECOND_LOOK_TEXT } from "../ai/secondLook";
+import { noPersistence } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { SecondLookPolicy } from "../routing/policy";
 import type { ItemRead } from "../shared/itemRead";
@@ -26,7 +27,7 @@ const failing = (msg: string): Spy => ({ generate: vi.fn(async () => { throw new
 
 let n = 0;
 function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean; online?: boolean; secondLook?: SecondLookPolicy } = {}) {
-  const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
+  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
   store.setConsent(o.consent ?? true);
   const read = o.device ?? phoneDevice;
   const models = { device: answers(read, "on_device"), hybrid: answers(read, "on_device"), cloud: o.cloud ?? answers(phoneCloud, "in_cloud"), fallback: answers(phoneCloud, "in_cloud") };
@@ -161,7 +162,7 @@ describe("Pack page second look", () => {
   it("runs the second look of a device read that ends after the page came back online", async () => {
     let finish: (v: { text: string; source: "on_device" }) => void = () => {};
     const device = { generate: vi.fn(() => new Promise<{ text: string; source: "on_device" }>((r) => { finish = r; })) };
-    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
     store.setConsent(true);
     const cloud = answers(phoneCloud, "in_cloud");
     const props = (online: boolean): PackPageProps => ({
@@ -181,7 +182,7 @@ describe("Pack page second look", () => {
 
   it("ends a second look that takes too long with a plain notice, not as if cloud checks were off", async () => {
     const cloud: Spy = { generate: vi.fn(() => new Promise<never>(() => {})) };
-    const store = createBoxStore({ edition: () => ed, persistence: { save: () => {}, load: async () => null }, now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
     store.setConsent(true);
     render(<PackPage store={store} models={{ device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud }} gate="available" config={{ killCloud: false }}
       index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}

@@ -350,7 +350,14 @@ export function PackPage(p: PackPageProps) {
       <p data-testid="purpose" className="purpose">Show each item, and see if it may go in the box to the country you pick.</p>
       <p><a className="judge-link" href="/judge">Judges: start here</a></p>
       <div className="pack-top">
-        <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+        <DestinationPicker index={index} readBy={readBy} value={state.destinationKnown === false ? "" : state.destinationCode}
+          onChange={(code) => store.setDestination(code)} />
+        {state.loadState === "failed" && (
+          <p role="alert">
+            Your saved box could not be opened. New items stay on this device until it opens.{" "}
+            <button type="button" onClick={() => void store.retryLoad()}>Try opening it again</button>
+          </p>
+        )}
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} cloudOn={state.cloudConsent === true && !config.killCloud} />
       </div>
