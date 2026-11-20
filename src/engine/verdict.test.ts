@@ -42,6 +42,17 @@ describe("evaluateBox", () => {
     expect(r.items.phone?.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-WH-MISMATCH");
   });
 
+  it("holds an item at Check this while its two reads disagree, and never lowers a Take it out", () => {
+    const open: BoxItemInput["disputes"] = { category: { device: "power_bank", cloud: "lotion_cream", resolved: false } };
+    const disputed = run([{ ...lotion, disputes: open }], "CA").items.lotion;
+    expect(disputed?.level).toBe("check");
+    expect(disputed?.hits[0]?.ruleId).toBe("DATA-DISPUTE");
+    // The sender confirmed the reading: nothing is left to check.
+    const settled: BoxItemInput["disputes"] = { category: { device: "power_bank", cloud: "lotion_cream", resolved: true } };
+    expect(run([{ ...lotion, disputes: settled }], "CA").items.lotion?.level).toBe("ok");
+    expect(run([{ ...lotion, disputes: open }], "PH").items.lotion?.level).toBe("take_out");
+  });
+
   it("never says OK on a category alone", () => {
     const r = run([shirtSeenOnly], "CA");
     expect(r.items.shirt?.level).toBe("check");

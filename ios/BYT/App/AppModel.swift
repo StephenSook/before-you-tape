@@ -151,8 +151,11 @@ final class AppModel {
                                     inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
             },
             parse: { read in
-                guard let data = try? JSONEncoder().encode(read) else { return nil }
-                return try? engine.parseItemRead(String(decoding: data, as: UTF8.self))
+                guard let data = try? JSONEncoder().encode(read),
+                      let parsed = try? engine.parseItemReadTagged(String(decoding: data, as: UTF8.self)) else { return nil }
+                // The parser checked the label is text; the whole of it stays in memory for tagging again.
+                let whole: String? = if case let .string(text)? = read["labelText"] { text } else { nil }
+                return ParsedRead(read: parsed.read, labelTags: parsed.labelTags, wholeLabel: whole)
             })
     }
 

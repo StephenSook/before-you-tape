@@ -101,6 +101,12 @@ function checkField(f: ItemReadField, value: unknown): void {
 }
 
 export function parseItemRead(text: string): ItemRead {
+  return parseItemReadWithLabel(text).read;
+}
+
+// The read with its label text clipped, and the whole label the model returned. The whole label is only for
+// finding label words, so a hazard word past the cap still counts; it stays in memory and is never saved.
+export function parseItemReadWithLabel(text: string): { read: ItemRead; fullLabelText: string } {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -120,5 +126,5 @@ export function parseItemRead(text: string): ItemRead {
     checkField(f, record[f.name]);
   }
   const read = record as unknown as ItemRead;
-  return { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") };
+  return { read: { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") }, fullLabelText: read.labelText };
 }

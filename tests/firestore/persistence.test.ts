@@ -4,7 +4,7 @@ import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/
 import { doc, getDoc, getDocs, collection, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem, BoxState } from "../../src/data/boxStore";
-import { firestorePersistence } from "../../src/data/persistence";
+import { firestorePersistence, revisionOf } from "../../src/data/persistence";
 import { createBoxStore } from "../../src/data/boxStore";
 import { ed } from "../engine/helpers";
 
@@ -84,6 +84,70 @@ describe("firestorePersistence", () => {
     const items = await admin(async (d) => (await getDocs(collection(d, "boxes/b1/items"))).docs.map((x) => x.data() as BoxItem));
     expect(items.map((i) => [i.itemId, i.quantity])).toEqual([["i2", 2]]);
     expect(items.every((i) => i.read.labelText === "")).toBe(true);
+  });
+
+  it("keeps a second look's disputes in their own document, loads them back onto the item, and deletes them when gone", async () => {
+    const path = (id: string) => `boxes/b1/disputes/${id}`;
+    const disputesAt = (id: string) => admin(async (d) => (await getDoc(doc(d, path(id)))).data());
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.load("b1");
+    p.save(state([item("i1", { disputes }), item("i2")]));
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    // The item document never carries them: the item's own rules stay as they are.
+    expect(await admin(async (d) => (await getDoc(doc(d, "boxes/b1/items/i1"))).data())).not.toHaveProperty("disputes");
+    // The disputes document records which version of the item it was written with.
+    const savedDisputes = await disputesAt("i1") as Record<string, unknown>;
+    const { itemRev, ...facts } = savedDisputes;
+    expect(facts).toEqual(disputes);
+    expect(itemRev).toBe(revisionOf(await admin(async (d) => (await getDoc(doc(d, "boxes/b1/items/i1"))).data())));
+    expect(await disputesAt("i2")).toBeUndefined();
+    // A fresh load puts them back on their item, and only there.
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
+    expect(back?.items?.find((i) => i.itemId === "i1")?.disputes).toEqual(disputes);
+    expect(back?.items?.find((i) => i.itemId === "i2")).not.toHaveProperty("disputes");
+    // An item that no longer has disputes, or is removed, leaves no disputes document behind.
+    p.save(state([item("i1"), item("i2", { disputes })]));
+    p.save(state([item("i1")]));
+    await p.idle();
+    expect(p.lastError()).toBeNull();
+    expect(await disputesAt("i1")).toBeUndefined();
+    expect(await disputesAt("i2")).toBeUndefined();
+  });
+
+  it("writes an item and its disputes in one batch: a refused dispute write saves neither, and says which item", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    const unsaved: Array<ReadonlySet<string>> = [];
+    p.onUnsaved?.((ids) => unsaved.push(ids));
+    await p.load("b1");
+    p.save(state([item("i1", { quantity: 1 })]));
+    await p.idle();
+    // A dispute the rules refuse (a category no read has): the item's own change must not land either.
+    const bad = { category: { device: "spaceship", cloud: "phone", resolved: false } } as unknown as BoxItem["disputes"];
+    p.save(state([item("i1", { quantity: 3, disputes: bad, secondLook: { ms: 900, reason: "r" } })]));
+    await p.idle();
+    expect(p.lastError()).not.toBeNull();
+    expect((await admin(async (d) => (await getDoc(doc(d, "boxes/b1/items/i1"))).data()))?.quantity).toBe(1);
+    expect(unsaved.at(-1)).toEqual(new Set(["i1"]));
+    // The next good save clears it.
+    p.save(state([item("i1", { quantity: 3 })]));
+    await p.idle();
+    expect(unsaved.at(-1)).toEqual(new Set());
+  });
+
+  it("holds an item at Check this when it changed after its disputes were saved", async () => {
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: true } };
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.load("b1");
+    p.save(state([item("i1", { disputes, secondLook: { ms: 900, reason: "r" } }), item("i2", { disputes, secondLook: { ms: 900, reason: "r" } })]));
+    await p.idle();
+    // Another writer changes one item without its disputes (an older app, a phone, a hand edit).
+    await admin(async (d) => { await updateDoc(doc(d, "boxes/b1/items/i1"), { quantity: 4 }); });
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
+    // The changed item's settled disputes come back open; the untouched one comes back as saved.
+    expect(back?.items?.find((i) => i.itemId === "i1")?.disputes?.category?.resolved).toBe(false);
+    expect(back?.items?.find((i) => i.itemId === "i2")?.disputes).toEqual(disputes);
   });
 
   it("keeps saving after another member joins, and never sends membership again", async () => {

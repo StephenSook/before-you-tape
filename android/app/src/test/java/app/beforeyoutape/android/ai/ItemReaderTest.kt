@@ -5,6 +5,7 @@ import app.beforeyoutape.engine.EvidenceWire
 import app.beforeyoutape.engine.ItemCategoryWire
 import app.beforeyoutape.engine.ItemReadWire
 import app.beforeyoutape.engine.RetailBoxWire
+import app.beforeyoutape.engine.TaggedRead
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -27,11 +28,19 @@ class ItemReaderTest {
     private fun reply(source: Source) = { _: SdkMode -> ModelReply(wire, source, 120) }
     private fun fails(kind: CallFailure) = { _: SdkMode -> throw ModelCallException(kind, null) }
 
-    private fun reader(model: LabelModel, gate: DeviceModelStatus, cloud: CloudState, parse: (String) -> ItemReadWire = { wire }) =
+    private fun reader(model: LabelModel, gate: DeviceModelStatus, cloud: CloudState, parse: (String) -> TaggedRead = { TaggedRead(wire, emptyList()) }) =
         ItemReader(model, parse, gate = { gate }, cloud = { cloud }, prompt = { "prompt" }, signIn = {})
 
     private val consented = CloudState(consent = true, online = true, killCloud = false)
     private val noConsent = CloudState(consent = null, online = true, killCloud = false)
+
+    /** The parser's tags (from the whole label, before the cut) ride with the read to the box. */
+    @Test fun aReadCarriesTheTagsTheParserGaveForItsWholeLabel() = runTest {
+        val m = FakeModel(listOf(reply(Source.IN_CLOUD)))
+        val out = reader(m, DeviceModelStatus.UNAVAILABLE, consented, parse = { TaggedRead(wire, listOf("flammable", "label_text")) }).read(crop)
+        assertTrue("$out", out is ReadOutcome.Read)
+        assertEquals(listOf("flammable", "label_text"), (out as ReadOutcome.Read).labelTags)
+    }
 
     /** Cloud AI Logic requests can require a Firebase Auth ID token, so a route that can reach the cloud signs in first. */
     @Test fun aCloudOnlyReadSignsInBeforeTheModelCall() = runTest {
@@ -42,14 +51,14 @@ class ItemReaderTest {
                 return ModelReply(wire, Source.IN_CLOUD, 120)
             }
         }
-        val r = ItemReader(m, { wire }, gate = { DeviceModelStatus.UNAVAILABLE }, cloud = { consented }, prompt = { "prompt" }, signIn = { order += "signin" })
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { DeviceModelStatus.UNAVAILABLE }, cloud = { consented }, prompt = { "prompt" }, signIn = { order += "signin" })
         assertTrue(r.read(crop) is ReadOutcome.Read)
         assertEquals(listOf("signin", "model:ONLY_IN_CLOUD"), order)
     }
 
     @Test fun aFailedSignInWithNoModelOnThePhoneSendsNothing() = runTest {
         val m = FakeModel(emptyList())
-        val r = ItemReader(m, { wire }, gate = { DeviceModelStatus.UNAVAILABLE }, cloud = { consented }, prompt = { "prompt" },
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { DeviceModelStatus.UNAVAILABLE }, cloud = { consented }, prompt = { "prompt" },
             signIn = { throw IllegalStateException("no network") })
         assertEquals(ReadOutcome.Failed(FailReason.CLOUD_ERROR, retryable = true), r.read(crop))
         assertEquals(0, m.modes.size)
@@ -57,7 +66,7 @@ class ItemReaderTest {
 
     @Test fun aFailedSignInWithAModelOnThePhoneReadsOnThePhoneOnly() = runTest {
         val m = FakeModel(listOf(reply(Source.ON_DEVICE)))
-        val r = ItemReader(m, { wire }, gate = { DeviceModelStatus.AVAILABLE }, cloud = { consented }, prompt = { "prompt" },
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { DeviceModelStatus.AVAILABLE }, cloud = { consented }, prompt = { "prompt" },
             signIn = { throw IllegalStateException("no network") })
         val out = r.read(crop) as ReadOutcome.Read
         assertEquals(ReadRoute.DEVICE_ONLY, out.route)
@@ -67,7 +76,7 @@ class ItemReaderTest {
     @Test fun theDeviceOnlyRouteNeverSignsIn() = runTest {
         var signIns = 0
         val m = FakeModel(listOf(reply(Source.ON_DEVICE)))
-        val r = ItemReader(m, { wire }, gate = { DeviceModelStatus.AVAILABLE }, cloud = { noConsent }, prompt = { "prompt" }, signIn = { signIns++ })
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { DeviceModelStatus.AVAILABLE }, cloud = { noConsent }, prompt = { "prompt" }, signIn = { signIns++ })
         assertTrue(r.read(crop) is ReadOutcome.Read)
         assertEquals(0, signIns)
     }
@@ -102,7 +111,7 @@ class ItemReaderTest {
     @Test fun theGateIsCheckedImmediatelyBeforeEveryDeviceCall() = runTest {
         var status = DeviceModelStatus.AVAILABLE
         val m = FakeModel(listOf(reply(Source.ON_DEVICE), reply(Source.ON_DEVICE)))
-        val r = ItemReader(m, { wire }, gate = { status }, cloud = { noConsent }, prompt = { "prompt" }, signIn = {})
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { status }, cloud = { noConsent }, prompt = { "prompt" }, signIn = {})
         assertTrue(r.read(crop) is ReadOutcome.Read)
         status = DeviceModelStatus.UNAVAILABLE
         assertEquals(ReadOutcome.Blocked(BlockReason.NO_MODEL_NO_CONSENT), r.read(crop))

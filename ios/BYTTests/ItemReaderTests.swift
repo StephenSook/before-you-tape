@@ -45,7 +45,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     let words = ItemInput.words("EAU DE PARFUM 50 ML")
 
     func reader(device: FakeItemRunner, cloud: FakeItemRunner, built: Built = Built()) -> ItemReader {
-        ItemReader(device: device, makeCloud: { model in built.models.append(model); return cloud }, parse: { $0 })
+        ItemReader(device: device, makeCloud: { model in built.models.append(model); return cloud }, parse: { ParsedRead(read: $0) })
     }
     final class Built: @unchecked Sendable { var models: [String] = [] }
 
@@ -56,6 +56,16 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         #expect(o.read == read && o.source == .onDevice && o.route == .hybrid)
         #expect(built.models.isEmpty)
         #expect(o.records.map(\.path) == [.onDevice])
+    }
+
+    /// The parser's tags (from the whole label) and the whole label ride with the read to the box.
+    @Test func carriesTheParsersTagsAndWholeLabelIntoTheOutcome() async {
+        let j = FakeItemRunner.Journal()
+        let r = ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]),
+                           makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) },
+                           parse: { ParsedRead(read: $0, labelTags: ["flammable", "label_text"], wholeLabel: "WHOLE LABEL") })
+        let o = await r.read(words, situation: situation())
+        #expect(o.read == read && o.labelTags == ["flammable", "label_text"] && o.wholeLabel == "WHOLE LABEL")
     }
 
     @Test func makesNoCloudCallWhenConsentIsUnansweredKilledOrOffline() async {
@@ -121,7 +131,7 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         let bad: JSONValue = .object(["itemName": .string("")])
         var r = reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: bad, tokens: nil))]),
                        cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]))
-        r.parse = { $0 == bad ? nil : $0 }
+        r.parse = { $0 == bad ? nil : ParsedRead(read: $0) }
         let o = await r.read(words, situation: situation())
         #expect(o.read == read && o.source == .cloud)
         #expect(o.records.map(\.path) == [.onDevice, .cloud])

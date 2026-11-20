@@ -53,6 +53,10 @@ data class ItemReadWire(
     val evidence: EvidenceWire,
 )
 
+/** A reply the parser accepted: label text clipped for showing, and the engine's tags for the whole label. */
+@Serializable
+data class TaggedRead(val read: ItemReadWire, val labelTags: List<String>)
+
 /** One item in the box, as the engine takes it. Every field is given; there are no defaults here. */
 @Serializable
 data class BoxItemInput(

@@ -136,6 +136,40 @@ export interface BoxItemInput {
   quantity: number;
   identityConfirmedBy: "sender" | "second_look" | null;
   labelTags: string[];
+  // Facts the two reads of a second look disagreed on. While one is open the item is at least "Check this".
+  disputes?: ReadDisputes;
+}
+
+// The facts two reads can disagree on, each of which can change a verdict, with the value type of each.
+// A label dispute holds the tags each read's label gave, never label text.
+export interface DisputeValues {
+  category: ItemCategory;
+  retailBox: ItemRead["retailBox"];
+  battery: { volts: number; milliampHours: number; wattHours: number };
+  lithiumGrams: number;
+  batteryWords: boolean;
+  liquid: boolean;
+  pressurized: boolean;
+  alcoholOnLabel: boolean;
+  flammableOnLabel: boolean;
+  glassContainer: boolean;
+  powder: boolean;
+  labelTags: string[];
+  // How each read saw the item: a first read that was not sure is a fact the cloud cannot erase.
+  evidence: ItemRead["evidence"];
+}
+export type DisputeField = keyof DisputeValues;
+export interface ReadDispute<T> { device: T; cloud: T; resolved: boolean }
+export type ReadDisputes = { [F in DisputeField]?: ReadDispute<DisputeValues[F]> };
+
+export const DISPUTE_FIELDS: readonly DisputeField[] = [
+  "category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized", "alcoholOnLabel",
+  "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence",
+];
+
+// The disputes the sender has not settled yet, in a fixed order.
+export function openDisputes(disputes: ReadDisputes | undefined): DisputeField[] {
+  return DISPUTE_FIELDS.filter((f) => disputes?.[f] !== undefined && disputes[f]!.resolved !== true);
 }
 
 export interface ItemFacts {

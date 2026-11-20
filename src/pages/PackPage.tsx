@@ -170,9 +170,9 @@ export function PackPage(p: PackPageProps) {
     setChecking((c) => ({ ...c, [itemId]: true }));
     const work = cloudWork();
     try {
-      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, edition.limits.whTolerancePct, stillAllowed, work.signal);
+      const out = await runSecondLook(models.cloud, look.part, look.read, now, models.fallback, stillAllowed, work.signal);
       if (gone.current) return;
-      store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel);
+      store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel, out.disputes);
       looks.current.delete(itemId);
     } catch (e) {
       const kind = e instanceof ReadFailure ? e.kind : "cloud_unreachable";
@@ -286,6 +286,8 @@ export function PackPage(p: PackPageProps) {
               <ItemCard key={item.itemId} item={item} verdict={verdict} crop={crops[item.itemId] ?? null}
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
+                onSettle={(id, field, side) => store.settleDispute(id, field, side)}
+                unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
                 onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}

@@ -3,6 +3,26 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A photo read keeps the tags of its whole label, never of the clipped text.** The box tagged a
+  read's label text after the parser had clipped it to 160 characters, and the engine trusts tags
+  that cover the label, so a hazard word past the cap was lost (FLAMMABLE could read "OK to pack")
+  and a cut could make one (FLAMMABLE-FREE ending at FLAMMABLE). The reader now uses the tagged
+  parse, `ReadOutcome.Read` carries its `labelTags`, and the box saves them; `BoxSession` no longer
+  tags text itself. A typed item also takes its tags from the tagged parse. Source: review of the
+  second-look change. Verified: `ItemReaderTest.aReadCarriesTheTagsTheParserGaveForItsWholeLabel`
+  and `BoxSessionTest.aReadIsAddedWithTheTagsTheParserGaveForItsWholeLabel` failed to compile first
+  and pass; `./gradlew :engine:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+  :app:compileDebugAndroidTestKotlin` exits 0 (161 unit tests, none skipped); `android/guard.sh`
+  exits 0.
+
+- **The engine host parses a read with the tags of its whole label.** `EngineHost.parseItemReadTagged`
+  calls the bridge's tagged parse and returns a `TaggedRead`: the read, label text clipped to 160
+  characters for showing, with the engine's tags for the whole label. Source: review of the
+  second-look change (the phones tagged the clipped label text). Verified:
+  `EngineHostTest.aParsedReadIsTaggedFromItsWholeLabel` (no hazard word OK; FLAMMABLE past the cap
+  tagged flammable and label_text and not OK, the shown text 160 characters; FLAMMABLE-FREE cut at
+  FLAMMABLE untagged and OK) failed to compile first and passes; `:engine:test` passes.
+
 - **Every newer build installs as an update.** `versionCode` is now the HEAD commit's time in
   epoch seconds (`git log -1 --format=%ct`, read through `providers.exec`), so it rises with each
   commit; a shallow CI checkout still has its HEAD commit, and with no git the build falls back to

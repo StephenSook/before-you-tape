@@ -2,7 +2,7 @@
 // is retried in the cloud; on "device_only" the cloud is never called and a reply that came from the cloud
 // is thrown away. Cloud network errors, 429 and 5xx get one automatic retry; a 500 or 503 after that
 // retry, or a 404 saying the model is gone, gets one try on the fallback model when there is one.
-import { parseItemRead, type ItemRead } from "../shared/itemRead";
+import { parseItemReadWithLabel, type ItemRead } from "../shared/itemRead";
 import type { CallOptions, GateState, ImagePart, InferenceSourceName, ItemModels, ModelPort, ModelReply, ReadRoute } from "./port";
 import { ITEM_READ_PROMPT } from "./prompts";
 
@@ -17,6 +17,8 @@ export class ReadFailure extends Error {
 
 export interface ReadOutcome {
   read: ItemRead;
+  // The whole label text the model returned, for label words only: read.labelText is clipped. Memory only.
+  fullLabelText?: string;
   source: InferenceSourceName;
   ms: number;
   route: ReadRoute;
@@ -134,9 +136,9 @@ async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): P
   }
 }
 
-function parseOrFail(reply: ModelReply): ItemRead {
+function parseOrFail(reply: ModelReply): { read: ItemRead; fullLabelText: string } {
   try {
-    return parseItemRead(reply.text);
+    return parseItemReadWithLabel(reply.text);
   } catch (e) {
     throw new ReadFailure("invalid_output", errorName(e));
   }
@@ -148,7 +150,8 @@ export async function readItem(
   const start = now();
   const w = withdrawal(stillAllowed, signal);
   const done = (reply: ModelReply, recoveredFrom: string | null, fallbackAfter?: FallbackAfter, ran: ReadRoute = route): ReadOutcome => {
-    const out: ReadOutcome = { read: parseOrFail(reply), source: reply.source, ms: now() - start, route: ran, recoveredFrom };
+    const { read, fullLabelText } = parseOrFail(reply);
+    const out: ReadOutcome = { read, fullLabelText, source: reply.source, ms: now() - start, route: ran, recoveredFrom };
     if (reply.unreported) out.unreported = true;
     if (fallbackAfter) out.fallbackAfter = fallbackAfter;
     return out;

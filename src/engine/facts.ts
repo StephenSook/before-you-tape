@@ -54,13 +54,25 @@ const NEGATED_BEFORE = / ?(?:\b(?:no|non|not|without|zero|free of|free from) ?-?
 const NEGATED_AFTER = /^ ?(?:-? ?|- ?\n ?)free\b(?! (?:from|of)\b)/i;
 const FREE_AFTER_BREAK = /^\n ?-? ?free\b(?! (?:from|of)\b)/i;
 
+// A word broken across two lines with a hyphen ("FLAM-" then "MABLE"), joined back into one word.
+const LINE_END_HYPHEN = /(\p{L})-\n(?=\p{L})/gu;
+
 export function labelTagsOf(labelText: string, edition: RuleEdition): string[] {
   const text = normalizeLabel(labelText);
   if (text === "") return [];
+  const tags = new Set<string>([LABEL_TEXT_TAG]);
+  addWordTags(text, edition, tags);
+  // The text is read a second time with each hyphen wrap joined, so a wrapped hazard word counts. The
+  // first read stays: joining only ever adds a word ("SHAMPOO-" then "ALCOHOL" is still alcohol).
+  const joined = text.replace(LINE_END_HYPHEN, "$1");
+  if (joined !== text) addWordTags(joined, edition, tags);
+  return [...tags].sort();
+}
+
+function addWordTags(text: string, edition: RuleEdition, tags: Set<string>): void {
   // Matching treats a line break as a space, so a phrase split over two lines still matches. Both
   // negation checks read the text with its line breaks (same length, so the positions agree).
   const matchText = text.replace(/\n/g, " ");
-  const tags = new Set<string>([LABEL_TEXT_TAG]);
   for (const w of edition.labelWords) {
     if (tags.has(w.tag)) continue;
     let freeAfterBreak = false;
@@ -79,7 +91,6 @@ export function labelTagsOf(labelText: string, edition: RuleEdition): string[] {
     // question for the sender, and any other word counts.
     if (freeAfterBreak && !tags.has(w.tag)) tags.add(w.tag === "alcohol" ? ALCOHOL_FREE_UNSURE_TAG : w.tag);
   }
-  return [...tags].sort();
 }
 
 function conditionOf(answer: string | undefined): ItemFacts["condition"] {
@@ -92,7 +103,11 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   const read = { ...input.read, ...input.overrides };
   const tags = new Set<string>(edition.categoryTags[read.category]);
   for (const [flag, tag] of FLAG_TAGS) if (read[flag]) tags.add(tag);
-  for (const t of labelTagsOf(read.labelText, edition)) tags.add(t);
+  // A read's label is shown clipped. When its tags were taken from the whole label and sent as labelTags
+  // (they hold label_text), those decide and the clipped text is never tagged again: a cut can both drop a
+  // word and turn "FLAMMABLE-FREE" into "FLAMMABLE". A client that sends no such tags has its text read.
+  const savedTagsCoverLabel = input.overrides.labelText === undefined && input.labelTags.includes(LABEL_TEXT_TAG);
+  if (!savedTagsCoverLabel) for (const t of labelTagsOf(read.labelText, edition)) tags.add(t);
   // Saved tags stand in for label text that stayed on the laptop. A label the sender corrected
   // replaces the old label, so the tags saved from the old one no longer apply.
   if (input.overrides.labelText === undefined) for (const t of input.labelTags) tags.add(t);

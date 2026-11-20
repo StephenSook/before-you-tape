@@ -11,10 +11,22 @@ import Testing
 
     func fakeModel(_ j: FakeItemRunner.Journal) -> AppModel {
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
-        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
         let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         return model
+    }
+
+    /// The app's parser is the engine's tagged parse: the read keeps clipped label text, and its tags
+    /// and whole label come from the label before the cut.
+    @Test func theAppsParserTagsTheWholeLabelBeforeItsCut() throws {
+        let reader = AppModel.makeReader(engine: try BoxStoreTests.bundledEngine(), signIn: SignIn(isSignedIn: { true }, attempt: { true }),
+                                         pause: PauseSwitch())
+        let whole = String(repeating: "x", count: 155) + " FLAMMABLE"
+        let raw = BoxStoreTests.read(["category": .string("lotion_cream"), "labelText": .string(whole), "liquid": .bool(true)])
+        let parsed = try #require(reader.parse(raw))
+        #expect(parsed.labelTags.contains("flammable") && parsed.labelTags.contains("label_text") && parsed.wholeLabel == whole)
+        if case let .string(shown)? = parsed.read["labelText"] { #expect(shown.unicodeScalars.count == 160) } else { Issue.record("no label") }
     }
 
     @Test func aPhotoAsksForConsentBeforeAnyCloudCallAndReadsAfterAllow() async throws {
@@ -43,7 +55,7 @@ import Testing
     @Test func aCloudReadLandsInTheBoxWithItsSource() async throws {
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
-        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
         let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
@@ -61,7 +73,7 @@ import Testing
         let nothing = BoxStoreTests.read(["itemName": .string("unknown"), "evidence": .string("not_sure")])
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: nothing, tokens: nil)),
                                                                  .success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
-        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
         let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
@@ -100,7 +112,7 @@ import Testing
     @Test func labelWordsAreReadOnThisIPhoneOffline() async throws {
         let j = FakeItemRunner.Journal()
         let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: TokenUse(input: 800, output: 90)))])
-        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
         let available = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: false)
         let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { available },
                              persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
@@ -122,7 +134,7 @@ import Testing
     @Test func theLineFollowsTheSendersCorrection() async throws {
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
-        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { $0 })
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
         let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
@@ -141,7 +153,7 @@ import Testing
         let status = Status()
         let j = FakeItemRunner.Journal()
         let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
-        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { $0 })
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
         let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { status.now },
                              persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         #expect(model.onDevice.unavailable == .modelNotReady)
