@@ -23,11 +23,11 @@ describe("hosting", () => {
 
   it("serves every route spelling the app accepts, keeps a token exact, and sends anything else to the 404 page", () => {
     const served = (path: string) => hosting.rewrites.some((r) => new RegExp(r.regex!).test(path));
-    for (const path of ["/", "/judge", "/Judge", "/JUDGE", "/judge/", "/rules", "/RULES", "/Rules/", "/measured", "/ran", "/about", "/worksheet",
+    for (const path of ["/", "/judge", "/Judge", "/JUDGE", "/judge/", "/rules", "/RULES", "/Rules/", "/ran", "/about",
       "/blind/AbC123xyz", "/Blind/AbC123xyz", "/BLIND/abc/"]) {
       expect(served(path), path).toBe(true);
     }
-    for (const path of ["/judge/child", "/judgex", "/blind", "/blind/", "/blind/a/b", "/no-such-page", "/eval/sets/missing.json",
+    for (const path of ["/judge/child", "/judgex", "/blind", "/blind/", "/blind/a/b", "/no-such-page", "/eval/sets/missing.json", "/measured", "/worksheet",
       "/assets/missing.js", "/desk/eval", "/sw.js", "//judge"]) {
       expect(served(path), path).toBe(false);
     }

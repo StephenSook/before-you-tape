@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import App from "./App";
-import { routePaths } from "./routes";
+import { builtPagePaths, routePaths } from "./routes";
 
 describe("App", () => {
   it("renders the name and the footer", () => {
@@ -36,10 +36,15 @@ describe("not found", () => {
 });
 
 describe("routes", () => {
-  const publicPaths = ["/", "/judge", "/measured", "/rules", "/ran", "/about", "/worksheet", "/blind/:token"];
+  const publicPaths = ["/", "/judge", "/rules", "/ran", "/about", "/blind/:token"];
 
   it("serves the public routes in every build", () => {
     expect(routePaths(false)).toEqual(publicPaths);
+  });
+
+  it("serves only pages that are built, never a title-only stub", () => {
+    const built = new Set([...builtPagePaths(), "/blind/:token"]);
+    expect(routePaths(false).filter((p) => !built.has(p))).toEqual([]);
   });
 
   it("adds the desk routes only in development builds", () => {
