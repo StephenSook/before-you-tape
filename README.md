@@ -17,7 +17,7 @@ The same rules also run in an iPhone app that is not part of this entry ([`ios/R
 
 ## Run it
 
-Requirements: Node.js 22 and npm. The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
+Requirements: Node.js 24.12 or newer and npm (the Firebase SDK this app uses needs it). The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
 
 1. `npm ci`
 2. Copy `.env.example` to `.env.local` and fill in your own Firebase web config and reCAPTCHA Enterprise site key. Never commit `.env.local`.
@@ -35,6 +35,7 @@ npm run hygiene         # flags private notes in tracked files (fails once the r
 npm run edition:check   # fails when rules/edition.json is out of date with its part files
 npm run build:embed     # the rules engine as one script for the iPhone and Android apps
 npm run release:gate    # run before a release (see below)
+npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval baseline on eval/set, no model call (eval/PROTOCOL.md)
 ```
 
 ## Checks on every push
@@ -44,6 +45,8 @@ npm run release:gate    # run before a release (see below)
 ## Release gate
 
 `npm run release:gate` fails while any country listing has not been checked line by line by a person, or while any rule layer would be past its limit on the last judging day. It is run before a release, not on every commit.
+
+It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-17, so that layer would read stale on the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
 
 ## Security you can check
 
