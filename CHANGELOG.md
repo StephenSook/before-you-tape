@@ -6,7 +6,9 @@ All notable changes to this project are listed here.
 
 ### Added
 
-- CI now runs the browser checks that need App Check: the accessibility pass, the smoke checks, the Pack page with the model host answered by the test, and the check that the debug token reaches only this app's own pages. The CI debug token is set only as that one step's environment and is never printed; the secrets ledger names the step. These checks make no model call. Source: plan item 10. Verified: the workflow parses; the specs run in CI with the token (see the run on this pull request).
+- The CI step that needs the App Check debug token runs only on main and on this repository's own branches. A pull request from a fork gets no secrets from GitHub, so it skips the step instead of failing CI. The step's comment now says that the workflow never prints the token while the Firebase SDK logs it to the browser console, which the checks do not record. Source: review of the CI step. Verified: the workflow parses; this pull request's own run executes the step.
+
+- CI now runs the browser checks that need App Check: the accessibility pass, the smoke checks, the Pack page with the model host answered by the test, and the check that the debug token reaches only this app's own pages. The CI debug token is set only as that one step's environment and the workflow never prints it; the secrets ledger names the step. These checks make no model call. Source: plan item 10. Verified: the workflow parses; the specs run in CI with the token (see the run on this pull request).
 
 - The test for removing an item while its second look runs now also checks that the removal aborts the cloud call's signal, so a request still waiting for its tokens sends nothing. Source: review of the card controls. Verified: the test fails on the commit before the fix ("expected false to be true") and passes; unit suite, lint, typecheck, tone and guard pass.
 
