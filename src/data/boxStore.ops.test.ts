@@ -323,4 +323,28 @@ describe("saving by explicit operations", () => {
     await again.ready;
     expect(again.getState().items.find((i) => i.itemId === a)?.quantity).toBe(1);
   });
+
+  it("does not send an item again when an unrelated edit re-records the copy already on its way", async () => {
+    const srv = slowServer();
+    const s = make(srv.o);
+    await s.ready;
+    const a = s.addManual(shirt);
+    await settle();
+    srv.land(a);
+    await s.settled();
+    s.setQuantity(a, 3);
+    await settle();
+    // Another item's edit records every item again while the save of 3 is out: the same value, a new copy.
+    const b = s.addManual({ ...shirt, itemName: "Socks" });
+    await settle();
+    srv.land(a);
+    await settle();
+    await settle();
+    srv.land(b);
+    await settle();
+    await settle();
+    expect(srv.o.putItem.mock.calls.filter((c) => c[1].itemId === a).map((c) => c[1].quantity)).toEqual([1, 3]);
+    await s.settled();
+    expect(s.getState().unsaved).toEqual([]);
+  });
 });
