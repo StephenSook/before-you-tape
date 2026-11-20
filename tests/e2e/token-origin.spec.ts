@@ -3,7 +3,9 @@
 import { expect, test } from "./fixtures";
 
 test("the debug token reaches this app's pages and no other site", async ({ page, appCheckToken }) => {
-  expect(appCheckToken, "set APPCHECK_DEBUG_TOKEN (any value) to run this check").toBeTruthy();
+  // In CI the fixture fails without a token; a local run with none has nothing to check.
+  test.skip(!appCheckToken && !process.env.CI, "set APPCHECK_DEBUG_TOKEN (any value) to run this check locally");
+  expect(appCheckToken).toBeTruthy();
   const tokenIn = () => page.evaluate(() => typeof (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: unknown }).FIREBASE_APPCHECK_DEBUG_TOKEN);
   await page.route("https://another-site.example/**", (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<p>another site</p>" }));
   await page.goto("https://another-site.example/");

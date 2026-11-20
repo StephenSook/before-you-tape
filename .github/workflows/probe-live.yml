@@ -55,33 +55,45 @@ jobs:
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
 
   # One real read through the live app's cloud path, with the CI App Check debug token: the reply must parse
-  # as a read with a known category (tests/e2e/read.live.spec.ts). A paused API, a refused token or a quota
-  # error fails it, and so does a missing token, so this job is never green without a real read. It makes
-  # one model call a day. Its own job, so the checks above keep their own verdict.
+  # as a complete read (tests/e2e/read.live.spec.ts). A paused API, a refused token or a quota error fails it,
+  # and so does a missing token, so this job is never green without a real read. One read a day (the app may
+  # retry once or try its fallback model on an error). Its own job, so the checks above keep their own verdict.
   read:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      # Retired with the probe after the judging window: no model calls and no token use after it.
+      - name: Still in the judging window
+        id: window
+        run: |
+          if [ "$(date -u +%Y%m%d)" -gt 20261217 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "The live read retired after 2026-12-17."; else echo "open=true" >> "$GITHUB_OUTPUT"; fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.window.outputs.open == 'true'
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.window.outputs.open == 'true'
         with:
           node-version: 24
           cache: npm
 
       - name: Install
+        if: steps.window.outputs.open == 'true'
         timeout-minutes: 5
         run: npm ci
 
       - name: Install the test browser
+        if: steps.window.outputs.open == 'true'
         timeout-minutes: 5
         run: npx playwright install chromium
 
+      # Always the production site: a manual run's site input applies to the credential-free job only, so the
+      # token is never used against, and the read never passes on, another site.
       - name: One real read on the live site
+        if: steps.window.outputs.open == 'true'
         timeout-minutes: 4
         env:
           BYT_LIVE: "1"
-          BYT_LIVE_URL: ${{ inputs.site }}
           APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
         # The token reaches only this app's pages (token-origin), and one real read comes back as a read.
         run: npx playwright test --project=live tests/e2e/token-origin.spec.ts tests/e2e/read.live.spec.ts

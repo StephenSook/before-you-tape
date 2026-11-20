@@ -1,11 +1,12 @@
 // One real read on the live site, through the app's own cloud path: a browser with no on-device model allows
 // cloud checks, adds the test label image, presses "Check this part", and the model's reply must come back as
-// a read the app can use, shown as read in the cloud. It makes one model call. A paused API, an App Check
+// a complete read from this project's own model call, shown as read in the cloud. It is one read a day (on an
+// error the app may retry once or try its fallback model). A paused API, an App Check
 // refusal, a quota error or a reply that is not a read all fail it. It needs the App Check debug token (from
 // the fixtures, which put it only into this app's pages); without one it fails rather than skipping, so the
 // daily probe can never read green without a real read. It does not check the verdict, which depends on how
 // fresh the rules are on the day. Each run leaves one box with this item.
-import { readFromReply } from "../../scripts/live-read-reply";
+import { isProjectModelCall, readFromReply } from "../../scripts/live-read-reply";
 import { expect, test } from "./fixtures";
 
 test("a real cloud read on the live site comes back as a read", async ({ page, appCheckToken }) => {
@@ -16,7 +17,7 @@ test("a real cloud read on the live site comes back as a read", async ({ page, a
   const exchanges: number[] = [];
   page.on("response", async (r) => {
     if (r.url().includes(":exchangeDebugToken")) exchanges.push(r.status());
-    if (!r.url().includes(":generateContent")) return;
+    if (!isProjectModelCall(r.url(), r.request().method())) return;
     replies.push({ status: r.status(), body: await r.json().catch(() => null) });
   });
   await page.goto("/");
