@@ -24,7 +24,7 @@ on:
 permissions:
   contents: read
   id-token: write
-  checks: read
+  actions: read
 
 concurrency:
   group: deploy-live
@@ -37,7 +37,9 @@ jobs:
         && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')
       || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Above the sum of every step's own limit, so a slow step fails (and the rollback runs) before the job's
+    # own limit cancels it: a cancelled job runs no rollback.
+    timeout-minutes: 75
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       EXPECT_LIVE_SHA: ${{ inputs.expect_live_sha }}
@@ -47,18 +49,21 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      # A manual run deploys only a commit CI already passed, and takes only a well-formed test input.
+      # A manual run deploys only a commit whose CI workflow passed on a push to main, and takes only a
+      # well-formed test input that differs from the commit it deploys (so the live check must fail).
       - name: CI passed on this commit
         if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: 2
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          if [ -n "$EXPECT_LIVE_SHA" ] && ! printf '%s' "$EXPECT_LIVE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
-            echo "expect_live_sha must be a 40-character commit"; exit 1
+          if [ -n "$EXPECT_LIVE_SHA" ]; then
+            if [[ ! "$EXPECT_LIVE_SHA" =~ ^[0-9a-f]{40}$ ]]; then echo "expect_live_sha must be a 40-character commit"; exit 1; fi
+            if [ "$EXPECT_LIVE_SHA" = "$SHA" ]; then echo "expect_live_sha must differ from the commit being deployed"; exit 1; fi
           fi
-          n=$(gh api "repos/$REPO/commits/$SHA/check-runs" --jq '[.check_runs[] | select(.name == "verify" and .conclusion == "success")] | length')
-          echo "successful verify check-runs on $SHA: $n"
+          n=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&event=push&branch=main&status=success" --jq '.total_count')
+          echo "successful CI push runs on main for $SHA: $n"
           [ "$n" -ge 1 ]
 
       - name: Still the head of main
@@ -77,10 +82,12 @@ jobs:
 
       - name: Install
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 6
         run: npm ci
 
       - name: Build with the public web config
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 6
         env:
           VITE_FB_API_KEY: ${{ vars.VITE_FB_API_KEY }}
           VITE_FB_AUTH_DOMAIN: ${{ vars.VITE_FB_AUTH_DOMAIN }}
@@ -92,6 +99,7 @@ jobs:
 
       - name: Build serves this commit from a clean tree
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 1
         run: |
           python3 - <<'EOF'
           import json, os, sys
@@ -110,46 +118,35 @@ jobs:
       # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
       - name: The built app starts
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 6
         run: npx playwright test --project=local tests/e2e/starts.spec.ts
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 2
         with:
           workload_identity_provider: projects/481254717481/locations/global/workloadIdentityPools/github-actions/providers/before-you-tape-main
           service_account: byt-deploy@before-you-tape-2026.iam.gserviceaccount.com
 
-      # The release to restore if a check after the deploy fails. If it cannot be read (for example the live
-      # site is already broken), the deploy still goes ahead, with a warning that no rollback is possible.
+      # The release to restore if a check after the deploy fails (scripts/live-release.ts). If it cannot be
+      # read (for example the live site is already broken), the deploy still goes ahead with a warning that no
+      # rollback is possible. A rollback drill instead stops here unless live serves this very commit, clean.
       - name: Record the live release before deploying
         id: before
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 4
         run: |
-          npx --yes firebase-tools@15.34.2 hosting:channel:list --project "$SITE" --json > channels.json || true
-          python3 - <<'EOF'
-          import json, os, re, urllib.request
-          try:
-              channels = json.load(open("channels.json"))["result"]["channels"]
-              name = next(c for c in channels if c["name"].endswith("/channels/live"))["release"]["version"]["name"]
-              version = name.rsplit("/", 1)[1]
-              req = urllib.request.Request(f"https://{os.environ['SITE']}.web.app/version.json", headers={"Cache-Control": "no-cache"})
-              sha = json.load(urllib.request.urlopen(req, timeout=15))["sha"]
-              if not re.fullmatch(r"[0-9a-f]+", version) or not re.fullmatch(r"[0-9a-f]{40}", sha):
-                  raise ValueError(f"unexpected version {version!r} or commit {sha!r}")
-          except Exception as e:
-              print(f"::warning::No rollback is possible for this deploy: the live release could not be read ({e})")
-          else:
-              print(f"Live before this deploy: version {version}, commit {sha}")
-              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-                  f.write(f"version={version}\nsha={sha}\n")
-          EOF
+          if [ -n "$EXPECT_LIVE_SHA" ]; then npx tsx scripts/live-release.ts record --drill-sha "$SHA"; else npx tsx scripts/live-release.ts record; fi
 
       - name: Deploy hosting, Firestore rules and indexes
         id: deploy
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 8
         run: npx --yes firebase-tools@15.34.2 deploy --only hosting,firestore:rules,firestore:indexes --project "$SITE" --non-interactive
 
       - name: Live site serves this commit
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 4
         run: |
           python3 - <<'EOF'
           import json, os, sys, time, urllib.request
@@ -158,8 +155,8 @@ jobs:
           print(f"expecting commit {expected}")
           for attempt in range(1, 25):
               try:
-                  req = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
-                  v = json.load(urllib.request.urlopen(req, timeout=15))
+                  req = urllib.request.Request(f"{url}?t={time.time()}", headers={"Cache-Control": "no-cache"})
+                  v = json.load(urllib.request.urlopen(req, timeout=10))
                   print(f"attempt {attempt}: live sha {v['sha']} dirty {v['dirty']}")
                   if v["sha"] == expected and v["dirty"] is False:
                       sys.exit(0)
@@ -171,6 +168,7 @@ jobs:
 
       - name: The live app starts
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 5
         env:
           BYT_LIVE: "1"
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
@@ -178,35 +176,19 @@ jobs:
       # A box saved on the live site must come back from the server in a browser with no copy of it.
       - name: A saved box comes back from the server
         if: steps.head.outputs.current == 'true'
+        timeout-minutes: 5
         env:
           BYT_LIVE: "1"
         run: npx playwright test --project=live tests/e2e/roundtrip.live.spec.ts
 
-      # Any failure after the deploy started restores the release recorded above, then proves it: live must
-      # serve the recorded commit again. The run still fails, so the bad commit is fixed and merged again.
+      # Any failure after the deploy step started puts the recorded release back (unless it is still live)
+      # and proves it: the live channel must hold the recorded version, and its version.json must name the
+      # recorded commit and dirty flag. The run still fails, so the bad commit is fixed and merged again.
       - name: Roll back to the release that was live before
         if: failure() && steps.deploy.outcome != 'skipped' && steps.before.outputs.version != ''
+        timeout-minutes: 8
         env:
           VERSION: ${{ steps.before.outputs.version }}
           BEFORE_SHA: ${{ steps.before.outputs.sha }}
-        run: |
-          echo "::error::A check after the deploy failed. Restoring version $VERSION (commit $BEFORE_SHA) to live."
-          npx --yes firebase-tools@15.34.2 hosting:clone "$SITE@$VERSION" "$SITE:live" --project "$SITE"
-          python3 - <<'EOF'
-          import json, os, sys, time, urllib.request
-          url = f"https://{os.environ['SITE']}.web.app/version.json"
-          want = os.environ["BEFORE_SHA"]
-          for attempt in range(1, 25):
-              try:
-                  req = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
-                  v = json.load(urllib.request.urlopen(req, timeout=15))
-                  print(f"attempt {attempt}: live sha {v['sha']} dirty {v['dirty']}")
-                  if v["sha"] == want:
-                      print(f"::warning::Rolled back: live serves {want} again")
-                      sys.exit(0)
-              except Exception as e:
-                  print(f"attempt {attempt}: {e}")
-              time.sleep(5)
-          print(f"::error::ROLLBACK DID NOT RESTORE {want}: the live site needs a person now")
-          sys.exit(1)
-          EOF
+          BEFORE_DIRTY: ${{ steps.before.outputs.dirty }}
+        run: npx tsx scripts/live-release.ts restore --version "$VERSION" --sha "$BEFORE_SHA" --dirty "$BEFORE_DIRTY"
