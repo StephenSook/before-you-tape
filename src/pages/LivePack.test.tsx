@@ -144,6 +144,24 @@ describe("LivePack", () => {
     expect(screen.queryByTestId("item-card")).toBeNull();
   });
 
+  it("says cloud checks are paused when the settings that arrive during the wait pause them", async () => {
+    const { models, push } = setup();
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    await addPhoto();
+    expect(await screen.findByTestId("getting-ready")).toBeInTheDocument();
+    act(() => push({ killCloud: true, pauseUnknown: undefined }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead."));
+    for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("says the page is offline, not that the settings are slow, when a photo waited while offline", async () => {
+    const { models, push } = setup({}, "no_api", { settingsWaitMs: 50, online: false });
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    await addPhoto();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own."));
+    for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+
   it("keeps its notice when the settings do not load in time, even after they arrive later", async () => {
     const { models, push } = setup({}, "no_api", { settingsWaitMs: 50 });
     act(() => push({ killCloud: true, pauseUnknown: true }));

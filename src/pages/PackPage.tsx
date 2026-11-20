@@ -204,10 +204,11 @@ export function PackPage(p: PackPageProps) {
     timers.current.add(clear);
     return t;
   };
-  // Waits until Remote Config has given its settings, the limit passes, or the press is withdrawn (consent
-  // taken back, a pause announced, the page left); says whether the settings came.
-  const settingsArrive = (ms: number, signal: AbortSignal) =>
-    waitUntilFalse(() => live.current.pauseUnknown, ms, () => gone.current || signal.aborted);
+  // Waits until Remote Config has given its settings, the limit passes, the sender takes cloud checks back or
+  // the page goes; says whether the settings came. It watches consent itself rather than joining the work a
+  // pause aborts, since a "settings still unknown" announcement also says the cloud is off for now.
+  const settingsArrive = (ms: number) =>
+    waitUntilFalse(() => live.current.pauseUnknown, ms, () => gone.current || store.consentNow() !== true);
   // Second looks running now, one per item. A retry asked for while one runs (a press, or the page coming
   // back online) is kept and runs once the current one ends, if the item still needs it.
   const looking = useRef(new Set<string>());
@@ -274,62 +275,60 @@ export function PackPage(p: PackPageProps) {
     const owner = press ?? presses.current;
     let route = chooseImageRoute(how, { gate, ...cloudInputs() });
     if (route === "skip") return;
-    // Registered now, so taking back consent, a pause or leaving the page also ends a press still waiting.
-    const work = cloudWork();
-    try {
-      // A photo added before Remote Config has given its settings (cloud checks stay off until it does) waits
-      // for them, with a limit, instead of being turned away by that default and lost when they land a moment
-      // later. After the wait it is decided again with the inputs as they are then; if it still cannot be
-      // read, the reason stays on screen until the sender acts again.
-      if (route === "blocked" && live.current.pauseUnknown) {
-        setNotice(null);
-        setBlocked(null);
-        setWaiting((w) => w + 1);
-        let arrived = false;
-        try {
-          arrived = await settingsArrive(settingsWaitMs, work.signal);
-        } finally {
-          if (!gone.current) setWaiting((w) => w - 1);
-        }
-        if (gone.current) return;
-        route = work.signal.aborted ? "blocked" : chooseImageRoute(how, { gate: live.current.gate, ...liveInputs() });
-        if (route === "skip") return;
-        if (route === "blocked") {
-          // Cloud checks taken back during the wait: say that, not that the settings are still loading.
-          const withdrawn = store.consentNow() !== true;
-          setNotice(withdrawn ? blockedText({ ...liveInputs(), killCloud: false, online: true }) : arrived || work.signal.aborted ? blockedText(liveInputs(), live.current.pauseUnknown) : SETTINGS_SLOW);
-          return;
-        }
-      }
-      if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
-      // A frame the camera read by itself leaves the notices of the sender's presses in place.
-      if (press !== null) {
-        setNotice(null);
-        setBlocked(null);
-      }
-      const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === owner) setNotice(TOO_SLOW); });
+    // A photo added before Remote Config has given its settings (cloud checks stay off until it does) waits
+    // for them, with a limit, instead of being turned away by that default and lost when they land a moment
+    // later. After the wait it is decided again with the inputs as they are then; if it still cannot be
+    // read, the reason stays on screen until the sender acts again.
+    if (route === "blocked" && live.current.pauseUnknown && store.consentNow() === true) {
+      setNotice(null);
+      setBlocked(null);
+      setWaiting((w) => w + 1);
+      let arrived: boolean;
       try {
-        const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
-        limit.clear();
-        if (gone.current || limit.over) return;
-        if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
-        const key = newCropKey();
-        const itemId = store.addRead(outcome, key);
-        setCrops((c) => ({ ...c, [itemId]: part }));
-        const added = store.getState().items.find((i) => i.itemId === itemId);
-        const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, live.current.secondLook) : null;
-        if (reason && shouldRunSecondLook(reason, liveInputs())) {
-          looks.current.set(itemId, { reason, read: outcome.read, part });
-          if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
-          else void secondLook(itemId);
-        }
-        // The crop and its label text stay on this device; a failure here never loses the verdict.
-        await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
-      } catch (e) {
-        limit.clear();
-        if (gone.current || limit.over) return;
-        setNotice(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
+        arrived = await settingsArrive(settingsWaitMs);
+      } finally {
+        if (!gone.current) setWaiting((w) => w - 1);
       }
+      if (gone.current) return;
+      // Cloud checks taken back during the wait end it, and the notice says that, whatever else holds.
+      if (store.consentNow() !== true) { setNotice(blockedText({ ...liveInputs(), killCloud: false, online: true })); return; }
+      route = chooseImageRoute(how, { gate: live.current.gate, ...liveInputs() });
+      if (route === "skip") return;
+      if (route === "blocked") {
+        setNotice(!live.current.online ? blockedText(liveInputs()) : arrived ? blockedText(liveInputs(), false) : SETTINGS_SLOW);
+        return;
+      }
+    }
+    if (route === "blocked") { setNotice(null); setBlocked({ text: blockedText(cloudInputs(), live.current.pauseUnknown), when: situationOf(cloudInputs()) }); return; }
+    // A frame the camera read by itself leaves the notices of the sender's presses in place.
+    if (press !== null) {
+      setNotice(null);
+      setBlocked(null);
+    }
+    // Registered now, so taking back consent, a pause or leaving the page ends the read.
+    const work = cloudWork();
+    const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === owner) setNotice(TOO_SLOW); });
+    try {
+      const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
+      limit.clear();
+      if (gone.current || limit.over) return;
+      if (isNoItem(outcome.read)) { setNotice(NO_ITEM); return; }
+      const key = newCropKey();
+      const itemId = store.addRead(outcome, key);
+      setCrops((c) => ({ ...c, [itemId]: part }));
+      const added = store.getState().items.find((i) => i.itemId === itemId);
+      const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, live.current.secondLook) : null;
+      if (reason && shouldRunSecondLook(reason, liveInputs())) {
+        looks.current.set(itemId, { reason, read: outcome.read, part });
+        if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
+        else void secondLook(itemId);
+      }
+      // The crop and its label text stay on this device; a failure here never loses the verdict.
+      await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
+    } catch (e) {
+      limit.clear();
+      if (gone.current || limit.over) return;
+      setNotice(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
     } finally {
       work.end();
     }
