@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### chore(ios): the first App Store version is 1.0.0
+- What: `MARKETING_VERSION` in `ios/project.yml` goes from 0.1.0 to 1.0.0 (build 1), the version the
+  first App Store build carries; the listing notes say so.
+- Source: App Store Connect prep (a public listing reading 0.1.0 looks unfinished).
+- Verified: no other file pins 0.1.0 except a version-compare test unrelated to the app's version;
+  xcodegen generates the project; the app test suite passes.
+
 ### test(ios): the cloud question test checks the words the web's new question shares
 - What: the web app's cloud question changed (it now names the second look too). The iPhone test
   compared against the web's earlier opening words; it now checks that both questions carry the
