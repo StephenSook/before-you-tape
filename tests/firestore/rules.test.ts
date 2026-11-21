@@ -1,7 +1,7 @@
 // Firestore rules (spec 5.8), run against the local emulator: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, Timestamp, updateDoc, writeBatch, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let env: RulesTestEnvironment;
@@ -78,19 +78,54 @@ describe("boxes", () => {
     await assertFails(setDoc(doc(nobody, "boxes/b2"), boxFor("alice")));
   });
 
-  // No app deletes a box. A deleted box would leave its items behind, and its free id could then be started
-  // again by anyone, who would become the member of those items.
-  it("never lets a client delete a box, so its items stay with it and its id is never free again", async () => {
-    await env.withSecurityRulesDisabled(async (c) => {
-      const admin = c.firestore() as unknown as Firestore;
-      await setDoc(doc(admin, "boxes/b3"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
-      await setDoc(doc(admin, "boxes/b3/items/i1"), itemDoc);
-    });
-    await assertFails(deleteDoc(doc(bob, "boxes/b3")));
+  // Deleting a box writes a tombstone for its id in the same batch. Without one, a deleted box's id would read as
+  // free, and anyone who started it again would become the member of anything it left behind.
+  const retire = async (db: Firestore, id: string, expiresAt: unknown = EXPIRES) => {
+    const batch = writeBatch(db);
+    batch.set(doc(db, `retiredBoxes/${id}`), { expiresAt });
+    batch.delete(doc(db, `boxes/${id}`));
+    await batch.commit();
+  };
+
+  it("lets the owner delete a box only together with its tombstone, and never lets its id start again", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/b3"), boxFor("alice")));
     await assertFails(deleteDoc(doc(alice, "boxes/b3")));
-    expect((await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")))).exists()).toBe(true);
+    await assertSucceeds(retire(alice, "b3"));
+    let stillThere = true;
+    await env.withSecurityRulesDisabled(async (c) => { stillThere = (await getDoc(doc(c.firestore() as unknown as Firestore, "boxes/b3"))).exists(); });
+    expect(stillThere).toBe(false);
+    await assertFails(setDoc(doc(alice, "boxes/b3"), boxFor("alice")));
     const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
     await assertFails(setDoc(doc(eve, "boxes/b3"), boxFor("eve")));
+  });
+
+  it("never lets a member who is not the owner, a stranger or a signed-out visitor delete or retire a box", async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/b4"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
+    });
+    const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
+    for (const db of [bob, eve, nobody]) {
+      await assertFails(retire(db, "b4"));
+      await assertFails(deleteDoc(doc(db, "boxes/b4")));
+    }
+    expect((await assertSucceeds(getDoc(doc(alice, "boxes/b4")))).exists()).toBe(true);
+  });
+
+  it("keeps a tombstone to the box's own expiry, written only while its box is deleted, and out of every client's reach", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/b5"), boxFor("alice")));
+    // Alone, with another expiry, or with anything else in it: refused.
+    await assertFails(setDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES }));
+    await assertFails(retire(alice, "b5", Timestamp.fromMillis(EXPIRES.toMillis() + 1000)));
+    const batch = writeBatch(alice);
+    batch.set(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES, note: "x" });
+    batch.delete(doc(alice, "boxes/b5"));
+    await assertFails(batch.commit());
+    // For a box that does not exist: refused.
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: EXPIRES }));
+    await assertSucceeds(retire(alice, "b5"));
+    await assertFails(getDoc(doc(alice, "retiredBoxes/b5")));
+    await assertFails(updateDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES }));
+    await assertFails(deleteDoc(doc(alice, "retiredBoxes/b5")));
   });
 });
 

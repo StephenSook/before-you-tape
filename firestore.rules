@@ -301,6 +301,24 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // A deleted box's tombstone: written by its owner in the same batch that deletes it, holding only the box's
+    // expiry (so Firestore's TTL policy removes it with the rest), and never read, changed or deleted by a client.
+    // ---------------------------------------------------------------
+
+    match /retiredBoxes/{boxId} {
+      function retiring() {
+        return get(/databases/$(database)/documents/boxes/$(boxId));
+      }
+      allow create: if isAuthenticated()
+        && retiring() != null
+        && retiring().data.ownerUid == request.auth.uid
+        && !existsAfter(/databases/$(database)/documents/boxes/$(boxId))
+        && request.resource.data.keys().hasOnly(['expiresAt'])
+        && request.resource.data.get('expiresAt', null) == retiring().data.get('expiresAt', null);
+      allow read, update, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
     // Boxes and their items: members only
     // ---------------------------------------------------------------
 
@@ -314,17 +332,19 @@ service cloud.firestore {
         && request.resource.data.memberUids == [request.auth.uid]
         && request.resource.data.joinKeyHash == ''
         && !('cloudConsent' in request.resource.data)
-        && isNewBoxExpiry(request.resource.data.get('expiresAt', null));
+        && isNewBoxExpiry(request.resource.data.get('expiresAt', null))
+        && !exists(/databases/$(database)/documents/retiredBoxes/$(boxId));
       // Members change the box contents, never who belongs to it.
       allow update: if isMemberOf(resource)
         && isValidBox(request.resource.data)
         && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash'])
         && consentUntouchedOrDeleted()
         && expiryUnchanged();
-      // No client deletes a box. A deleted box would leave its items and disputes behind (a delete does not
-      // reach subcollections), and its id would read as free, so anyone could start it again and become the
-      // member of those items.
-      allow delete: if false;
+      // Only the owner deletes a box, and only with its tombstone in the same batch (retiredBoxes below). A delete
+      // does not reach the box's items and disputes, so the app deletes them first; the tombstone keeps the id from
+      // ever reading as free, so no one could start it again and become the member of anything left behind.
+      allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid
+        && existsAfter(/databases/$(database)/documents/retiredBoxes/$(boxId));
 
       match /items/{itemId} {
         function parentBox() {
