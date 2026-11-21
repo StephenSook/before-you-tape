@@ -36,6 +36,6 @@ checks, or add the item by hand with Type it in Your box.
 
 ## Contact
 
-[contact route]
+Open an issue at [github.com/StephenSook/before-you-tape/issues](https://github.com/StephenSook/before-you-tape/issues). Don't post personal details in an issue.
 
 Not affiliated with or approved by the US Postal Service.

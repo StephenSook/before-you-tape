@@ -53,12 +53,13 @@ Last updated: [date of publishing].
 - Remove an item from your box, and its saved copy is deleted.
 - iPhone: the box lives in the app, and deleting the app deletes it. The anonymous sign-in can
   stay in the iPhone's keychain after the app is deleted.
-- To delete a whole saved box or your anonymous sign-in from Firebase, write to [contact route].
-  Give the box link if you have it.
+- To delete a whole saved box or your anonymous sign-in from Firebase, open an issue at
+  [github.com/StephenSook/before-you-tape/issues](https://github.com/StephenSook/before-you-tape/issues). Don't post your box link or any personal details in the issue; we will
+  reply there and say how to find the box.
 - The photo and words from a cloud check are not kept by Before You Tape.
 
 ## Contact
 
-[contact route]
+Open an issue at [github.com/StephenSook/before-you-tape/issues](https://github.com/StephenSook/before-you-tape/issues). Don't post personal details in an issue.
 
 Not affiliated with or approved by the US Postal Service.

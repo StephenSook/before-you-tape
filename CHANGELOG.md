@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Draft privacy and support pages: the contact route is the repo's GitHub issues, with "Don't post personal details in an issue"; a deletion request asks people not to post their box link either, since the issues are public. Only the publish date is still to fill. Source: the owner's chosen contact route. Verified: the page test holds both served pages to their sources; the placeholder gate now names only the date.
+
 - Draft privacy page, item 4: the saved box list holds the kind of item (its category, also saved as its name; the name read from the label stays on the device) and whether it was read on the device or in the cloud, never the photo, the label text or a typed name, as the web and Android sync code do. Source: the iPhone lane's check of both sync paths. Verified: against `forStorage` in `src/data/boxStore.ts`; the page test holds the served page to its source.
 
 - DRAFT, not for release until the owner approves the text: `/privacy/` and `/support/` as static pages, built by `npm run legal` (`scripts/legal-pages.ts`) from `legal/privacy.md` and `legal/support.md`, the drafts written against the iPhone, web and Android code. A test holds each served page to the rendering of its source, and another fails while a source still holds a placeholder ([contact route], [date of publishing]), so the pages cannot ship unfinished. Source: the iPhone App Store path. Verified: the renderer tests pass; the placeholder test fails, as intended, until the owner fills them in.
