@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { cpSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
@@ -10,7 +11,17 @@ import { startBuildServer, type BuildServer } from "./swServer";
 // tab still on the old app keeps loading the old app's files after another tab switched to the new version.
 const NEXT_SHA = "b".repeat(40);
 let next = "";
+let mixed = "";
 let oldChunk = "";
+
+// The worker's list names each file with the SHA-256 of its bytes; recomputes them after the files changed.
+function relist(dir: string) {
+  const sw = readFileSync(join(dir, "sw.js"), "utf8");
+  const entry = /\{"revision":(?:null|"[0-9a-f]*"),"url":"([^"]+)"\}/g;
+  expect(sw.match(entry)?.length, "the worker lists its files").toBeGreaterThan(5);
+  writeFileSync(join(dir, "sw.js"), sw.replace(entry, (_m, url: string) =>
+    `{"revision":"${createHash("sha256").update(readFileSync(join(dir, url))).digest("hex")}","url":"${url}"}`));
+}
 let server: BuildServer;
 
 test.beforeAll(() => {
@@ -33,6 +44,11 @@ test.beforeAll(() => {
   const page = readFileSync(join(next, "index.html"), "utf8");
   writeFileSync(join(next, "index.html"), page.replace("<head>", '<head><meta name="byt-test-build" content="next">'));
   writeFileSync(join(next, "version.json"), `${JSON.stringify({ sha: NEXT_SHA, dirty: false, builtAt: "2026-11-21T00:00:00Z" })}\n`);
+  relist(next);
+  // A rollback in the middle of an install: the next worker, but the old page still served.
+  mixed = mkdtempSync(join(tmpdir(), "byt-sw-mixed-"));
+  cpSync(next, mixed, { recursive: true });
+  cpSync(join("dist", "index.html"), join(mixed, "index.html"));
 });
 test.beforeEach(async () => { server = await startBuildServer("dist"); });
 test.afterEach(async () => { await server.close(); });
@@ -114,3 +130,22 @@ test("Reload works in the tab that installed the first worker", async ({ page })
   await expect.poll(() => isNextPage(page), { timeout: 20_000 }).toBe(1);
   await expect(page.getByTestId("update-line")).toHaveCount(0);
 });
+
+// A new worker whose page does not match its own list (a rollback between fetching the worker and the page) is
+// never installed, so its cache cannot hold the old page; once the server serves its whole build, it installs.
+test("a new worker installs only with the exact files its build listed", async ({ page }) => {
+  await page.goto(`${server.url}/`);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+
+  server.serve(mixed);
+  await checkForUpdate(page).catch(() => undefined);
+  await page.waitForTimeout(3000);
+  await expect(page.getByTestId("update-line")).toHaveCount(0);
+  expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting ?? null)).toBeNull();
+
+  server.serve(next);
+  await checkForUpdate(page);
+  await expect(page.getByTestId("update-line")).toBeVisible({ timeout: 20_000 });
+});
+

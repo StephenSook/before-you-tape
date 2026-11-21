@@ -4,21 +4,29 @@
 // run time, so model, database, sign-in and App Check calls go to Google's hosts and are never answered from a cache.
 // With the kill switch on, the same worker is built with no files to cache, and a worker with none removes itself
 // and every cache.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { VitePWAOptions } from "vite-plugin-pwa";
 
 export { appRoutes, type Rewrite } from "../src/pwa/routes";
 
-// The page's own description (index.html), so the installed app and the page describe it the same way. Read from
-// the package root, where npm runs the build and the tests.
-function pageDescription(): string {
-  const m = /<meta name="description" content="([^"]+)"/.exec(readFileSync(join(process.cwd(), "index.html"), "utf8"));
-  if (!m) throw new Error("index.html has no description for the web app manifest");
-  return m[1]!;
+interface ListedFile { url: string; revision: string | null; size: number }
+
+// Sets each listed file's revision to the SHA-256 of its built bytes, so the worker stores a file only if the bytes
+// it fetched are this build's (src/pwa/sw.ts). A listed file missing from the build fails the build.
+export function sha256Revisions(dir: string) {
+  return async (entries: ListedFile[]) => ({
+    manifest: entries.map((e) => {
+      let bytes: Buffer;
+      try { bytes = readFileSync(join(dir, e.url)); } catch { throw new Error(`the worker lists ${e.url}, which the build does not have`); }
+      return { ...e, revision: createHash("sha256").update(bytes).digest("hex") };
+    }),
+    warnings: [] as string[],
+  });
 }
 
-export const SHELL = ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"];
+export const SHELL = ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png", "manifest.webmanifest"];
 
 export function pwaOptions(o: { kill: boolean }): Partial<VitePWAOptions> {
   return {
@@ -27,21 +35,17 @@ export function pwaOptions(o: { kill: boolean }): Partial<VitePWAOptions> {
     filename: "sw.ts",
     // The page registers the worker itself (src/pwa/register.ts), so no tab ever reloads without its own tap.
     injectRegister: false,
-    // Icons drawn from public/favicon.svg (rsvg-convert at 192 and 512; the maskable one on the page color, inset).
-    manifest: o.kill ? false : {
-      name: "Before You Tape", short_name: "Before You Tape", description: pageDescription(), start_url: "/", scope: "/",
-      display: "standalone", background_color: "#fff3e6", theme_color: "#fff3e6",
-      icons: [
-        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-        { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      ],
-    },
-    includeManifestIcons: !o.kill,
+    // The web app manifest is public/manifest.webmanifest, linked from index.html; icons drawn from public/favicon.svg
+    // (rsvg-convert at 192 and 512; the maskable one on the page color, inset). The plugin adds no files of its own,
+    // so each listed file goes through sha256Revisions.
+    manifest: false,
+    includeManifestIcons: false,
     injectManifest: {
       globPatterns: o.kill ? [] : SHELL,
       globIgnores: ["assets/extBridge-*"],
       rollupFormat: "iife",
+      // The build's output folder (vite.config.ts keeps the default).
+      manifestTransforms: [sha256Revisions("dist")],
     },
   };
 }

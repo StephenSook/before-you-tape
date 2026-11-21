@@ -1,6 +1,8 @@
 // The app's service worker (built by scripts/pwa-options.ts, which injects the list of the app's own shell files).
 //
-// - It caches each version's shell in a cache of its own, and answers this site's own files from it. It answers
+// - It caches each version's shell in a cache of its own, and answers this site's own files from it. It stores a
+//   file only if its bytes match the SHA-256 the build listed for it, so a version's cache can hold only that
+//   version's files, even if a deploy is rolled back while it installs; on any mismatch the install fails. It answers
 //   nothing else: model, database, sign-in and App Check calls go to Google's hosts and never meet a cache here.
 // - It opens the cached page only for the app's own routes (firebase.json rewrites), matched on the path alone, so
 //   a link with a query string opens offline too, and /privacy/ or /support/ stay with the network.
@@ -64,10 +66,20 @@ if (ENTRIES.length === 0) {
     return Array.isArray(v) ? v.filter((n): n is string => typeof n === "string") : [];
   };
 
+  const sha256 = async (bytes: ArrayBuffer) =>
+    [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
   sw.addEventListener("install", (event) => {
     event.waitUntil((async () => {
       const cache = await caches.open(CACHE);
-      await cache.addAll([...FILES].map((url) => new Request(url, { cache: "reload" })));
+      for (const entry of ENTRIES) {
+        const url = new URL(entry.url, sw.location.origin).href;
+        const res = await fetch(new Request(url, { cache: "reload" }));
+        if (!res.ok) throw new Error(`${entry.url} answered ${res.status}`);
+        const bytes = await res.arrayBuffer();
+        if (entry.revision === null || (await sha256(bytes)) !== entry.revision) throw new Error(`${entry.url} is not this version's file`);
+        await cache.put(url, new Response(bytes, { status: res.status, statusText: res.statusText, headers: res.headers }));
+      }
     })());
   });
 
