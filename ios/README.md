@@ -13,8 +13,9 @@ The box is kept on the phone only: joining a box started in the web app is not b
 - Checks: `bash ios/scripts/ci-local-ios.sh` runs the repository's checks and the iPhone
   client's own. It needs `ios/BYT/Config/GoogleService-Info.plist`, which is gitignored.
 
-The iPhone client is not part of the entry until its on-device read passes an airplane-mode test
-on a real iPhone.
+On 2026-11-20 its on-device photo read passed an airplane-mode test on a real iPhone 17 Pro
+(iOS 27.2.1): 22 label photos, all 22 read on the phone, none in the cloud. The record is in
+`docs/evidence/ios/2026-11-20-device/`.
 
 ## Test status
 

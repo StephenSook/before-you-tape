@@ -7,6 +7,23 @@ All notable changes to this project are listed here.
 ### Added
 
 - An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
+- The newest-item sheet test gives the sheet 1.5 s before it hides itself, not 60 ms, so a busy machine still finds the sheet before it goes; it waits up to 5 s for the sheet to hide and has a 15 s limit. Source: the test failed while other work loaded the machine. Verified: the test passes alone and in the full suite (796).
+
+- The engine's big-box timing test no longer fails on a busy machine: instead of judging 100 items in under 100 ms, it times 100 and 400 items in turns and takes each size's fastest run, so 400 items must take less than ten times as long as 100. Source: the test failed at 327 ms while other work loaded the machine. Verified: measured 6.2 ms and 24.9 ms (4.0 times); with every item compared against every other added to evaluateBox for a check, it measured 12.9 times and failed; five runs in a row pass.
+
+- The country buttons carry the post office's announced suspensions, from the same rules the verdicts use: Canada shows "USPS stops Nov 29" until that day, then "USPS suspended". Source: UI review. Verified: new badge and page tests failed first and pass; the full unit suite passes.
+
+- The country picker is one 44 px button per country (a radio group: one tab stop, the arrow keys move between countries), in place of a 23 px dropdown. A line under it says who read the chosen country's rules, with a link to the rules page. While the saved box is still being read no country is marked, and the page asks where the box is going, so nothing switches without the sender seeing it. A country can carry a badge. Source: UI review. Verified: the new DestinationPicker tests failed first and pass; the page and browser tests now press the country buttons; the full unit suite passes.
+
+- The sample cards' "Label and photo credit" disclosure is 37 px tall instead of 21 px, so it meets the 24 px tap target size (WCAG 2.2 target-size). Source: the accessibility browser check on /judge, which failed on one card at 1440 and 390 px after main was merged in. Verified: axe found the 21 px summary; after the padding, the accessibility, judge, contrast and start browser checks pass (17).
+
+- /judge lays the sample cards out in a grid (three across on a laptop), with each verdict chip on its photo's corner, and puts each card's label words and photo credit behind a closed "Label and photo credit" disclosure, so the page is far shorter and the verdicts come first. Source: UI review (/judge was 4484 px tall, its first chip at y 923). Verified: a new JudgePage test failed first and passes; the full unit suite passes.
+
+- The box summary shows its counts as chips in the verdict colors ("1 to take out", "2 to check", "6 OK to pack"), on the Pack page and on /judge. Source: UI review. Verified: a new BoxSummary test failed first and passes; the full unit suite passes.
+
+- /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.
+
+- `scripts/eval-thumbs.py` writes a 240 px and a 480 px wide WebP copy of each of the 40 published eval photos into `public/eval/thumbs/` (80 files, 1.2 MB, against 11 MB for the photos), with no Exif or XMP block, and `src/judge/thumbs.json` records each one's size and SHA-256. `src/judge/thumbs.ts` gives a page the small copy, its size and a srcset. The published photos and the manifest do not change. Source: UI review (/judge showed 2.8 MB of photos at 160 px). Verified: a new test (every photo, both widths, the same shape, the hashes, no Exif or XMP) failed first and passes.
 
 - On a phone the page links stay on one row that scrolls sideways, and a link inside a sentence gets a tap area at least 24 px tall (3 px of inline padding above and below, which leaves the lines where they are). Source: UI review (links were 17 to 19 px tall). Verified: lint and the build pass; the layout is to be checked live at 390 px once deployed.
 

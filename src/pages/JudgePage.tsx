@@ -13,11 +13,13 @@ import manifest from "../../eval/set/manifest.json";
 import { MATCHED_PAIRS, type MatchedPair } from "../judge/matchedPairs";
 import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
+import { thumbOf } from "../judge/thumbs";
 import type { ItemCategory } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
+import { destinationBadges } from "../ui/destinationBadges";
 import { MatchedPairs } from "../ui/MatchedPairs";
 import { QuestionRow } from "../ui/QuestionRow";
 import { VerdictChip } from "../ui/VerdictChip";
@@ -34,6 +36,13 @@ export interface JudgePageProps {
 }
 
 const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
+
+// A card's photo: its small WebP copy at its own size, so the page loads fast and nothing shifts as photos arrive.
+function CardPhoto({ itemId, photo, alt }: { itemId: string; photo: string; alt: string }) {
+  const t = thumbOf(itemId);
+  if (!t) return <img src={photo} alt={alt} loading="lazy" />;
+  return <img src={t.src} srcSet={t.srcSet} sizes="(max-width: 700px) 50vw, 240px" width={t.width} height={t.height} alt={alt} loading="lazy" decoding="async" />;
+}
 
 function sampleStore(edition: RuleEdition, today: string, now: () => number): BoxStore {
   const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now, today: () => today,
@@ -80,7 +89,8 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
-      <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+      <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)}
+        badges={destinationBadges(edition, index.map((d) => d.code), today)} />
       <MatchedPairs pairs={pairs} edition={edition} destinationCode={state.destinationCode} today={today} />
       {!dest.suspended && dest.suspendsFrom && (
         <p data-testid="suspension-ahead-banner" className="banner" role="status">
@@ -89,16 +99,18 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       )}
       <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
         recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country }} />
+      <div data-testid="sample-grid" className="sample-grid">
       {state.items.map((item) => {
         const sample = byId.get(item.itemId);
         const verdict = state.result.items[item.itemId];
         if (!sample || !verdict) return null;
         return (
           <article key={item.itemId} data-testid="sample-card" className="card sample-card">
-            <img src={sample.photo} alt={sample.alt} loading="lazy" />
+            <div className="sample-photo">
+              <CardPhoto itemId={item.itemId} photo={sample.photo} alt={sample.alt} />
+              <VerdictChip level={verdict.level} />
+            </div>
             <p className="item-name">{item.read.itemName}</p>
-            {item.read.labelText && <p className="label-words">Label: {item.read.labelText}</p>}
-            <VerdictChip level={verdict.level} />
             {verdict.hits.filter((h) => h.level !== "note").map((h) => (
               <p key={h.ruleId}>{h.text} <a href={h.url} target="_blank" rel="noreferrer">{h.section}</a></p>
             ))}
@@ -106,10 +118,15 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
               <QuestionRow question={verdict.question} value={item.answers[verdict.question.id]}
                 onAnswer={(q, a) => store.answer(item.itemId, q, a)} />
             )}
-            <p className="credit">{sample.credit}</p>
+            <details className="sample-more">
+              <summary>Label and photo credit</summary>
+              {item.read.labelText && <p className="label-words">Label: {item.read.labelText}</p>}
+              <p className="credit">{sample.credit}</p>
+            </details>
           </article>
         );
       })}
+      </div>
       {recorded && (
         <details data-testid="recorded-reads" className="recorded-reads">
           <summary>Recorded on-device reads</summary>

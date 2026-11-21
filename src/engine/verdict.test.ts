@@ -191,13 +191,18 @@ describe("evaluateBox", () => {
       if (v.level === "take_out") expect(v.hits.some((h) => h.level === "take_out")).toBe(true);
     });
 
-    it("stays quick for a big box of items with no battery", () => {
-      const many = Array.from({ length: 100 }, (_, n) => ({ ...perfume, itemId: `perfume-${n}` }));
-      run(many, "PH");
-      const t0 = performance.now();
-      const r = run(many, "PH");
-      expect(performance.now() - t0).toBeLessThan(100);
-      expect(r.items["perfume-7"]!.question).toBeNull();
+    it("takes time in step with the box, not with its square, for items with no battery", () => {
+      // A wall-clock limit fails on a busy machine, so two box sizes are timed in turns on the same machine,
+      // each by its fastest run: four times the items take about four times as long, while comparing every
+      // item with every other would take about sixteen.
+      const box = (n: number) => Array.from({ length: n }, (_, k) => ({ ...perfume, itemId: `perfume-${k}` }));
+      const small = box(100), big = box(400);
+      const time = (items: BoxItemInput[]) => { const t0 = performance.now(); run(items, "PH"); return performance.now() - t0; };
+      run(small, "PH"); run(big, "PH");
+      let fastSmall = Infinity, fastBig = Infinity;
+      for (let i = 0; i < 5; i++) { fastSmall = Math.min(fastSmall, time(small)); fastBig = Math.min(fastBig, time(big)); }
+      expect(fastBig / fastSmall).toBeLessThan(10);
+      expect(run(small, "PH").items["perfume-7"]!.question).toBeNull();
     });
   });
 });
