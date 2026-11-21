@@ -80,6 +80,28 @@ describe("firestorePersistence", () => {
     expect((await at("boxes/b1"))!.expiresAt).toEqual(expiresAt);
   });
 
+  it("deletes a box for good: its items and disputes, then the box with a tombstone, so its id never starts again", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { disputes: { liquid: { device: true, cloud: false, resolved: false } } }));
+    await p.putItem("b1", item("i2"));
+    const expiresAt = (await at("boxes/b1"))!.expiresAt;
+    await p.deleteBox!("b1");
+    expect(await at("boxes/b1")).toBeUndefined();
+    for (const sub of ["items", "disputes"]) expect((await admin((d) => getDocs(collection(d, `boxes/b1/${sub}`)))).size).toBe(0);
+    expect(await at("retiredBoxes/b1")).toEqual({ expiresAt });
+    // The id is retired: no one can start a box there again.
+    await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
+    // Deleting a box that is already gone does nothing.
+    await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
+  });
+
+  it("never lets anyone but the owner delete a box", async () => {
+    await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b2", meta());
+    await expect(firestorePersistence(db("bob"), "bob", "byt-test").deleteBox!("b2")).rejects.toThrow();
+    expect(await at("boxes/b2")).toBeDefined();
+  });
+
   it("keeps a box from before expiry working, and its disputes paired once the backfill gives it an expiry", async () => {
     await admin((d) => setDoc(doc(d, "boxes/old"), { ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" }));
     const p = firestorePersistence(db("alice"), "alice", "byt-test");

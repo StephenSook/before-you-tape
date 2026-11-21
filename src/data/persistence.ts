@@ -113,6 +113,26 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       else batch.delete(doc(box, "disputes", item.itemId));
       await batch.commit();
     },
+    // Its items and disputes first, in batches, then the box with its tombstone in one batch, so the id is retired
+    // and no one could start it again to reach anything left behind. The rules let only the owner do this.
+    async deleteBox(boxId: string) {
+      const box = doc(db, "boxes", boxId);
+      const snap = await getDoc(box);
+      if (!snap.exists()) return;
+      const expiresAt = (snap.data().expiresAt as Timestamp | undefined) ?? null;
+      const [items, disputes] = await Promise.all([getDocs(collection(box, "items")), getDocs(collection(box, "disputes"))]);
+      const refs = [...items.docs, ...disputes.docs].map((d) => d.ref);
+      for (let i = 0; i < refs.length; i += 400) {
+        const batch = writeBatch(db);
+        for (const ref of refs.slice(i, i + 400)) batch.delete(ref);
+        await batch.commit();
+      }
+      const last = writeBatch(db);
+      last.set(doc(db, "retiredBoxes", boxId), withExpiry({}, expiresAt));
+      last.delete(box);
+      await last.commit();
+      expiries.delete(boxId);
+    },
     async deleteItem(boxId: string, itemId: string) {
       const box = doc(db, "boxes", boxId);
       const batch = writeBatch(db);
