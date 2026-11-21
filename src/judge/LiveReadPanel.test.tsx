@@ -90,16 +90,25 @@ describe("LiveReadPanel", () => {
     expect(m.device.generate).not.toHaveBeenCalled();
   });
 
-  it("runs one read at a time, then waits before it can run again", async () => {
+  // The wait is long here, so a busy machine cannot let it pass between the two clicks.
+  it("runs one read at a time, and waits before it can run again", async () => {
     const { load, m } = deps({ gate: "available" });
-    render(<LiveReadPanel load={load} judge={judge} cooldownMs={80} />);
+    render(<LiveReadPanel load={load} judge={judge} cooldownMs={60_000} />);
     const button = screen.getByRole("button", { name: "Run one live read" });
     await userEvent.click(button);
     await userEvent.click(button);
     await screen.findByTestId("live-read-where");
     expect(m.device.generate).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
-    await waitFor(() => expect(button).toBeEnabled(), { timeout: 2000 });
+  });
+
+  it("runs again once the wait is over", async () => {
+    const { load, m } = deps({ gate: "available" });
+    render(<LiveReadPanel load={load} judge={judge} cooldownMs={50} />);
+    const button = screen.getByRole("button", { name: "Run one live read" });
+    await userEvent.click(button);
+    await screen.findByTestId("live-read-where");
+    await waitFor(() => expect(button).toBeEnabled(), { timeout: 5000 });
     await act(async () => { await userEvent.click(button); });
     await waitFor(() => expect(m.device.generate).toHaveBeenCalledTimes(2));
   });
