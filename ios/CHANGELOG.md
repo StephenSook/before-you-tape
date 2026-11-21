@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### build(ios): build number 2 for 1.0.0, carrying rule edition revision 4
+- What: CURRENT_PROJECT_VERSION in ios/project.yml goes from 1 to 2. The app code and the bundled
+  engine are the same as build 1 (engine sha256 7eec63d00561 at both); only rules/edition.json
+  differs, now revision 4 (byt-cfd7e337919a).
+- Source: the plan to submit the revision 4 build, so the suspension layer is not stale during
+  judging.
+- Verified: every shared vector (41 box, 64 guards, 25 destinations) passes through the bundled
+  engine with this edition in VectorTests on the iOS 27.2 simulator and with swift test on macOS;
+  check_engine_bundle.sh says fresh.
+
 ### docs(ios): the review notes describe the attached recording of this build
 - What: item 1 of ios/app-store/review-notes.md now describes the attached 70-second recording of
   this build on an iPhone 17 Pro (iOS 27.2.1), which starts at the Home Screen, and says the photo
