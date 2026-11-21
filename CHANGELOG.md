@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: the saved box is kept for about 30 days, as the privacy page says, and Delete my saved box under the box deletes it sooner, with its photos on this device and the anonymous sign-in. Source: claims sweep. Verified: against legal/privacy.md and the live delete check of 2026-11-21; tone, hygiene and the full suite pass.
+
 - README: the dependency audit line now says what the search of the built app finds: no grpc-js in dist/assets, while the Firestore web SDK names gRPC in a setting and an error message, so a plain search for gRPC does match one file. npm audit --omit=dev still reports only @grpc/grpc-js 1.9.16 (Firestore, its compat package and firebase are listed as its dependents), and the per-user limit still reads 20 a minute. Source: claims sweep. Verified: a fresh build searched for grpc-js (0 files) and grpc (1 file); npm audit and npm ls re-run; tone and the full suite pass.
 
 - README: the list of checks on every push now matches ci.yml: it adds the check that no rule layer reads stale before the last judging day, the Chrome extension's build and package check, and the browser checks that need App Check. Source: claims sweep. Verified: the step names and order read from .github/workflows/ci.yml; tone, hygiene and guard checks and the full suite pass.
