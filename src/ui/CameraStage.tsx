@@ -14,6 +14,7 @@ import { PhotoCrop, type CropSource } from "./PhotoCrop";
 export const HOLD_ZONE: Box = { x: 0.25, y: 0.15, w: 0.5, h: 0.7 };
 // Where the box starts on an added photo: the middle, leaving out the edges, where an address would sit.
 export const PHOTO_BOX: Box = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+const WHOLE_PHOTO: Box = { x: 0, y: 0, w: 1, h: 1 };
 // Starting values; Task 17 Step 4 tunes them on the packing clip.
 export const STEADY_CONFIG: SteadyConfig = { threshold: 24, steadyFrames: 8, minChangedFraction: 0.08, cooldownMs: 1500, minSharpness: 200, zone: HOLD_ZONE };
 const FRAME_W = 64;
@@ -44,6 +45,8 @@ export interface CameraStageProps {
   // same upload path as a photo they add, so the same route and consent decide where it is read.
   sample?: { url: string; sha256: string; alt: string };
   loadSample?: (url: string) => Promise<ArrayBuffer>;
+  // When the page has the sample's recorded read, a sample photo goes to it instead of a model.
+  onSampleSend?: (part: ImagePart) => void;
 }
 
 const fetchSample = async (url: string): Promise<ArrayBuffer> => {
@@ -64,7 +67,7 @@ const CAMERA_TEXT: Record<CameraErrorKind, string> = {
   busy: "The camera is in use by another app. Add a photo instead.",
 };
 
-export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample }: CameraStageProps) {
+export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample, onSampleSend }: CameraStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const [started, setStarted] = useState(false);
@@ -86,7 +89,13 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     if (e instanceof CropError && /empty crop box/.test(e.message)) return "Hold the item inside the box, or type it instead.";
     return photo ? "That photo could not be opened. Try another, or type the item." : "That could not be read. Try again, or type the item.";
   };
+  // Each photo pick, the sender's or the sample's, gets the next number, and so does each press of Check now (its
+  // own count). A sample that finishes after a newer pick or press is dropped, so a slow sample never covers the
+  // sender's own check; a press never drops the sender's own photo.
+  const pickSeq = useRef(0);
+  const pressSeq = useRef(0);
   const read = useCallback(async (box: Box, how: ImageHow) => {
+    if (how === "check_now") ++pressSeq.current;
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
       const video = videoRef.current;
@@ -154,12 +163,14 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   }, [read]);
 
   // An added photo turns the camera off and opens the crop step; nothing is read yet.
-  const onFile = async (file: File | undefined, isSample = false) => {
+  const onFile = async (file: File | undefined, isSample = false, seq?: number) => {
     if (!file) return;
-    setFromSample(isSample);
+    const mine = seq ?? ++pickSeq.current;
     setSampleSent(false);
     try {
       const source = await (decodeFile ?? decodePhoto)(file);
+      if (mine !== pickSeq.current) { release(source); return; }
+      setFromSample(isSample);
       setStarted(false);
       setEvent(null);
       setPicked((old) => { if (old) release(old); return source; });
@@ -168,15 +179,33 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     }
   };
   const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
-  // The sample is used only when its bytes are the tracked photo's; then it is an added photo like any other.
+  // The sample is used only when its bytes are the tracked photo's. With a recorded read, the whole photo goes to
+  // it (that read is of the whole photo); with none, it is an added photo like any other.
   const trySample = async () => {
     if (!sample) return;
+    const mine = ++pickSeq.current;
+    const press = pressSeq.current;
+    const current = () => mine === pickSeq.current && press === pressSeq.current;
     try {
       const bytes = await loadSample(sample.url);
+      if (!current()) return;
       if ((await bytesSha256(bytes)) !== sample.sha256) { onError?.(SAMPLE_FAILED); return; }
-      await onFile(new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" }), true);
+      const file = new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" });
+      if (!onSampleSend) { await onFile(file, true, mine); return; }
+      const source = await (decodeFile ?? decodePhoto)(file);
+      if (!current()) { release(source); return; }
+      let part: ImagePart;
+      try {
+        part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
+      } finally {
+        release(source);
+      }
+      if (!current()) return;
+      setSampleSent(true);
+      onSampleSend(part);
     } catch {
-      onError?.(SAMPLE_FAILED);
+      // A sample a newer photo or press replaced says nothing over it.
+      if (current()) onError?.(SAMPLE_FAILED);
     }
   };
 
@@ -225,7 +254,9 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
         </label>
         {sample && <>{" "}<button type="button" data-testid="sample-photo" onClick={() => void trySample()}>Try a sample photo</button></>}
       </p>
-      {sampleSent && <p data-testid="sample-sent" className="stage-line">The last check used a sample photo from our test set, not your item.</p>}
+      {sampleSent && <p data-testid="sample-sent" className="stage-line">{onSampleSend
+        ? "The last check showed a recorded read of a sample photo from our test set, not your item."
+        : "The last check used a sample photo from our test set, not your item."}</p>}
     </section>
   );
 }
