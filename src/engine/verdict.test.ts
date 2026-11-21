@@ -144,7 +144,7 @@ describe("evaluateBox", () => {
       "battery_185_wh_read_as_18_5_is_check", "battery_185_wh_read_ten_times_low_throughout_is_check", "laptop_120_wh_read_as_12_is_check",
       "coin_cell_grams_read_once_is_check", "not_lithium_answer_keeps_one_read_numbers_held",
       "identity_tap_does_not_clear_read_numbers", "category_pick_does_not_clear_read_numbers",
-      "typed_laptop_without_label_text_is_held_for_now", "second_look_that_disagrees_on_the_numbers_is_check",
+      "typed_laptop_without_label_text_is_held_for_now",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
@@ -158,6 +158,17 @@ describe("evaluateBox", () => {
         expect(r.items[id]?.question?.id, `${v.name} ${id}`).toBe(q);
       }
     }
+  });
+
+  it("holds a second look whose numbers disagree with the first read on the open dispute, not on the second look", () => {
+    // Not a shared vector: only the web and the iPhone run second looks, so Android's engine input carries no disputes.
+    const phone = { ...sealedPhoneOneCell, identityConfirmedBy: "second_look" as const };
+    expect(run([phone], "CA").items.phone?.level).toBe("ok");
+    const disputed = { ...phone, disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 },
+      cloud: { volts: 3.85, milliampHours: 40000, wattHours: 154 }, resolved: false } } };
+    const v = run([disputed], "CA").items.phone!;
+    expect(v.level).toBe("check");
+    expect(v.hits.map((h) => h.ruleId)).toContain("DATA-DISPUTE");
   });
 
   describe("a question no answer can change", () => {
