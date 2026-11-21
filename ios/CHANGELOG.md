@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): picking a disputed reading replaces an earlier correction of the same facts
+- What: picking a reading wrote it into the read, but an earlier correction stayed on top, and the
+  rules read corrections first. A sender who had corrected only the capacity to 2,500 mAh and then
+  picked the cloud's 10,000 mAh got the cloud's volts and watt-hours judged with 2,500 mAh. A pick
+  now removes the corrections of the facts it sets (all three battery numbers, the label, or the
+  one fact). The web app keeps the correction in the same case.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test (correct the capacity, then pick the cloud's battery numbers) failed (the
+  correction stayed) and passes; 199 unit tests pass.
+
 ### fix(ios): a rule update keeps the label words of the read the sender picked
 - What: a new rule edition tags again the label still in memory. After a second look, that was
   only the first read's whole label, so a warning word only the cloud read saw (for example

@@ -396,6 +396,10 @@ final class BoxStore {
             d["resolved"] = .bool(true)
             all[field] = .object(d)
             item.disputes = .object(all)
+            // The picked reading is what the rules judge: an earlier correction of the same facts (a part
+            // of the battery numbers, say) no longer stays on top of it.
+            let keys = field == "battery" ? ["volts", "milliampHours", "wattHours"] : field == "labelTags" ? ["labelText"] : [field]
+            for key in keys { item.overrides[key] = nil }
             switch field {
             case "battery":
                 for key in ["volts", "milliampHours", "wattHours"] { if let v = value[key] { read[key] = v } }

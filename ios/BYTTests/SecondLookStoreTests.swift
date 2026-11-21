@@ -69,6 +69,18 @@ import Testing
         }
     }
 
+    /// Picking a reading uses that reading: a correction of part of it made earlier does not stay on top,
+    /// so the rules never judge numbers the sender did not pick.
+    @Test func pickingABatteryReadingReplacesAnEarlierPartialCorrection() throws {
+        let cloud = Self.with(Self.powerBank, ["milliampHours": .number(10000), "wattHours": .number(37)])
+        let (s, id) = try look(Self.powerBank, cloud)
+        s.override(id, patch: ["milliampHours": .number(2500)])
+        #expect(dispute(s, "battery")?["resolved"] == .bool(false))
+        s.settleDispute(id, field: "battery", side: .cloud)
+        #expect(s.items[0].overrides["milliampHours"] == nil)
+        #expect(s.items[0].read["milliampHours"] == .number(10000) && s.items[0].read["wattHours"] == .number(37))
+    }
+
     /// A rule update tags again the labels still in memory: both reads' labels while their words are
     /// merged, and only the picked read's label once the sender picked one. A warning only the cloud
     /// read saw is never dropped by a rule update.
