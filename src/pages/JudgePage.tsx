@@ -101,6 +101,11 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         {" · "}<a href={ANDROID_RELEASE_URL} target="_blank" rel="noreferrer">Android app (APK)</a>
         {" · "}<a href="#live-read">Run one live read</a>
       </p>
+      <p data-testid="android-battery-note">
+        In the Android app, any device with battery numbers shows Check this until the next update. A photo can misread a
+        label's numbers about ten times too low, so only a cloud second look that reads the same numbers confirms them, and
+        the Android app runs no second look.
+      </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)}

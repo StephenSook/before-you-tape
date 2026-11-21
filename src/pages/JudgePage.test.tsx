@@ -104,6 +104,12 @@ describe("JudgePage", () => {
     expect(screen.getByRole("link", { name: "Android app (APK)" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-3");
   });
 
+  it("says why the Android app holds a device's battery numbers, beside its link", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByTestId("android-battery-note")).toHaveTextContent(
+      "In the Android app, any device with battery numbers shows Check this until the next update. A photo can misread a label's numbers about ten times too low, so only a cloud second look that reads the same numbers confirms them, and the Android app runs no second look.");
+  });
+
   it("names the rule and its section behind each verdict", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });

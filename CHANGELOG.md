@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The judge page says, beside the Android app link, that in the Android app any device with battery numbers shows Check this until the next update, and why: a photo can misread a label's numbers about ten times too low, only a cloud second look that reads the same numbers confirms them, and the Android app runs no second look. Source: rule edition revision 6, now pinned to the phones. Verified: the new judge page test failed first, full gate.
+
 - On the web, a second look that sees another kind of item now drops an earlier second look instead of keeping it, and a second look counts as agreeing only with the kind of item the box has now, so a category the sender changed is not taken as the cloud agreeing. Source: second-model review of the store fix (round 2). Verified: two store tests failed first, full gate.
 
 - The matched-pairs answers test now reads both photos as sealed, so only each side's answer separates its rule; it fails when answers are dropped or both are forced to new_sealed. Source: second-model review of the store fix. Verified: both mutations made it fail, then it passed restored; full gate.
