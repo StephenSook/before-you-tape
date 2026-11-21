@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A tab hears another tab's delete for the whole life of the page, not only while the pack page shows (the watch moved into the page's setup), and Delete my saved box deletes nothing from a tab whose pointer names another box: such a tab missed the news and still holds the old box, so its delete would have removed the crops and the sign-in of the box started since. It leaves the old box and starts again instead. Source: review. Verified: two new savedBoxDeleter tests failed first where expected and pass; typecheck, build, the full suite and the home, accessibility and judge browser checks pass.
+
 - When retiring the id of a box that was not in Firestore is refused, deleteBox reads the box again and deletes it if it is there now (deleteOrRetire): another tab's first save can create the box between the read and the tombstone, and the refusal was read as "retired already", so the delete reported success with the box and its items left until TTL. Source: review. Verified: four new deleteOrRetire tests failed first and pass; all 49 emulator tests and the full suite pass.
 
 - After a delete that failed, the box store reopens without writing anything unless an edit was made while it was closed: the journal is shared by this browser's tabs, so writing this page's copy would overwrite another tab's unsent edits. Source: review. Verified: a new store test (reopen with no edit meanwhile writes neither the journal nor the server) failed first and passes; full suite passes.

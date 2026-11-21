@@ -119,6 +119,7 @@ describe("savedBoxDeleter", () => {
       storage: localStorage,
       deleteSignIn: vi.fn(async () => {}),
       signOut: vi.fn(async () => {}),
+      onStale: vi.fn(),
       ...over,
     };
     return p;
@@ -130,6 +131,24 @@ describe("savedBoxDeleter", () => {
     expect(await savedBoxDeleter(p)()).toEqual({ ok: true, signIn: "deleted" });
     expect(p.store.close).toHaveBeenCalled();
     expect(p.deleteFirestoreBox).toHaveBeenCalledWith("alice", "b1");
+  });
+
+  it("deletes nothing from a tab whose box was deleted elsewhere while it missed the news, and leaves that box", async () => {
+    localStorage.setItem("byt.currentBox", "b2");
+    const p = parts();
+    expect(await savedBoxDeleter(p)()).toEqual({ ok: false, stoppedAt: "box" });
+    expect(p.onStale).toHaveBeenCalled();
+    for (const f of [p.store.close, p.deleteFirestoreBox, p.deleteCropsExcept, p.deleteSignIn, p.signOut]) expect(f).not.toHaveBeenCalled();
+  });
+
+  it("deletes when the pointer names this box, or when this browser keeps no pointer", async () => {
+    localStorage.setItem("byt.currentBox", "b1");
+    const named = parts();
+    expect(await savedBoxDeleter(named)()).toEqual({ ok: true, signIn: "deleted" });
+    localStorage.clear();
+    const none = parts();
+    expect(await savedBoxDeleter(none)()).toEqual({ ok: true, signIn: "deleted" });
+    expect(none.onStale).not.toHaveBeenCalled();
   });
 
   it("has nothing in Firestore to delete when no one is signed in", async () => {

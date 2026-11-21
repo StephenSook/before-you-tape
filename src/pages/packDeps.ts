@@ -13,7 +13,7 @@ import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { deleteCropsExcept } from "../data/crops";
-import { savedBoxDeleter, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
+import { leaveDeletedBox, savedBoxDeleter, whenDeletedElsewhere, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
@@ -82,6 +82,10 @@ export function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
+    // For the whole life of the page, not only while the pack page shows: a tab on another page would otherwise miss
+    // another tab's delete and come back to the old box.
+    const leave = () => { void leaveDeletedBox(box, localStorage, box.getState().boxId, () => window.location.reload()); };
+    whenDeletedElsewhere(window, box.getState().boxId, leave);
     const deleteThisBox = savedBoxDeleter({
       store: box,
       signedIn: signIn,
@@ -91,6 +95,7 @@ export function buildDeps(): PackDeps | Error {
       storage: localStorage,
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
+      onStale: leave,
     });
     built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {

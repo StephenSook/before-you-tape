@@ -69,6 +69,8 @@ export interface DeleterParts {
   storage: Storage;
   deleteSignIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  // This tab still holds a box another tab deleted (the pointer names another box): it leaves it and starts again.
+  onStale: () => void;
 }
 
 // The box in Firestore is deleted under whoever is signed in when the delete runs, not through this page's own
@@ -76,7 +78,16 @@ export interface DeleterParts {
 // before the delete ends (the pointer goes last), so each is this box's, a photo another tab added since included.
 export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise<DeleteResult> {
   return (from) => {
-    return deleteSavedBox(p.store.getState().boxId, {
+    const boxId = p.store.getState().boxId;
+    // A tab that missed another tab's delete still holds the old box; deleting from it would delete the crops and the
+    // sign-in of the box started since, so it deletes nothing and leaves the old box instead.
+    let pointer: string | null = null;
+    try { pointer = p.storage.getItem("byt.currentBox"); } catch { /* this browser keeps no pointer */ }
+    if (pointer !== null && pointer !== boxId) {
+      p.onStale();
+      return Promise.resolve({ ok: false, stoppedAt: "box" });
+    }
+    return deleteSavedBox(boxId, {
       stopSaving: () => p.store.close(),
       resumeSaving: () => p.store.reopen(),
       deleteBox: async (id) => {
