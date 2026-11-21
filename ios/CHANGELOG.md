@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the iPhone README gives the airplane-mode result
+- What: the line that kept the iPhone client out of the entry until an airplane-mode test passed
+  is replaced by the result: on 2026-11-20 an iPhone 17 Pro read 22 label photos on the phone with
+  airplane mode on, none in the cloud, with a link to the record.
+- Source: the device session.
+- Verified: the numbers are those of `docs/evidence/ios/2026-11-20-device/`.
+
 ### docs(ios): record the airplane-mode check on a real iPhone
 - What: `docs/evidence/ios/2026-11-20-device/`: the result (pass: 22 of 22 reads on the phone, 0 in
   the cloud), the phone's model and iOS version, the commit, one status-bar strip per minute of the
