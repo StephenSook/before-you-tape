@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): App Review notes, with the path for an iPhone without Apple Intelligence
+- What: `ios/app-store/review-notes.md`: no account needed; a two-minute path; what happens with
+  Apple Intelligence on (read on the iPhone, also offline) and without it (the cloud question in
+  its exact words, Allow or Keep everything on this iPhone, and Type it by hand).
+- Source: App Store preparation.
+- Verified: each screen name, button and sentence is the app's own (Ready check, Check an item,
+  Add a photo, Your box, What we checked, the consent sentence and both buttons, Turn off and Turn
+  on cloud checks); 2123 of 4000 characters.
+
 ### docs(ios): the App Store listing text, availability and age rating
 - What: `ios/app-store/listing.md`: name, subtitle, categories, URLs, promotional text,
   description, keywords (no trademarked names), age rating answers, and availability in every
