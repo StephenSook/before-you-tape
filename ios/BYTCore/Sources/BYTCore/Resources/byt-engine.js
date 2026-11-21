@@ -964,7 +964,7 @@ var BYT = (() => {
     if (askId) hit.askId = askId;
     return hit;
   }
-  function evaluateBox(items, edition2, dest, today) {
+  function evaluateBox(items, edition2, dest, today, settle = true) {
     const sorted = [...items].sort((a, b) => a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0);
     const layers = layerStatuses(edition2, dest, today);
     const notChecked = layers.filter((l) => l.state !== "checked");
@@ -1021,7 +1021,24 @@ var BYT = (() => {
       else if (level === "check") counts.check++;
       else counts.takeOut++;
     }
+    if (settle) {
+      for (const p of perItem) settleQuestion(p.itemId, p.facts.battery.presence, items, result, edition2, dest, today);
+    }
     return { items: result, lithium, destination: dest, notes, counts, editionId: edition2.editionId };
+  }
+  function settleQuestion(itemId, presence, items, result, edition2, dest, today) {
+    const v = result[itemId];
+    const q = v?.question;
+    if (!v || !q || v.level !== "take_out" || q.answers.length === 0) return;
+    if (!v.hits.some((h) => h.level === "take_out" && h.askId !== q.id)) return;
+    const alone = presence === "none" && q.id !== "battery_installed";
+    const pool = alone ? items.filter((i) => i.itemId === itemId) : items;
+    const unchanged = q.answers.every((a) => {
+      const answered = pool.map((i) => i.itemId === itemId ? { ...i, answers: { ...i.answers, [q.id]: a.id } } : i);
+      const r = evaluateBox(answered, edition2, dest, today, false);
+      return pool.every((i) => r.items[i.itemId]?.level === (i.itemId === itemId ? "take_out" : result[i.itemId]?.level));
+    });
+    if (unchanged) result[itemId] = { ...v, hits: v.hits.filter((h) => h.askId !== q.id), question: null };
   }
 
   // src/shared/noItem.ts

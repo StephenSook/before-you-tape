@@ -41,3 +41,8 @@ What it depends on, outside this repo:
   `PLAY_RECOGNIZED`.
 - An emulator, or a phone without the Play Store, cannot pass Play Integrity. Judges without a
   real phone use the web app.
+
+## The on-device read, on a borrowed phone
+
+Our test phone has no AICore, so the on-device read needs a borrowed Gemini Nano phone for one session.
+[BORROWED-NANO-PHONE.md](BORROWED-NANO-PHONE.md) lists the owner's steps, our checks and how the phone goes back.

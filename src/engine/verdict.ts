@@ -56,7 +56,9 @@ function boxHit(edition: RuleEdition, ruleId: string, level: RuleHit["level"], t
   return hit;
 }
 
-export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: DestinationContext, today: string): BoxResult {
+// settle: drop a question from an item already taken out when no answer to it could change that (an inner
+// evaluation, made with each answer in turn, passes false).
+export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: DestinationContext, today: string, settle = true): BoxResult {
   const sorted = [...items].sort((a, b) => (a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0));
   const layers = layerStatuses(edition, dest, today);
   const notChecked = layers.filter((l) => l.state !== "checked");
@@ -118,5 +120,27 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
     else counts.takeOut++;
   }
 
+  if (settle) {
+    for (const p of perItem) settleQuestion(p.itemId, p.facts.battery.presence, items, result, edition, dest, today);
+  }
   return { items: result, lithium, destination: dest, notes, counts, editionId: edition.editionId };
+}
+
+// An item a rule has already taken out is not asked a question when no answer could change anything: some take-out
+// hit does not hang on the question, and with every answer the item stays out and every other item keeps its
+// verdict. An item with no battery cannot change the box's lithium count, so it is judged alone.
+function settleQuestion(itemId: string, presence: string, items: BoxItemInput[], result: Record<string, ItemVerdict>,
+  edition: RuleEdition, dest: DestinationContext, today: string): void {
+  const v = result[itemId];
+  const q = v?.question;
+  if (!v || !q || v.level !== "take_out" || q.answers.length === 0) return;
+  if (!v.hits.some((h) => h.level === "take_out" && h.askId !== q.id)) return;
+  const alone = presence === "none" && q.id !== "battery_installed";
+  const pool = alone ? items.filter((i) => i.itemId === itemId) : items;
+  const unchanged = q.answers.every((a) => {
+    const answered = pool.map((i) => (i.itemId === itemId ? { ...i, answers: { ...i.answers, [q.id]: a.id } } : i));
+    const r = evaluateBox(answered, edition, dest, today, false);
+    return pool.every((i) => r.items[i.itemId]?.level === (i.itemId === itemId ? "take_out" : result[i.itemId]?.level));
+  });
+  if (unchanged) result[itemId] = { ...v, hits: v.hits.filter((h) => h.askId !== q.id), question: null };
 }

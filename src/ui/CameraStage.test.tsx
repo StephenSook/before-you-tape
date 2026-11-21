@@ -71,9 +71,10 @@ describe("CameraStage", () => {
     for (const id of ["use-phone", "add-photo", "type-it"]) expect(screen.getByTestId(id)).toBeInTheDocument();
   });
 
-  it("leaves out the phone until the phone handoff exists", () => {
+  it("leaves out the phone until the phone handoff exists, in the words too", () => {
     render(<CameraStage openCamera={okCamera} onImage={() => {}} forcedEvent={{ type: "cannot_focus" }} />);
     expect(screen.queryByTestId("use-phone")).toBeNull();
+    expect(screen.getByText("This camera can't focus that close. Add a photo, or type the numbers.")).toBeInTheDocument();
     expect(screen.getByTestId("type-it")).toBeInTheDocument();
   });
 
@@ -127,7 +128,7 @@ describe("CameraStage", () => {
     await start();
     await act(async () => { await Promise.resolve(); });
     await userEvent.upload(screen.getByTestId("upload-input"), photo);
-    expect(await screen.findByRole("img", { name: "The part that will be checked" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Check this part" })).toBeEnabled());
     expect(decodeFile).toHaveBeenCalledWith(photo);
     expect(stop).toHaveBeenCalled();
     expect(cropPart).toHaveBeenCalledWith(source, { x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
@@ -150,8 +151,8 @@ describe("CameraStage", () => {
     // The same decode as a photo the sender adds: the file holds the tracked bytes.
     const file = decodeFile.mock.calls[0]![0];
     expect(Buffer.from(await file.arrayBuffer()).equals(bytes)).toBe(true);
-    // The preview can take over a second when the whole suite runs at once.
-    await screen.findByRole("img", { name: "The part that will be checked" }, { timeout: 5000 });
+    // The crop can take over a second when the whole suite runs at once.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Check this part" })).toBeEnabled(), { timeout: 5000 });
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onImage).toHaveBeenCalledWith(part, "upload");
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
