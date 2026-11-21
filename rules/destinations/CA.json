@@ -97,7 +97,7 @@
       "lineId": "CA-P-08",
       "section": "prohibitions",
       "lineSha256": "c95cd26341a3c2dee9e810f48278277abbb62755bfcd7783e0e1e560e638d6ae",
-      "ourWording": "No margarine or other butter substitutes.",
+      "ourWording": "No margarine, other butter substitutes, or altered or renovated butter.",
       "matches": [
         {
           "tag": "margarine",
@@ -230,7 +230,7 @@
       "lineId": "CA-P-20",
       "section": "prohibitions",
       "lineSha256": "7e60db4bb2e7893fbd2e32658a17616c8ce64c8234baaca9e7ad6ec36fd007cf",
-      "ourWording": "No reprints of works under Canadian copyright.",
+      "ourWording": "No reprinted copies of Canadian or British works under Canadian copyright.",
       "matches": [
         {
           "tag": "reprint",
@@ -299,7 +299,7 @@
       "lineId": "CA-R-03",
       "section": "restrictions",
       "lineSha256": "b44ffebb4ce686d2023ede49980879708f6fc9d29858c3e204ab543804db665f",
-      "ourWording": "Hatching eggs need new packing and a vet certificate.",
+      "ourWording": "Hatching eggs need new, clean packing and a certificate from a USDA vet (or a State vet's, endorsed by a USDA vet) that the flock is free of Newcastle disease, fowl pest and fowl typhoid.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
@@ -359,7 +359,7 @@
       "lineId": "CA-R-08",
       "section": "restrictions",
       "lineSha256": "1f7a7378c54bab8bd7a3b0c2b8e27724422d2c40775b507f1ffea8c4e74e3077",
-      "ourWording": "Some pet foods with raw ingredients need an import permit and a health certificate.",
+      "ourWording": "Pet food with raw ingredients or bones, including heat-processed shelf-stable foods, treats and compound chews, needs a CFIA import permit and a USDA APHIS zoosanitary certificate, with a copy of each taped to the outside of the box.",
       "matches": [
         {
           "tag": "pet_food",

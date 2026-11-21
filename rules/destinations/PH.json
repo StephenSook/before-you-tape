@@ -160,7 +160,7 @@
       "lineId": "PH-R-02",
       "section": "restrictions",
       "lineSha256": "2f9175008a1aa2bf67e51c8f94b9bee7335ada1823285876b0462b456cf58efa",
-      "ourWording": "Plants and similar items need import clearance and plant health certificates.",
+      "ourWording": "Plants and similar items need import clearance and plant health certificates issued by the Bureau of Plant Industry of the Philippines. Items without them can be destroyed.",
       "matches": [
         {
           "tag": "plant",
