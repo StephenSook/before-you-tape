@@ -44,25 +44,28 @@ xcodegen generate --spec ios/project.yml --quiet
 # package binaries keep their archive dates, so it removed Info.plist files out of the Firebase
 # frameworks while their folders stayed, and the build failed.
 DD="${BYT_CI_DD:-$HOME/Library/Caches/byt-ci-dd}"
-# Only the simulator the app tests run on is shut down afterwards, and only when this run booted
-# it: other work on this Mac may be running tests on other simulators, or on this one.
-sim_udid="" sim_before=""
-read -r sim_udid sim_before <<<"$(xcrun simctl list devices -j | python3 -I -c '
+# The app tests run on a simulator kept for this script alone, created on first use, so no other
+# work on this Mac uses it and it is always shut down when the script ends (a simulator left booted
+# keeps running in the background). Run one copy of this script at a time: two would share it.
+sim_name="BYT CI iPhone 17 Pro"
+sim_runtime="com.apple.CoreSimulator.SimRuntime.iOS-27-2"
+sim_udid="$(xcrun simctl list devices -j | python3 -I -c '
 import json, sys
-for d in json.load(sys.stdin)["devices"].get("com.apple.CoreSimulator.SimRuntime.iOS-27-2", []):
-    if d["name"] == "iPhone 17 Pro" and d.get("isAvailable", True):
-        print(d["udid"], d["state"])
+name, runtime = sys.argv[1], sys.argv[2]
+for d in json.load(sys.stdin)["devices"].get(runtime, []):
+    if d["name"] == name and d.get("isAvailable", True):
+        print(d["udid"])
         break
-')"
+' "$sim_name" "$sim_runtime")"
+if [ -z "$sim_udid" ]; then
+  sim_udid="$(xcrun simctl create "$sim_name" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro "$sim_runtime")"
+fi
 own_sim_down() {
-  if [ -n "$sim_udid" ] && [ "$sim_before" != "Booted" ]; then
-    # Quiet: xcodebuild may have shut it down already, and that is not a failure.
-    xcrun simctl shutdown "$sim_udid" 2>/dev/null || true
-  fi
+  # Quiet: xcodebuild may have shut it down already, and that is not a failure.
+  xcrun simctl shutdown "$sim_udid" 2>/dev/null || true
 }
 trap own_sim_down EXIT
-xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2' \
-  -derivedDataPath "$DD" test
+xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination "id=$sim_udid" -derivedDataPath "$DD" test
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'generic/platform=iOS' -derivedDataPath "$DD" \
   CODE_SIGNING_ALLOWED=NO build
 

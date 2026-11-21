@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the local CI runs the app tests on a simulator of its own and always shuts it down
+- What: ios/scripts/ci-local-ios.sh used the shared "iPhone 17 Pro" simulator and shut it down only
+  when the run had booted it, so a simulator another task had booted stayed up after the run, where
+  a crashing system process kept putting crash dialogs on the screen. The script now creates and uses
+  "BYT CI iPhone 17 Pro" (iOS 27.2), which nothing else uses, and always shuts it down at exit.
+- Source: a simulator left booted on this Mac.
+- Verified: bash -n passes; the lookup finds an existing simulator by name and finds none for the
+  new name before its first run; a full run of the script exits 0, and the new simulator is shut down
+  afterwards.
+
 ### docs(ios): the listing and review notes name build 2 and what it changes
 - What: ios/app-store/listing.md says build 2 differs from build 1 only in its rule edition
   (revision 4). Item 1 of the review notes says the recording shows build 1 and that build 2 changes
