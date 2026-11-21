@@ -5,6 +5,12 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the screenshot notes say 04 must be taken again after the answer-button change
+- What: screenshot 04 shows a question's answers in the old grey look; the README says to capture
+  it again once the change that tints them like every other button is merged.
+- Source: the answer-button fix.
+- Verified: docs only.
+
 ### docs(ios): the App Privacy answers follow the app's manifest and the removal of Performance
 - What: `ios/app-store/app-privacy.md` loses the Performance Data and Coarse Location rows, names
   the bundles that declare diagnostic data in the new build (GoogleDataTransport left with

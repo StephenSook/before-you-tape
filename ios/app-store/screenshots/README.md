@@ -25,5 +25,7 @@ screenshot. No CC-licensed image appears in these files.
 
 - The simulator has no camera, so 02 shows "No camera found. Add a photo instead." above the read.
   A real iPhone shows the camera there. Replace 02 with a 6.9-inch device capture if one is made.
+- 04 shows the question's answers in the old grey look. Once the change that tints them like every
+  other button is merged, capture 04 again so the screenshot matches the app.
 - 03 and 04 carry the Canada suspension note and dates of the Nov 20 rule edition. After
   November 29, 2026, the Canada box reads differently, so capture again for a later version.
