@@ -69,14 +69,39 @@ export function liveModels(t: Template): { cloud: string; fallback: string } {
   return { cloud: value("cloud_model_item"), fallback: value("cloud_model_item_fallback") };
 }
 
-function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): Promise<void> {
+// Waits for a line matching the pattern and gives the output read so far; fails if the program cannot start, exits,
+// or says nothing matching in time.
+export function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): Promise<string> {
   return new Promise((done, fail) => {
+    let seen = "";
     const timer = setTimeout(() => fail(new Error(`no "${pattern}" within ${ms} ms`)), ms);
-    const onData = (b: Buffer) => { if (pattern.test(b.toString())) { clearTimeout(timer); done(); } };
+    const onData = (b: Buffer) => { seen += b.toString(); if (pattern.test(seen)) { clearTimeout(timer); done(seen); } };
     child.stdout?.on("data", onData);
     child.stderr?.on("data", onData);
+    child.once("error", (e) => { clearTimeout(timer); fail(new Error(`could not start: ${e.message}`)); });
     child.once("exit", (code) => { clearTimeout(timer); fail(new Error(`exited early with code ${code}`)); });
   });
+}
+
+// The DevTools address the started Chrome announces, so the run attaches to that Chrome and no other.
+export function devtoolsUrl(output: string): string {
+  const m = /DevTools listening on (ws:\/\/\S+)/.exec(output);
+  if (!m) throw new Error("Chrome announced no DevTools address");
+  return m[1]!;
+}
+
+// The environment Vite starts with: the shell's, without any VITE_ value (Vite would let it win over the files),
+// every VITE_ key of the live .env.local set empty (so Vite cannot fill it in), then the eval file's own values.
+export function viteEnv(shell: Record<string, string | undefined>, evalFile: string, liveFile: string | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(shell)) if (v !== undefined && !k.startsWith("VITE_")) out[k] = v;
+  for (const k of Object.keys(liveFile === null ? {} : parseEnvFile(liveFile))) if (k.startsWith("VITE_")) out[k] = "";
+  return { ...out, ...parseEnvFile(evalFile) };
+}
+
+// The full eval run's name only for a run of every path on every item; anything less is named as a partial run.
+export function runIdOf(date: string, paths: readonly EvalPath[], items: number, total: number): string {
+  return paths.length === ALL_PATHS.length && items === total ? `models-${date}` : `partial-${paths.join("-")}-${items}of${total}-${date}`;
 }
 
 // A Google API response, for the private run record: host, path, status and the error message, never the query,
@@ -123,6 +148,9 @@ export function preflight(i: { argv: string[]; env: Record<string, string | unde
   if (!Number.isInteger(repeat) || repeat < 1 || repeat > 5) throw new Error("--repeat must be a whole number from 1 to 5");
   const paths = (arg("--paths") ?? ALL_PATHS.join(",")).split(",").map((p) => p.trim()) as EvalPath[];
   if (paths.length === 0 || paths.some((p) => !ALL_PATHS.includes(p))) throw new Error(`--paths must name some of ${ALL_PATHS.join(", ")}`);
+  if (new Set(paths).size !== paths.length) throw new Error("--paths must name each path once");
+  // Playwright's protocol log would record the script that carries the debug token.
+  if (/(^|,)\s*-?pw(:|$|\*)/.test(i.env.DEBUG ?? "")) throw new Error("unset DEBUG: a Playwright debug log would record the App Check debug token");
   const live = i.file(".env.local");
   const project = evalEnv(i.file(".env.eval.local"), live === null ? {} : parseEnvFile(live));
   const profile = resolve(requireEnv(i.env, "BYT_NANO_PROFILE"));
@@ -150,12 +178,14 @@ async function main(): Promise<void> {
   let vite: ChildProcess | null = null;
   let chrome: ChildProcess | null = null;
   try {
-    vite = spawn("npx", ["vite", "--mode", "eval", "--port", String(VITE_PORT), "--strictPort"], { stdio: ["ignore", "pipe", "pipe"] });
+    const evalFile = readFileSync(".env.eval.local", "utf8");
+    const liveFile = existsSync(".env.local") ? readFileSync(".env.local", "utf8") : null;
+    vite = spawn("npx", ["vite", "--mode", "eval", "--port", String(VITE_PORT), "--strictPort"], { stdio: ["ignore", "pipe", "pipe"], env: viteEnv(process.env, evalFile, liveFile) });
     await waitForLine(vite, /Local:/, 60_000);
     const chromePath = process.env.CHROME_PATH?.trim() || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
     chrome = spawn(chromePath, [`--user-data-dir=${profile}`, `--remote-debugging-port=${DEBUG_PORT}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: ["ignore", "pipe", "pipe"] });
-    await waitForLine(chrome, /DevTools listening/, 30_000);
-    const browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
+    const announced = devtoolsUrl(await waitForLine(chrome, /DevTools listening on ws:\/\/\S+/, 30_000));
+    const browser = await chromium.connectOverCDP(announced);
     const chromeVersion = browser.version();
     const context = browser.contexts()[0] ?? (await browser.newContext());
     const page = await context.newPage();
@@ -184,8 +214,8 @@ async function main(): Promise<void> {
     const machine = machineOf((k) => execFileSync("sysctl", ["-n", k], { encoding: "utf8" }));
     const os = osName(platform(), release(), () => execFileSync("sw_vers", ["-productVersion"], { encoding: "utf8" }));
     const run: EvalRun = {
-      // A run of some paths only (a wiring check) is named for them and never gets a public copy.
-      runId: paths.length === ALL_PATHS.length ? `models-${date}` : `partial-${paths.join("-")}-${date}`, setId: set.setId, date,
+      // A run of some paths or some items (a wiring check) is named as a partial run and never gets a public copy.
+      runId: runIdOf(date, paths, set.items.length, full.items.length), setId: set.setId, date,
       machine: [machine.chip, machine.memoryGb ? `${machine.memoryGb} GB` : "", machine.model, os].filter(Boolean).join(", "),
       chromeVersion, modelShown: `device: Chrome built-in model (gate ${result.gate}); cloud: ${models.cloud}, fallback ${models.fallback}`,
       editionId: edition.editionId, rows: result.rows as EvalRow[],
@@ -193,7 +223,7 @@ async function main(): Promise<void> {
     const metrics = computeEvalReport(set, run);
     mkdirSync(join("eval", "runs", "private"), { recursive: true });
     writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, coldMs: result.cold, failures: result.failures, cloudRequests, responses, project }, null, 2) + "\n");
-    if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), coldMs: result.cold, metrics }, null, 2) + "\n");
+    if (run.runId === `models-${date}`) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), coldMs: result.cold, metrics }, null, 2) + "\n");
     console.log(JSON.stringify({ runId: run.runId, failures: result.failures.length, cloudRequests, responses, metrics }, null, 2));
   } finally {
     if (chrome && chrome.exitCode === null && chrome.signalCode === null) chrome.kill();

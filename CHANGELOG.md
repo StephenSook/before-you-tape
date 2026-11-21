@@ -6,6 +6,15 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval run now:
+  - Starts Vite with an environment built from `.env.eval.local` alone. Shell `VITE_` values are dropped, and every `VITE_` key of the live `.env.local` is set empty, so Vite cannot mix live settings into the eval page.
+  - Refuses duplicate `--paths` and a Playwright `DEBUG` log, which would record the debug token.
+  - Names a run the full eval run only when it covers every path and every item, so a run of fewer items cannot replace it.
+  - Stops waiting when Chrome cannot start, so Vite is closed.
+  - Attaches to the DevTools address the Chrome it started announces.
+  - Makes the cloud model with limited-use App Check tokens, as the Pack page does.
+  Source: review. Verified: five new tests failed first and pass; lint and typecheck pass.
+
 - Eval metrics report exact numbers per path (device and cloud apart, not pooled), and `computeEvalReport` gives every metric twice, over all items and over the items that prompted no rule change after labelling, as the protocol asks; the eval run publishes both. Source: review. Verified: an updated metrics test and a new report test failed first and pass; eval and script tests and typecheck pass.
 
 - The eval run reads once on the device and once in the cloud before the first item and reports that cold call apart (`coldMs`), so the timed runs are warm, and it times each crop and path three times by default (`--repeat 3`), as the protocol's latency section asks. Source: review. Verified: a new runner test (cold reads counted, reported apart, judged nothing) and the preflight test failed first and pass; lint and typecheck pass.

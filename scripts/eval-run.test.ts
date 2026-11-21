@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import template from "../remoteconfig.template.json";
 import pkg from "../package.json";
-import { evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote } from "./eval-run";
+import { spawn } from "node:child_process";
+import { devtoolsUrl, evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote, runIdOf, viteEnv, waitForLine } from "./eval-run";
 
 describe("eval-run", () => {
   it("runs only against an eval project, never the live one, and never with no project named", () => {
@@ -66,5 +67,38 @@ describe("eval-run", () => {
     expect(responseNote("https://firebaseappcheck.googleapis.com/v1/projects/p/apps/a:exchangeDebugToken", 200, '{"token":"secret-token","ttl":"3600s"}'))
       .toEqual({ host: "firebaseappcheck.googleapis.com", path: "/v1/projects/p/apps/a:exchangeDebugToken", status: 200, error: null });
     expect(JSON.stringify(responseNote("https://x.googleapis.com/a?key=AIzaSECRET", 200, '{"token":"secret-token"}'))).not.toMatch(/SECRET|secret-token/);
+  });
+
+  it("gives Vite only the eval file's settings: no shell VITE_ value, and no live key the eval file leaves out", () => {
+    const env = viteEnv(
+      { PATH: "/bin", VITE_FB_API_KEY: "shell-live-key", VITE_FB_APP_ID: "shell-live-app" },
+      "VITE_FB_API_KEY=eval-key\nVITE_FB_APP_ID=eval-app\nVITE_FB_PROJECT_ID=lab\n",
+      "VITE_FB_API_KEY=live\nVITE_FB_MEASUREMENT_ID=G-LIVE\nVITE_FB_PROJECT_ID=before-you-tape-2026\n",
+    );
+    expect(env).toEqual({ PATH: "/bin", VITE_FB_API_KEY: "eval-key", VITE_FB_APP_ID: "eval-app", VITE_FB_PROJECT_ID: "lab", VITE_FB_MEASUREMENT_ID: "" });
+  });
+
+  it("refuses duplicate paths and a Playwright debug log, which would record the token", () => {
+    const ok = { argv: ["--date", "2026-11-21"], env: { BYT_NANO_PROFILE: "/p", APPCHECK_DEBUG_TOKEN: "t" }, file: (f: string) => files(own)[f as keyof ReturnType<typeof files>] ?? null, keychain: () => "" };
+    expect(() => preflight({ ...ok, argv: ["--date", "2026-11-21", "--paths", "device,device,cloud"] })).toThrow(/once/);
+    expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "pw:protocol" } })).toThrow(/DEBUG/);
+    expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "pw:*" } })).toThrow(/DEBUG/);
+    expect(preflight({ ...ok, env: { ...ok.env, DEBUG: "vite:*" } }).project).toBe("lab-project");
+  });
+
+  it("names a run the eval run only when it covers every path and every item", () => {
+    expect(runIdOf("2026-11-21", ["device", "cloud", "shipped"], 40, 40)).toBe("models-2026-11-21");
+    expect(runIdOf("2026-11-21", ["cloud"], 40, 40)).toBe("partial-cloud-40of40-2026-11-21");
+    expect(runIdOf("2026-11-21", ["device", "cloud", "shipped"], 1, 40)).toBe("partial-device-cloud-shipped-1of40-2026-11-21");
+  });
+
+  it("reads the DevTools address Chrome announces", () => {
+    expect(devtoolsUrl("\nDevTools listening on ws://[::1]:9237/devtools/browser/abc-123\n")).toBe("ws://[::1]:9237/devtools/browser/abc-123");
+    expect(() => devtoolsUrl("nothing here")).toThrow(/DevTools/);
+  });
+
+  it("stops waiting when the program cannot start", async () => {
+    const child = spawn("/nonexistent/byt-chrome", [], { stdio: ["ignore", "pipe", "pipe"] });
+    await expect(waitForLine(child, /never/, 5_000)).rejects.toThrow(/ENOENT|could not start/);
   });
 });

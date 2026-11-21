@@ -69,7 +69,8 @@ window.bytEvalRun = async (input) => {
   const { getAi } = initFirebase(env);
   const lm = (globalThis as { LanguageModel?: unknown }).LanguageModel;
   const gate = await checkGate(lm);
-  const models = createItemModels(getAi(false), input.cloudModel, lm, input.fallbackModel);
+  // As the Pack page makes them (getAi(true), as in src/pages/PackRoute.tsx).
+  const models = createItemModels(getAi(true), input.cloudModel, lm, input.fallbackModel);
   // Each photo cropped as the app crops an added photo before any model call: the whole photo, 768 px at most.
   const images: Record<string, ImagePart> = {};
   for (const it of input.items) {
