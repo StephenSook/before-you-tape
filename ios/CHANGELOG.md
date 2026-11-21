@@ -5,6 +5,24 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the mirror's simulator shutdown is quiet when it is already shut down
+- What: after "ci-local-ios: all checks passed", the exit trap printed "Unable to shutdown device in
+  current state: Shutdown" when xcodebuild had already shut the simulator down. The shutdown's
+  error output is now dropped; it stays best effort.
+- Source: the full mirror run of the second-look branch with this script (exit 0, then that line).
+- Verified: `bash -n` passes; the trap calls the same command with stderr dropped.
+
+### fix(ios): the local CI mirror shuts down only the simulator it booted
+- What: `ios/scripts/ci-local-ios.sh` ended with `xcrun simctl shutdown all`, which stopped every
+  simulator on the Mac, including other test runs in progress (they fail with "Test crashed with
+  signal term before establishing connection"). It now finds its own simulator (iPhone 17 Pro,
+  iOS 27.2) before the tests, and shuts down only that one, only if it was not already booted, and
+  also when a check fails (an exit trap).
+- Source: three simulator test runs on this Mac were stopped by a `shutdown all` from other work.
+- Verified: `bash -n` passes; the lookup alone finds the iPhone 17 Pro and its state. With an
+  iPhone 18 Pro booted: when the run booted its own simulator, only that one is shut down and the
+  iPhone 18 Pro stays booted; when its own simulator was booted before the run, both stay booted.
+
 ### docs(ios): the iPhone README gives the airplane-mode result
 - What: the line that kept the iPhone client out of the entry until an airplane-mode test passed
   is replaced by the result: on 2026-11-20 an iPhone 17 Pro read 22 label photos on the phone with

@@ -44,10 +44,26 @@ xcodegen generate --spec ios/project.yml --quiet
 # package binaries keep their archive dates, so it removed Info.plist files out of the Firebase
 # frameworks while their folders stayed, and the build failed.
 DD="${BYT_CI_DD:-$HOME/Library/Caches/byt-ci-dd}"
+# Only the simulator the app tests run on is shut down afterwards, and only when this run booted
+# it: other work on this Mac may be running tests on other simulators, or on this one.
+sim_udid="" sim_before=""
+read -r sim_udid sim_before <<<"$(xcrun simctl list devices -j | python3 -I -c '
+import json, sys
+for d in json.load(sys.stdin)["devices"].get("com.apple.CoreSimulator.SimRuntime.iOS-27-2", []):
+    if d["name"] == "iPhone 17 Pro" and d.get("isAvailable", True):
+        print(d["udid"], d["state"])
+        break
+')"
+own_sim_down() {
+  if [ -n "$sim_udid" ] && [ "$sim_before" != "Booted" ]; then
+    # Quiet: xcodebuild may have shut it down already, and that is not a failure.
+    xcrun simctl shutdown "$sim_udid" 2>/dev/null || true
+  fi
+}
+trap own_sim_down EXIT
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2' \
   -derivedDataPath "$DD" test
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'generic/platform=iOS' -derivedDataPath "$DD" \
   CODE_SIGNING_ALLOWED=NO build
-xcrun simctl shutdown all || true
 
 echo "ci-local-ios: all checks passed"
