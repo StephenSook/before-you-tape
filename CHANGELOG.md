@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- SECURITY: Firestore App Check is monitoring only, with the request metrics read through Cloud Monitoring (web 954 and Android 13 verified, 624 invalid, all from the deploy gate's token-less live round trip) and the three things that come first: the gate's round trip carrying the CI token, a save refused for App Check saying so, and the iPhone's App Attest token proven. Cloud Storage App Check is enforced (2026-11-21 09:47:48 UTC); no client uses Storage. Source: App Check enforcement plan. Verified: the states read from the App Check API and the counts from Cloud Monitoring; tone, hygiene and guard checks and the full suite pass.
+
 - The live page tells the box store whether App Check can verify this browser: initFirebase keeps its App Check instance and its verified() asks getToken, which fails when the token exchange did (Firestore then sends a placeholder, and the server refuses it). Source: App Check enforcement plan. Verified: a new initFirebase test (a token means verified, a failed exchange means not, asked of the App Check instance) failed first and passes; typecheck, build, the full suite and the home, accessibility and judge browser checks pass.
 
 - The pack page says "Saving stopped because this browser couldn't be verified. Try again in a moment." with a Try again button when the server refused a save because App Check could not verify this browser, instead of asking for a reload that would not help. Source: App Check enforcement plan. Verified: a new PackPage test (the notice, no out-of-date notice, and Try again saves and clears it) failed first and passes; typecheck, lint, tone, build, the full suite and the home, accessibility and contrast browser checks pass.
