@@ -42,3 +42,18 @@ The release APK attached to the `android-judge-2` draft release (`before-you-tap
   1 test, 0 failures. The installed file still had the attached file's SHA-256 afterwards.
 - **The rules on the phone:** gate G-A5 ran on the same attached file right after (`G-A5.md`): every shared vector
   passed and QuickJS matched WebView V8 on all 427 inputs.
+
+## Firestore with App Check enforced, 2026-11-21
+
+Firestore App Check enforcement was turned on at 2026-11-21T17:33:58Z. After 15 minutes for it to spread, the two
+live tests that use production Firestore ran from main at ac509e2, on both App Check paths.
+
+- **Play Integrity, on the A16:** a release build (`-Pbyt.testBuildType=release`), so the release provider. At
+  2026-11-21T17:50:02Z, 2 tests, 0 failures. `BoxLiveTest`: a box made on the phone (with `expiresAt`) was accepted,
+  an item written offline reached the server and a server read returned it with no label text, the destination change
+  was accepted, and a stranger was refused the box (`PERMISSION_DENIED`). `EditionPinLiveTest`: the server read of an
+  edition that is not published was allowed and found nothing, and the app kept its built-in edition (revision 3).
+- **The registered debug token, on the `byt_aosp` emulator:** a debug build, so the debug provider. At
+  2026-11-21T17:51:23Z, 2 tests, 0 failures, with the same results.
+- **Afterwards:** the Gradle run removed the app and the test package from the A16. The `android-judge-2` APK was
+  installed again (SHA-256 `8b9f332d...3cade9`, versionCode 1795234079).
