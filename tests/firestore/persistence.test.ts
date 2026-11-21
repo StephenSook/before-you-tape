@@ -1,7 +1,7 @@
 // Firestore persistence against the local emulator and the real rules: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { disableNetwork, doc, enableNetwork, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
+import { deleteField, disableNetwork, doc, enableNetwork, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem } from "../../src/data/boxStore";
 import type { BoxMeta } from "../../src/data/boxOps";
@@ -95,6 +95,15 @@ describe("firestorePersistence", () => {
     await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
     // Deleting a box that is already gone does nothing.
     await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
+  });
+
+  it("refuses a box with no expiry before touching any of its items, since its tombstone could not be written", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b7", meta());
+    await p.putItem("b7", item("i1"));
+    await admin((d) => updateDoc(doc(d, "boxes/b7"), { expiresAt: deleteField() }));
+    await expect(p.deleteBox("b7")).rejects.toThrow("no expiry");
+    expect(await at("boxes/b7/items/i1")).toBeDefined();
   });
 
   it("retires the id of a box not in Firestore yet, so a first save still on its way cannot create it", async () => {

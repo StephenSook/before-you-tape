@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- deleteBox refuses a box with no expiry before touching any of its items: its tombstone takes its time from the box's expiry, so the last batch would have been refused after the items were already gone. Every box has an expiry since the backfill. Source: review. Verified: a new emulator test (the delete is refused and the item stays) failed first and passes; all 49 emulator tests pass.
+
 - Deleting a box that is not in Firestore yet still retires its id, with a tombstone 67 days out (the box's 37 plus 30), so a first save still on its way from another tab cannot create the box after the delete; the rules allow that only for an id with no box, signed in, with that expiry and nothing else. A refusal there means the id was retired already. Source: review. Verified: rules tests (signed out, a wrong expiry or an extra field refused; the right one accepted; the id then cannot start) and a persistence test failed first and pass; all 48 emulator tests pass.
 
 - deleteBox reads the box, its items and its disputes from the server only (getDocFromServer, getDocsFromServer), never from this browser's cache: a cached empty list could end the sweep early and delete the box over items another tab had saved, and offline the delete now fails at once instead of waiting to land later. Source: review. Verified: a new emulator test (offline after a load, the delete is refused within 3 s and the box and item stay) failed first (it was still waiting) and passes; all 47 emulator tests pass.
