@@ -59,9 +59,9 @@ describe("MatchedPairs", () => {
   });
 
   it("judges each side on its own answers", () => {
-    // Opened against sealed: only the answer and the box reading differ, and each side names a different rule.
+    // Opened against sealed, by the answer alone (both photos read sealed), so each side's rule comes from its answer.
     const answers: MatchedPair = { id: "opened", title: "The same phone, new, opened or sealed",
-      left: side("New, box opened", "new_opened", "open_or_none"), right: side("New, in its sealed box", "new_sealed", "sealed") };
+      left: side("New, box opened", "new_opened", "sealed"), right: side("New, in its sealed box", "new_sealed", "sealed") };
     render(<MatchedPairs pairs={[answers]} edition={ed} destinationCode="CA" today="2026-11-21" />);
     const sides = within(screen.getByTestId("matched-pair")).getAllByTestId("pair-side");
     expect(within(sides[0]!).getByTestId("pair-reason")).toHaveTextContent("Pack this one back in its own box.");

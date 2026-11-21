@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The matched-pairs answers test now reads both photos as sealed, so only each side's answer separates its rule; it fails when answers are dropped or both are forced to new_sealed. Source: second-model review of the store fix. Verified: both mutations made it fail, then it passed restored; full gate.
+
 - On the web, a second look stands behind an item's battery numbers only when the two reads gave the same numbers and none were typed: one that lands with a battery or lithium-grams dispute no longer sets second_look, so the hold does not depend on the dispute document loading with the item; and a box saved by an earlier version whose numbers the sender typed or picked is judged as the sender's when it opens, without anything being written. A second look whose numbers agree now releases an item the sender confirmed while it ran. Source: second-model review of the store fix. Verified: the new store tests failed first, full gate.
 
 - The judge page's matched-pair test types its pair sides as ItemRead, so its lotion side passes the typecheck. Source: the typecheck. Verified: typecheck and the full gate.
