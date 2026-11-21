@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import { SAMPLE_READ } from "../data/sampleRead";
 import type { LiveReadDeps } from "../judge/LiveReadPanel";
+import type { ItemRead } from "../shared/itemRead";
 import { JudgePage } from "./JudgePage";
 
 const index = [
@@ -135,7 +136,7 @@ describe("JudgePage", () => {
       glassContainer: false, powder: false, retailBox: "sealed" as const, evidence: "label_read" as const };
     const lotion = { ...read, itemName: "Body lotion", category: "lotion_cream" as const, labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0,
       milliampHours: 0, wattHours: 0, batteryWords: false, liquid: true };
-    const side = (label: string, r: typeof read, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
+    const side = (label: string, r: ItemRead, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
       credit: "Photo by the project owner", read: r, answers: { device_condition: answer } });
     render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Lotion and a used phone", left: side("Lotion", lotion, "new_sealed"), right: side("Used phone", read, "used") }]} />);
     // The lotion follows the country picked: out to the Philippines, which takes no liquids, OK to Canada. The used

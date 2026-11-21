@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The judge page's matched-pair test types its pair sides as ItemRead, so its lotion side passes the typecheck. Source: the typecheck. Verified: typecheck and the full gate.
+
 - Two tests catch more: the matched-pairs test now judges a new phone opened against one sealed and checks each side names a different rule, so it fails if a side's answers are dropped; the judge page's pair test now has a lotion that follows the country picked (out to the Philippines, OK to Canada), so it fails if the page stops following the country. Source: second-model review (round 3). Verified: each test failed when its answers were dropped or its country pinned, then passed restored; full gate.
 
 - On the web, battery numbers the sender picked or typed are the sender's, not a second look's: settling a battery or lithium-grams dispute, or typing volts, mAh, Wh or grams in Fix this reading (also while the cloud read runs), turns identityConfirmedBy second_look into sender, so USPS-INTL-LI-ONE-READ holds the item at Check this. Before, a second look kept second_look through the sender's pick or typing, so 15.4 Wh picked over a 154 Wh reading, or typed over two 154 Wh reads, reached OK to pack. Corrections of anything but the numbers keep the second look. Source: second-model review (round 3). Verified: six store tests (four failed first), full gate.
