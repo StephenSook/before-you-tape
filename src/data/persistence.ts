@@ -170,5 +170,7 @@ export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: stri
     putMeta: (boxId, meta) => target.then((p) => p.putMeta(boxId, meta)),
     putItem: (boxId, item) => target.then((p) => p.putItem(boxId, item)),
     deleteItem: (boxId, itemId) => target.then((p) => p.deleteItem(boxId, itemId)),
+    // A box kept only in this browser has nothing in Firestore to delete.
+    deleteBox: (boxId) => target.then((p) => p.deleteBox?.(boxId)),
   };
 }

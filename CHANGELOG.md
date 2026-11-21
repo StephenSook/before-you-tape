@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The sign-in wrapper passes a whole-box delete to Firestore once signed in; a box kept only in this browser (sign-in failed) has nothing in Firestore to delete. Source: Delete my saved box plan. Verified: a new persistence test failed first and passes.
+
 - deleteSavedBox runs Delete my saved box in order: the box in Firestore, this device's crops, this browser's box keys (clearLocalBox removes byt.box, byt.journal and byt.names for the box and byt.currentBox, and keeps the device's cloud answer), then the anonymous sign-in. The first step that fails stops the rest and is named; a sign-in that needs a recent login is signed out instead. Not on the page yet. Source: Delete my saved box plan. Verified: five new tests pass, and a mutation check (steps swapped, the consent key removed) fails three of them.
 
 - Firestore persistence can delete a whole box (deleteBox): its items and disputes first, in batches of 400, then the box together with its tombstone (retiredBoxes/{boxId}, holding the box's expiresAt) in one batch, so its id is retired. A box already gone is left alone. Only the owner can, by the rules. Source: Delete my saved box plan. Verified: new emulator tests (owner deletes everything and the id cannot start again; another user is refused) failed first and pass; all 46 emulator tests and the full unit suite pass.
