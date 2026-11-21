@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the session script finds a paired phone and keeps the pulled box out of git
+- What: `device-session.sh` looked only for a phone listed as "connected", and the phone on the day
+  was listed as "available (paired)", so it found none. It now takes either. The pulled box goes to
+  `<out>/raw.local/`, which git ignores, because item names can name personal products.
+- Source: the device session.
+- Verified: on the live device list it finds the iPhone; on sample lines it takes "available
+  (paired)" and refuses "unavailable" and a simulator; `git check-ignore` shows `raw.local` ignored.
+
 ### docs(ios): screenshot 04 taken again with the answer buttons as they are now
 - What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
   chosen and filled; the README describes it and drops the note to take it again.
