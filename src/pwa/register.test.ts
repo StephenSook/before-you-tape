@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { registerServiceWorker, type SwEnv } from "./register";
+import { registerServiceWorker, removeServiceWorkers, type SwEnv } from "./register";
 import { forgetUpdate, useWaitingUpdate } from "./update";
 import { renderHook } from "@testing-library/react";
 
@@ -125,3 +125,18 @@ describe("registerServiceWorker", () => {
     expect(container.registration.update).toHaveBeenCalledTimes(2);
   });
 });
+
+// A kill build's page cleans up too, on every load, so a kill worker stopped part way through still ends clean.
+describe("removeServiceWorkers", () => {
+  it("unregisters every worker and deletes every cache, and registers nothing", async () => {
+    const regs = [{ unregister: vi.fn(async () => true) }, { unregister: vi.fn(async () => true) }];
+    const deleted: string[] = [];
+    const container = { getRegistrations: vi.fn(async () => regs), register: vi.fn() };
+    const store = { keys: vi.fn(async () => ["byt-shell-a", "byt-meta"]), delete: vi.fn(async (n: string) => { deleted.push(n); return true; }) };
+    await removeServiceWorkers({ container: container as unknown as ServiceWorkerContainer, caches: store as unknown as CacheStorage });
+    expect(regs.map((r) => r.unregister.mock.calls.length)).toEqual([1, 1]);
+    expect(deleted).toEqual(["byt-shell-a", "byt-meta"]);
+    expect(container.register).not.toHaveBeenCalled();
+  });
+});
+

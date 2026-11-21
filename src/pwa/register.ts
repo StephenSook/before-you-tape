@@ -50,3 +50,12 @@ export async function registerServiceWorker(env: SwEnv = browser()): Promise<voi
   env.document.addEventListener("visibilitychange", () => { if (env.document.visibilityState === "visible") check(); });
   env.every(HOUR, check);
 }
+
+// The kill switch's page side: a kill build's page unregisters every worker of this site and deletes every cache on
+// each load, and registers none. The kill worker does the same when it activates; this repeats it from the page, so
+// a kill worker stopped part way through its cleanup still leaves the browser clean on the next visit.
+export async function removeServiceWorkers(env: { container: Pick<ServiceWorkerContainer, "getRegistrations">; caches: CacheStorage }
+  = { container: navigator.serviceWorker, caches }): Promise<void> {
+  for (const registration of await env.container.getRegistrations()) await registration.unregister();
+  for (const name of await env.caches.keys()) await env.caches.delete(name);
+}

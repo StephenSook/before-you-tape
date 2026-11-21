@@ -33,12 +33,16 @@ function versionFile(): Plugin {
   };
 }
 
+const kill = process.env.BYT_SW_KILL === "1";
+
 export default defineConfig({
+  // Whether this is a kill switch build: its page removes every service worker (src/main.tsx).
+  define: { __BYT_SW_KILL__: JSON.stringify(kill) },
   // BYT_SW_KILL=1 builds the kill switch: a worker that unregisters itself and deletes its caches (scripts/pwa-options.ts).
   // Under vitest the worker is not generated: the unit tests that build only inspect the bundle, and the plugin writes
   // sw.js to disk even when the build writes nothing. The browser tests check the worker from the real build.
   plugins: [react(), versionFile(), VitePWA({
-    ...pwaOptions({ kill: process.env.BYT_SW_KILL === "1" }),
+    ...pwaOptions({ kill }),
     disable: process.env.VITEST !== undefined,
   })],
   build: {

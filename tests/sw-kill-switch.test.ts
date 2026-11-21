@@ -9,7 +9,12 @@ describe("service worker kill switch", () => {
     const build = deploy.slice(deploy.indexOf("- name: Build with the public web config"), deploy.indexOf("- name: Build serves this commit"));
     expect(build).toContain("BYT_SW_KILL: ${{ vars.BYT_SW_KILL }}");
     expect(build).toContain("run: npm run build");
-    expect(readFileSync("vite.config.ts", "utf8")).toContain('kill: process.env.BYT_SW_KILL === "1"');
+    const config = readFileSync("vite.config.ts", "utf8");
+    expect(config).toContain('const kill = process.env.BYT_SW_KILL === "1";');
+    expect(config).toContain("pwaOptions({ kill })");
+    // The page of a kill build removes every worker too (src/main.tsx).
+    expect(config).toContain("__BYT_SW_KILL__: JSON.stringify(kill)");
+    expect(readFileSync("src/main.tsx", "utf8")).toContain("__BYT_SW_KILL__ ? removeServiceWorkers() : registerServiceWorker()");
   });
 
   // Rolling a kill deploy back would put the previous release's normal worker back on the site while the switch is
