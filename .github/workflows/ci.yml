@@ -106,13 +106,14 @@ jobs:
       # 2026-12-17). It is set only for this step, and the workflow never prints it: the fixtures put it in the
       # page with an init script, and only on this app's own origins. The Firebase SDK logs it to the browser
       # console, which these checks do not record (no traces, screenshots, videos or console capture).
-      # pack.local answers the model host itself, so this step makes no model call. A pull request from a fork
-      # gets no secrets from GitHub, so it skips this step; main and this repository's own branches run it.
+      # pack.local and leaves.local answer the model host themselves, so this step makes no model call. A pull
+      # request from a fork gets no secrets from GitHub, so it skips this step; main and this repository's own
+      # branches run it. scripts/ci-e2e.test.ts fails when a local spec is in neither browser step.
       - name: Browser checks that need App Check
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
-        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/judge-live.local.spec.ts tests/e2e/token-origin.spec.ts
+        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/leaves.local.spec.ts tests/e2e/judge-live.local.spec.ts tests/e2e/token-origin.spec.ts
 
       - name: Tone check
         run: npm run tone
