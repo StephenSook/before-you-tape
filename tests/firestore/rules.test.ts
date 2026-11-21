@@ -272,6 +272,12 @@ describe("schema", () => {
     for (const labelTags of [["not_a_tag"], ["alcohol", "not_a_tag"], ["alcohol,toy"], [""], ["alcohol", ""], [1], ["ALCOHOL"], ["toy_gunx"]]) {
       await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags }));
     }
+    // Which label words made the tags: eight hex digits, or left out by an item saved before it was kept.
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i4"), { ...itemDoc, tagsVersion: "1a2b3c4d" }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i4"), { tagsVersion: "0000beef" }));
+    for (const tagsVersion of [1, "", "1A2B3C4D", "1a2b3c4", "1a2b3c4d5", "label words"]) {
+      await assertFails(updateDoc(doc(alice, "boxes/b1/items/i4"), { tagsVersion }));
+    }
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { read: { ...itemDoc.read, category: "phonex" } }));
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "spaceship" } }));
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "toy_gun" } }));

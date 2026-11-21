@@ -137,7 +137,9 @@ describe("evaluateBox", () => {
       "margarine_to_philippines_is_check", "saved_chocolate_with_only_its_old_tag_to_philippines_is_check",
       "saved_margarine_with_only_its_old_tag_to_philippines_is_check", "chocolate_bar_to_canada_stays_ok",
       "ceramic_mug_to_canada_is_ok", "ceramic_mug_to_philippines_is_check", "porcelain_named_on_the_label_to_philippines_is_check",
-      "sender_ticked_alcohol_settles_it",
+      "sender_ticked_alcohol_settles_it", "replica_grenade_ca", "replica_grenade_ph", "plain_toy_ca",
+      "sunscreen_stick_ph", "sunscreen_stick_ca", "sanitizer_drug_facts_ph",
+      "replica_words_ca", "toy_and_brand_words_ca", "replica_props_ca", "replica_props_ph", "extra_questions_ca",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

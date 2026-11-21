@@ -19,7 +19,8 @@ describe("deskLineHash", () => {
     // Taken from the desk-pass generator's own h() on these two lines, so the two cannot drift.
     const line = (code: string, id: string) => ed.destinations[code]!.lines.find((l) => l.lineId === id)!;
     expect(await deskLineHash(line("PH", "PH-P-01"))).toBe("32896f6a429fd3e25f33486234e0fc7c118a3869e068cf9297259527ad1b4572");
-    expect(await deskLineHash(line("CA", "CA-P-04"))).toBe("64d281f6463e8b51cb9c6024a878ec103b709842db60447f1429f7ab4736d089");
+    // A line with a recorded reason and no match, which revision 4 left as it was.
+    expect(await deskLineHash(line("CA", "CA-P-14"))).toBe("693ece8d3ed8f6c7d6e343a2a879476650bca65b32ae0fce6c5b09344b373927");
   });
 });
 

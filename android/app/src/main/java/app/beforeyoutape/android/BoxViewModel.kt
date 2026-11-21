@@ -95,9 +95,13 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     private val pinChecks = LatestCheck()
     private val engineLoaded = CompletableDeferred<Unit>()
 
-    private val box = BoxController(BoxLogic.empty(store.destination() ?: ""), BoxEngine { items, code, today ->
-        (host ?: throw EngineError("EngineNotLoaded", "the rules are not loaded")).evaluateBox(items, code, today)
-    }, today = { LocalDate.now().toString() })
+    private val box = BoxController(
+        BoxLogic.empty(store.destination() ?: ""),
+        BoxEngine { items, code, today -> (host ?: throw EngineError("EngineNotLoaded", "the rules are not loaded")).evaluateBox(items, code, today) },
+        today = { LocalDate.now().toString() },
+        // The edition in use, so an item tagged under another edition's label words is held.
+        edition = { runningEdition?.editionId },
+    )
 
     private val reader: ItemReader? = ai?.let { client ->
         ItemReader(

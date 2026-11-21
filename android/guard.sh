@@ -22,8 +22,11 @@ hit "com.google.mlkit import" < <(only "${code[@]}" | tr '\n' '\0' | xargs -0 gr
 hit "DebugAppCheckProviderFactory outside app/src/debug" < <(only "${code[@]}" | grep -v -E '^android/app/src/debug/' | tr '\n' '\0' | xargs -0 grep -n -I 'DebugAppCheckProviderFactory' 2>/dev/null)
 main=(); for f in "${code[@]}"; do case "$f" in android/app/src/main/*) main+=("$f");; esac; done
 if [ "${#main[@]}" -gt 0 ]; then
-  # 4. Verdict words come from the engine, never from Kotlin or resources.
-  hit "a verdict headline in app/src/main" < <(only "${main[@]}" | tr '\n' '\0' | xargs -0 grep -n -I -E 'OK to pack|Take it out|Check this' 2>/dev/null)
+  # 4. Verdict words come from the engine, never from Kotlin or resources. One line is excepted: the reading check
+  #    in box/StaleTags.kt holds an item at the engine's own check headline (pinned to src/engine/verdict.ts by
+  #    StaleTagsTest), as the web app's src/data/tagsVersion.ts and the iPhone app do.
+  hit "a verdict headline in app/src/main" < <(only "${main[@]}" | tr '\n' '\0' | xargs -0 grep -n -I -E 'OK to pack|Take it out|Check this' 2>/dev/null \
+    | grep -v -E '^android/app/src/main/java/app/beforeyoutape/android/box/StaleTags\.kt:[0-9]+:    const val CHECK_HEADLINE = "Check this"$')
   # 5. Model names come from Remote Config; the one in-app default lives in remote_config_defaults.xml.
   hit "gemini- in app/src/main outside remote_config_defaults.xml" < <(only "${main[@]}" | grep -v -E '/res/xml/remote_config_defaults\.xml$' | tr '\n' '\0' | xargs -0 grep -n -I 'gemini-' 2>/dev/null)
   # 6. No approval wording, except the required "not affiliated" disclaimer.

@@ -111,6 +111,28 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("HEMP SEED OIL LOTION", ed)).not.toContain("hemp");
   });
 
+  it("reads replica and inert munitions (IMM 136.2) on the safe side: an extra question, never a missed one", () => {
+    // A munition noun alone is enough (grenade, ordnance, munition, ammunition, ammo, mortar round or shell, warhead,
+    // detonator, and the Spanish forms), except two brands. Round, shell, bomb, mine and rocket count when the label
+    // anywhere carries a weapon cue: a caliber, or replica, inert, dummy, training, practice, fake, mock, military,
+    // ordnance or tactical. No word ever clears a match.
+    const munitions = ["REPLICA GRENADE", "GRENADE REPLICA", "REPLICA-GRENADE", "REPLICA M67 GRENADE", "GRANADA DE ENTRENAMIENTO",
+      "Inert hand grenade, display only", "DUMMY ORDNANCE", "TRAINING ROUNDS 40MM", "deactivated mortar shell", "INERT 81MM MORTAR ROUND",
+      "SHELL, INERT", "MUNICIONES DE FOGUEO", "Replica de granada", "AMMUNITION BOX 50 CAL REPLICA ROUNDS", "FAKE BOMB PROP",
+      "IMITATION GRENADE PROP", "SIMULATED LAND MINE", "MOCK MORTAR SHELL", "TRAINING TOY ROCKET 40MM", "TRAINING MORTAR ROUND",
+      "INERT .50 CAL ROUND", "12 GAUGE DUMMY SHELLS", "MILITARY TRAINING BOMB", "TACTICAL ROUND\nREPLICA", "TOY GRENADE", "FOAM ROCKET, REPLICA"];
+    for (const label of munitions) expect(labelTagsOf(label, ed), label).toContain("replica_explosive");
+    // Extra questions the safe side accepts, listed in docs/LIMITS.md.
+    const extraQuestions = ["PRACTICE ROUND GOLF BALLS 12 PACK", "ROUND TRAINING TABLE", "TRAINING SHIRT\nROUND NECK", "MOCK NECK TOP\nROUND HEM",
+      "AMMO CAN STORAGE BOX", "ROUND CRACKERS 120 CAL"];
+    for (const label of extraQuestions) expect(labelTagsOf(label, ed), label).toContain("replica_explosive");
+    for (const label of ["GRENADE PROTEIN BAR CARB KILLA", "Carb Killa by Grenade", "TOY CAR", "SEA SHELL NECKLACE", "INERT GAS",
+      "BATH BOMB LAVENDER", "FOAM TOY ROCKET", "TOY SHELL SET", "WARHEADS EXTREME SOUR HARD CANDY", "MORTAR AND PESTLE GRANITE",
+      "JUGO DE GRANADA 100%", "TRAINING PANTS SIZE 4T", "Training Day DVD", "MOCK NECK SWEATER", "ROUND TABLE COVER", "MINE CRAFT HOODIE"]) {
+      expect(labelTagsOf(label, ed), label).not.toContain("replica_explosive");
+    }
+  });
+
   it("needs a medicine cue to read medicine, not the word tablet or capsule alone", () => {
     for (const label of ["TABLET COMPUTER", "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "COFFEE CAPSULES", "PARTY LOZENGES CANDY",
       "SODIUM 140 MG PER SERVING"]) {

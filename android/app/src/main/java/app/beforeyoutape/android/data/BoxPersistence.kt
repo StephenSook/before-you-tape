@@ -44,6 +44,7 @@ class BoxPersistence(private val prefs: Prefs) {
                             "readMs" to JsonPrimitive(item.readMs),
                             "cropFile" to (item.cropFile?.let(::JsonPrimitive) ?: JsonNull),
                             "extras" to BoxDocs.toJson(item.extras),
+                            "tagsEdition" to (item.tagsEdition?.let(::JsonPrimitive) ?: JsonNull),
                         ),
                     )
                 },
@@ -66,6 +67,8 @@ class BoxPersistence(private val prefs: Prefs) {
                     readMs = i.getValue("readMs").jsonPrimitive.double,
                     cropFile = (i["cropFile"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
                     extras = (BoxDocs.fromJson(i.getValue("extras")) as? Map<String, Any?>) ?: emptyMap(),
+                    // Absent in a box saved before the edition was kept: unknown.
+                    tagsEdition = (i["tagsEdition"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
                 )
             },
             result = null,

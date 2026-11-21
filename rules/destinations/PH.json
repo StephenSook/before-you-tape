@@ -70,6 +70,10 @@
         {
           "tag": "knife",
           "effect": "check"
+        },
+        {
+          "tag": "replica_explosive",
+          "effect": "check"
         }
       ]
     },
@@ -99,12 +103,13 @@
       "lineId": "PH-P-06",
       "section": "prohibitions",
       "lineSha256": "2e8c7d9e321db97e40d7640eec6a13c83a1970a83d9a6c9229f50feeb3b194fb",
-      "ourWording": "No narcotics or similar drugs.",
-      "matches": [],
-      "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Controlled narcotics; ordinary medicines are tagged and checked by other rules."
-      }
+      "ourWording": "No narcotics, psychotropic drugs or similar drugs. If this is a medicine, check that it is not one of them.",
+      "matches": [
+        {
+          "tag": "pharmaceutical",
+          "effect": "check"
+        }
+      ]
     },
     {
       "lineId": "PH-P-07",
@@ -136,14 +141,14 @@
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Radioactive material; USPS already bars it from international mail."
+        "reason": "Radioactive material; not a family gift item."
       }
     },
     {
       "lineId": "PH-R-01",
       "section": "restrictions",
       "lineSha256": "2dbc751644ee572429e006b3692bd4006fb86bf895279bf6ec8a7c566d392e43",
-      "ourWording": "Coffee is allowed for personal use only, up to 2 kg of beans or ground coffee.",
+      "ourWording": "Coffee is allowed for personal use only: up to 2 kg of beans or ground coffee, or two 500 g plastic bottles of powdered coffee. More needs approval from FDA Philippines.",
       "matches": [
         {
           "tag": "coffee",
@@ -167,11 +172,11 @@
       "lineId": "PH-O-01",
       "section": "observations",
       "lineSha256": "40a6ce26bf017c781b5e8a97653ae58fed5d61189ee696163a3b311e6599da1a",
-      "ourWording": "An invoice with a duty value of 3,000 pesos or more may need the Philippine Consulate's stamp, for a $30 fee.",
+      "ourWording": "A commercial invoice with a duty value of 3,000 pesos or more needs authentication by the Philippine Consulate, for a US$30 fee.",
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An invoice and duty note; shown to the sender as a customs note."
+        "reason": "An invoice and duty note; shown on the Rules page."
       }
     }
   ],

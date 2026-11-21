@@ -84,10 +84,10 @@
     "id": "USPS-INTL-MATCHES-LIGHTERS",
     "layer": "usps_export",
     "scope": "item",
-    "section": "Pub 52 623 (Class 4); Packaging Instruction 3C",
+    "section": "Pub 52 623 (Classes 3 and 4); Packaging Instruction 3C",
     "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
     "basis": "summarized",
-    "ourWording": "Matches and lighters can't go by international mail.",
+    "ourWording": "Matches and lighters with fuel can't go by international mail. A photo can't show that a lighter is empty, so the app takes every lighter out.",
     "when": { "any": [{ "fact": "tags", "op": "has", "value": "lighter" }, { "fact": "tags", "op": "has", "value": "matches" }] },
     "outcome": "take_out"
   },
@@ -101,6 +101,17 @@
     "ourWording": "Fireworks, sparklers and other explosives can't go by international mail.",
     "when": { "fact": "tags", "op": "has", "value": "explosive" },
     "outcome": "take_out"
+  },
+  {
+    "id": "USPS-INTL-REPLICA-EXPLOSIVE",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "IMM 136.2",
+    "url": "https://pe.usps.com/text/imm/immc1_015.htm",
+    "basis": "summarized",
+    "ourWording": "Replica or inert grenades, shells and other military munitions can't go by international mail. A toy that clearly doesn't look real can, so check which this is.",
+    "when": { "fact": "tags", "op": "has", "value": "replica_explosive" },
+    "outcome": "check"
   },
   {
     "id": "USPS-INTL-CRACKER",

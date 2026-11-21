@@ -13,6 +13,7 @@ import { evaluateBox, type BoxResult } from "../engine/verdict";
 import { LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
 import { stableJson, type BoxMeta, type BoxOps } from "./boxOps";
 import type { DeviceConsent } from "./deviceConsent";
+import { guardStaleTags, labelWordsVersion, tagsAreStale } from "./tagsVersion";
 
 // Where an item's read came from. The phones use one name each for both of them.
 // cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
@@ -39,6 +40,9 @@ export interface BoxItem extends BoxItemInput {
   customs: CustomsLine;
   // When the item was added, in milliseconds since 1970 on the adding device; orders the box after a reload.
   addedAt?: number;
+  // The version of the label words that made labelTags (src/data/tagsVersion.ts). Missing on an item saved before
+  // it was kept; an item whose tags came from a label under other words is held at "Check this".
+  tagsVersion?: string;
 }
 
 export interface BoxSources { onDevice: number; inCloud: number; secondLooks: number; rulesOnlyRechecks: number; cloudFallbacks: number }
@@ -218,7 +222,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const edition = currentEdition();
     const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
     const today = deps.today();
-    return evaluateBox(items, edition, resolveDestination(edition, destinationCode, live, today), today);
+    return guardStaleTags(evaluateBox(items, edition, resolveDestination(edition, destinationCode, live, today), today), items, labelWordsVersion(edition));
   };
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
@@ -395,6 +399,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     commit();
   };
   const tagsOf = (labelText: string) => labelTagsOf(labelText, currentEdition());
+  const wordsVersion = () => labelWordsVersion(currentEdition());
 
   // Tells listeners about a consent change without saving the box, which never holds consent. The Pack
   // page aborts cloud work when the answer stops being "allowed".
@@ -468,7 +473,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const itemId = deps.newId();
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
-        labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
+        labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), tagsVersion: wordsVersion(), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
         customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
@@ -489,7 +494,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       // A typed item is the sender's own word; a ticked alcohol line is kept as theirs, so it is not asked again.
       items = [...items, {
         itemId, read, overrides: read.alcoholOnLabel ? { alcoholOnLabel: true } : {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
-        labelTags: tagsOf(read.labelText), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
+        labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
         addedAt: clock(),
       }];
       lastRecheckMs = null;
@@ -499,7 +504,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     addRecorded(read, ms, cropKey) {
       const itemId = deps.newId();
       items = [...items, {
-        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText),
+        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(),
         readSource: "sample_recorded", readMs: ms, secondLook: null, cropKey, customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       }];
       lastRecheckMs = null;
@@ -530,8 +535,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         });
         const cloudTags = tagsOf(cloudLabel ?? "");
         const found: ReadDisputes = { ...disputes };
-        // Label words only one read saw: a dispute of tags (never of label text) the sender settles.
-        if (cloudLabel !== undefined && wordsOf(i.labelTags) !== wordsOf(cloudTags)) {
+        const now = wordsVersion();
+        // Label words only one read saw: a dispute of tags (never of label text) the sender settles. Tags that other
+        // label words made are no side of one: the tags made below, with the current words, replace them.
+        if (cloudLabel !== undefined && !tagsAreStale(i, now) && wordsOf(i.labelTags) !== wordsOf(cloudTags)) {
           found.labelTags = { device: [...i.labelTags], cloud: cloudTags, resolved: false };
         }
         // A fact the sender corrected while the cloud read ran is theirs: no dispute stands on it.
@@ -541,6 +548,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
           labelTags: i.overrides.labelText !== undefined ? i.labelTags
             : [...new Set([...i.labelTags, ...(cloudLabel === undefined ? tagsOf(merged.labelText) : cloudTags)])],
+          // Tags made just now from label text carry the current words. A second look with no label text reads no
+          // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
+          ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
           identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
         }, found);
       });
@@ -576,8 +586,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     override: (itemId, patch) => update(itemId, (i) => {
       const next: BoxItem = {
         ...i, overrides: { ...i.overrides, ...patch },
-        // A corrected label replaces the read one, so its tags must survive the label text not being saved.
-        labelTags: patch.labelText !== undefined ? tagsOf(patch.labelText) : i.labelTags,
+        // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
+        // label is no reading: an item held for older label words keeps its tags, and so stays held.
+        labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
+          ? i.labelTags : tagsOf(patch.labelText),
+        // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
+        ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
       };
       if (!i.disputes) return next;
       // The sender's own correction of a disputed fact settles that dispute.

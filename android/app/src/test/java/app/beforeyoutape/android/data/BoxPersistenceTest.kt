@@ -43,6 +43,20 @@ class BoxPersistenceTest {
         assertEquals(1450.75, BoxPersistence(prefs).load()!!.items.single().readMs, 0.0)
     }
 
+    /** Which edition made each item's tags stays on the phone; a box saved before it was kept loads with none. */
+    @Test fun theEditionThatMadeEachItemsTagsIsKept() {
+        var s = BoxLogic.addRead(BoxLogic.empty("CA"), read, listOf("li_ion"), Source.ON_DEVICE, 300, "a")
+        s = BoxLogic.addRead(s, read, emptyList(), Source.ON_DEVICE, 300, "b")
+        s = BoxLogic.addRead(s, read, listOf("li_ion"), Source.ON_DEVICE, 300, "c")
+        s = s.copy(items = s.items.zip(listOf("byt-x", "", null)).map { (i, e) -> i.copy(tagsEdition = e) })
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(s)
+        assertEquals(listOf("byt-x", "", null), BoxPersistence(prefs).load()!!.items.map { it.tagsEdition })
+        // A save from before the edition was kept has no such key.
+        prefs.values["active_box"] = prefs.values.getValue("active_box").replace(Regex(",?\"tagsEdition\":(\"[^\"]*\"|null)"), "")
+        assertEquals(listOf(null, null, null), BoxPersistence(prefs).load()!!.items.map { it.tagsEdition })
+    }
+
     @Test fun nothingSavedMeansNoBox() {
         assertNull(BoxPersistence(MapPrefs()).load())
     }

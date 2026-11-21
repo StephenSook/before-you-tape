@@ -25,7 +25,7 @@
       "lineId": "CA-P-02",
       "section": "prohibitions",
       "lineSha256": "35f5ca0305e63a42365227922d0e964c948d1f3fbb0b87a61d9282f06a7d8937",
-      "ourWording": "No lighters with fuel in them. An empty new lighter is allowed.",
+      "ourWording": "No lighters with fuel in them. Canada allows an empty new lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out.",
       "matches": [
         {
           "tag": "lighter",
@@ -49,12 +49,13 @@
       "lineId": "CA-P-04",
       "section": "prohibitions",
       "lineSha256": "7d57cafd49ca5a58497e51700f38baf56bf052ed49d1b94ec8bae2675d5380e6",
-      "ourWording": "No firearms.",
-      "matches": [],
-      "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Real firearms; toy and replica weapons are matched under CA-P-05."
-      }
+      "ourWording": "No firearms. The listing doesn't name toy guns, but the app asks you to check that a toy gun doesn't look real.",
+      "matches": [
+        {
+          "tag": "toy_gun",
+          "effect": "check"
+        }
+      ]
     },
     {
       "lineId": "CA-P-05",
@@ -63,7 +64,7 @@
       "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
       "matches": [
         {
-          "tag": "toy_gun",
+          "tag": "replica_explosive",
           "effect": "check"
         }
       ]
@@ -108,51 +109,51 @@
       "lineId": "CA-P-09",
       "section": "prohibitions",
       "lineSha256": "197a9cacb1c9a5745d27574cb2b40c8e42a7204b66c79564f741bd42ab0da850",
-      "ourWording": "No magazine issues whose ads mainly target Canada in the ways the listing describes.",
+      "ourWording": "No issue of a publication with more than 5 percent of the ad space aimed mainly at Canada, in the ways the listing describes.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Commercial magazine issues aimed at Canadian advertising; not a family gift."
+        "reason": "Commercial publications aimed at the Canadian ad market; not a family gift item."
       }
     },
     {
       "lineId": "CA-P-10",
       "section": "prohibitions",
       "lineSha256": "f10daa8fcbb904d93c7121c07b72bf0f38fd90f6c6bc4a5e2bf683639fb6f7b2",
-      "ourWording": "That includes ads that say where in Canada to buy something.",
+      "ourWording": "That includes ads that say where in Canada someone can get goods or services.",
       "matches": [],
       "noMatch": {
-        "decision": "exception_to_line",
-        "reason": "Part of CA-P-09, which covers commercial magazine issues."
+        "decision": "not_a_gift_item",
+        "reason": "Part of CA-P-09, which covers commercial publications."
       }
     },
     {
       "lineId": "CA-P-11",
       "section": "prohibitions",
       "lineSha256": "88a573bd1bc4df834c24f5e11389a900083853e83108c485824a07ad3af0b6db",
-      "ourWording": "It also includes ads that give sale terms for Canada.",
+      "ourWording": "It also includes ads that name specific items, or terms for selling or providing goods or services, in Canada.",
       "matches": [],
       "noMatch": {
-        "decision": "exception_to_line",
-        "reason": "Part of CA-P-09, which covers commercial magazine issues."
+        "decision": "not_a_gift_item",
+        "reason": "Part of CA-P-09, which covers commercial publications."
       }
     },
     {
       "lineId": "CA-P-12",
       "section": "prohibitions",
       "lineSha256": "6d57d55ba1d09026fd2ab65135b397020c779f99a8979bf7618d8a3163266f1a",
-      "ourWording": "No issue with a Canada-only ad that is missing from the home edition.",
+      "ourWording": "No issue with an ad aimed mainly at Canada unless that ad appears in identical form in every edition distributed in its home country.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Commercial magazine issues with Canada-only ads; not a family gift."
+        "reason": "Commercial publications with ads aimed mainly at Canada; not a family gift item."
       }
     },
     {
       "lineId": "CA-P-13",
       "section": "prohibitions",
       "lineSha256": "af64a66f15ca0a46e3d01a6905a1e22116eeced690abcb958e85e0953335ac08",
-      "ourWording": "No goods marked to look as if they were made in Canada or Britain when they were not.",
+      "ourWording": "No goods marked to look as if they were made in Canada, Britain or any other British country when they were not.",
       "matches": [],
       "noMatch": {
         "decision": "cannot_judge_from_photo",
@@ -222,7 +223,7 @@
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Radioactive material; USPS already bars it from international mail."
+        "reason": "Radioactive material; not a family gift item."
       }
     },
     {
@@ -241,7 +242,7 @@
       "lineId": "CA-P-21",
       "section": "prohibitions",
       "lineSha256": "762c46def84c82d973ac0487b803d9a20d25c45b048b77f8980318c951426f18",
-      "ourWording": "No copies of Canadian stamps, except black and white prints that are crossed out.",
+      "ourWording": "No copies of Canadian stamps, except black and white prints in publications with a line drawn across each one.",
       "matches": [],
       "noMatch": {
         "decision": "cannot_judge_from_photo",
@@ -385,7 +386,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "A duty and tax note; shown to the sender as a customs note."
+        "reason": "A duty and tax note; shown on the Rules page."
       }
     },
     {
@@ -396,7 +397,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An address rule; shown to the sender as a customs note."
+        "reason": "An address rule; shown on the Rules page."
       }
     },
     {
@@ -407,7 +408,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An address rule; shown to the sender as a customs note."
+        "reason": "An address rule; shown on the Rules page."
       }
     }
   ],

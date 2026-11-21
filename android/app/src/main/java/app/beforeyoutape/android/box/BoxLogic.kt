@@ -103,15 +103,24 @@ object BoxLogic {
     }
 }
 
-/** Holds the box and re-checks it through the engine after every change. */
-class BoxController(initial: BoxState, private val engine: BoxEngine, private val today: () -> String) {
+/**
+ * Holds the box and re-checks it through the engine after every change. [edition] is the rule edition in use (null
+ * while no rules are loaded), so an item tagged under another edition is held ([StaleTags]).
+ */
+class BoxController(
+    initial: BoxState,
+    private val engine: BoxEngine,
+    private val today: () -> String,
+    private val edition: () -> String? = { null },
+) {
     var state: BoxState = initial
         private set
 
     private fun recheck() {
+        val current = edition()
         state = try {
             if (state.items.isEmpty()) state.copy(result = null)
-            else BoxLogic.withResult(state, engine.evaluate(state.items.map { it.input }, state.destinationCode, today()))
+            else BoxLogic.withResult(state, StaleTags.guard(engine.evaluate(state.items.map { it.input }, state.destinationCode, today()), state.items, current))
         } catch (e: EngineError) {
             BoxLogic.withEngineError(state, e.errorName)
         }
@@ -123,8 +132,15 @@ class BoxController(initial: BoxState, private val engine: BoxEngine, private va
         recheck()
     }
 
+    /** Records that [itemId]'s tags were just made from its current label, under the edition in use. */
+    private fun stamp(itemId: String) {
+        val current = edition()
+        state = state.copy(items = state.items.map { if (it.input.itemId == itemId) it.copy(tagsEdition = StaleTags.editionFor(it.input, current)) else it })
+    }
+
     fun addRead(read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String) {
         state = BoxLogic.addRead(state, read, labelTags, source, ms, newId)
+        stamp(newId)
         recheck()
     }
 
@@ -135,11 +151,17 @@ class BoxController(initial: BoxState, private val engine: BoxEngine, private va
 
     fun addManual(read: ItemReadWire, labelTags: List<String>, newId: String) {
         state = BoxLogic.addManual(state, read, labelTags, newId)
+        stamp(newId)
         recheck()
     }
 
     fun override(itemId: String, patch: Map<String, JsonElement>, labelTags: List<String>?) {
-        state = BoxLogic.override(state, itemId, patch, labelTags)
+        val before = state.items.firstOrNull { it.input.itemId == itemId }
+        val label = (patch["labelText"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+        // Blank words are not a label: a stale item keeps its tags, and so stays held, until real words are typed.
+        val keepStale = label != null && !StaleTags.hasWords(label) && before != null && StaleTags.isStale(before, edition())
+        state = BoxLogic.override(state, itemId, patch, if (keepStale) null else labelTags)
+        if (label != null && !keepStale) stamp(itemId)
         recheck()
     }
 

@@ -32,10 +32,12 @@ export function revisionOf(value: unknown): string {
 }
 
 // The item document: never its disputes, which are their own document.
+// The item as Firestore keeps it: no disputes, and no key whose value is undefined, which the SDK refuses before
+// any rule runs (an optional field such as tagsVersion is left out instead).
 function itemDoc(item: BoxItem): BoxItem {
   const { disputes: _disputes, ...rest } = item;
   void _disputes;
-  return rest;
+  return Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) as unknown as BoxItem;
 }
 
 // Every saved dispute open again: what the sender settled may not be what was saved with the item.
