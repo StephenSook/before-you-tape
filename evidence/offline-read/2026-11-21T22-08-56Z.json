@@ -1,0 +1,71 @@
+{
+  "ranAt": "2026-11-21T22:08:56.126Z",
+  "site": "https://before-you-tape-2026.web.app/",
+  "liveVersion": "2038c27bffca92ba70c718fcc094f3605992b652",
+  "chromeVersion": "157.0.8103.80",
+  "os": "macOS 27.0",
+  "machine": {
+    "model": "Mac17,9",
+    "chip": "Apple M5 Pro",
+    "memoryGb": 48
+  },
+  "modelState": "LanguageModel.availability() for image and text input read \"available\" before the network went off; the model was already on this Chrome profile, so nothing was downloaded",
+  "network": "Off for every page and worker in the browser: Playwright over the DevTools protocol set the browser context offline (Chrome's network emulation). The computer's own connection stayed on.",
+  "openedOffline": "The page reloaded from its service worker with the network off and showed \"Type an item\"; navigator.onLine was false",
+  "cloudSetting": "Cloud: off, so the read route is device_only",
+  "photo": {
+    "itemId": "own-01",
+    "path": "public/eval/items/own-01.jpg",
+    "sha256": "50ddec66b05e947838dc0b8950b62a201fc60629905dbccf20a0ebdcc5de1f44",
+    "labelOnPhoto": "Capacity: 50000mAh 3.7V 185Wh"
+  },
+  "steps": "Add a photo (the app's own file input), the crop step's default box, Check this part; the time runs from the press to a new card with a verdict",
+  "reads": [
+    {
+      "run": 1,
+      "msFromPress": 15216,
+      "shownName": "POWER BANK",
+      "verdict": "Take it out",
+      "route": "Read on this laptop",
+      "labelRead": "5 V, 5,000 mAh, 18.8 Wh",
+      "requestsDuringRead": "not recorded (the script stopped before saving them)",
+      "consoleErrors": "not recorded"
+    },
+    {
+      "run": 2,
+      "msFromPress": 22156,
+      "shownName": "power bank",
+      "verdict": "Take it out",
+      "route": "Read on this laptop",
+      "labelRead": "5 V, 5,000 mAh",
+      "requestsDuringRead": [
+        {
+          "host": "www.google.com",
+          "path": "/recaptcha/enterprise/anchor",
+          "result": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "host": "firestore.googleapis.com",
+          "path": "/v1/projects/before-you-tape-2026/databases/(default)/documents:batchGet",
+          "result": "net::ERR_INTERNET_DISCONNECTED"
+        }
+      ],
+      "requestsToAiLogicHost": 0,
+      "consoleErrorsFromOpenToVerdict": [
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "[2026-11-21T22:08:24.007Z]  @firebase/firestore: Firestore (13.4.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: Fire",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+      ],
+      "pageErrors": 0
+    }
+  ],
+  "notes": [
+    "Each run started Chrome afresh, so each time includes the model's start.",
+    "The box on this profile already held one item from before; the timing counts only the new card.",
+    "The battery numbers read on the device are wrong in both runs: the label says 50000 mAh, 3.7 V, 185 Wh. For a power bank the verdict does not depend on them."
+  ]
+}
