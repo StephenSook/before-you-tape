@@ -61,8 +61,9 @@ describe("hosting", () => {
     for (const r of hosting.rewrites) {
       expect((hosting.headers ?? []).some((h) => h.regex === r.regex && cacheOf(h) === NO_CACHE), r.regex).toBe(true);
     }
-    // No service worker is served that could keep an old app.
-    expect(readFileSync(join(root, "firebase.json"), "utf8")).not.toMatch(/sw\.js/);
+    // The service worker and its workbox file are checked again every time too, so a browser learns of a new
+    // version on its next visit instead of keeping an old worker, and the old app it caches, for up to an hour.
+    for (const path of ["/sw.js", "/workbox-9c191d2f.js"]) expect(rulesFor(path).map(cacheOf), path).toEqual([NO_CACHE]);
   });
 
   it("ships an icon that every page names, so no browser asks for a missing favicon.ico", () => {
