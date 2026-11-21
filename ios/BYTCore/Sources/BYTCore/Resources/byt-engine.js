@@ -1016,19 +1016,29 @@ var BYT = (() => {
       const level = top && top.level !== "note" ? top.level : "ok";
       const askId = hits.find((h) => h.askId)?.askId;
       const question = askId ? edition2.questions.find((q) => q.id === askId) ?? null : null;
-      if (settle && level === "take_out" && question && question.answers.length > 0 && question.answers.every((a) => {
-        const answered = items.map((i) => i.itemId === p.itemId ? { ...i, answers: { ...i.answers, [question.id]: a.id } } : i);
-        return evaluateBox(answered, edition2, dest, today, false).items[p.itemId]?.level === "take_out";
-      })) {
-        result[p.itemId] = { level, headline: HEADLINE[level], hits: hits.filter((h) => h.askId !== question.id), question: null, layers, service: edition2.service };
-      } else {
-        result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition2.service };
-      }
+      result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition2.service };
       if (level === "ok") counts.ok++;
       else if (level === "check") counts.check++;
       else counts.takeOut++;
     }
+    if (settle) {
+      for (const p of perItem) settleQuestion(p.itemId, p.facts.battery.presence, items, result, edition2, dest, today);
+    }
     return { items: result, lithium, destination: dest, notes, counts, editionId: edition2.editionId };
+  }
+  function settleQuestion(itemId, presence, items, result, edition2, dest, today) {
+    const v = result[itemId];
+    const q = v?.question;
+    if (!v || !q || v.level !== "take_out" || q.answers.length === 0) return;
+    if (!v.hits.some((h) => h.level === "take_out" && h.askId !== q.id)) return;
+    const alone = presence === "none" && q.id !== "battery_installed";
+    const pool = alone ? items.filter((i) => i.itemId === itemId) : items;
+    const unchanged = q.answers.every((a) => {
+      const answered = pool.map((i) => i.itemId === itemId ? { ...i, answers: { ...i.answers, [q.id]: a.id } } : i);
+      const r = evaluateBox(answered, edition2, dest, today, false);
+      return pool.every((i) => r.items[i.itemId]?.level === (i.itemId === itemId ? "take_out" : result[i.itemId]?.level));
+    });
+    if (unchanged) result[itemId] = { ...v, hits: v.hits.filter((h) => h.askId !== q.id), question: null };
   }
 
   // src/shared/noItem.ts
