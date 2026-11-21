@@ -101,7 +101,10 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                 ui.consent == null -> ConsentScreen(null, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) })
                 ui.view == HomeView.TYPE -> ReadForm(null, ReadCopy.NAME_OPTIONAL, ReadCopy.ADD, actions::typed)
                 ui.view == HomeView.FIX && ui.fixItemId != null ->
-                    ReadForm(ui.fixRead, ReadCopy.NAME, ReadCopy.SAVE, { actions.fixed(ui.fixItemId, it) })
+                    ReadForm(
+                        ui.fixRead, ReadCopy.NAME, ReadCopy.SAVE, { actions.fixed(ui.fixItemId, it) },
+                        batteryLabel = ReadDrafts.labelNamesABattery(ui.box.items.firstOrNull { it.input.itemId == ui.fixItemId }?.input?.labelTags.orEmpty()),
+                    )
                 ui.view == HomeView.BOX -> PackScreen(
                     ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove, onQuantity = actions::quantity,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },

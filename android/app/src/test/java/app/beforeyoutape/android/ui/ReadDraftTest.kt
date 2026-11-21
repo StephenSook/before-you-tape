@@ -10,8 +10,39 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class ReadDraftTest {
+    private fun webFile(path: String) = File(System.getProperty("byt.repoRoot") ?: error("byt.repoRoot is not set by Gradle"), path).readText()
+
+    /** The battery categories and battery tags are the web form's own lists (src/ui/ReadFields.tsx, src/ui/FixReading.tsx). */
+    @Test fun theBatteryListsMatchTheWebForm() {
+        fun setIn(text: String, name: String): Set<String> {
+            val start = text.indexOf(name)
+            check(start >= 0) { "$name not found" }
+            val body = text.substring(text.indexOf("Set([", start), text.indexOf("])", start))
+            return Regex("\"([a-z_]+)\"").findAll(body).map { it.groupValues[1] }.toSet()
+        }
+        val webCategories = setIn(webFile("src/ui/ReadFields.tsx"), "BATTERY_CATEGORIES")
+        val webTags = setIn(webFile("src/ui/FixReading.tsx"), "BATTERY_TAGS")
+        assertEquals(11, webCategories.size)
+        assertEquals(webCategories, ReadDrafts.BATTERY_CATEGORIES.map { it.name }.toSet())
+        assertEquals(webTags, ReadDrafts.BATTERY_TAGS)
+    }
+
+    /** As on the web: battery numbers show for a battery item, a label that mentions a battery, or a number already typed. */
+    @Test fun batteryNumbersShowOnlyWhereTheWebFormShowsThem() {
+        val shirt = ReadDrafts.of(null).copy(category = ItemCategoryWire.clothing)
+        assertFalse(ReadDrafts.showsBatteryNumbers(ReadDrafts.of(null)))
+        assertFalse(ReadDrafts.showsBatteryNumbers(shirt))
+        assertTrue(ReadDrafts.showsBatteryNumbers(shirt.copy(category = ItemCategoryWire.phone)))
+        assertTrue(ReadDrafts.showsBatteryNumbers(shirt.copy(flags = shirt.flags + ("batteryWords" to true))))
+        assertTrue(ReadDrafts.showsBatteryNumbers(shirt.copy(numbers = shirt.numbers + ("volts" to "3"))))
+        assertTrue(ReadDrafts.showsBatteryNumbers(shirt, batteryLabel = true))
+        assertTrue(ReadDrafts.labelNamesABattery(listOf("li_ion", "phone")))
+        assertFalse(ReadDrafts.labelNamesABattery(listOf("liquid")))
+    }
+
     private val bank = ItemReadWire("Power bank", ItemCategoryWire.power_bank, "Li-ion 3.7V 5000mAh", 3.7, 5000.0, 0.0, 0.0,
         true, false, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
 
