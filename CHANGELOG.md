@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/LIMITS.md records that the built-in model misread a power bank's battery numbers about ten times too low in both network-off reads on 2026-11-21 (5,000 mAh where the label says 50000 mAh). Source: the network-off read on the live site. Verified: hygiene, tone and the full gate.
+
 - README.md now says a photo was read offline on the device, where Chrome has the built-in model, citing the TEST-MATRIX row for the network-off read on the live site (right verdict, battery numbers misread). It replaces the line that said no such test was recorded. Source: review of the judge-facing claims. Verified: hygiene, tone and the full gate.
 
 - docs/TEST-MATRIX.md has a row for a photo read on the device with the network off, on the live site: two reads of the own-01 power bank photo gave "Take it out", shown as "Read on this laptop", in 15,216 ms and 22,156 ms, with 0 requests to the AI Logic host; both misread the battery numbers. The record is evidence/offline-read/2026-11-21T22-08-56Z.json. Source: review of the judge-facing claims. Verified: test-matrix test, hygiene and tone.
