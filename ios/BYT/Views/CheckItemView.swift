@@ -8,6 +8,10 @@ struct CheckItemView: View {
         ScrollView {
             VStack(spacing: 16) {
                 CaptureView(camera: model.camera) { data, _ in await model.readPhoto(data) }
+                // Said only when a photo is not read on this iPhone: why, and what to do instead.
+                if let notice = model.photoNotice {
+                    Text(notice).font(.callout).multilineTextAlignment(.center).accessibilityIdentifier("photo-notice")
+                }
                 LabelWordsField(model: model)
                 if let crop = model.lastCrop, let image = UIImage(data: crop) {
                     Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 180)

@@ -236,7 +236,9 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       {shown?.type === "blurry" && <p className="stage-line" role="status">Hold it still</p>}
       {shown?.type === "cannot_focus" && (
         <div role="status">
-          <p className="stage-line">This camera can't focus that close. Use your phone, add a photo, or type the numbers.</p>
+          <p className="stage-line">{phoneReady
+            ? "This camera can't focus that close. Use your phone, add a photo, or type the numbers."
+            : "This camera can't focus that close. Add a photo, or type the numbers."}</p>
           {phoneReady && <button type="button" data-testid="use-phone" onClick={onUsePhone}>Use your phone</button>}
           <button type="button" data-testid="add-photo" onClick={() => uploadRef.current?.click()}>Add a photo</button>
           <button type="button" data-testid="type-it" onClick={onTypeIt}>Type it</button>

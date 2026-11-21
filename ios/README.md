@@ -6,24 +6,21 @@ The box is kept on the phone only: joining a box started in the web app is not b
 
 - Rules: the web app's own rules engine, built into one file and run in JavaScriptCore, so the
   phone and the laptop run the same code.
-- Reading: Apple's on-device model, or Gemini in the cloud through Firebase AI Logic when you
-  allow it. A model only reads; the rules decide.
+- Reading: a label photo or the label's words go to Apple's on-device model (iOS 27; a photo goes
+  as an image when the model reports image understanding), or to Gemini in the cloud through
+  Firebase AI Logic when you allow it. A model only reads; the rules decide. There is no cloud
+  second look yet (docs/LIMITS.md).
 - Checks: `bash ios/scripts/ci-local-ios.sh` runs the repository's checks and the iPhone
-  client's own.
+  client's own. It needs `ios/BYT/Config/GoogleService-Info.plist`, which is gitignored.
 
 The iPhone client is not part of the entry until its on-device read passes an airplane-mode test
 on a real iPhone.
 
-## Known failures
+## Test status
 
-`bash ios/scripts/ci-local-ios.sh` does not pass on this Mac today (Xcode 27.2, iPhone 17 Pro
-simulator, iOS 27.2). The four tests below fail. They fail the same way at 018c4b3, whose
-changelog entry recorded a green run, so the cause is likely the local toolchain rather than the
-code; it has not been found. They are not fixed yet. Every other app test passes.
-
-| Test | Symptom | First seen |
-|---|---|---|
-| `SignedInCloudTests.theAppsCloudRunnerReadsTheLivePauseSwitch()` | The test process crashes (`Runner._applyScopingTraits`) | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `SignedInCloudTests.theAppsReaderBuildsEveryCloudRunnerBehindSignIn()` | The test process crashes (`Runner._applyScopingTraits`) | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `SignedInCloudTests.turningOffCloudChecksCancelsAnUploadInFlight()` | The test process crashes | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `LoopUITests.testReadAVerdictThenFlipTheCountry()` | `Failed to tap "Check an item" Button: No matches found` | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
+`bash ios/scripts/ci-local-ios.sh` passes on this Mac (Xcode 27.2, iPhone 17 Pro simulator,
+iOS 27.2) as of 2026-11-20. The four app tests that failed on 2026-11-19 (three
+`SignedInCloudTests` crashed the test process; `LoopUITests` could not find "Check an item") fail
+in a checkout without the Firebase settings file and pass with it: the app shows its
+missing-settings screen, and those three tests build the cloud client with no Firebase app. The
+mirror now stops first and says the file is missing.
