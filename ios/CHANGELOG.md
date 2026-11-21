@@ -5,6 +5,25 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the review notes cover the cloud offer and the Canada suspension
+- What: ios/app-store/review-notes.md now says that an item the rules want read again shows Check it
+  in the cloud when the cloud question was never answered, and asks first; and that USPS stops taking
+  mail to Canada on November 29, 2026, quoting what a Canada box says before and from that day, and
+  that the Philippines is not affected.
+- Source: a check of every claim in the notes against the app at the commit uploaded as 1.0.0 (1).
+- Verified: every quote matches the app's code or its bundled engine (the Canada lines with the name
+  and date filled in); the output line is assembled as "name: verdict. Read on this iPhone." in
+  AppModel; check_lengths.py gives 3759 / 4000; tone and hygiene pass.
+
+### docs(ios): the listing matches the App Store Connect record and its age rating
+- What: ios/app-store/listing.md no longer says the record is not created yet; it says a TestFlight
+  build is checked on a real iPhone before any build goes to review. The age rating section now
+  gives the answers set: Infrequent for "Alcohol, Tobacco, or Drug Use or References" and "Guns or
+  Other Weapons" (the rules name such items), None or No for everything else, rated 13+ (12+ before
+  iOS 26).
+- Source: the App Store Connect record, set through its API.
+- Verified: check_lengths.py passes; tone and hygiene pass. The app build is unchanged.
+
 ### fix(ios): the app has an icon, so App Store Connect accepts the build
 - What: App Store Connect refused the first upload (error 90022, no 120 by 120 iPhone icon; error
   90713, no CFBundleIconName). The app now has an asset catalog with one 1024 by 1024 opaque icon,
