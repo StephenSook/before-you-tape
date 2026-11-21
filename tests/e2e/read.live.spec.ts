@@ -21,11 +21,12 @@ test("a real cloud read on the live site comes back as a read", async ({ page, a
     replies.push({ status: r.status(), body: await r.json().catch(() => null) });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Allow" }).click();
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
   const send = page.getByRole("button", { name: "Check this part" });
   await expect(send).toBeEnabled({ timeout: 20_000 });
   await send.click();
+  // The photo that needs the cloud asks for it, then goes on to its check.
+  await page.getByRole("button", { name: "Allow" }).click();
   const card = page.getByTestId("item-card");
   try {
     await expect(card.getByTestId("verdict-chip")).toBeVisible({ timeout: 60_000 });

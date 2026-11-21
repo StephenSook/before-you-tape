@@ -153,12 +153,33 @@ describe("PackPage", () => {
     expect(screen.getByTestId("suspension-checked")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
   });
 
-  it("asks for consent before any cloud call and remembers the answer", async () => {
-    const { store } = setup({}, null);
-    expect(screen.getByText(/a cropped photo of the item and the words on its label go to Google's Gemini/)).toBeInTheDocument();
+  it("asks for cloud checks only when a photo needs them, then reads that photo and remembers the answer", async () => {
+    const { store, models } = setup({}, null);
+    // Nothing asks on arrival: the chip says cloud checks are off.
+    expect(screen.queryByText(/go to Google's Gemini/)).toBeNull();
+    expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
+    await addPhoto();
+    expect(await screen.findByText(/a cropped photo of the item and the words on its label go to Google's Gemini/)).toBeInTheDocument();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    // The question takes focus, so a keyboard or screen reader user lands on it.
+    expect(screen.getByRole("button", { name: "Allow" })).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(store.getState().cloudConsent).toBe(true);
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    // The photo that asked goes on to its check.
+    expect(await screen.findByTestId("item-card")).toBeInTheDocument();
+    expect(models.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a photo on this laptop when the sender says so at the ask, and says why it cannot be read", async () => {
+    const { store, models } = setup({}, null);
+    await addPhoto();
+    await userEvent.click(await screen.findByRole("button", { name: "Check on this laptop only" }));
+    expect(store.getState().cloudConsent).toBe(false);
+    expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("item-card")).toBeNull();
   });
 
   it("reads an added photo in the cloud and shows its verdict, then re-checks a country change with no model call", async () => {
@@ -346,8 +367,8 @@ describe("PackPage", () => {
 
   it("reads the sample photo in the cloud after Allow when this laptop has no model of its own", async () => {
     const { models } = setup({ loadSample, gate: "no_api" }, null);
-    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
     await trySample();
+    await userEvent.click(await screen.findByRole("button", { name: "Allow" }));
     const card = await screen.findByTestId("item-card");
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
@@ -485,6 +506,7 @@ describe("PackPage", () => {
 
   it("shows cloud checks as one chip that turns them off, and asks again before turning them on", async () => {
     const { store, models } = setup({}, null);
+    await userEvent.click(screen.getByTestId("cloud-chip"));
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));
     const chip = screen.getByTestId("cloud-chip");
     expect(chip).toHaveTextContent("Cloud: on");
@@ -496,11 +518,15 @@ describe("PackPage", () => {
     expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
     expect(screen.getByTestId("cloud-chip")).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByText("This device checks items in the cloud.")).toBeNull();
+    // With cloud checks turned off, a photo does not ask again: it says why it cannot be read.
     await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("cloud checks are off");
     expect(models.cloud.generate).not.toHaveBeenCalled();
+    // Turning them on asks first, and the choice stays off until the sender answers.
     await userEvent.click(screen.getByTestId("cloud-chip"));
-    expect(store.getState().cloudConsent).toBeNull();
-    expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
+    expect(store.getState().cloudConsent).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(store.getState().cloudConsent).toBe(true);
   });
 
   it("shows paused cloud checks on the chip", () => {
@@ -553,12 +579,14 @@ describe("PackPage", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("asks for the cloud choice when nothing can read the photo yet, and clears that once the sender allows", async () => {
+  it("asks for the cloud choice when nothing else can read the photo, with no alert, and reads it once the sender allows", async () => {
     const { models } = setup({}, null);
     await addPhoto();
-    expect(await screen.findByRole("alert")).toHaveTextContent("This laptop can't read photos on its own. Allow cloud checks above, or type the item.");
+    expect(await screen.findByRole("button", { name: "Allow" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(models.cloud.generate).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    await waitFor(() => expect(models.cloud.generate).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 

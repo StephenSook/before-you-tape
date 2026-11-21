@@ -104,7 +104,7 @@ function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; onli
   if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
   if (i.killCloud && pauseUnknown) return "Cloud checks are waiting for their settings, and this laptop can't read photos on its own. Type the item, or try again in a moment.";
   if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
-  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
+  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Turn on cloud checks, or type the item.";
   return BLOCKED;
 }
 const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
@@ -150,6 +150,9 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
+  // The cloud question, asked when a photo first needs the cloud (with that photo, read once the sender
+  // answers) or when the sender turns cloud checks on.
+  const [ask, setAsk] = useState<{ part: ImagePart; how: ImageHow } | "chip" | null>(null);
   // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
   const [removed, setRemoved] = useState("");
   const focusAfterRemove = useRef<string | null>(null);
@@ -421,7 +424,14 @@ export function PackPage(p: PackPageProps) {
       }
     }
     if (route === "blocked") {
-      if (presses.current === owner) { setNotice(null); setBlocked({ text: blockedText(inputs(), live.current.pauseUnknown), when: situationOf(inputs()) }); }
+      // A sender who has not been asked yet is asked now, when only the cloud could read this photo.
+      const askNow = press !== null && store.consentNow() === null
+        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true }) !== "blocked";
+      if (presses.current === owner) {
+        setNotice(null);
+        if (askNow) { setBlocked(null); setAsk({ part, how }); }
+        else setBlocked({ text: blockedText(inputs(), live.current.pauseUnknown), when: situationOf(inputs()) });
+      }
       return;
     }
     // A frame the camera read by itself leaves the notices of the sender's presses in place.
@@ -456,6 +466,14 @@ export function PackPage(p: PackPageProps) {
     } finally {
       work.end();
     }
+  };
+
+  // The answer to the cloud question; a photo that asked goes on to its check (or says why it cannot).
+  const answerAsk = (allow: boolean) => {
+    const pending = ask;
+    setAsk(null);
+    store.setConsent(allow);
+    if (pending && pending !== "chip") void onImage(pending.part, pending.how);
   };
 
   const newestItem = state.items.at(-1);
@@ -495,12 +513,9 @@ export function PackPage(p: PackPageProps) {
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} cloudOn={state.cloudConsent === true && !config.killCloud} />
         {/* The sender can take the cloud choice back at any time; turning it on again asks first. */}
-        {state.cloudConsent !== null && (
-          <CloudChip consent={state.cloudConsent} paused={config.killCloud && !config.pauseUnknown}
-            onToggle={() => store.setConsent(state.cloudConsent ? false : null)} />
-        )}
+        <CloudChip consent={state.cloudConsent === true} paused={config.killCloud && !config.pauseUnknown}
+          onToggle={() => { if (state.cloudConsent === true) store.setConsent(false); else setAsk("chip"); }} />
       </div>
-      {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
       {config.killCloud && (!config.pauseUnknown || settingsLate) && (
         <p data-testid="paused-banner" className="banner" role="status">
           {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}
@@ -518,6 +533,7 @@ export function PackPage(p: PackPageProps) {
       {waiting > 0 && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
+      {ask && <ConsentNotice onChoice={answerAsk} />}
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} {...(p.phone ? { phone: true } : {})} onError={setNotice}
