@@ -480,22 +480,25 @@ describe("createBoxStore", () => {
       it("holds the numbers when the sender picks one of two readings that disagreed, either side", () => {
         // The smaller reading would have been OK: it is held for its numbers.
         const small = look(phone, big);
+        // Reads that disagree on the numbers never make a second look stand behind them, picked or not.
+        expect(small.s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         small.s.settleDispute(small.id, "battery", "device");
-        expect(small.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(small.s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         expect(level(small.s, small.id)).toBe("check");
         expect(ruleIds(small.s, small.id)).toContain("USPS-INTL-LI-ONE-READ");
         // The larger one is over 100 Wh and out either way.
         const large = look(phone, big);
         large.s.settleDispute(large.id, "battery", "cloud");
-        expect(large.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(large.s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         expect(level(large.s, large.id)).toBe("take_out");
       });
 
       it("holds lithium grams the sender picked between two readings", () => {
         const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
         const { s, id } = look(coin, { ...coin, lithiumGrams: 1.2 });
+        expect(s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         s.settleDispute(id, "lithiumGrams", "device");
-        expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         expect(level(s, id)).toBe("check");
         expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
       });
@@ -509,7 +512,7 @@ describe("createBoxStore", () => {
         expect(level(all.s, all.id)).toBe("check");
         expect(ruleIds(all.s, all.id)).toContain("USPS-INTL-LI-ONE-READ");
         // One number typed is enough to make them the sender's (here it no longer agrees with the others).
-        for (const patch of [{ wattHours: 15.4 }, { lithiumGrams: 0.1 }]) {
+        for (const patch of [{ volts: 3.7 }, { milliampHours: 4000 }, { wattHours: 15.4 }, { lithiumGrams: 0.1 }]) {
           const one = look(big, big);
           one.s.override(one.id, patch);
           expect(one.s.getState().items[0]?.identityConfirmedBy, JSON.stringify(patch)).toBe("sender");
@@ -528,6 +531,36 @@ describe("createBoxStore", () => {
         expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
         expect(level(s, id)).toBe("check");
         expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+      });
+
+      it("releases an item the sender confirmed while its second look ran, once both reads gave the same numbers", () => {
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead(outcome(phone, "on_device"), "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.answer(id, "cell_count", "one");
+        s.confirmIdentity(id);
+        s.applySecondLook(id, mergeReads(phone, phone), 900, "reason", phone.labelText, readDisputes(phone, phone));
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        expect(level(s, id)).toBe("ok");
+      });
+
+      it("holds a saved item whose numbers the sender typed or picked under an earlier version, without writing on open", async () => {
+        const savedAs = (extra: Partial<BoxItem>): BoxItem => ({
+          itemId: "saved-n", read: { ...phone }, overrides: {}, answers: { device_condition: "new_sealed", cell_count: "one" }, quantity: 1,
+          identityConfirmedBy: "second_look", labelTags: [], readSource: "on_device", readMs: 900, secondLook: { ms: 900, reason: "battery_numbers" },
+          cropKey: null, customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null }, addedAt: 1, ...extra,
+        });
+        const typed = savedAs({ read: { ...big }, overrides: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 } });
+        const picked = savedAs({ disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 }, cloud: { volts: 3.85, milliampHours: 40000, wattHours: 154 }, resolved: true } } });
+        for (const item of [typed, picked]) {
+          const p = spyPersistence({ destinationCode: "CA", items: [item] });
+          const s = store({ persistence: p });
+          await s.ready;
+          expect(level(s, "saved-n"), JSON.stringify(item.overrides)).toBe("check");
+          expect(ruleIds(s, "saved-n")).toContain("USPS-INTL-LI-ONE-READ");
+          expect(writes(p)).toBe(0);
+        }
       });
 
       it("keeps the second look for corrections of anything but the numbers", () => {

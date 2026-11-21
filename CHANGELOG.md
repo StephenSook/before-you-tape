@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- On the web, a second look stands behind an item's battery numbers only when the two reads gave the same numbers and none were typed: one that lands with a battery or lithium-grams dispute no longer sets second_look, so the hold does not depend on the dispute document loading with the item; and a box saved by an earlier version whose numbers the sender typed or picked is judged as the sender's when it opens, without anything being written. A second look whose numbers agree now releases an item the sender confirmed while it ran. Source: second-model review of the store fix. Verified: the new store tests failed first, full gate.
+
 - The judge page's matched-pair test types its pair sides as ItemRead, so its lotion side passes the typecheck. Source: the typecheck. Verified: typecheck and the full gate.
 
 - Two tests catch more: the matched-pairs test now judges a new phone opened against one sealed and checks each side names a different rule, so it fails if a side's answers are dropped; the judge page's pair test now has a lotion that follows the country picked (out to the Philippines, OK to Canada), so it fails if the page stops following the country. Source: second-model review (round 3). Verified: each test failed when its answers were dropped or its country pinned, then passed restored; full gate.

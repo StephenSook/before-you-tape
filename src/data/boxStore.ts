@@ -194,6 +194,23 @@ const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
 const typesNumbers = (patch: Partial<ItemRead>): boolean =>
   patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined || patch.lithiumGrams !== undefined;
 const numbersByHand = (i: BoxItem): BoxItem => (i.identityConfirmedBy === "second_look" ? { ...i, identityConfirmedBy: "sender" } : i);
+// The disputes that are about the numbers: while either is recorded, open or settled, the reads did not agree on them.
+const NUMBER_DISPUTES = ["battery", "lithiumGrams"] as const;
+const numbersDisputed = (d: ReadDisputes | undefined): boolean => NUMBER_DISPUTES.some((f) => d?.[f] !== undefined);
+// What the rules are told: a second look stands behind the numbers only when no one typed or picked them. This holds
+// for an item saved by an earlier version too, and changes nothing that is saved.
+const forRules = (i: BoxItem): BoxItem =>
+  i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" } : i;
+
+// Who stands behind an item once a second look lands. Same kind of item, numbers that agree and none typed: the second
+// look, even over an earlier tap of "Yes, this is". Numbers typed while it ran: the sender. Numbers the two reads gave
+// differently: never the second look, as an earlier one no longer holds. Another kind of item: as before.
+function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes): BoxItem["identityConfirmedBy"] {
+  if (!sameKind) return i.identityConfirmedBy;
+  if (typesNumbers(i.overrides)) return "sender";
+  if (numbersDisputed(found)) return i.identityConfirmedBy === "second_look" ? null : i.identityConfirmedBy;
+  return "second_look";
+}
 
 // The label words that can change a verdict: every tag except the one that only says a label was read.
 const wordsOf = (tags: readonly string[]) => [...new Set(tags.filter((t) => t !== LABEL_TEXT_TAG))].sort().join(",");
@@ -228,7 +245,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const edition = currentEdition();
     const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
     const today = deps.today();
-    return guardStaleTags(evaluateBox(items, edition, resolveDestination(edition, destinationCode, live, today), today), items, labelWordsVersion(edition));
+    return guardStaleTags(evaluateBox(items.map(forRules), edition, resolveDestination(edition, destinationCode, live, today), today), items, labelWordsVersion(edition));
   };
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
@@ -557,8 +574,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
-          // The second look confirms what the item is; numbers the sender typed while it ran stay the sender's.
-          identityConfirmedBy: i.identityConfirmedBy ?? (merged.category !== i.read.category ? null : typesNumbers(i.overrides) ? "sender" : "second_look"),
+          identityConfirmedBy: secondLookIdentity(i, merged.category === i.read.category, found),
         }, found);
       });
     },
