@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ed } from "../../tests/engine/helpers";
+import committed from "../../rules/customs-authorities.json";
+import { readCustomsAuthorities } from "../rules/customsAuthorities";
 import { RulesPage } from "./RulesPage";
 
 const index = [
@@ -42,4 +44,28 @@ describe("RulesPage", () => {
     expect(s).toHaveTextContent("From November 29, 2026, the post office will not take mail to: Canada.");
     expect(s).not.toHaveTextContent("Congo");
   });
+
+  const customs = readCustomsAuthorities(committed);
+
+  // The country's own customs authority, in its own words, behind a disclosure: no values, no totals.
+  it("quotes Canada's customs authority word for word inside a closed disclosure, with its page and read date", () => {
+    render(<RulesPage edition={ed} index={index} customs={customs} today="2026-11-21" />);
+    const canada = screen.getByRole("heading", { level: 2, name: "Canada" }).closest("section")!;
+    const details = within(canada).getByText("Duty and tax, from the Canada Border Services Agency").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details).getByText(/^Mailed items:/)).toHaveTextContent(
+      'Mailed items: "Under the provisions of the Postal Imports Remission Order, if someone mails you an item worth CAN$20 or less, there is no duty or tax payable."');
+    expect(within(details).getByText(/^Gifts:/)).toHaveTextContent(
+      'Gifts: "If you receive an imported gift by mail that is worth CAN$60 or less, you will not have to pay duty and/or tax on it."');
+    expect(within(details).getByRole("link", { name: "the Canada Border Services Agency page" })).toHaveAttribute("href", "https://www.cbsa-asfc.gc.ca/import/courier/menu-eng.html");
+    expect(details).toHaveTextContent("read 2026-11-21");
+    const philippines = screen.getByRole("heading", { level: 2, name: "Philippines" }).closest("section")!;
+    expect(within(philippines).queryByText(/Duty and tax/)).toBeNull();
+  });
+
+  it("shows no customs lines once they are stale", () => {
+    render(<RulesPage edition={ed} index={index} customs={customs} today="2027-01-21" />);
+    expect(screen.queryByText(/Duty and tax, from/)).toBeNull();
+  });
 });
+

@@ -381,7 +381,7 @@
       "lineId": "CA-O-01",
       "section": "observations",
       "lineSha256": "71fcab67681980a611075dc6d7291f49ef548ee6bc09bb23eecbc45220d89e45",
-      "ourWording": "Gifts by mail worth under 60 Canadian dollars come in free of duty and tax.",
+      "ourWording": "Gifts by mail worth under 60 Canadian dollars are free of duty and excise tax.",
       "matches": [],
       "noMatch": {
         "decision": "observation",
@@ -414,7 +414,7 @@
   "customsChecked": true,
   "customsNotes": [
     "Put a card or note in the box saying it is a gift.",
-    "Gifts worth under 60 Canadian dollars come in free of duty and tax.",
+    "Gifts worth under 60 Canadian dollars are free of duty and excise tax.",
     "Write the full sender and recipient addresses, including the province."
   ]
 }
