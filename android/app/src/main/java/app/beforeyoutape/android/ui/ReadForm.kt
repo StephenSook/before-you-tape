@@ -35,9 +35,9 @@ import app.beforeyoutape.engine.ItemCategoryWire
 import app.beforeyoutape.engine.ItemReadWire
 
 /**
- * The item form, as the web form draws it: name, what it is, the words on the label, the four
- * numbers (empty means not printed; a negative number cannot be saved), the seven yes-or-no facts
- * and the box. Save waits for a category and valid numbers.
+ * The item form, as the web form draws it: name, what it is, the words on the label, the four battery
+ * numbers where the web form shows them (empty means not printed; a negative number cannot be saved),
+ * the seven yes-or-no facts and the box. Save waits for a category and valid numbers.
  */
 @Composable
 fun ReadForm(
@@ -47,6 +47,8 @@ fun ReadForm(
     onSave: (ReadDraft) -> Unit,
     modifier: Modifier = Modifier,
     startCategory: ItemCategoryWire? = null,
+    /** The item's label tags name a battery (fixing a read item), so its numbers show whatever its category. */
+    batteryLabel: Boolean = false,
 ) {
     var draft by remember { mutableStateOf(ReadDrafts.of(start).let { if (startCategory != null) it.copy(category = startCategory) else it }) }
     var menu by remember { mutableStateOf(false) }
@@ -64,7 +66,9 @@ fun ReadForm(
             }
         }
         OutlinedTextField(draft.labelText, { draft = draft.copy(labelText = it) }, label = { Text(ReadCopy.LABEL_TEXT) }, modifier = Modifier.fillMaxWidth())
-        for ((f, label) in ReadCopy.NUMBERS) {
+        // The battery numbers only where the web form shows them: a battery item, a label that mentions a battery,
+        // or a number already there.
+        if (ReadDrafts.showsBatteryNumbers(draft, batteryLabel)) for ((f, label) in ReadCopy.NUMBERS) {
             val text = draft.numbers[f].orEmpty()
             OutlinedTextField(
                 text, { draft = draft.copy(numbers = draft.numbers + (f to it)) }, label = { Text(label) }, singleLine = true,

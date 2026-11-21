@@ -62,6 +62,26 @@ object ReadDrafts {
 
     fun numbersValid(d: ReadDraft): Boolean = ReadCopy.NUMBERS.all { (f, _) -> parseNumber(d.numbers[f].orEmpty()) != null }
 
+    /** The kinds of item that hold a lithium battery, as the web form lists them (src/ui/ReadFields.tsx). */
+    val BATTERY_CATEGORIES: Set<ItemCategoryWire> = setOf(
+        ItemCategoryWire.phone, ItemCategoryWire.tablet, ItemCategoryWire.laptop, ItemCategoryWire.smartwatch,
+        ItemCategoryWire.earbuds, ItemCategoryWire.power_bank, ItemCategoryWire.loose_battery, ItemCategoryWire.battery_toy,
+        ItemCategoryWire.musical_card, ItemCategoryWire.other_electronics, ItemCategoryWire.e_cigarette,
+    )
+
+    /** The engine's label tags that name a battery, as the web form lists them (src/ui/FixReading.tsx). */
+    val BATTERY_TAGS: Set<String> = setOf("li_ion", "li_metal", "battery_label", "power_bank_label")
+
+    fun labelNamesABattery(labelTags: List<String>): Boolean = labelTags.any { it in BATTERY_TAGS }
+
+    /**
+     * As on the web form, the battery numbers show for a battery item, a label that mentions a battery (ticked,
+     * or named by the item's label tags), or a number already there; a shirt does not need volts.
+     */
+    fun showsBatteryNumbers(d: ReadDraft, batteryLabel: Boolean = false): Boolean =
+        d.category in BATTERY_CATEGORIES || d.flags["batteryWords"] == true || batteryLabel ||
+            ReadCopy.NUMBERS.any { (f, _) -> d.numbers[f].orEmpty().isNotBlank() }
+
     /** A typed item, or null until it has a category and every number is valid. */
     fun read(d: ReadDraft): ItemReadWire? {
         val category = d.category ?: return null
