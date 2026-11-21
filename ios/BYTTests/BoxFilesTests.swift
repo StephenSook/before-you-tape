@@ -16,6 +16,26 @@ import Testing
         #expect(files.load(boxId: "other") == nil)
     }
 
+    /// Deleting a box removes every file of it (the box, its cloud choice, any marker and any damaged copy
+    /// kept aside) and nothing of another box; deleting a box with no files is not an error.
+    @Test func deletingABoxRemovesEveryFileOfItAndNoOther() throws {
+        let dir = folder()
+        let files = BoxFiles(folder: dir)
+        let item = BoxItem(itemId: "i1", read: .object(["labelText": .string("")]), readSource: "phone_cloud", readMs: 900)
+        for id in ["b1", "b2"] {
+            try files.save(BoxSnapshot(boxId: id, destinationCode: "CA", items: [item], cloudConsent: true, sources: BoxSources()))
+            #expect(files.recordConsent(BoxStore.consentRecord(true), boxId: id))
+        }
+        FileManager.default.createFile(atPath: dir.appendingPathComponent("b1.consent-declined").path, contents: nil)
+        FileManager.default.createFile(atPath: dir.appendingPathComponent("b1.unreadable-1-abcd.json").path, contents: Data("x".utf8))
+        try files.deleteBox(boxId: "b1")
+        let left = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
+        #expect(left == ["b2.consent", "b2.json"], "\(left)")
+        #expect(files.load(boxId: "b1") == nil && files.recordedConsent(boxId: "b1") == nil)
+        try files.deleteBox(boxId: "b1")
+        try BoxFiles(folder: folder()).deleteBox(boxId: "none")
+    }
+
     /// The cloud choice is kept apart from the box file, per box, in a file of its own that is on disk
     /// when the call returns (an app that stops right after still has it), and read back by a later launch.
     @Test func theCloudChoiceIsWrittenToItsOwnFileAtOnce() throws {

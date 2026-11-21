@@ -97,6 +97,18 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         return folder.appendingPathComponent(boxId + ".json")
     }
 
+    /// Deletes every file of the box: `<id>.json`, `<id>.consent`, its markers and any damaged copy kept
+    /// aside, which all start with `<id>.` (a box id has no dot, so no other box's file does). Throws when
+    /// a file could not be deleted; a box with no files is not an error.
+    func deleteBox(boxId: String) throws {
+        guard url(boxId: boxId) != nil,
+              let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return }
+        for name in names where name.hasPrefix(boxId + ".") {
+            try FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+        }
+        held.remove(boxId)
+    }
+
     /// Writes the box, or throws why not, so the change on screen is never silently unsaved.
     func save(_ snapshot: BoxSnapshot) throws {
         func fail(_ message: String) -> SaveError {

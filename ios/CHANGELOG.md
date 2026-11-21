@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): "Delete everything on this iPhone" on the Ready check screen
+- What: one button deletes, in order, the box (its file, its cloud choice record and markers, any
+  damaged copy kept aside, its id, and every photo and look held in memory) and then the anonymous
+  Firebase sign-in. A sign-in too old to delete without signing in again is signed out instead, as on
+  the web. It asks first ("This deletes your box and every item in it, your cloud choice and this
+  iPhone's anonymous sign-in. It cannot be undone."), closes the cloud gate before anything else,
+  says it is done only after every step is done (with the web app's lines about the sign-in), and
+  when a step stops it names what is left, with "Try deleting again" starting at that step. An empty
+  box starts under a new id. The iPhone keeps no photos on disk, so there is no photo step.
+- Source: web parity and App Store guideline 5.1.1(v).
+- Verified: six new tests (a file test: every file of the box goes, another box's stay; app tests:
+  everything in order with a new box; a sign-in signed out instead; a box that cannot be deleted
+  stops before the sign-in; a failed sign-in step retried from there; the words, checked against the
+  web's) failed to compile before and pass after; 228 unit tests and both UI tests pass; a simulator
+  still shows the confirm step, and "Keep" returns to the button.
+
 ### docs(ios): an ADR and the review notes record App Store availability and why
 - What: `docs/adr/0001-ios-app-store-availability.md` records that the iPhone app is offered in
   every country and region except France (only exempt encryption is declared, and a bundled

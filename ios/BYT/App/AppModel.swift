@@ -69,6 +69,8 @@ final class AppModel {
 
     /// Reads Apple's model status now; asked again before each read and when the app comes back.
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
+    /// Where this iPhone keeps which box is its own.
+    @ObservationIgnored private let defaults: UserDefaults
 
     init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
@@ -81,6 +83,7 @@ final class AppModel {
         self.fetchEdition = fetchEdition
         self.signIn = signIn
         self.onDeviceStatus = onDeviceStatus
+        self.defaults = defaults
         self.onDevice = onDeviceStatus()
         // The engine counts only once it has loaded the shipped edition; a refusal is said, not swallowed.
         let engine: RulesEngine? = {
@@ -472,6 +475,43 @@ final class AppModel {
         } else {
             lookErrors[itemId] = Self.secondLookFailure(outcome.failure ?? .parseFailed)
         }
+    }
+
+    // MARK: Delete everything on this iPhone
+
+    /// "Delete everything on this iPhone", in order: the box (its file, its cloud choice, its id and
+    /// every photo held in memory), then the anonymous sign-in. The first step that fails stops the rest
+    /// and is named; `from` lets a retry start there, so a step already done is not run again.
+    func deleteEverything(from: DeleteStep = .box) async -> DeleteResult {
+        if from == .box {
+            // Nothing more goes to the cloud for this box: the gate closes and every look is forgotten first.
+            pause.paused = true
+            forgetLooks { _ in true }
+            let newId = UUID().uuidString
+            do {
+                try box?.deleteEverything(newBoxId: newId)
+            } catch {
+                refreshCloudGate()
+                return .stopped(at: .box)
+            }
+            defaults.set(newId, forKey: Self.boxIdKey)
+            pending = nil
+            askingConsent = false
+            lastCrop = nil
+            lastRead = nil
+            lastItemId = nil
+            lastWasNoItem = false
+            refreshCloudGate()
+        }
+        let outcome: SignInOutcome
+        switch await signIn.delete() {
+        case .deleted: outcome = .deleted
+        case .signedOut: outcome = .signedOut
+        case .none: outcome = .none
+        case .failed: return .stopped(at: .signIn)
+        }
+        signedIn = false
+        return .done(signIn: outcome)
     }
 
     /// The sender's answer to the cloud question; a waiting photo is read after it, and an offered look
