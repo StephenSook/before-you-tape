@@ -5,11 +5,11 @@ vi.mock("firebase/ai", async (orig) => {
   return { ...real, getGenerativeModel: vi.fn(real.getGenerativeModel) };
 });
 
-import { getAI, getGenerativeModel, GoogleAIBackend, Schema, type AI, type HybridParams } from "firebase/ai";
+import { getAI, getGenerativeModel, GoogleAIBackend, type AI, type HybridParams } from "firebase/ai";
 import { initializeApp } from "firebase/app";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
-import { createItemModels, createTextCloudModel, deviceDownloadModel } from "./firebaseModels";
+import { createItemModels, deviceDownloadModel } from "./firebaseModels";
 import { DEVICE_CREATE_OPTIONS } from "./gate";
 import type { ImagePart } from "./port";
 import { ITEM_READ_SYSTEM } from "./prompts";
@@ -133,18 +133,3 @@ describe("createItemModels", () => {
   });
 });
 
-describe("createTextCloudModel", () => {
-  // Block bodies: Vitest runs a function returned from beforeEach as a teardown, and mockClear returns the mock.
-  beforeEach(() => { spy.mockClear(); });
-
-  it("calls only the cloud with the given schema and no image", async () => {
-    const model = fakeModel({ text: "{\"lines\":[]}", inferenceSource: "in_cloud" });
-    spy.mockReturnValueOnce(model);
-    const schema = Schema.object({ properties: { lines: Schema.array({ items: Schema.string() }) } });
-    const port = createTextCloudModel(fakeAi(), "gemini-3.5-flash-lite", schema);
-    expect(params(0).mode).toBe("only_in_cloud");
-    expect(params(0).inCloudParams?.generationConfig?.responseSchema).toBe(schema);
-    await expect(port.generate("describe")).resolves.toEqual({ text: "{\"lines\":[]}", source: "in_cloud" });
-    expect(model.generateContent).toHaveBeenCalledWith(["describe"]);
-  });
-});

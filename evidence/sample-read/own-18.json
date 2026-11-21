@@ -1,0 +1,31 @@
+{
+  "itemId": "own-18",
+  "photo": "/eval/items/own-18.jpg",
+  "photoSha256": "31b8f140884553ba9bf8fc9b70227ef76c665d726c067d4dc2193d28e54cf998",
+  "what": "A real read of this photo by the app's own read code on a laptop's built-in model, in the eval run models-2026-11-21 on a separate eval project. The sample photo on the Pack page shows it, labelled as a recorded read.",
+  "runId": "models-2026-11-21",
+  "ranOn": "2026-11-21",
+  "machine": "Apple M5 Pro, 48 GB, Mac17,9, macOS 27.0",
+  "chromeVersion": "157.0.8103.80",
+  "editionId": "byt-3b5f5508968f",
+  "source": "on_device",
+  "ms": 11121,
+  "read": {
+    "itemName": "shea better 24H Moisture BODY LOTION",
+    "category": "lotion_cream",
+    "labelText": "shea better 24H Moisture BODY LOTION strawberry dream 7 nourishing oils + butters soothing protection for dry skin",
+    "volts": 0,
+    "milliampHours": 0,
+    "wattHours": 0,
+    "lithiumGrams": 0,
+    "batteryWords": false,
+    "liquid": true,
+    "pressurized": false,
+    "alcoholOnLabel": false,
+    "flammableOnLabel": false,
+    "glassContainer": false,
+    "powder": false,
+    "retailBox": "sealed",
+    "evidence": "label_read"
+  }
+}
