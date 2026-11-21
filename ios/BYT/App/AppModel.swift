@@ -77,6 +77,8 @@ final class AppModel {
     @ObservationIgnored private var boxEpoch = 0
     /// Counts changes of the cloud choice: a read begun before one sends nothing to the cloud.
     @ObservationIgnored private var consentEpoch = 0
+    /// The anonymous user "Delete everything" set out to delete; a retry deletes only this one.
+    @ObservationIgnored private var deletingUid: String?
 
     init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
@@ -528,8 +530,12 @@ final class AppModel {
             lastWasNoItem = false
             refreshCloudGate()
         }
+        // A sign-in still in progress is waited for, so none lands after this step reports done. The user
+        // current then is recorded on the first try, and a retry deletes only that one.
+        await signIn.settle()
+        if from == .box { deletingUid = signIn.currentUid() }
         let outcome: SignInOutcome
-        switch await signIn.delete() {
+        switch await signIn.delete(deletingUid) {
         case .deleted: outcome = .deleted
         case .signedOut: outcome = .signedOut
         case .none: outcome = .none

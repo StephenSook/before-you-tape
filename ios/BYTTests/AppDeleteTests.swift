@@ -10,17 +10,47 @@ import Testing
 @Suite struct AppDeleteTests {
     let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
 
-    /// The sign-in, with a scripted answer to deleting it.
+    /// The sign-in, with a scripted answer to deleting it, the user signed in now, and a sign-in that can
+    /// be held in progress.
     @MainActor final class FakeSignIn {
         var answers: [SignInDeletion]
         var deletes = 0
+        var asked: [String?] = []
+        var uid: String? = "user-a"
+        var holding = false
+        private var pending: CheckedContinuation<Void, Never>?
         init(_ answers: [SignInDeletion]) { self.answers = answers }
         var signIn: SignIn {
-            SignIn(isSignedIn: { true }, attempt: { true }, delete: {
+            SignIn(isSignedIn: { true }, attempt: { true }, delete: { expected in
                 self.deletes += 1
+                self.asked.append(expected)
                 return self.answers.isEmpty ? .deleted : self.answers.removeFirst()
+            }, currentUid: { self.uid }, settle: {
+                if self.holding { await withCheckedContinuation { self.pending = $0 } }
             })
         }
+        func letGo() {
+            holding = false
+            pending?.resume()
+            pending = nil
+        }
+    }
+
+    /// A sign-in still in progress is waited for before deleting; the user current then is the one
+    /// deleted, and a retry asks for that same user, not one signed in since.
+    @Test func aSignInInProgressIsWaitedForAndTheSameUserIsRetried() async throws {
+        let signIn = FakeSignIn([.failed, .deleted])
+        signIn.holding = true
+        let m = model(MemoryBoxPersistence(), signIn, try defaults())
+        let first = Task { await m.deleteEverything() }
+        for _ in 0..<50 { await Task.yield() }
+        #expect(signIn.deletes == 0)
+        signIn.letGo()
+        #expect(await first.value == .stopped(at: .signIn))
+        #expect(signIn.asked == ["user-a"])
+        signIn.uid = "user-b"
+        #expect(await m.deleteEverything(from: .signIn) == .done(signIn: .deleted))
+        #expect(signIn.asked == ["user-a", "user-a"])
     }
 
     func model(_ p: MemoryBoxPersistence, _ signIn: FakeSignIn, _ defaults: UserDefaults, reader: ItemReader? = nil,

@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): deleting the sign-in waits for one in progress and deletes only the user it began with
+- What: "Delete everything" could run while the app's anonymous sign-in was still in progress: it saw no
+  user, reported success, and the sign-in then landed; and a retry after two sign-ins could delete the
+  newer user and leave the first. Now the sign-in step waits for any sign-in in progress, records the
+  user current then, and deletes only that user, also on a retry; if another user is signed in by
+  then, that one is signed out instead. Anonymous sign-ins now share one in-flight request, so two
+  callers never make two accounts.
+- Source: review (Codex, on the delete PR).
+- Verified: a new test (a sign-in held in progress: nothing is deleted until it ends; the retry asks
+  for the first user, not the one signed in since) failed to compile before and passes after; 233
+  unit tests pass. The shared in-flight sign-in has no unit test (it calls Firebase).
+
 ### fix(ios): "Delete everything" deletes the saved box even when the rules could not load
 - What: when the rules engine could not load there is no box on screen, and the box step skipped the
   saved files while reporting success. It now deletes the saved box by the box id this iPhone keeps.
