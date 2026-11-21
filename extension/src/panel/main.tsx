@@ -3,11 +3,13 @@ import { createProductDevicePort, PRODUCT_CREATE_OPTIONS } from "../../../src/ai
 import { checkGate, hasLanguageModelApi } from "../../../src/ai/gate";
 import { ReadFailure } from "../../../src/ai/itemRead";
 import { readProductText } from "../../../src/ai/productText";
+import { BRIDGE_PATH } from "../../../src/bridge/protocol";
+import { openBridge } from "../bridgeClient";
 import { initPanelFirebase } from "../firebaseLite";
 import type { DeviceProductReader } from "./ProductText";
 import { createRoot } from "react-dom/client";
 import { extensionChrome, tabStorageKey, type TabInfo } from "../tabInfo";
-import { bundledEdition, fetchCurrentEdition, loadEdition } from "../edition";
+import { bundledEdition, EDITION_URL, fetchCurrentEdition, loadEdition } from "../edition";
 import { Panel, type PanelProps } from "./Panel";
 import "./panel.css";
 
@@ -24,6 +26,9 @@ const device: DeviceProductReader = {
     return readProductText(createProductDevicePort(initPanelFirebase().ai, lm), text, "on_device", () => performance.now());
   },
 };
+
+const bridgeUrl = new URL(BRIDGE_PATH, EDITION_URL).href;
+const connectCloud: PanelProps["connectCloud"] = (signal) => openBridge(document, bridgeUrl, 6000, signal);
 
 const loadTab: PanelProps["loadTab"] = (onTab) => {
   let active = true;
@@ -66,6 +71,7 @@ void storage.local.get(["agreed", "cloudConsent"]).catch((): Record<string, unkn
     <Panel
       agreed={agreed === true}
       device={device}
+      connectCloud={connectCloud}
       cloudConsent={typeof cloudConsent === "boolean" ? cloudConsent : null}
       saveAgreement={() => storage.local.set({ agreed: true })}
       saveCloudConsent={(allowed) => storage.local.set({ cloudConsent: allowed })}

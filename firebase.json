@@ -48,6 +48,13 @@
         ]
       },
       {
+        "source": "/ext-bridge.html",
+        "headers": [
+          { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
         "source": "/assets/**",
         "headers": [
           {

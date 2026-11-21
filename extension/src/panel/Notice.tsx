@@ -24,7 +24,7 @@ export function CloudConsent({ choice, busy, onChoice }: CloudConsentProps) {
   return (
     <details className="cloud-settings">
       <summary>Cloud settings</summary>
-      <p>Allow a cloud check? The product details you pasted, and the link if you add one, go to Google's Gemini through our site.</p>
+      <p>Allow a cloud check? When you press Read in the cloud, your pasted product details go to Google's Gemini through our site.</p>
       <div className="panel-actions">
         <button type="button" aria-pressed={choice === true} disabled={busy} onClick={() => onChoice(true)}>Allow</button>
         <button type="button" aria-pressed={choice === false} disabled={busy} onClick={() => onChoice(false)}>Not now</button>

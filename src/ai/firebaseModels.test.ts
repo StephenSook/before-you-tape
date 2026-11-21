@@ -9,9 +9,10 @@ import { getAI, getGenerativeModel, GoogleAIBackend, type AI, type HybridParams 
 import { initializeApp } from "firebase/app";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
-import { createItemModels, createProductDevicePort, deviceDownloadModel, PRODUCT_CREATE_OPTIONS } from "./firebaseModels";
+import { createItemModels, createProductCloudPort, createProductDevicePort, deviceDownloadModel, PRODUCT_CREATE_OPTIONS } from "./firebaseModels";
 import { DEVICE_CREATE_OPTIONS } from "./gate";
 import type { ImagePart } from "./port";
+import { PRODUCT_TEXT_SYSTEM } from "./productText";
 import { ITEM_READ_SYSTEM } from "./prompts";
 
 let n = 0;
@@ -163,4 +164,16 @@ describe("createProductDevicePort", () => {
     vi.stubGlobal("LanguageModel", undefined);
     await expect(port.generate("x")).rejects.toMatchObject({ kind: "device_failed" });
   });
+});
+
+it("uses the cloud-only text port with the product prompt and shared schema", async () => {
+  spy.mockClear();
+  const model = fakeModel({ text: "{}", inferenceSource: "in_cloud" });
+  spy.mockReturnValueOnce(model);
+  const port = createProductCloudPort(fakeAi(), "gemini-3.5-flash-lite");
+  expect(params(0).mode).toBe("only_in_cloud");
+  expect(params(0).inCloudParams?.systemInstruction).toBe(PRODUCT_TEXT_SYSTEM);
+  expect(params(0).inCloudParams?.generationConfig?.responseSchema).toEqual(itemReadCloudSchema());
+  await port.generate("x", img);
+  expect(model.generateContent).toHaveBeenCalledExactlyOnceWith(["x"]);
 });

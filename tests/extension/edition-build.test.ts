@@ -13,3 +13,12 @@ it("the web build emits edition.json equal to rules/edition.json", async () => {
     throw new Error("The web build did not return its output files.");
   }
 });
+
+it("builds a hosted bridge entry with a fail-closed embedding policy", async () => {
+  const results = await build({ configFile: "vite.config.ts", logLevel: "silent", build: { write: false } });
+  if (Array.isArray(results) || !("output" in results)) throw new Error("No web build output.");
+  expect(results.output.find((entry) => entry.fileName === "ext-bridge.html")).toMatchObject({ type: "asset" });
+  const config = JSON.parse(readFileSync("firebase.json", "utf8"));
+  const route = config.hosting.headers.find((entry: { source?: string }) => entry.source === "/ext-bridge.html");
+  expect(route?.headers).toContainEqual({ key: "Content-Security-Policy", value: "frame-ancestors 'none'" });
+});

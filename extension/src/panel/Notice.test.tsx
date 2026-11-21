@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { bundledEdition } from "../edition";
+import { openBridge } from "../bridgeClient";
 import { typedRead } from "../check";
 import { onToolbarClick } from "../tabInfo";
 import { Panel } from "./Panel";
@@ -152,4 +153,65 @@ it("lets the sender edit the laptop read and confirm its identity before the eng
   } finally {
     vi.useRealTimers();
   }
+});
+
+it("makes no request before consent, then opens the bridge without sending product text", async () => {
+  const user = userEvent.setup();
+  const read = vi.fn();
+  const close = vi.fn();
+  const connectCloud = vi.fn(async (signal: AbortSignal) => {
+    signal.addEventListener("abort", close, { once: true });
+    return { read, close };
+  });
+  render(<Panel {...props()} agreed cloudConsent={true} connectCloud={connectCloud} />);
+  expect(connectCloud).not.toHaveBeenCalled();
+  expect(document.querySelector("iframe")).toBeNull();
+  await user.click(screen.getByText("Cloud settings"));
+  await user.click(screen.getByRole("button", { name: "Allow" }));
+  expect(connectCloud).toHaveBeenCalledOnce();
+  expect(await screen.findByRole("button", { name: "Read in the cloud" })).toBeDisabled();
+  expect(read).not.toHaveBeenCalled();
+  await user.type(screen.getByLabelText("Paste the product details from the shop page"), "Cotton scarf");
+  expect(read).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Not now" }));
+  expect(close).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: "Read in the cloud" })).toBeNull();
+});
+
+it("shows cloud off when the bridge does not answer", async () => {
+  const user = userEvent.setup();
+  const connectCloud = (signal: AbortSignal) => openBridge(document, "https://bridge.example/", 150, signal);
+  render(<Panel {...props()} agreed connectCloud={connectCloud} />);
+  await user.click(screen.getByText("Cloud settings"));
+  await user.click(screen.getByRole("button", { name: "Allow" }));
+  expect(screen.getByText("Opening cloud checks.")).toBeVisible();
+  expect(document.querySelector("iframe")).not.toBeNull();
+  expect(await screen.findByText("Cloud checks are off in this panel.")).toBeVisible();
+  expect(document.querySelector("iframe")).toBeNull();
+  expect(screen.getByRole("link", { name: "Open the full app" })).toBeVisible();
+  expect(screen.getByLabelText("What is it?")).toBeVisible();
+});
+
+it("drops a cloud reply that arrives after consent is withdrawn", async () => {
+  const user = userEvent.setup();
+  let reply!: (value: { text: string; source: "in_cloud" }) => void;
+  const outcome = new Promise<{ text: string; source: "in_cloud" }>((resolve) => { reply = resolve; });
+  const read = vi.fn(() => outcome);
+  const connectCloud = async () => ({ read, close: vi.fn() });
+  render(<Panel {...props()} agreed connectCloud={connectCloud} />);
+
+  await user.click(screen.getByText("Cloud settings"));
+  await user.click(screen.getByRole("button", { name: "Allow" }));
+  await user.type(await screen.findByLabelText("Paste the product details from the shop page"), "Cotton scarf");
+  await user.click(screen.getByRole("button", { name: "Read in the cloud" }));
+  expect(read).toHaveBeenCalledOnce();
+  await user.click(screen.getByRole("button", { name: "Not now" }));
+  reply({ text: JSON.stringify(typedRead({
+    itemName: "Scarf", category: "clothing", volts: 0, milliampHours: 0, wattHours: 0,
+    liquid: false, pressurized: false, alcoholOnLabel: false, batteryWords: false,
+  })), source: "in_cloud" });
+
+  await waitFor(() => expect(screen.queryByText("Reading the product details.")).toBeNull());
+  expect(screen.getByLabelText("What is it?")).toHaveValue("");
+  expect(screen.getByText("Cloud checks are off in this panel.")).toBeVisible();
 });

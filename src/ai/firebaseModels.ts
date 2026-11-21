@@ -1,7 +1,7 @@
 // Firebase AI Logic bindings: the only file that calls getGenerativeModel (the model guard enforces it).
 // Three item-read models (spec 5.3): ONLY_ON_DEVICE behind the device guard, PREFER_ON_DEVICE, and
-// ONLY_IN_CLOUD, plus an optional cloud-only fallback model, and the extension's on-device product read.
-import { getGenerativeModel, InferenceMode, type AI, type GenerativeModel, type LanguageModelCreateOptions, type ModelParams, type Part } from "firebase/ai";
+// ONLY_IN_CLOUD, plus an optional cloud-only fallback model, and the extension's product reads, laptop or cloud.
+import { getGenerativeModel, InferenceMode, type AI, type GenerativeModel, type LanguageModelCreateOptions, type ModelParams, type Part, type Schema } from "firebase/ai";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
 import { checkGate, DEVICE_CREATE_OPTIONS, hasLanguageModelApi } from "./gate";
@@ -90,7 +90,19 @@ export function createProductDevicePort(ai: AI, lm: unknown): ModelPort {
     checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel, PRODUCT_CREATE_OPTIONS));
 }
 
+function createTextCloudModel(ai: AI, cloudModel: string, schema: Schema, systemInstruction?: string): ModelPort {
+  const model = getGenerativeModel(ai, {
+    mode: InferenceMode.ONLY_IN_CLOUD,
+    inCloudParams: { model: cloudModel, systemInstruction, generationConfig: { responseMimeType: "application/json", responseSchema: schema } },
+  });
+  return portFor(model, false);
+}
+
 // The model handle prepareDeviceModel uses to start the on-device download.
 export function deviceDownloadModel(ai: AI): GenerativeModel {
   return getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
+}
+
+export function createProductCloudPort(ai: AI, cloudModel: string): ModelPort {
+  return createTextCloudModel(ai, cloudModel, itemReadCloudSchema(), PRODUCT_TEXT_SYSTEM);
 }

@@ -68,3 +68,10 @@
 - Focused tests: red 1, green 0 (57 passed). The scheduled-suspension regression reproduced separately with exit 1. S-EXT-1 and S-EXT-3: NOT RUN. The quality protocol SHA-256 follows.
 - S-EXT-3 protocol SHA-256: 90cda7196cde68d1c7812de7315268bcf2d26ca2699588f57194bdc35cd04bc8.
 - npm exit codes: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0.
+
+### Task 10 - Open the cloud bridge after consent (2026-11-20 21:26:58 EST)
+
+- Source: Task 10. Added a hosted bridge and a closed message protocol. The panel opens the frame after Allow, sends pasted text only on Read in the cloud, and closes the frame on withdrawal or failure. Replies use the shared item parser and grounding before the rules engine sees the item.
+- Main exposes remoteConfigSource and getAi(true). The bridge uses those with the web app's App Check initializer, anonymous sign-in and killCloud. Its hosting policy denies all parents until the real extension ID is known.
+- Focused tests: red 1, green 0 (38 passed). The late reply after consent withdrawal reproduced with exit 1. The direct SDK control verifies the request using an intercepted refusal. S-EXT-2 and the real provider refusal are NOT RUN. Playwright Chromium exited before loading the panel, so the browser smoke is NOT VERIFIED.
+- npm exit codes: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0.

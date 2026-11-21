@@ -13,7 +13,7 @@ export interface DeviceProductReader {
   read: ReadProduct;
 }
 
-export function ProductText({ device, onRead }: { device?: DeviceProductReader; onRead(result: ProductReading): void }) {
+export function ProductText({ device, cloud, onRead }: { device?: DeviceProductReader; cloud?: ReadProduct; onRead(result: ProductReading): void }) {
   const [{ text, truncated }, setInput] = useState({ text: "", truncated: false });
   const [gate, setGate] = useState<GateState>(device ? "checking" : "no_api");
   const [progress, setProgress] = useState<number | null>(null);
@@ -64,7 +64,7 @@ export function ProductText({ device, onRead }: { device?: DeviceProductReader; 
   const deviceReady = gate === "available" && device;
   return (
     <section className="product-text">
-      {(deviceReady || gate === "downloadable" || gate === "downloading") && (
+      {(deviceReady || cloud || gate === "downloadable" || gate === "downloading") && (
         <label>
           Paste the product details from the shop page
           <textarea rows={3} value={text} onChange={(event) => {
@@ -90,6 +90,7 @@ export function ProductText({ device, onRead }: { device?: DeviceProductReader; 
       {deviceReady && (
         <button type="button" disabled={reading || !text.trim()} onClick={() => void read(device.read)}>Read on this laptop</button>
       )}
+      {cloud && <button type="button" disabled={reading || !text.trim()} onClick={() => void read(cloud)}>Read in the cloud</button>}
       {reading && <p role="status">Reading the product details.</p>}
       {error && <p role="alert">{error}</p>}
     </section>

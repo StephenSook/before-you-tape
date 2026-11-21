@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { versionInfo } from "./scripts/version-info";
@@ -31,4 +32,12 @@ function versionFile(): Plugin {
 
 export default defineConfig({
   plugins: [react(), versionFile()],
+  build: {
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL("./index.html", import.meta.url)),
+        extBridge: fileURLToPath(new URL("./ext-bridge.html", import.meta.url)),
+      },
+    },
+  },
 });
