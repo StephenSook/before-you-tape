@@ -1,3 +1,5 @@
+import { draftKey } from "../data/typedDrafts";
+import { draftOf } from "../ui/ReadFields";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -131,6 +133,18 @@ describe("PackPage", () => {
     setup({ store });
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Haiti is suspended.");
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
+  });
+
+  it("opens the typed item form after a reload when an item was still being typed", () => {
+    try {
+      const store = newStore();
+      sessionStorage.setItem(draftKey(store.getState().boxId), JSON.stringify({ ...draftOf(null), category: "lotion_cream", itemName: "Shea lotion" }));
+      setup({ store });
+      expect(screen.getByRole("button", { name: "Type an item" })).toHaveAttribute("aria-expanded", "true");
+      expect(within(screen.getByTestId("add-by-hand")).getByLabelText("Name (optional)")).toHaveValue("Shea lotion");
+    } finally {
+      sessionStorage.clear();
+    }
   });
 
   const holiday = { service: "Priority Mail International", sendBy: "2026-12-09", deliverBy: "2026-12-25", sourceUrl: "https://www.usps.com/holiday/holiday-shipping-dates.htm", checkedOn: "2026-11-21" };

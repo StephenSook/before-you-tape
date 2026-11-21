@@ -61,12 +61,10 @@ describe("hosting", () => {
     for (const r of hosting.rewrites) {
       expect((hosting.headers ?? []).some((h) => h.regex === r.regex && cacheOf(h) === NO_CACHE), r.regex).toBe(true);
     }
-    // The /sw.js served only removes a worker and its caches (public/sw.js), and is checked again every time, so a
-    // browser holding a worker from a release that was rolled back learns of it on its next visit.
-    expect(rulesFor("/sw.js").map(cacheOf)).toEqual([NO_CACHE]);
-    const sw = readFileSync(join(root, "public", "sw.js"), "utf8");
-    expect(sw).toContain("registration.unregister");
-    expect(sw).not.toMatch(/addEventListener\(\s*["']fetch["']/);
+    // The service worker is checked again every time too, so a browser learns of a new version on its next visit
+    // instead of keeping an old worker, and the old app it caches, for up to an hour.
+    // The web app manifest too, so a changed name or icon list reaches an installed app at once.
+    for (const path of ["/sw.js", "/manifest.webmanifest"]) expect(rulesFor(path).map(cacheOf), path).toEqual([NO_CACHE]);
   });
 
   it("ships an icon that every page names, so no browser asks for a missing favicon.ico", () => {

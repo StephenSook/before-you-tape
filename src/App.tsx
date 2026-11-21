@@ -1,4 +1,5 @@
 import { BrowserRouter, Link, NavLink } from "react-router-dom";
+import { UpdateLine } from "./pwa/UpdateLine";
 import { AppRoutes } from "./routes";
 
 // The built pages a visitor can reach from any page; a page joins this list only once it is built.
@@ -13,6 +14,7 @@ export default function App() {
           {NAV.map(([label, to]) => <NavLink key={to} to={to} className="nav-pill" data-testid="nav-pill">{label}</NavLink>)}
         </nav>
       </header>
+      <UpdateLine />
       <main>
         <AppRoutes />
       </main>

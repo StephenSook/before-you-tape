@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { registerServiceWorker, removeServiceWorkers } from "./pwa/register";
 import "./styles/app.css";
 
 const root = document.getElementById("root");
@@ -11,3 +12,9 @@ createRoot(root).render(
     <App />
   </StrictMode>,
 );
+
+// Only a production build has a worker to register; a browser without service workers just runs the page. A kill
+// build (BYT_SW_KILL) registers none and removes any it finds, on every load.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  void (__BYT_SW_KILL__ ? removeServiceWorkers() : registerServiceWorker()).catch(() => undefined);
+}

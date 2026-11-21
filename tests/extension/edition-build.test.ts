@@ -1,5 +1,7 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { build } from "vite";
 import { expect, it } from "vitest";
 
@@ -21,4 +23,12 @@ it("builds a hosted bridge entry with a fail-closed embedding policy", async () 
   const config = JSON.parse(readFileSync("firebase.json", "utf8"));
   const route = config.hosting.headers.find((entry: { source?: string }) => entry.source === "/ext-bridge.html");
   expect(route?.headers).toContainEqual({ key: "Content-Security-Policy", value: "frame-ancestors 'none'" });
+});
+
+// These builds only inspect the bundle, so they must leave every folder as it was: a test run after a real build
+// must never replace the built service worker in dist with one made here.
+it("a build that writes nothing leaves its output folder empty", async () => {
+  const outDir = mkdtempSync(join(tmpdir(), "byt-no-write-"));
+  await build({ configFile: "vite.config.ts", logLevel: "silent", build: { write: false, outDir } });
+  expect(readdirSync(outDir)).toEqual([]);
 });

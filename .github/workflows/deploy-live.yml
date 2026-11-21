@@ -102,6 +102,10 @@ jobs:
           VITE_FB_APP_ID: ${{ vars.VITE_FB_APP_ID }}
           VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
           VITE_USE_EMULATORS: "false"
+          # The service worker kill switch. With the repository variable BYT_SW_KILL set to 1, every deploy ships a
+          # worker that unregisters itself and deletes its caches, until the variable is removed. A variable, not a
+          # commit, so a merge during an incident never brings the worker back.
+          BYT_SW_KILL: ${{ vars.BYT_SW_KILL }}
         run: npm run build
 
       - name: Build serves this commit from a clean tree
@@ -195,8 +199,10 @@ jobs:
       # must hold the recorded version, and its version.json must name the recorded commit and dirty flag. It
       # clones only over a release this deploy made (the deploy account, after the record time), never over
       # one someone else published, and a drill fails if there was nothing to roll back. The run still fails.
+      # A kill deploy (BYT_SW_KILL set) is never rolled back: the release before it has a normal service worker, and
+      # putting that back would undo the kill switch while it is still on.
       - name: Roll back to the release that was live before
-        if: failure() && steps.deploy.outcome != 'skipped' && steps.before.outputs.version != ''
+        if: failure() && steps.deploy.outcome != 'skipped' && steps.before.outputs.version != '' && vars.BYT_SW_KILL != '1'
         timeout-minutes: 8
         env:
           VERSION: ${{ steps.before.outputs.version }}
@@ -206,3 +212,8 @@ jobs:
         run: |
           if [ -n "$EXPECT_LIVE_SHA" ]; then drill="--require-clone"; else drill=""; fi
           npx tsx scripts/live-release.ts restore --version "$VERSION" --sha "$BEFORE_SHA" --dirty "$BEFORE_DIRTY" --since "$RECORDED_AT" $drill
+
+      - name: Keep a failed kill deploy live
+        if: failure() && steps.deploy.outcome != 'skipped' && vars.BYT_SW_KILL == '1'
+        timeout-minutes: 1
+        run: echo "::warning::A check failed after a kill deploy. It stays live, because rolling back would bring the normal service worker back while BYT_SW_KILL is set."
