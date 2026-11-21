@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { summarizeEval } from "./evalSummary";
+import committed from "./eval.json";
+import { readEval, summarizeEval } from "./evalSummary";
 
 const shipped = (source: string, secondLook: boolean) => ({ level: "ok", source, secondLook, numbersExact: true, msRuns: [1, 2, 3] });
 const run = () => ({
@@ -53,5 +54,25 @@ describe("summarizeEval", () => {
     expect(() => summarizeEval({ ...run(), rows: "x" }, "s")).toThrow();
     expect(() => summarizeEval({ ...run(), metrics: {} }, "s")).toThrow();
     expect(() => summarizeEval(null, "s")).toThrow();
+  });
+});
+
+describe("readEval", () => {
+  it("accepts the committed summary", () => {
+    expect(readEval(committed)).toEqual({ ok: true, data: committed });
+  });
+
+  it("refuses a summary it cannot read: missing or extra fields, a wrong type, k over n, more on the device than checks", () => {
+    const cases: unknown[] = [
+      null, "x", {},
+      { ...committed, agreement: undefined },
+      { ...committed, extra: 1 },
+      { ...committed, checks: "80" },
+      { ...committed, date: "21 Nov" },
+      { ...committed, hazardsCalledOk: { k: 29, n: 28 } },
+      { ...committed, readOnDevice: 81 },
+      { ...committed, p90Ms: 1 },
+    ];
+    for (const c of cases) expect(readEval(c), JSON.stringify(c)).toEqual({ ok: false });
   });
 });

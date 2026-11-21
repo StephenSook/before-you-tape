@@ -84,3 +84,24 @@ export function summarizeEval(file: unknown, source: string): EvalSummary {
     p90Ms: ms(shippedTime.p90, "shipped p90"),
   };
 }
+
+// The /ran page's guard on src/ran/eval.json: a file of exactly this shape, with counts that add up, or none.
+const KEYS = ["runId", "date", "machine", "chrome", "models", "editionId", "source", "items", "destinations", "checks",
+  "readOnDevice", "secondLookItems", "agreement", "hazardsCalledOk", "checkThis", "p50Ms", "p90Ms"];
+const exactly = (v: Obj, keys: string[]) => Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
+const isCount = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
+const isText = (v: unknown) => typeof v === "string" && v.trim() !== "";
+const isKOfN = (v: unknown) => isObj(v) && exactly(v, ["k", "n"]) && isCount(v.k) && isCount(v.n) && v.k <= v.n;
+
+export function readEval(file: unknown): { ok: true; data: EvalSummary } | { ok: false } {
+  if (!isObj(file) || !exactly(file, KEYS)) return { ok: false };
+  const f = file;
+  const fine = ["runId", "machine", "chrome", "models", "editionId", "source"].every((k) => isText(f[k]))
+    && typeof f.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.date)
+    && ["items", "destinations", "checks", "readOnDevice", "secondLookItems", "p50Ms", "p90Ms"].every((k) => isCount(f[k]))
+    && (f.readOnDevice as number) <= (f.checks as number) && (f.secondLookItems as number) <= (f.items as number)
+    && (f.p90Ms as number) >= (f.p50Ms as number)
+    && isKOfN(f.agreement) && isKOfN(f.hazardsCalledOk) && isKOfN(f.checkThis);
+  return fine ? { ok: true, data: f as unknown as EvalSummary } : { ok: false };
+}
