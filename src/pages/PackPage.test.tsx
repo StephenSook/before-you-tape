@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import type { ItemModels, ModelPort, ModelReply } from "../ai/port";
-import { noPersistence, type LoadResult } from "../data/boxOps";
+import { noPersistence, type BoxMeta, type LoadResult } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
 import { PackPage, type PackPageProps } from "./PackPage";
@@ -876,6 +876,25 @@ describe("PackPage", () => {
     expect(screen.queryByRole("button", { name: "Try saving again" })).toBeNull();
     await userEvent.click(within(notice).getByRole("button", { name: "Reload" }));
     expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  it("says when this browser could not be verified, not that the page is out of date, and lets the sender try again", async () => {
+    const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+    const putMeta = vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>().mockRejectedValueOnce(refused).mockResolvedValue();
+    const ops = { ...noPersistence(), putMeta };
+    let ok = false;
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => ok });
+    setup({ store });
+    await store.ready;
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" }); });
+    await store.settled();
+    const notice = await screen.findByTestId("unverified");
+    expect(notice).toHaveTextContent("Saving stopped because this browser couldn't be verified. Try again in a moment.");
+    expect(screen.queryByTestId("out-of-date")).toBeNull();
+    ok = true;
+    await userEvent.click(within(notice).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByTestId("unverified")).toBeNull());
+    expect(putMeta).toHaveBeenCalledTimes(2);
   });
 
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {

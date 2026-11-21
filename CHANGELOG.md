@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The pack page says "Saving stopped because this browser couldn't be verified. Try again in a moment." with a Try again button when the server refused a save because App Check could not verify this browser, instead of asking for a reload that would not help. Source: App Check enforcement plan. Verified: a new PackPage test (the notice, no out-of-date notice, and Try again saves and clears it) failed first and passes; typecheck, lint, tone, build, the full suite and the home, accessibility and contrast browser checks pass.
+
 - The box store tells a save refused because App Check could not verify this browser from a page out of date: Firestore refuses both with permission-denied, so on that refusal the store asks a verified() check and sets unverified instead of outOfDate when it fails. The next save that lands clears it. A failed connection asks nothing, and without the check a refusal still means out of date. Not shown on the page yet. Source: App Check enforcement plan. Verified: new store tests (unverified, then cleared by a retry that lands; a verified browser still out of date; no question for a failed connection) failed first where expected and pass; full suite passes.
 
 - Opening the Delete my saved box question again clears the earlier "Connect to the internet to delete your saved box." line, so a fresh question never sits under an old error. Source: review of the live offline check. Verified: a new PackPage test failed first and passes; typecheck, build, the full suite and the home and accessibility browser checks pass.
