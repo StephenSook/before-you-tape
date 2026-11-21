@@ -1,6 +1,12 @@
 // /ran: where each step runs and what leaves the device. It follows the routing in src/routing/policy.ts
 // (chooseImageRoute, chooseReadRoute, shouldRunSecondLook) and the cloud switch the sender controls.
+import { MeasuredSection } from "../ran/MeasuredSection";
+import { localDay } from "../shared/localDay";
 import { BOX_LIST_SAVED } from "../ui/boxListCopy";
+
+// The measured totals, written by scripts/measure-routes.ts. Until the first one is committed there is none, and the
+// page says so.
+const FILE: unknown = Object.values(import.meta.glob("../ran/measured.json", { eager: true, import: "default" }))[0];
 
 const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Type an item", runs: "No model. The rules run in your browser.", leaves: "Nothing." },
@@ -11,7 +17,9 @@ const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Turn off cloud checks", runs: "Every read that starts after it stays on this device. A read already running makes no further cloud call.", leaves: "Nothing more." },
 ];
 
-export function RanPage() {
+// measured: the totals file to show (the committed one unless a test passes its own); today: this device's date.
+export function RanPage(p: { measured?: unknown; today?: string }) {
+  const file = "measured" in p ? p.measured : FILE;
   return (
     <div className="ran">
       <h1>What ran where</h1>
@@ -23,6 +31,7 @@ export function RanPage() {
         </tbody>
       </table>
       <p>{BOX_LIST_SAVED}</p>
+      <MeasuredSection file={file} today={p.today ?? localDay()} />
     </div>
   );
 }

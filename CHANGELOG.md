@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /ran shows the measured totals: one line (items read in the cloud and on this device, in how many saved boxes, and when), with the detail behind How this was measured (each route's count and median and 90th percentile time, second looks, fallbacks, typed items with our own deploy checks included, the window and the source). A file more than 14 days old or one it cannot read shows no number and says why. The page reads src/ran/measured.json, which scripts/measure-routes.ts writes; there is none yet. Source: per-read telemetry plan. Verified: three new RanPage tests failed first and pass; typecheck, build, the full suite and the home, accessibility and contrast browser checks pass.
+
 - The /ran totals give times in whole milliseconds. Source: per-read telemetry plan (the first dry run printed 2256.699999988079). Verified: a new summarizeRoutes test failed first and passes; full suite passes.
 
 - scripts/measure-routes.ts measures the /ran totals from the saved boxes: it reads only each item's readSource, readMs, secondLook and readFallback, and the number of boxes, through the Firestore API with the signed-in gcloud token, prints the totals, and with --write puts them in src/ran/measured.json with the time and the source. Source: per-read telemetry plan. Verified: two new rowsFromQuery tests (numbers as strings or doubles, null and missing fields, empty rows skipped) failed first and pass; typecheck and the full suite pass.
