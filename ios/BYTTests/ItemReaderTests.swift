@@ -5,6 +5,15 @@ import Testing
 import UIKit
 @testable import BYT
 
+/// Model states the app tests name, so no test depends on the model of the machine running it (the
+/// simulator on a Mac with Apple Intelligence reports image understanding).
+extension OnDeviceStatus {
+    /// Apple's model reads label words but not photos.
+    static let wordsOnly = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: false)
+    /// Apple's model reads label words and photos.
+    static let wordsAndPhotos = OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "test", vision: true)
+}
+
 /// A scripted runner that records each call's start and end.
 final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     let name: String
@@ -117,13 +126,41 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         #expect(j.events == ["device start", "device end", "device start", "device end"])
     }
 
-    @Test func untilTheSpikePassesAPhotoGoesToTheCloudFirst() async {
-        let j = FakeItemRunner.Journal()
+    let photo = ItemInput.photo(cropJPEG: Data([0xFF, 0xD8]))
+
+    /// Apple's model reads the label photo when it reports image understanding; no cloud runner is built.
+    @Test func aPhotoIsReadOnThisIPhoneWhenItsModelReadsImages() async {
+        let j = FakeItemRunner.Journal(), built = Built()
         let o = await reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 1, output: 1)))]),
-                             cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 1, output: 1)))]))
-            .read(.photo(cropJPEG: Data([0xFF, 0xD8])), situation: situation())
-        #expect(ClaimTier.photoOnDevice == false)
-        #expect(o.source == .cloud && o.route == .cloudOnly)
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 1, output: 1)))]), built: built)
+            .read(photo, situation: situation())
+        #expect(o.source == .onDevice && o.route == .hybrid && o.records.map(\.kind) == [.photo])
+        #expect(built.models.isEmpty && j.events == ["device start", "device end"])
+    }
+
+    /// In airplane mode, with the cloud question never answered, the photo is still read on this iPhone,
+    /// and it is not a read that must ask about the cloud first.
+    @Test func aPhotoIsReadOnThisIPhoneInAirplaneModeWithoutAskingAboutTheCloud() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        let s = situation(online: false, consent: nil)
+        #expect(!ItemReader.needsCloud(.photo, s))
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]),
+                             cloud: FakeItemRunner("cloud", journal: j, results: []), built: built).read(photo, situation: s)
+        #expect(o.read == read && o.source == .onDevice && o.route == .deviceOnly && o.records.first?.reason == .noNetwork)
+        #expect(built.models.isEmpty)
+    }
+
+    /// A model that does not report image understanding never gets the photo: it goes to the cloud,
+    /// only when allowed, and the record says why.
+    @Test func aPhotoGoesToTheCloudWhenThisIPhonesModelCannotReadImages() async {
+        let j = FakeItemRunner.Journal()
+        var s = situation()
+        s.status.vision = false
+        #expect(ItemReader.needsCloud(.photo, s))
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))])).read(photo, situation: s)
+        #expect(o.source == .cloud && o.route == .cloudOnly && o.records.first?.reason == .noImageInput)
+        #expect(j.events == ["cloud start", "cloud end"])
     }
 
     @Test func anAnswerTheParserRejectsMovesToTheCloudOnTheHybridRoute() async {

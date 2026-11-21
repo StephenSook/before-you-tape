@@ -1,5 +1,7 @@
 package app.beforeyoutape.android
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,8 +13,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import app.beforeyoutape.android.capture.CameraScreen
+import app.beforeyoutape.android.ui.Copy
 import app.beforeyoutape.android.ui.HomeScreen
 import app.beforeyoutape.android.ui.HomeView
+import app.beforeyoutape.android.ui.UpdateScreen
 
 class MainActivity : ComponentActivity() {
     private val vm: BoxViewModel by viewModels()
@@ -29,6 +33,14 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface {
                     val ui by vm.ui.collectAsState()
+                    val needsUpdate by vm.needsUpdate.collectAsState()
+                    if (needsUpdate) {
+                        UpdateScreen(
+                            onOpenDownloads = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Copy.DOWNLOAD_PAGE))) },
+                            modifier = Modifier.safeDrawingPadding(),
+                        )
+                        return@Surface
+                    }
                     HomeScreen(
                         ui, vm,
                         camera = { CameraScreen(busy = ui.busy, onCrop = vm::crop, onFailed = vm::photoFailed, onTypeIt = { vm.show(HomeView.TYPE) }) },

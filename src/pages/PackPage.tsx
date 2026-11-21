@@ -52,6 +52,8 @@ export interface PackPageProps {
   saveCrop: (key: string, part: ImagePart, labelText: string) => Promise<void>;
   online: boolean;
   phoneReady?: boolean;
+  // On a phone: the back camera, and the photo picker opens the camera.
+  phone?: boolean;
   downloadProgress?: number | null;
   onGetReady?: () => void;
   now?: () => number;
@@ -497,12 +499,19 @@ export function PackPage(p: PackPageProps) {
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       <div className="pack">
         <div>
-          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
+          <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} {...(p.phone ? { phone: true } : {})} onError={setNotice}
             onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
             {...(p.sampleRead ? { onSampleSend } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
-          {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
+          {typing && <AddByHand onAdd={(read) => {
+            // A typed item is a press like any other: an older read's failure alert no longer applies once it is in.
+            ++presses.current;
+            setNotice(null);
+            setBlocked(null);
+            store.addManual(read);
+            setTyping(false);
+          }} />}
         </div>
         <div>
           <p data-testid="removal-notice" role="status" className="removal-notice">{removed}</p>

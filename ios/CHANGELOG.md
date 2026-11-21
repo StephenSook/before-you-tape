@@ -3,6 +3,188 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### fix(ios): a question's answers look tappable, and the chosen one is filled
+- What: an item's question (for example "Does the label list alcohol?") showed its answers tinted
+  grey until one was chosen, which read as switched off, though they worked. Every answer now uses
+  the accent tint, outlined; the chosen answer is filled and marked selected for VoiceOver.
+- Source: found by eye on the simulator while making the App Store screenshots.
+- Verified: a test for the open and chosen looks and their tint failed to compile before and
+  passes after; 157 unit tests and the UI test pass; on the iPhone 17 Pro Max simulator the three
+  answers show blue, and after tapping "Can't tell" it is filled and the others stay outlined.
+
+### fix(ios): drop Firebase Performance and Functions, which the app never calls
+- What: `ios/project.yml` linked FirebasePerformance and FirebaseFunctions, and no code used either.
+  Performance still collected by itself once linked (the IP address, app launch and network
+  request times, CPU and memory use, device information) and bundled no privacy manifest. Both
+  are removed, so less leaves the phone, and the App Privacy answers and the privacy page lose
+  their Performance rows.
+- Source: App Store preparation (an audit of what the built app sends).
+- Verified: a test that neither `FIRPerformance` nor `FIRFunctions` is in the app process failed
+  before (both present) and passes after; the built binary has 0 Performance and 0 Functions
+  symbols (14593 Firebase AI Logic symbols as a control); 160 unit tests and the UI test pass.
+
+### feat(ios): the app carries its own privacy manifest
+- What: `ios/BYT/PrivacyInfo.xcprivacy`: no tracking and no tracking domains; the app's own use of
+  UserDefaults (reason CA92.1, the box id) and of file metadata (reason C617.1, the saved box's
+  size, which also brings `stat` into the binary); and what a cloud check sends after the sender
+  taps Allow (the photo crop and the label words, linked, for app functionality, not tracking).
+  Firebase's own bundles declare their own collection. Without the API reasons, App Store Connect
+  refuses the upload.
+- Source: App Store preparation (the built app had no manifest of its own).
+- Verified: three tests read the manifest from the app bundle; they failed with "BYT.app carries
+  no PrivacyInfo.xcprivacy" before and pass after; `plutil -lint` OK; XcodeGen puts the file in
+  the app's resources; 159 unit tests pass.
+
+## 2026-11-20
+
+### fix(ios): the iPhone session's evidence holds no phone identifiers
+- What: `device-session.sh pull` wrote the raw `devicectl device info details` output, which holds
+  the phone's UDID, serial number, ECID and name, into a folder meant for the repository. It now
+  writes one line: model, product type, iOS version and build. The checklist adds Do Not Disturb
+  before the screen recording, so no notification shows in it.
+- Source: automated security review of the session script.
+- Verified: on the Mac's device list the line reads "iPhone 17 Pro (iPhone18,1), iOS 27.2.1
+  (24B156)" and holds no UDID, serial or name; a UDID not in the list exits 1.
+
+### docs(ios): a one-page checklist for the airplane-mode check on a real iPhone
+- What: `docs/evidence/ios/DEVICE-CHECKLIST.md`: what to bring, numbered steps (build, install,
+  read the Ready check lines, airplane mode on, 5 real items, pull the box), a record table and
+  the pass or fail rule.
+- Source: lane goal (prove the photo read in airplane mode on the iPhone).
+- Verified: tone check and hygiene guard clean. Not yet run with the phone.
+
+### feat(ios): a script for the iPhone session: build, install, pull the box, summarize it
+- What: `ios/scripts/device-session.sh build|install|pull|summary`. It finds the one connected
+  physical iPhone (or `$BYT_DEVICE`), builds Release with signing, installs and opens the app,
+  copies `Library/Application Support/boxes` off the phone with the device details and the commit
+  into `docs/evidence/ios/<date>-device/`, and prints each item's route and read time.
+- Source: lane goal (record each read's route and time).
+- Verified: with the phone not connected it stops with "Expected one connected physical iPhone;
+  found: none"; the UDID is found on a line whose device name has spaces; the summary prints a
+  sample box's routes and times, refuses an empty folder (exit 1) and a bad command (exit 2). The
+  build, install and pull steps have not run against the phone yet.
+
+### docs(ios): record three on-device photo reads on the simulator
+- What: `docs/evidence/ios/2026-11-20-simulator-live-read.md`: a lotion, a perfume and a power
+  bank read offline on the simulator's Apple model (the Mac's), with route, time, tokens and the
+  screen line for each.
+- Source: the opt-in live test below.
+- Verified: the lines are copied from the run's output.
+
+### test(ios): an opt-in live test reads real label photos on the machine's own model
+- What: `LiveModelTests` crops three label photos as the app does and reads them through a real
+  `AppModel`, offline, on the machine's own Apple model, and prints each read's route, time,
+  tokens and screen line. It runs only with `BYT_LIVE_MODEL=1` (`TEST_RUNNER_BYT_LIVE_MODEL=1`
+  for xcodebuild), so no check depends on a model being present.
+- Source: lane goal (see the photo read work before the device session).
+- Verified: on the iPhone 18 Pro simulator all three read on the device and reached a verdict
+  (7.5 s, 4.6 s, 5.0 s). Without the variable the suite is skipped.
+
+### docs(ios): the README names why four tests failed on Nov 19, and how the iPhone reads photos
+- What: the test status now says the four Nov 19 failures happen in a checkout without the
+  gitignored Firebase settings file and pass with it, replacing the earlier guess about the build
+  cache. The reading line says a photo goes to Apple's model as an image when the model reports
+  image understanding, and that there is no cloud second look yet.
+- Source: the Nov 20 runs in a fresh worktree.
+- Verified: docs only; the facts are the runs in the entry below.
+
+### fix(ios): the local CI mirror stops and says so when the Firebase settings file is missing
+- What: `ios/BYT/Config/GoogleService-Info.plist` is gitignored, so a fresh clone or worktree has
+  none. Without it the app shows its missing-settings screen (LoopUITests cannot find "Check an
+  item") and the three SignedInCloudTests that build the cloud client crash: exactly the four
+  failures listed on Nov 19. `ci-local-ios.sh` now stops before the app build with "...
+  GoogleService-Info.plist is missing (it is gitignored). Copy it ... then run again."
+- Source: the mirror run in a fresh worktree at d4a5a06 failed those four tests; the same commit
+  with the file copied in passed them.
+- Verified: in a fresh worktree without the file, the four failed (and no other app test); with
+  the file copied in, all four passed. The new check exits 0 with the file and 1 with it missing
+  or empty. Earlier, the README guessed the build-cache deletion; that guess was wrong for these
+  four.
+
+### docs(ios): the iPhone app says it runs no cloud second look yet, and no app text implies one
+- What: docs/LIMITS.md says the iPhone app does not run the cloud second look yet: a read on the
+  iPhone's own model is that one read, the rules decide, and the card says "Read on this iPhone".
+  A test reads every string in the app's Swift files and fails on "second look" or "looked
+  again", as Android's copy test does.
+- Source: lane decision (ship the iPhone without a second look now; a web-parity one may follow).
+- Verified: the test failed on a planted line ("The cloud took a second look at this item.") and
+  passes with it removed; 155 unit tests pass.
+
+### test(ios): tests that wait for a task at a gate poll for up to 5 seconds
+- What: six tests waited for a background task to reach a gate with 1000 `Task.yield()` calls.
+  On a busy Mac (load average 80 to 150) that ran out first: the mirror failed
+  `AppConfigTests.anOlderEditionRequestNeverReplacesTheCurrentRules` with "Expectation failed:
+  gate.isWaiting". The gate now has `untilWaiting()`, which checks every millisecond for up to 5
+  seconds; each test's own check still decides.
+- Source: the local CI mirror on Nov 20 (the failure message read from its result bundle).
+- Verified: no fixed-yield wait is left (0 found, 6 helper calls); 155 unit tests pass.
+
+### feat(ios): the screens say whether a photo is read on this iPhone, and what to do when not
+- What: Ready check gets a photo line: "Label photos are read on this iPhone, with no network.",
+  or, when the model reads words but not photos, "This iPhone's model does not read photos. Type
+  the label's words instead.", or, with no model, "Without Apple's on-device model, photos are
+  checked only in the cloud, when you allow it." The check screen shows that line only when a
+  photo is not read on this iPhone. A blocked photo now says why and what to do ("Type the
+  label's words instead." when the model reads words, else "Add it by hand with Type it in Your
+  box."), replacing "this iPhone does not read photos yet". A photo read on this iPhone that fails
+  with no cloud to try says "This iPhone could not read that photo. Try another photo, or type the
+  label's words instead." The app's minimum is iOS 27, which is where image input starts, so no
+  older iOS can run it.
+- Source: lane goal (when the model cannot read the photo, fall back to typed words and say why).
+- Verified: the new line tests failed to compile before the change and pass after (photo line for
+  each model state, the four blocked lines, the failed on-device photo line, the notice shown only
+  when photos are not read here); 154 unit tests and the UI test pass on the iPhone 18 Pro
+  simulator. Not yet checked by eye on a screen.
+
+### feat(ios): a label photo is read on Apple's model when the model reads images
+- What: photos went to the cloud on every iPhone (`ClaimTier.photoOnDevice` was false). The router
+  now sends a photo to Apple's on-device model whenever the model reports image understanding
+  (`capabilities.contains(.vision)`, iOS 27), with the crop as an image attachment and the same
+  generated read type; the rules engine still decides the verdict. With no network and the cloud
+  question never answered, the photo is read on the iPhone and nothing asks about the cloud. A
+  model that does not report image understanding never gets the photo: it goes to the cloud only
+  when allowed, recorded as `no_image_input`. The app tests now name the model they assume
+  (`wordsOnly` or `wordsAndPhotos`), because the simulator on a Mac with Apple Intelligence
+  reports image understanding and those tests had silently relied on photos going to the cloud.
+- Source: lane goal (an on-device photo read, proven in airplane mode on a real iPhone).
+- Verified: the two on-device router tests failed before the change (the photo went to the cloud)
+  and pass after; a new app test reads a photo offline on the fake device runner and finds it in
+  the box as `phone_on_device` with "Read on this iPhone."; 151 unit tests pass. Not yet run on a
+  real iPhone.
+
+### docs(ios): the iPhone README says the local checks pass
+- What: the "Known failures" table is replaced by the test status: the mirror passes, and the four
+  tests listed on Nov 19 pass in two full runs on main at 76acd04; their cause is not known.
+- Source: the Nov 20 runs.
+- Verified: SignedInCloudTests 10/10 alone and in the full run; LoopUITests passed in the full
+  scheme run and in the mirror. Docs only.
+
+### fix(ios): the local CI mirror keeps its build cache out of the temp folder
+- What: `ci-local-ios.sh` built in `$TMPDIR/byt-ci-dd`. macOS deletes files in `$TMPDIR` that
+  look older than three days, and unpacked package binaries keep their archive dates (the
+  Firestore framework's Info.plist was dated Nov 8 the moment it was unpacked on Nov 20), so the
+  files went and the folders stayed. The app build then failed with "There is no Info.plist found
+  at .../FirebaseFirestoreInternal.xcframework/Info.plist". The cache now lives in
+  `~/Library/Caches/byt-ci-dd` (or `$BYT_CI_DD`).
+- Source: the local CI mirror failed on Nov 20 with that error.
+- Verified: the broken cache had the framework folders with no Info.plist; after a clean cache
+  the mirror passed (exit 0), and the unpacked file's dates read Nov 8 on stat. Whether the same
+  deletion caused the test-runner crashes listed on Nov 19 is not known.
+
+### test(ios): the stale-check test reads its days from the bundled edition
+- What: `AppBoxTests.aStaleRuleCheckIsCaughtOnReturnAndAtMidnight` used fixed days (Dec 8 fresh,
+  Dec 9 stale) that matched the edition of Nov 17. The Nov 20 edition moved the suspensions check
+  to Nov 20 (stale from Dec 12) and suspends Canada, the box's default country, from Nov 29, so
+  Dec 8 read "check" and the test failed. The code was right. The test now takes its days from
+  rules/edition.json the way the engine's layers do: the newest layer check is a day every layer
+  is fresh, and the day after the first window ends is a day one layer is stale.
+- Source: the full app test run on main (76acd04) failed this test on the simulator.
+- Verified: it failed at 76acd04 (3 issues, "check" where "ok" was expected) and passes after the
+  change (4 of 4 in AppBoxTests). It still needs the app's re-check: the verdict stays "ok" on the
+  stale day until the app comes back, then reads "check".
+
 ## 2026-11-19
 
 ### docs(ios): list the app tests that fail on this Mac's simulator

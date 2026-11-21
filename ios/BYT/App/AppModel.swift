@@ -238,11 +238,15 @@ final class AppModel {
         // The name and the verdict both come from the box item as it is now, corrections included.
         let item = lastItemId.flatMap { id in box?.items.first { $0.itemId == id } }
         return Self.readLine(lastRead, verdict: lastItemId.flatMap { box?.result?.items[$0] }, consent: box?.cloudConsent, kind: lastKind,
-                             name: item.flatMap { FixReadingView.current($0).text("itemName") }, settingsPending: config.pauseUnknown)
+                             name: item.flatMap { FixReadingView.current($0).text("itemName") }, settingsPending: config.pauseUnknown,
+                             status: onDevice)
     }
 
+    /// Shown on the check screen when a photo is not read on this iPhone: why, and what to do instead.
+    var photoNotice: String? { onDevice.readsPhotos ? nil : ReadyCheck.photoLine(onDevice) }
+
     static func readLine(_ outcome: ReadOutcome?, verdict: ItemVerdict?, consent: Bool? = nil, kind: ReadInputKind = .photo,
-                         name current: String? = nil, settingsPending: Bool = false) -> String? {
+                         name current: String? = nil, settingsPending: Bool = false, status: OnDeviceStatus? = nil) -> String? {
         guard let outcome else { return nil }
         if let read = outcome.read, let source = outcome.source, let verdict {
             // The item's current name wins, even when the sender cleared it; the model's first name
@@ -256,13 +260,22 @@ final class AppModel {
             return settingsPending && consent != false ? "This iPhone cannot read label words right now, and " + waiting
                                                        : "This iPhone cannot read label words right now, and the cloud is not allowed."
         }
+        // A photo blocked here could not go to this iPhone's model: say why, and what to do instead.
+        let wordsHere = status?.available == true
+        let instead = wordsHere ? "Type the label's words instead." : "Add it by hand with Type it in Your box."
         if outcome.route == .blocked {
-            if consent == false { return "You chose to keep everything on this iPhone, and this iPhone does not read photos yet." }
+            if consent == false {
+                let why = wordsHere ? "this iPhone's model does not read photos" : "Apple's on-device model is not available on it"
+                return "You chose to keep everything on this iPhone, and \(why). \(instead)"
+            }
             return settingsPending ? "Checking a photo needs the cloud, and " + waiting
-                                   : "Checking a photo needs the cloud, and the cloud is not allowed yet."
+                                   : "Checking a photo needs the cloud, and the cloud is not allowed right now. \(instead)"
         }
         if outcome.failure == .notSignedIn { return "Not signed in yet. Check the network and try again." }
         if outcome.failure == .cloudPaused, consent == false { return "Cloud checks are off, so this was not checked." }
+        if outcome.route == .deviceOnly, kind == .photo {
+            return "This iPhone could not read that photo. Try another photo, or type the label's words instead."
+        }
         return "That item could not be read. Try another photo."
     }
 

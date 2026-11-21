@@ -53,10 +53,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -81,6 +83,9 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     @Volatile private var restored = false
     private val rc: RcStore? = if (FirebaseApp.getApps(app).isNotEmpty()) RcStore(FirebaseRcSource(Firebase.remoteConfig)).also { it.start() } else null
     private val ai: AiClient? = rc?.let { r -> AiClient { r.current() } }
+    /** True while this build is older than Remote Config's minimum_version_android: the app shows only the update screen. */
+    val needsUpdate: StateFlow<Boolean> = rc?.values?.map { it.needsUpdate(BuildConfig.VERSION_NAME) }
+        ?.stateIn(viewModelScope, SharingStarted.Eagerly, false) ?: MutableStateFlow(false)
     private val worker = Dispatchers.Default.limitedParallelism(1)
     private var host: EngineHost? = null
 

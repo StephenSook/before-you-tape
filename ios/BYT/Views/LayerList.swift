@@ -24,14 +24,27 @@ struct QuestionRow: View {
     let value: String?
     let onAnswer: (String) -> Void
 
+    /// An answer not chosen yet is open: outlined, and as tappable to the eye as any other button
+    /// (grey read as switched off). The chosen answer is filled.
+    enum Look: Equatable { case open, chosen }
+
+    static func look(_ answer: String, value: String?) -> Look { value == answer ? .chosen : .open }
+    static func tint(_ look: Look) -> Color { .accentColor }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(question.text)
             ForEach(question.answers, id: \.id) { a in
-                Button(a.label) { onAnswer(a.id) }
-                    .buttonStyle(.bordered)
-                    .tint(value == a.id ? .accentColor : .secondary)
-                    .accessibilityAddTraits(value == a.id ? .isSelected : [])
+                let look = Self.look(a.id, value: value)
+                Group {
+                    if look == .chosen {
+                        Button(a.label) { onAnswer(a.id) }.buttonStyle(.borderedProminent)
+                    } else {
+                        Button(a.label) { onAnswer(a.id) }.buttonStyle(.bordered)
+                    }
+                }
+                .tint(Self.tint(look))
+                .accessibilityAddTraits(look == .chosen ? .isSelected : [])
             }
         }
         .accessibilityElement(children: .contain)
