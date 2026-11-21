@@ -27,4 +27,6 @@ Camera: used only to photograph the label you choose to check. Only the part of 
 
 Countries in this rule edition: Canada and the Philippines.
 
+Availability: every country and region except France and China mainland. The app declares only exempt encryption (ITSAppUsesNonExemptEncryption is false): HTTPS, plus a standard TLS library bundled by the Firebase SDK, which is exempt from export documentation everywhere but France. China mainland is left out because cloud checks use generative AI, which there needs filings this app does not have.
+
 Not affiliated with or approved by the US Postal Service.

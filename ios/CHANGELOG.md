@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): an ADR and the review notes record App Store availability and why
+- What: `docs/adr/0001-ios-app-store-availability.md` records that the iPhone app is offered in
+  every country and region except France (only exempt encryption is declared, and a bundled
+  standard TLS library is exempt everywhere but France) and China mainland (generative AI there
+  needs filings the app does not have). The App Store review notes now say the same.
+- Source: App Store Connect prep.
+- Verified: the 1.0.0 (1) release binary carries the bundled TLS library (146 `openssl_grpc` or
+  BoringSSL strings); `check_lengths.py` exits 0 (review notes 3000 of 4000); tone and hygiene pass.
+
 ### chore(ios): the first App Store version is 1.0.0
 - What: `MARKETING_VERSION` in `ios/project.yml` goes from 0.1.0 to 1.0.0 (build 1), the version the
   first App Store build carries; the listing notes say so.
