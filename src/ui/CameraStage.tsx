@@ -44,6 +44,8 @@ export interface CameraStageProps {
   // same upload path as a photo they add, so the same route and consent decide where it is read.
   sample?: { url: string; sha256: string; alt: string };
   loadSample?: (url: string) => Promise<ArrayBuffer>;
+  // When the page has the sample's recorded read, a sample photo goes to it instead of a model.
+  onSampleSend?: (part: ImagePart) => void;
 }
 
 const fetchSample = async (url: string): Promise<ArrayBuffer> => {
@@ -64,7 +66,7 @@ const CAMERA_TEXT: Record<CameraErrorKind, string> = {
   busy: "The camera is in use by another app. Add a photo instead.",
 };
 
-export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample }: CameraStageProps) {
+export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample, onSampleSend }: CameraStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const [started, setStarted] = useState(false);
@@ -185,7 +187,12 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       <section data-testid="stage" className="stage" aria-label="Camera">
         {fromSample && sample && <p data-testid="sample-note" className="stage-line">Sample photo from our test set: {sample.alt}. It is not your item.</p>}
         <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
-          onSend={(part) => { closePicked(); setSampleSent(fromSample); onImage(part, "upload"); }} onCancel={closePicked} />
+          onSend={(part) => {
+            closePicked();
+            setSampleSent(fromSample);
+            if (fromSample && onSampleSend) onSampleSend(part);
+            else onImage(part, "upload");
+          }} onCancel={closePicked} />
       </section>
     );
   }
@@ -225,7 +232,9 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
         </label>
         {sample && <>{" "}<button type="button" data-testid="sample-photo" onClick={() => void trySample()}>Try a sample photo</button></>}
       </p>
-      {sampleSent && <p data-testid="sample-sent" className="stage-line">The last check used a sample photo from our test set, not your item.</p>}
+      {sampleSent && <p data-testid="sample-sent" className="stage-line">{onSampleSend
+        ? "The last check showed a recorded read of a sample photo from our test set, not your item."
+        : "The last check used a sample photo from our test set, not your item."}</p>}
     </section>
   );
 }

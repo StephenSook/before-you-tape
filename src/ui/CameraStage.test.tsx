@@ -156,6 +156,23 @@ describe("CameraStage", () => {
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
   });
 
+  it("hands a sample photo to its recorded read when the page has one, and reads no model", async () => {
+    const onImage = vi.fn();
+    const onSampleSend = vi.fn();
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    const decodeFile = vi.fn<(f: File) => Promise<HTMLCanvasElement>>(async () => document.createElement("canvas"));
+    render(<CameraStage openCamera={okCamera} onImage={onImage} onSampleSend={onSampleSend} decodeFile={decodeFile} cropPart={async () => part}
+      sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }}
+      loadSample={async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    const send = await screen.findByRole("button", { name: "Check this part" });
+    await waitFor(() => expect(send).toBeEnabled());
+    await userEvent.click(send);
+    expect(onSampleSend).toHaveBeenCalledWith(part);
+    expect(onImage).not.toHaveBeenCalled();
+    expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check showed a recorded read of a sample photo from our test set, not your item.");
+  });
+
   it("opens nothing when the sample photo does not match its tracked SHA-256", async () => {
     const onError = vi.fn();
     const decodeFile = vi.fn(async () => document.createElement("canvas"));

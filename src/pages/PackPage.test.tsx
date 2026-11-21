@@ -257,6 +257,21 @@ describe("PackPage", () => {
     localStorage.clear();
   });
 
+  it("shows the sample photo's recorded read, labelled, with no model call and no cloud answer needed", async () => {
+    const { models, store } = setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 } }, null);
+    await trySample();
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Sample, recorded read");
+    // A verdict with the cloud question still unanswered: the sample never needs it.
+    expect(store.getState().cloudConsent).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+    expect(models.device.generate).not.toHaveBeenCalled();
+    expect(store.getState().items[0]).toMatchObject({ readSource: "sample_recorded", readMs: 3997 });
+    expect(screen.getByTestId("sample-sent")).toHaveTextContent("recorded read");
+  });
+
   it("offers a sample photo that waits for the cloud choice like any photo, and makes no model call before it", async () => {
     const { models } = setup({ loadSample }, null);
     await trySample();

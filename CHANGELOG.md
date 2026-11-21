@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- When the page has the sample photo's recorded read, "Try a sample photo" shows it: after the same crop step, the card gets the recorded read, labelled "Sample, recorded read", with no model call and no cloud question, and the page says the last check showed a recorded read of a sample photo. A sender's own photo still goes through the models and the cloud choice. Source: UI review. Verified: new CameraStage and PackPage tests failed first and pass; lint and typecheck pass.
+
 - A read source for the sample photo's recorded read, `sample_recorded`, shown on its card as "Sample, recorded read". The box store adds it with `addRecorded`: judged like any read, but never counted as a read made on this device. Firestore rules accept it on a shared box's items. Source: UI review (a judge's sample photo dead-ended without a laptop model or a cloud check). Verified: a new store test failed first and passes; the rules test now writes an item with this source, and CI runs it against the emulator.
 
 - The eval times the shipped route to its final verdict. Each shipped row records its second look's own time (`secondLookMs`), and the route's latency is the read plus that time, as on the Pack page. It also counts a shipped read of no item: the read and its times are kept, so it counts against exact numbers and in latency, with still no verdict. Source: review. Verified: new runner and metrics tests failed first and pass; eval tests, lint and typecheck pass.

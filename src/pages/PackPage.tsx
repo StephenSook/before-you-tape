@@ -40,6 +40,9 @@ export interface PackConfig {
 export interface PackPageProps {
   // Loads the sample photo's bytes; the page fetches it from the site when none is given.
   loadSample?: (url: string) => Promise<ArrayBuffer>;
+  // The sample photo's recorded read (a real read of it on a laptop's own model, kept in evidence/), shown as
+  // recorded when a sender tries the sample, so it always reaches a verdict with no model and no cloud question.
+  sampleRead?: { read: ItemRead; ms: number };
   store: BoxStore;
   models: ItemModels;
   gate: GateState;
@@ -315,6 +318,17 @@ export function PackPage(p: PackPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.online]);
 
+  // The sample photo shows its recorded read: no model runs and the cloud is not asked about.
+  const onSampleSend = (part: ImagePart) => {
+    if (gone.current || !p.sampleRead) return;
+    ++presses.current;
+    setNotice(null);
+    const key = newCropKey();
+    const itemId = store.addRecorded(p.sampleRead.read, p.sampleRead.ms, key);
+    setCrops((c) => ({ ...c, [itemId]: part }));
+    void p.saveCrop(key, part, p.sampleRead.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
+  };
+
   // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
   const onImage = async (part: ImagePart, how: ImageHow) => {
     // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
@@ -480,7 +494,8 @@ export function PackPage(p: PackPageProps) {
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} onError={setNotice}
-            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})} />
+            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
+            {...(p.sampleRead ? { onSampleSend } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
           {typing && <AddByHand onAdd={(read) => { store.addManual(read); setTyping(false); }} />}
