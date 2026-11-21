@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### chore(ios): a tool gives each item's verdict in a box pulled off a phone
+- What: `ios/scripts/box_verdicts.swift` runs an engine bundle in JavaScriptCore, as the app does,
+  over a pulled box file, and prints each item's category, evidence, verdict and first rule.
+- Source: the device session (the box file holds reads, not verdicts).
+- Verified: on the pulled box with main's bundle (sha256 350bddbda726) it gave the same 22 verdicts
+  as the scratch run: 1 OK to pack, 10 Check this, 11 Take it out.
+
 ### fix(ios): the session script finds a paired phone and keeps the pulled box out of git
 - What: `device-session.sh` looked only for a phone listed as "connected", and the phone on the day
   was listed as "available (paired)", so it found none. It now takes either. The pulled box goes to
