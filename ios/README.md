@@ -14,16 +14,11 @@ The box is kept on the phone only: joining a box started in the web app is not b
 The iPhone client is not part of the entry until its on-device read passes an airplane-mode test
 on a real iPhone.
 
-## Known failures
+## Test status
 
-`bash ios/scripts/ci-local-ios.sh` does not pass on this Mac today (Xcode 27.2, iPhone 17 Pro
-simulator, iOS 27.2). The four tests below fail. They fail the same way at 018c4b3, whose
-changelog entry recorded a green run, so the cause is likely the local toolchain rather than the
-code; it has not been found. They are not fixed yet. Every other app test passes.
-
-| Test | Symptom | First seen |
-|---|---|---|
-| `SignedInCloudTests.theAppsCloudRunnerReadsTheLivePauseSwitch()` | The test process crashes (`Runner._applyScopingTraits`) | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `SignedInCloudTests.theAppsReaderBuildsEveryCloudRunnerBehindSignIn()` | The test process crashes (`Runner._applyScopingTraits`) | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `SignedInCloudTests.turningOffCloudChecksCancelsAnUploadInFlight()` | The test process crashes | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
-| `LoopUITests.testReadAVerdictThenFlipTheCountry()` | `Failed to tap "Check an item" Button: No matches found` | 2026-11-19 at 02ba81c; also fails at 018c4b3 |
+`bash ios/scripts/ci-local-ios.sh` passes on this Mac (Xcode 27.2, iPhone 17 Pro simulator,
+iOS 27.2) as of 2026-11-20. The four app tests that failed on 2026-11-19 (three
+`SignedInCloudTests` crashed the test process; `LoopUITests` could not find "Check an item") pass
+in two full runs on main at 76acd04. Their cause was not found. The mirror's build cache was
+later found half deleted by macOS's temp-folder cleanup, which may explain them; that is not
+proven. The cache now lives outside the temp folder.

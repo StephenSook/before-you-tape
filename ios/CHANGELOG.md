@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### docs(ios): the iPhone README says the local checks pass
+- What: the "Known failures" table is replaced by the test status: the mirror passes, and the four
+  tests listed on Nov 19 pass in two full runs on main at 76acd04; their cause is not known.
+- Source: the Nov 20 runs.
+- Verified: SignedInCloudTests 10/10 alone and in the full run; LoopUITests passed in the full
+  scheme run and in the mirror. Docs only.
+
 ### fix(ios): the local CI mirror keeps its build cache out of the temp folder
 - What: `ci-local-ios.sh` built in `$TMPDIR/byt-ci-dd`. macOS deletes files in `$TMPDIR` that
   look older than three days, and unpacked package binaries keep their archive dates (the
