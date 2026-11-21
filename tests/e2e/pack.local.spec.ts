@@ -35,7 +35,7 @@ test("upload, verdict, country flip", async ({ page }) => {
   // A new box starts in the Philippines, where liquid lotion is out; Canada takes it.
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("Take it out");
   expect(sentImages).toEqual([shown]);
-  await page.getByTestId("destination-picker").selectOption("CA");
+  await page.getByTestId("destination-picker").getByRole("radio", { name: /^Canada/ }).click();
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("OK to pack");
   await expect(page.getByTestId("recheck-line")).toContainText("0 model calls");
   expect(modelCalls).toBe(1);

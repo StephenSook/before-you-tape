@@ -97,6 +97,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .purpose { font-size: 1.15rem; margin: 0 0 8px; }
 .judge-link { font-weight: 600; }
 a { color: var(--ink); text-underline-offset: 2px; }
+/* Where the box is going: one 44 px button per country. */
+.destination-label { margin: 0 0 var(--space-1); font-weight: 600; }
+.segmented { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.segment { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: var(--space-2) var(--space-4); font: inherit;
+  color: var(--ink); background: var(--paper); border: var(--outline); border-radius: var(--radius-chip); cursor: pointer; }
+.segment[aria-checked="true"] { background: var(--ink); color: var(--paper); }
+.segment-badge { font-size: 0.8rem; padding: 2px var(--space-2); border-radius: var(--radius-chip); background: var(--amber); color: var(--ink); }
+.destination-note { margin: var(--space-2) 0 0; font-size: 0.95rem; }
 
 /* "Add a photo": a label drawn as a button, around a picker that is hidden but still focusable. */
 .button-like { display: inline-block; padding: 8px 16px; border: 1px solid currentColor; border-radius: 999px; cursor: pointer; }
