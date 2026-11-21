@@ -563,6 +563,28 @@ describe("createBoxStore", () => {
         }
       });
 
+      it("drops an earlier second look when a later one sees another kind of item", () => {
+        const { s, id } = look(phone, phone);
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        const tablet: ItemRead = { ...big, itemName: "Tablet", category: "tablet", milliampHours: 5000, wattHours: 19.25 };
+        s.applySecondLook(id, mergeReads(phone, tablet), 900, "reason", tablet.labelText, readDisputes(phone, tablet));
+        expect(s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
+      });
+
+      it("does not count a second look as agreeing when the sender changed what the item is", () => {
+        const bank: ItemRead = { ...phone, itemName: "Power bank", category: "power_bank" };
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead(outcome(bank, "on_device"), "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.answer(id, "cell_count", "one");
+        s.override(id, { category: "phone" });
+        s.confirmIdentity(id);
+        s.applySecondLook(id, mergeReads(bank, bank), 900, "reason", bank.labelText, readDisputes(bank, bank));
+        expect(s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
+        expect(level(s, id)).not.toBe("ok");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });

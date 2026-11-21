@@ -204,9 +204,10 @@ const forRules = (i: BoxItem): BoxItem =>
 
 // Who stands behind an item once a second look lands. Same kind of item, numbers that agree and none typed: the second
 // look, even over an earlier tap of "Yes, this is". Numbers typed while it ran: the sender. Numbers the two reads gave
-// differently: never the second look, as an earlier one no longer holds. Another kind of item: as before.
+// differently, or another kind of item than the one the box has: never the second look, as an earlier one no longer
+// holds; the sender's own confirmation stays.
 function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes): BoxItem["identityConfirmedBy"] {
-  if (!sameKind) return i.identityConfirmedBy;
+  if (!sameKind) return i.identityConfirmedBy === "second_look" ? null : i.identityConfirmedBy;
   if (typesNumbers(i.overrides)) return "sender";
   if (numbersDisputed(found)) return i.identityConfirmedBy === "second_look" ? null : i.identityConfirmedBy;
   return "second_look";
@@ -574,7 +575,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
-          identityConfirmedBy: secondLookIdentity(i, merged.category === i.read.category, found),
+          // The kind of item the box has now, with the sender's own correction over the read.
+          identityConfirmedBy: secondLookIdentity(i, merged.category === (i.overrides.category ?? i.read.category), found),
         }, found);
       });
     },
