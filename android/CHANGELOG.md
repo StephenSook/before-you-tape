@@ -3,6 +3,7 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **A one-page runbook for a borrowed Gemini Nano phone.** `android/BORROWED-NANO-PHONE.md`, linked from `RELEASE.md`, gives the owner's steps (Developer options, USB debugging, Wi-Fi), what the model download needs (from the ML Kit and Firebase docs), our checks (a release APK with its SHA-256 recorded, the facts to record, three on-device label reads, one in airplane mode, screenshots of our app only), the film beats, and how the phone is given back (our app uninstalled, USB debugging revoked, no account or file left; a Gemini Nano download stays in AICore for the owner to clear). The app shows no read time, so the screen recording gives it. Source: the plan for a borrowed phone. Verified: each step names strings from `ui/Copy.kt` ("Check on this phone only", "Get the model on this phone", "Labels are read on this phone first.", "Read on this phone"); text only otherwise.
 - **The consent choice no longer says "Keep everything on this phone".** It now reads "Check on this
   phone only": the box list still saves each item's category, battery numbers and answers to the
   account, so "everything" was not true. The web button changes the same way ("Check on this laptop
