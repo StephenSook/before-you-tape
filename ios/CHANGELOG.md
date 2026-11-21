@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the App Store notes say a cloud check sends the photo or the words, never both
+- What: the App Privacy evidence, the description and the review notes said the label's words go
+  with the crop. A cloud request carries the crop or the words, never both
+  (`ios/BYTCore/Sources/BYTCore/CloudOutbound.swift`); they now say so, as the public privacy page
+  does. A new App Privacy note lists what Remote Config receives (installation ID, app version,
+  language, country and time zone settings, system version), matching the privacy page and
+  Firebase's own disclosure page, and why it adds no location or Device ID row; the Device ID
+  reading is left to the account holder. The not-collected list says nothing in the box leaves
+  the iPhone.
+- Source: the privacy page review.
+- Verified: `CloudOutbound` has one constructor for a crop and one for words; the bundled Remote
+  Config and Installations manifests declare only Other Diagnostic Data (not linked, Analytics);
+  `check_lengths.py` exits 0; tone and hygiene pass; the privacy manifest tests pass.
+
 ### fix(ios): the dispute lines wrap instead of being cut short
 - What: "The two reads disagree. Pick what the item shows." and the confirm sentence are set to
   wrap at any height. As disputes were settled the card's list row shrank, and the first line was
