@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A LiveReadPanel for /judge: one live read of the sample photo through the real read path, loaded only when pressed. It reads on this laptop when it can, otherwise in the cloud only after Allow, and never while cloud checks are paused or on a sample whose bytes do not match its record. It shows where the read ran and the time from the press that started it (the button, or Allow) to the verdict on screen. One read at a time, then a 10 s wait. Not on the page yet. Source: /judge live-read plan. Verified: eight panel tests failed first and pass; the full suite passes.
+
 - The engine's big-box timing test has a 30 s limit instead of 5 s: it judges ten boxes of 100 and 400 items, which took 7.2 s on a machine at load average 340. The growth check (400 items under ten times 100) is unchanged. Source: the test hit the 5 s limit during a merge. Verified: the full suite passes.
 - Consent cannot be brought back by a tab on the earlier version: its no is recorded under the current key, so its later yes to the earlier question is ignored. Another tab's changes reach this page with each event's own value, so a tab that hears an off and an on together still drops waiting second looks. Each cloud question records the choice when it opened, and an Allow pressed after another tab answered (even before its event arrives) is not taken. A press of Check now or of the sample closes an open question at once, before cropping. Source: second adversarial review of the consent changes. Verified: four new tests failed first and pass; the full suite and home-page browser checks pass.
 
