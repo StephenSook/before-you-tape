@@ -16,8 +16,9 @@ import Testing
             models.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
         }, parse: { ParsedRead(read: $0) })
-        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader,
-                         appVersion: appVersion, fetchEdition: fetchEdition)
+        // A model that cannot read photos, so a photo needs the cloud.
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                         reader: reader, appVersion: appVersion, fetchEdition: fetchEdition)
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
         return m
@@ -197,7 +198,8 @@ import Testing
             names.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
         }, parse: { ParsedRead(read: $0) })
-        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                         reader: reader)
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
         #expect(m.config.killCloud && m.config.pauseUnknown)

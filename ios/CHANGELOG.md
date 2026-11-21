@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### feat(ios): a label photo is read on Apple's model when the model reads images
+- What: photos went to the cloud on every iPhone (`ClaimTier.photoOnDevice` was false). The router
+  now sends a photo to Apple's on-device model whenever the model reports image understanding
+  (`capabilities.contains(.vision)`, iOS 27), with the crop as an image attachment and the same
+  generated read type; the rules engine still decides the verdict. With no network and the cloud
+  question never answered, the photo is read on the iPhone and nothing asks about the cloud. A
+  model that does not report image understanding never gets the photo: it goes to the cloud only
+  when allowed, recorded as `no_image_input`. The app tests now name the model they assume
+  (`wordsOnly` or `wordsAndPhotos`), because the simulator on a Mac with Apple Intelligence
+  reports image understanding and those tests had silently relied on photos going to the cloud.
+- Source: lane goal (an on-device photo read, proven in airplane mode on a real iPhone).
+- Verified: the two on-device router tests failed before the change (the photo went to the cloud)
+  and pass after; a new app test reads a photo offline on the fake device runner and finds it in
+  the box as `phone_on_device` with "Read on this iPhone."; 151 unit tests pass. Not yet run on a
+  real iPhone.
+
 ### docs(ios): the iPhone README says the local checks pass
 - What: the "Known failures" table is replaced by the test status: the mirror passes, and the four
   tests listed on Nov 19 pass in two full runs on main at 76acd04; their cause is not known.
