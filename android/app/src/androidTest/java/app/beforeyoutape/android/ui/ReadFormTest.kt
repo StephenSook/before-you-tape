@@ -29,9 +29,22 @@ class ReadFormTest {
         field(ReadCopy.NAME_OPTIONAL).performScrollTo().assertExists()
         field(ReadCopy.LABEL_TEXT).performScrollTo().assertExists()
         rule.onNodeWithText(ReadCopy.CHOOSE_ONE).performScrollTo().assertExists()
-        for ((_, label) in ReadCopy.NUMBERS) field(label).performScrollTo().assertExists()
+        // No category yet: the battery numbers wait, as on the web form.
+        for ((_, label) in ReadCopy.NUMBERS) field(label).assertDoesNotExist()
         for ((_, label) in ReadCopy.FLAGS) rule.onNode(isToggleable() and hasText(label)).performScrollTo().assertExists()
         for ((_, label) in ReadCopy.BOX_VALUES) rule.onNode(isSelectable() and hasText(label)).performScrollTo().assertExists()
+    }
+
+    /** A battery item shows the four numbers; a shirt does not need volts. */
+    @Test fun batteryNumbersShowForABatteryItemOnly() {
+        rule.setContent { ReadForm(start = null, nameLabel = ReadCopy.NAME_OPTIONAL, saveLabel = ReadCopy.ADD, onSave = {}, startCategory = ItemCategoryWire.power_bank) }
+        for ((_, label) in ReadCopy.NUMBERS) field(label).performScrollTo().assertExists()
+    }
+
+    @Test fun aShirtShowsNoBatteryNumbers() {
+        rule.setContent { ReadForm(start = null, nameLabel = ReadCopy.NAME_OPTIONAL, saveLabel = ReadCopy.ADD, onSave = {}, startCategory = ItemCategoryWire.clothing) }
+        for ((_, label) in ReadCopy.NUMBERS) field(label).assertDoesNotExist()
+        rule.onNode(isToggleable() and hasText(ReadCopy.FLAGS.first().second)).performScrollTo().assertExists()
     }
 
     @Test fun aNegativeNumberCannotBeSaved() {

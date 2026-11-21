@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import { resolveDestination } from "../engine/edition";
@@ -23,6 +23,15 @@ const items = [
 const result = evaluateBox(items, ed, resolveDestination(ed, "CA"), "2026-11-20");
 
 describe("BoxSummary", () => {
+  it("shows the counts as chips, one per verdict in the box", () => {
+    render(<BoxSummary limits={ed.limits} result={result} itemCount={2} recheck={null} />);
+    const chips = within(screen.getByTestId("box-summary")).getAllByRole("listitem");
+    expect(chips.length).toBeGreaterThan(0);
+    for (const c of chips) expect(c.className).toMatch(/\bcount-chip\b/);
+    expect(chips.map((c) => c.className.match(/chip-(take_out|check|ok)/)?.[1])).toEqual(
+      [result.counts.takeOut > 0 && "take_out", result.counts.check > 0 && "check", result.counts.ok > 0 && "ok"].filter(Boolean));
+  });
+
   it("counts the box by verdict and shows the lithium count", () => {
     render(<BoxSummary limits={ed.limits} result={result} itemCount={3} recheck={null} />);
     const s = screen.getByTestId("box-summary");

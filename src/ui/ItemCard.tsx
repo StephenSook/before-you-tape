@@ -145,7 +145,9 @@ const OWN_CHECK = "Before You Tape: ";
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave, onQuantity, onRemove }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
-  const reason = verdict.hits[0]?.text;
+  // The first reason, but not one that only restates the item's question, which the card asks just below.
+  const question = verdict.question;
+  const reason = verdict.hits.find((h) => !(question && h.text.startsWith(question.text)))?.text;
   const numbers = batteryLine(item);
   // Each published rule the verdict cites, once, as a link to its page. The app's own checks ("Before You Tape: ...")
   // are not published rules and no rule page explains them, so they are named once each as plain text.

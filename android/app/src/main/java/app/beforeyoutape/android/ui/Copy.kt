@@ -37,7 +37,6 @@ object Copy {
     const val HOLD_ZONE = "Hold the item's label inside this frame."
     const val LOADING = "Loading the rules."
     const val WHERE_TO = "Where is the box going?"
-    const val CHOOSE_DESTINATION_FIRST = "Choose where the box is going first."
     const val ADD_ANOTHER = "Add another item"
     const val ABOUT = "About this phone"
     const val RULES_ON_WEB = "Rules on the web"
@@ -101,7 +100,7 @@ object Copy {
     }
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
+        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
         sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud").map { readLine(it, 1234.0) }
