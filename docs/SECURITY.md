@@ -71,6 +71,10 @@ Each call above starts only when all three hold, checked right before it:
 - **The pause (`kill_cloud`).** Cloud checks stay off until Remote Config has given this browser a value of its own. If nothing was ever fetched and activated (a first visit with Remote Config blocked or offline), they stay off for the visit. A value fetched and activated earlier is used until the next successful fetch or real-time update replaces it. That is how Remote Config delivers settings, and it is the accepted limit: a new pause reaches a browser on its next fetch or update, not before.
 - **This page.** The page is open, online, and not withdrawn; leaving the page aborts its calls.
 
+### The service worker
+
+It caches only the app's own files (the page, its built code with the rules, fonts and icons), never a reply from a Google host, and opens the cached page only for the app's own routes (`scripts/pwa-options.ts`). Its kill switch: set the repository variable `BYT_SW_KILL` to `1` and run the deploy (`gh variable set BYT_SW_KILL --body 1`, then `gh workflow run deploy-live.yml`). Every deploy then ships a worker that unregisters itself, deletes its caches and reloads each open tab once, until the variable is removed (`gh variable delete BYT_SW_KILL`) and the next deploy runs. A variable, not a commit, so a merge during an incident never brings the worker back. `tests/e2e/sw-kill.local.spec.ts` builds that worker and checks it removes an installed one.
+
 ### What Firestore keeps
 
 A box and its items, for its members only. Never label text, never consent, and never an item's own name: each item carries the label of its category (for example "Perfume or cologne"), and the model's name or the sender's own words for it stay on the device (`src/data/deviceNames.ts`).
