@@ -24,7 +24,12 @@ export interface RunnerInput {
   // How many times each of the device and cloud paths is timed; the first read is the one judged.
   repeat?: number;
   secondLook?: SecondLookPolicy;
+  // The paths to run (all three by default). A path not run is null, and a shipped route not run is "not_run".
+  paths?: readonly EvalPath[];
 }
+
+export type EvalPath = "device" | "cloud" | "shipped";
+export const ALL_PATHS: readonly EvalPath[] = ["device", "cloud", "shipped"];
 
 export interface RunnerFailure { itemId: string; path: "device" | "cloud" | "shipped" | "second_look"; error: string }
 
@@ -54,6 +59,7 @@ async function levelsOf(edition: RuleEdition, date: string, destinations: readon
 export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failures: RunnerFailure[] }> {
   const repeat = Math.max(1, i.repeat ?? 1);
   const policy = i.secondLook ?? SECOND_LOOK_DEFAULT;
+  const paths = new Set(i.paths ?? ALL_PATHS);
   const rows: EvalRow[] = [];
   const failures: RunnerFailure[] = [];
   for (const item of i.set.items) {
@@ -72,11 +78,11 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
         return null;
       }
     };
-    const device = await path("device", "device_only");
-    const cloud = await path("cloud", "cloud_only");
+    const device = paths.has("device") ? await path("device", "device_only") : null;
+    const cloud = paths.has("cloud") ? await path("cloud", "cloud_only") : null;
 
     let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean } | null = null;
-    try {
+    if (paths.has("shipped")) try {
       const outcome = await readItem(i.models, image, "hybrid", i.now);
       let looked = false;
       const levels = await levelsOf(i.edition, i.date, i.set.destinations, outcome, async (store, itemId) => {
@@ -101,7 +107,8 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
       const pathResult = (p: typeof device): PathResult | null => (p ? { read: p.read, msRuns: p.msRuns, level: p.levels[destination]! } : null);
       rows.push({
         itemId: item.itemId, destination, device: pathResult(device), cloud: pathResult(cloud),
-        shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook } : { level: "check", source: "failed", secondLook: false },
+        shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook }
+          : { level: "check", source: paths.has("shipped") ? "failed" : "not_run", secondLook: false },
       });
     }
   }

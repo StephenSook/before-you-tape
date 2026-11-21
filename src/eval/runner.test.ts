@@ -91,6 +91,18 @@ describe("evalRows", () => {
     expect(models.device.generate).toHaveBeenCalledTimes(3);
   });
 
+  it("runs only the paths asked for, and marks the others as not run, never guessed", async () => {
+    const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, paths: ["cloud"] });
+    expect(models.cloud.generate).toHaveBeenCalledTimes(1);
+    expect(models.device.generate).not.toHaveBeenCalled();
+    expect(models.hybrid.generate).not.toHaveBeenCalled();
+    expect(out.rows[0]!.device).toBeNull();
+    expect(out.rows[0]!.cloud!.level).toBe("ok");
+    expect(out.rows[0]!.shipped).toEqual({ level: "check", source: "not_run", secondLook: false });
+    expect(out.failures).toEqual([]);
+  });
+
   it("refuses an item with no photo", async () => {
     const models = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
     await expect(evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: {}, now })).rejects.toThrow(/own-18: no photo/);

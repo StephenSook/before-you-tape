@@ -48,6 +48,9 @@ describe("eval-run", () => {
     expect(() => preflight({ ...ok, file: (f: string) => files(null)[f as keyof ReturnType<typeof files>] ?? null })).toThrow(/no \.env\.eval\.local/);
     expect(() => preflight({ ...ok, env: { APPCHECK_DEBUG_TOKEN: "t" } })).toThrow(/BYT_NANO_PROFILE/);
     expect(() => preflight({ ...ok, env: { BYT_NANO_PROFILE: "/p" } })).toThrow(/byt-eval-appcheck-debug-token is empty/);
+    expect(preflight(ok).paths).toEqual(["device", "cloud", "shipped"]);
+    expect(preflight({ ...ok, argv: ["--date", "2026-11-21", "--paths", "cloud"] }).paths).toEqual(["cloud"]);
+    expect(() => preflight({ ...ok, argv: ["--date", "2026-11-21", "--paths", "cloud,moon"] })).toThrow(/--paths/);
   });
 
   it("chains no npm script with ';', so a failed step always stops the next", () => {

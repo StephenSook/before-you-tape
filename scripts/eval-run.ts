@@ -15,6 +15,7 @@ import { chromium } from "@playwright/test";
 import { isCalendarDate } from "../src/engine/edition";
 import { buildEvalSet, type SetLabels, type SetManifest } from "../src/eval/loadSet";
 import { computeEvalMetrics, redactRun } from "../src/eval/metrics";
+import { ALL_PATHS, type EvalPath } from "../src/eval/runner";
 import type { EvalRow, EvalRun, EvalSet } from "../src/eval/types";
 import { evalPhotos, machineOf, osName, requireEnv } from "./device-e2e";
 
@@ -95,7 +96,7 @@ export function evalToken(env: Record<string, string | undefined>, keychain: (se
   return value.trim();
 }
 
-export interface Preflight { date: string; repeat: number; items: string | undefined; project: string; profile: string; token: string }
+export interface Preflight { date: string; repeat: number; items: string | undefined; paths: EvalPath[]; project: string; profile: string; token: string }
 
 // Every precondition, checked in order before anything starts; the first that fails stops the run.
 export function preflight(i: { argv: string[]; env: Record<string, string | undefined>; file: (path: string) => string | null; keychain: (service: string) => string }): Preflight {
@@ -104,15 +105,17 @@ export function preflight(i: { argv: string[]; env: Record<string, string | unde
   if (!isCalendarDate(date)) throw new Error("--date must be a real YYYY-MM-DD date");
   const repeat = Number(arg("--repeat") ?? "1");
   if (!Number.isInteger(repeat) || repeat < 1 || repeat > 5) throw new Error("--repeat must be a whole number from 1 to 5");
+  const paths = (arg("--paths") ?? ALL_PATHS.join(",")).split(",").map((p) => p.trim()) as EvalPath[];
+  if (paths.length === 0 || paths.some((p) => !ALL_PATHS.includes(p))) throw new Error(`--paths must name some of ${ALL_PATHS.join(", ")}`);
   const live = i.file(".env.local");
   const project = evalEnv(i.file(".env.eval.local"), live === null ? {} : parseEnvFile(live));
   const profile = resolve(requireEnv(i.env, "BYT_NANO_PROFILE"));
   const token = evalToken(i.env, i.keychain);
-  return { date, repeat, items: arg("--items"), project, profile, token };
+  return { date, repeat, items: arg("--items"), paths, project, profile, token };
 }
 
 async function main(): Promise<void> {
-  const { date, repeat, items, project, profile, token } = preflight({
+  const { date, repeat, items, paths, project, profile, token } = preflight({
     argv: process.argv, env: process.env,
     file: (f) => (existsSync(f) ? readFileSync(f, "utf8") : null),
     keychain: (service) => execFileSync("security", ["find-generic-password", "-s", service, "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }),
@@ -148,7 +151,7 @@ async function main(): Promise<void> {
     await page.goto(`${origin}/scripts/device-e2e/harness.html`);
     await page.waitForSelector("body[data-ready='1']", { timeout: 60_000 });
     const result = await page.evaluate((input) => window.bytEvalRun(input), {
-      items: photos.map((p) => ({ itemId: p.itemId!, base64: p.base64 })), set, edition, date, repeat,
+      items: photos.map((p) => ({ itemId: p.itemId!, base64: p.base64 })), set, edition, date, repeat, paths,
       cloudModel: models.cloud, fallbackModel: models.fallback,
     });
     await page.close();
@@ -159,7 +162,8 @@ async function main(): Promise<void> {
     const machine = machineOf((k) => execFileSync("sysctl", ["-n", k], { encoding: "utf8" }));
     const os = osName(platform(), release(), () => execFileSync("sw_vers", ["-productVersion"], { encoding: "utf8" }));
     const run: EvalRun = {
-      runId: `models-${date}`, setId: set.setId, date,
+      // A run of some paths only (a wiring check) is named for them and never gets a public copy.
+      runId: paths.length === ALL_PATHS.length ? `models-${date}` : `partial-${paths.join("-")}-${date}`, setId: set.setId, date,
       machine: [machine.chip, machine.memoryGb ? `${machine.memoryGb} GB` : "", machine.model, os].filter(Boolean).join(", "),
       chromeVersion, modelShown: `device: Chrome built-in model (gate ${result.gate}); cloud: ${models.cloud}, fallback ${models.fallback}`,
       editionId: edition.editionId, rows: result.rows as EvalRow[],
@@ -167,7 +171,7 @@ async function main(): Promise<void> {
     const metrics = computeEvalMetrics(set, run);
     mkdirSync(join("eval", "runs", "private"), { recursive: true });
     writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, failures: result.failures, cloudRequests, project }, null, 2) + "\n");
-    writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), metrics }, null, 2) + "\n");
+    if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), metrics }, null, 2) + "\n");
     console.log(JSON.stringify({ runId: run.runId, failures: result.failures.length, cloudRequests, metrics }, null, 2));
   } finally {
     if (chrome && chrome.exitCode === null && chrome.signalCode === null) chrome.kill();
