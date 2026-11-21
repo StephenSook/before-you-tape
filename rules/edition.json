@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-f46b2c279317",
+  "editionId": "byt-6de003975d6d",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -1697,7 +1697,7 @@
           "lineId": "CA-P-10",
           "section": "prohibitions",
           "lineSha256": "f10daa8fcbb904d93c7121c07b72bf0f38fd90f6c6bc4a5e2bf683639fb6f7b2",
-          "ourWording": "That includes ads that say where in Canada to buy something.",
+          "ourWording": "That includes ads that say where in Canada someone can get goods or services.",
           "matches": [],
           "noMatch": {
             "decision": "not_a_gift_item",

@@ -68,6 +68,7 @@ describe("destination editions", () => {
     const wording = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.ourWording ?? "";
     const terms: [string, string, RegExp][] = [
       ["CA", "CA-P-09", /^No issue of a publication with more than 5 percent of the ad space/], // any publication, not "mainly"
+      ["CA", "CA-P-10", /where in Canada someone can get goods or services/], // USPS: may be obtained, bought or not
       ["CA", "CA-P-11", /specific items, or terms for selling or providing goods or services/],
       ["CA", "CA-P-12", /identical form in every edition distributed in its home country/], // free editions too
       ["CA", "CA-P-13", /Britain or any other British country/],
