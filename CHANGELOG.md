@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- First measured totals for /ran (src/ran/measured.json, written by scripts/measure-routes.ts at 2026-11-21 11:11 UTC from the route records in the saved boxes): 27 items read in the cloud (median 0.9 s, 90th percentile 2.3 s), fewer than 5 on the device, in 269 saved boxes; second looks and fallbacks fewer than 5; 131 typed by hand, our own deploy checks included. Source: per-read telemetry plan. Verified: written by the script, not by hand; it holds only counts, times, the window and the source, and its smallest published count is 27.
+
 - /ran shows the measured totals: one line (items read in the cloud and on this device, in how many saved boxes, and when), with the detail behind How this was measured (each route's count and median and 90th percentile time, second looks, fallbacks, typed items with our own deploy checks included, the window and the source). A file more than 14 days old or one it cannot read shows no number and says why. The page reads src/ran/measured.json, which scripts/measure-routes.ts writes; there is none yet. Source: per-read telemetry plan. Verified: three new RanPage tests failed first and pass; typecheck, build, the full suite and the home, accessibility and contrast browser checks pass.
 
 - The /ran totals give times in whole milliseconds. Source: per-read telemetry plan (the first dry run printed 2256.699999988079). Verified: a new summarizeRoutes test failed first and passes; full suite passes.

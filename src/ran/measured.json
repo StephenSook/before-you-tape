@@ -1,0 +1,33 @@
+{
+  "measuredAt": "2026-11-21T11:11:09.449Z",
+  "source": "Route records in the saved boxes of before-you-tape-2026: each item's read source, read time, second look and fallback, read through the Firestore API",
+  "window": {
+    "from": "2026-11-18",
+    "to": "2026-11-21"
+  },
+  "boxes": {
+    "n": 269
+  },
+  "items": {
+    "n": 161
+  },
+  "typedByHand": {
+    "n": 131
+  },
+  "reads": {
+    "onDevice": {
+      "fewerThan": 5
+    },
+    "inCloud": {
+      "n": 27,
+      "p50Ms": 900,
+      "p90Ms": 2257
+    }
+  },
+  "secondLooks": {
+    "fewerThan": 5
+  },
+  "fallbacks": {
+    "fewerThan": 5
+  }
+}
