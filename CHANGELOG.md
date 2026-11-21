@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The /judge live read keeps its main line short ("Read on this laptop, 30.0 s") and puts the time per step in a closed Details: start (loading the app's parts and checking where to read), photo (fetched, checked and cropped) and model. When the model took more than half the time on that press, the details say "Most of this time was the model's run." Source: live-read review (a cold read of exactly 30.0 s; no fixed wait found in the code). Verified: two new LiveReadPanel tests failed first and pass; the full suite and the /judge browser checks pass.
+
 - The /judge live read names the country it judged, beside the verdict: "Take it out for the Philippines" (a new inCountry helper puts "the" before names that take it). Source: live-read review (the chip did not say which country). Verified: new LiveReadPanel and inCountry tests failed first and pass; the full suite passes.
 
 - The native engine bridge gains two functions for a cloud second look, so the iPhone runs the web app's own rule and

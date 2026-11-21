@@ -22,8 +22,6 @@ function deps(o: { gate?: GateState; consent?: boolean | null; paused?: boolean;
   };
   return { d, m, consent: () => consent, load: vi.fn(async () => d) };
 }
-// A clock that moves 1.5 s between the press and the verdict on screen.
-const clock = () => { let t = 1000; return () => (t += 1500); };
 const judge = () => "take_out" as const;
 
 describe("LiveReadPanel", () => {
@@ -36,7 +34,7 @@ describe("LiveReadPanel", () => {
 
   it("reads the sample on this laptop when it can, and says where and how long from the press", async () => {
     const { load, m } = deps({ gate: "available" });
-    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={clock()} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(1000, 1100, 1200, 2500)} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this laptop, 1.5 s");
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
@@ -47,7 +45,7 @@ describe("LiveReadPanel", () => {
 
   it("reads in the cloud when this laptop cannot and cloud checks are on", async () => {
     const { load, m } = deps({ consent: true });
-    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={clock()} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(1000, 1100, 1200, 2500)} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read in the cloud, 1.5 s");
     expect(m.cloud.generate).toHaveBeenCalledTimes(1);
@@ -119,4 +117,31 @@ describe("LiveReadPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-verdict")).toHaveTextContent("Take it out for the Philippines");
   });
+
+  // Four clock readings: the press, the start of the read, after the photo, after the model.
+  const ticks = (...t: number[]) => { let i = 0; return () => t[Math.min(i++, t.length - 1)]!; };
+
+  it("keeps the time per step in a closed Details, and says when the model took most of it", async () => {
+    const { load } = deps({ gate: "available" });
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(0, 400, 600, 30_000)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
+    expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this laptop, 30.0 s");
+    expect(screen.getByTestId("live-read-verdict")).toHaveTextContent("Take it out for the Philippines");
+    const details = screen.getByText("Details").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(details).toHaveTextContent("Start: 0.4 s");
+    expect(details).toHaveTextContent("Photo: 0.2 s");
+    expect(details).toHaveTextContent("Model: 29.4 s");
+    // The model took most of the time on this press, so the details say so.
+    expect(details).toHaveTextContent("Most of this time was the model's run.");
+  });
+
+  it("says nothing about the model's share when it took less than half the time", async () => {
+    const { load } = deps({ gate: "available" });
+    render(<LiveReadPanel load={load} judge={judge} country="Canada" now={ticks(0, 3000, 3200, 5000)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
+    expect(await screen.findByTestId("live-read-verdict")).toHaveTextContent("Take it out for Canada");
+    expect(screen.getByText("Details").closest("details")).not.toHaveTextContent("Most of this time");
+  });
 });
+
