@@ -149,13 +149,14 @@ import Testing
     }
 
     /// The web app sends only photos, so its sentence names the photo. The iPhone also sends label words
-    /// typed or scanned, never with the photo (CloudOutbound), so its sentence names one or the other;
-    /// the rest is the web app's sentence.
+    /// typed or scanned, never with the photo (CloudOutbound), so its sentence names one or the other.
+    /// Both name the second look and end the same way.
     @Test func theConsentQuestionSaysThePhotoOrTheWordsGo() throws {
         let web = try String(contentsOf: BoxStoreTests.repo.appendingPathComponent("src/ui/ConsentNotice.tsx"), encoding: .utf8)
         #expect(ConsentSheet.sentence == "To check items this iPhone can't read, and to check a read again when the rules ask, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?")
-        #expect(web.contains("\"To check items when this laptop can't, a cropped photo of the item and"))
-        #expect(web.contains("go to Google's Gemini. Allow?\""))
+        for shared in [", and to check a read again when the rules ask, ", " goes to Google's Gemini. Allow?"] {
+            #expect(web.contains(shared) && ConsentSheet.sentence.contains(shared), "\(shared)")
+        }
         #expect(ConsentSheet.allowLabel == "Allow" && ConsentSheet.keepLabel == "Keep everything on this iPhone")
     }
 

@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the cloud question test checks the words the web's new question shares
+- What: the web app's cloud question changed (it now names the second look too). The iPhone test
+  compared against the web's earlier opening words; it now checks that both questions carry the
+  same second-look clause and the same ending. The iPhone's own sentence is unchanged.
+- Source: merging main (the web's new cloud question).
+- Verified: 222 unit tests pass on the merged tree.
+
 ### fix(ios): a rule update that makes both labels' words agree settles their dispute
 - What: when a new edition found the same words on both reads' labels, the label dispute stayed open
   and held the item at "Check this", asking the sender to choose between identical readings. A rule
