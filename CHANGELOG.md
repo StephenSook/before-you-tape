@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The Judges page's Android link and the README now point at the android-judge-2 release, the APK that passed the release gate on a Samsung A16 (before-you-tape-android-59c5914.apk, SHA-256 8b9f332d...3cade9), which GitHub lists as Latest. They pointed at the first android-judge release (76acd04). Source: review of the judge-facing claims. Verified: the Judges page test, pointed at android-judge-2, failed first and passes; the APK name and SHA-256 are read from the release's own assets (gh release view android-judge-2); the full suite passes.
+
 - TEST-MATRIX row 16 (QuickJS against V8 on Android) records the Samsung A16 run of 2026-11-21: the android-judge-2 release APK of 59c5914, shared vectors pass (box 30, guards 64, destinations 21), and 427 inputs give equal answers against WebView V8 157.0.8103.50, with both planted-failure controls reported. It said the A16 was not run yet. Source: review. Verified against docs/evidence/android/G-A5.md on main (A16 row, the release APK and its SHA-256, the Controls section).
 
 - SECURITY.md row 1d now names the Android evidence for its Firestore checks, docs/evidence/android/a16-2026-11-21/README.md. Source: review (each claim needs a file a reader can open). Verified: the file is on main and records BoxLiveTest and EditionPinLiveTest passing with App Check enforced, on the A16 with Play Integrity and on the emulator with a debug token.

@@ -16,7 +16,7 @@ To see a model run, press **Run one live read** on the same page. It reads the s
 4. The box is saved in Firestore, so it is still there when the page is opened again, for about 30 days. **Delete my saved box**, under the box, deletes it sooner, with its photos on this device and the anonymous sign-in.
 5. After one visit, the page opens with no connection: a service worker keeps the app's own files, with the rules inside them, so typed items and reads on the device still work offline. It keeps no answer from the cloud. A new version waits until you press **Reload**.
 
-The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge) (`before-you-tape-android-76acd04.apk`, SHA-256 `df64d580a71f9cd01ea9efc95df0542d4286a94ff8dc39494cf012f840ab4f71`). What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge-2 release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-2) (`before-you-tape-android-59c5914.apk`, SHA-256 `8b9f332dc7f681caf8a9d23a8b57e8ce8310b50b1e66edfa6407f88a5e3cade9`), the build checked on a Samsung A16. What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
 
 ## Run it
 
