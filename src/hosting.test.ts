@@ -61,8 +61,12 @@ describe("hosting", () => {
     for (const r of hosting.rewrites) {
       expect((hosting.headers ?? []).some((h) => h.regex === r.regex && cacheOf(h) === NO_CACHE), r.regex).toBe(true);
     }
-    // No service worker is served that could keep an old app.
-    expect(readFileSync(join(root, "firebase.json"), "utf8")).not.toMatch(/sw\.js/);
+    // The /sw.js served only removes a worker and its caches (public/sw.js), and is checked again every time, so a
+    // browser holding a worker from a release that was rolled back learns of it on its next visit.
+    expect(rulesFor("/sw.js").map(cacheOf)).toEqual([NO_CACHE]);
+    const sw = readFileSync(join(root, "public", "sw.js"), "utf8");
+    expect(sw).toContain("registration.unregister");
+    expect(sw).not.toMatch(/addEventListener\(\s*["']fetch["']/);
   });
 
   it("ships an icon that every page names, so no browser asks for a missing favicon.ico", () => {
