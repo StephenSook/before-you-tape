@@ -45,7 +45,7 @@ WHAT IT CHECKS
 
 PRIVATE BY DEFAULT
 - Photos are read on your iPhone when Apple Intelligence is on.
-- If your iPhone cannot read a photo, the app asks first. Only after you tap Allow, the cropped photo and the words on its label go to Google's Gemini through Firebase AI Logic. You can turn this off at any time.
+- If your iPhone cannot read a photo, the app asks first. Only after you tap Allow, the cropped photo goes to Google's Gemini through Firebase AI Logic; label words you type or scan can go instead of the photo. Once you have allowed cloud checks, a photo your iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a battery's numbers again. You can turn this off at any time.
 - Your box stays on your iPhone.
 
 WHEN IT SAYS CHECK THIS
@@ -71,5 +71,5 @@ nothing other people make.
 
 ## Version
 
-`MARKETING_VERSION` is 0.1.0 in `ios/project.yml`. Set the first App Store version (for example
-1.0.0) before the archive is made, and keep the version in App Store Connect the same.
+`MARKETING_VERSION` is 1.0.0 in `ios/project.yml`, the first App Store version (build 1). Keep the
+version in App Store Connect the same.

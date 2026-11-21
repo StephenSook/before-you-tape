@@ -1,7 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
+import { SAMPLE_READ } from "../data/sampleRead";
+import type { LiveReadDeps } from "../judge/LiveReadPanel";
 import { JudgePage } from "./JudgePage";
 
 const index = [
@@ -154,4 +156,27 @@ describe("JudgePage", () => {
     // The reason that says more than the question stays.
     expect(within(phone).getByText(/We can't see the battery rating through the box/)).toBeInTheDocument();
   });
+
+  it("offers one live read below the sample box, which loads nothing until it is pressed", () => {
+    const liveRead = vi.fn();
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" liveRead={liveRead} />);
+    expect(screen.getByRole("button", { name: "Run one live read" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Run one live read" })).toHaveAttribute("href", "#live-read");
+    expect(liveRead).not.toHaveBeenCalled();
+  });
+
+  it("judges the live read for the country picked, and again when the country changes", async () => {
+    const reply = { generate: vi.fn(async () => ({ text: JSON.stringify(SAMPLE_READ.read), source: "on_device" as const })) };
+    const deps: LiveReadDeps = {
+      gate: async () => "available", consent: { get: () => true, set: () => {} }, paused: async () => false,
+      models: () => ({ device: reply, hybrid: reply, cloud: reply }), sample: async () => ({ mimeType: "image/jpeg", base64: "/9j/AAAA" }),
+    };
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" liveRead={async () => deps} />);
+    await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
+    const result = await screen.findByTestId("live-read-result");
+    expect(within(result).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
+    expect(within(screen.getByTestId("live-read-result")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+  });
 });
+

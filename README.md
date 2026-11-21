@@ -6,6 +6,8 @@ Hold each gift up to your laptop and see what the post office won't take, before
 
 **Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call. The box starts in the Philippines. USPS suspends mail to Canada from November 29, 2026, so pick Canada to see the app follow it.
 
+To see a model run, press **Run one live read** on the same page. It reads the sample lotion photo with the app's real models: on your laptop when Chrome's built-in model is ready, otherwise in the cloud after you allow it. It shows where the read ran and the time from the press that started the read (the button, or Allow) to the verdict on screen. One read at a time, then a 10 s wait.
+
 ## How it works
 
 1. Hold an item to the camera, add a photo, or type what the label says. With no camera or no item at hand, "Try a sample photo" sends one of our test photos through the same read and the same cloud choice.
@@ -53,7 +55,7 @@ It fails today, on purpose, for two reasons. No person has checked the Canada an
 ## Security you can check
 
 - **App Check is enforced for Firebase AI Logic.** A model call with the site's public web key but no App Check token is refused with HTTP 401 "Firebase App Check token is invalid." The exact `curl` is in [`docs/SECURITY.md`](docs/SECURITY.md#check-it-yourself), and the daily probe makes the same call.
-- **Limited-use App Check tokens.** The web app asks for them when it creates its AI Logic instance (`getAi(true)` in `src/pages/PackRoute.tsx`, which sets `useLimitedUseAppCheckTokens` in `src/firebase/app.ts`). AI Logic enforces them (replay protection, since 2026-11-18).
+- **Limited-use App Check tokens.** The web app asks for them when it creates its AI Logic instance (`getAi(true)` in `src/pages/packDeps.ts`, which sets `useLimitedUseAppCheckTokens` in `src/firebase/app.ts`). AI Logic enforces them (replay protection, since 2026-11-18).
 - **Per-user rate limit.** AI Logic generate-content requests are limited to 20 a minute per user (the default is 100), read back on 2026-11-18. One sender checks items one at a time.
 - Every row of Firebase's AI Logic security checklist, with its state, date and how to check it, is in [`docs/SECURITY.md`](docs/SECURITY.md).
 - **Dependency audit (2026-11-19).** `npm audit --omit=dev` reports one package, `@grpc/grpc-js` 1.9.16, through Firestore's Node.js entry. Both advisories ([GHSA-m9gg-hp2v-232j](https://github.com/advisories/GHSA-m9gg-hp2v-232j), [GHSA-f596-whhp-79r4](https://github.com/advisories/GHSA-f596-whhp-79r4)) are about gRPC servers. The built web app holds no gRPC code: a search of `dist/assets` for it finds nothing.

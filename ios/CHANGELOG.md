@@ -5,6 +5,426 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### chore(ios): the first App Store version is 1.0.0
+- What: `MARKETING_VERSION` in `ios/project.yml` goes from 0.1.0 to 1.0.0 (build 1), the version the
+  first App Store build carries; the listing notes say so.
+- Source: App Store Connect prep (a public listing reading 0.1.0 looks unfinished).
+- Verified: no other file pins 0.1.0 except a version-compare test unrelated to the app's version;
+  xcodegen generates the project; the app test suite passes.
+
+### test(ios): the cloud question test checks the words the web's new question shares
+- What: the web app's cloud question changed (it now names the second look too). The iPhone test
+  compared against the web's earlier opening words; it now checks that both questions carry the
+  same second-look clause and the same ending. The iPhone's own sentence is unchanged.
+- Source: merging main (the web's new cloud question).
+- Verified: 222 unit tests pass on the merged tree.
+
+### fix(ios): a rule update that makes both labels' words agree settles their dispute
+- What: when a new edition found the same words on both reads' labels, the label dispute stayed open
+  and held the item at "Check this", asking the sender to choose between identical readings. A rule
+  update that tags both sides again now marks the dispute settled when their words agree.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (a word only the cloud's label had becomes a warning word, so both labels now
+  carry it) failed (dispute still open) and passes; 222 unit tests and both UI tests pass.
+
+### fix(ios): a look runs only while the rules still ask for it
+- What: the reason for a second look was worked out once, when the photo was read. A look offered,
+  waiting, or tried again later still went to the cloud after Remote Config had turned its reason
+  off. The reason is now worked out again under the policy in force when "Check it in the cloud" is
+  tapped and when a look starts; a look the rules no longer ask for is forgotten, not asked or sent.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (all reasons turned off after an offer, and after a failure: the offer asks
+  nothing, "Try again" sends nothing, both looks are forgotten) failed and passes; 221 unit tests
+  pass.
+
+### docs(ios): the limits name what no fix can close for the cloud choice and a sent photo
+- What: docs/LIMITS.md says that when no file at all can be saved as cloud checks are turned off
+  (storage full, say), the earlier choice can come back after a restart, and that the app warns; and
+  that a photo already on its way to the cloud when its item is removed or cloud checks are turned
+  off cannot be called back (its reply is not used). A test pins the first: with the record, its
+  marker and the box all failing, the warning shows, and the earlier "allowed" comes back after a
+  restart. A comment says why two markers left read as off (it errs toward off).
+- Source: review round 4 (Codex, on the second-look PR), accepted as known limits.
+- Verified: the new test passes; 220 unit tests pass; no dashes or curly quotes in docs/LIMITS.md.
+
+### fix(ios): the upload's cancellation link is set in the same main-actor step as the last check
+- What: the link that carries a read's cancellation to its upload got the upload only after the upload
+  had started, back in the read; a removal in that moment reached the upload late, possibly after it
+  had begun the call. The pause switch now hands the started upload to the link on the main actor in
+  the same step as the last check, so a removal (also on the main actor) lands either before the check
+  (nothing starts) or after the link has the upload (it is cancelled at once). The upload asks again
+  on the main actor and then checks it was not cancelled, right before the call. The upload stays a
+  task of its own so the server's pause can still cancel it.
+- Source: review round 4 (Codex, on the second-look PR).
+- Verified: a new runner test cancels the caller inside the last check, with every check still
+  saying wanted, and asserts no read; it passes. It also passed three times against the code before
+  this fix (the gap is too narrow to hit on demand), so it shows the guarantee, not the earlier
+  failure. 219 unit tests pass.
+
+### fix(ios): the card offers "Try again" only when no automatic try is coming
+- What: after a failure for no connection, the card showed "Try again" while the look was already
+  waiting to be tried again by itself, and a tap reset its tries and sent the crop once more. The card
+  now offers "Try again" only when no try of the look is running or coming by itself (a wait before an
+  automatic try, or the wait for the connection), so after the three automatic tries.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (no "Try again" while a retry waits; offered once the tries are used up)
+  passes; the card reads the same check; 218 unit tests pass.
+
+### fix(ios): a choice taken back whose record cannot be written still holds after a relaunch
+- What: when turning cloud checks off failed to write both the choice file and the box (a full disk,
+  say), both still held the old "allowed", and a relaunch opened the cloud gate again. Now a choice
+  taken back (off, or asked again) whose file cannot be written leaves an empty marker,
+  `<id>.consent-declined` or `<id>.consent-unasked`, which needs no space for content, and removes
+  the old choice file; the marker reads as that choice and wins over any "allowed". A later choice
+  that is written removes the markers. The in-app warning stays.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new file test (an "allowed" on disk, then off and unasked writes that fail; then a
+  good write) passes; written with the fix, so its first failure against the old code was a compile
+  error (the test sets the new write hook), not a behaviour check; 217 unit tests pass.
+
+### fix(ios): a cloud upload asks again inside itself whether it is still wanted
+- What: the cloud runner checked "still wanted" with the pause and then started the upload as a task
+  of its own, and only afterwards linked the read's cancellation to it. An item removed in that gap
+  cancelled the read, but the upload had no check of its own and could still send. The upload now
+  asks again, right before the call, and the cancellation link is in place before the upload starts,
+  so a cancellation at any moment reaches it.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new runner test (wanted when the upload starts, not when it runs) failed (the call was
+  made) and passes; 216 unit tests pass.
+
+### feat(ios): a card offers "Check it in the cloud" when the cloud question was never answered
+- What: an "allowed" given to the cloud question's earlier words now counts as unasked, and an iPhone
+  that reads everything on the device never asks the question, so its second looks would silently
+  stop. When the rules want a look and the question is unanswered (and the server has not paused
+  the cloud), the card now offers "Check it in the cloud" (the web app's words). It asks the
+  question first, with the crop that would be sent; "Allow" runs the look, and "Keep everything on
+  this iPhone" forgets every offered look. Nothing is offered after "off". docs/LIMITS.md says so.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: two new tests (an unasked sender is offered the look, the offer asks first and "Allow"
+  lands it; declining forgets it, and a sender who turned cloud checks off is offered nothing)
+  failed to compile before and pass after; the card words test checks the offer against the web;
+  215 unit tests and both UI tests pass.
+
+### fix(ios): one second look per item at a time, so retries never pass the cap
+- What: "Try again" started a new look beside a retry still waiting to run, and a look asked for
+  while one ran was queued to run right after it, even when that one failed for no connection and had
+  already scheduled its own retry. Sends could go past the three automatic tries. Now an item has one
+  look at a time: a new one cancels the earlier one (running, waiting its turn, or waiting to try
+  again) and starts once it has ended; a cancelled look makes no further call and lands nothing.
+- Source: review round 2 (Codex and Gemini, on the second-look PR).
+- Verified: two new tests ("Try again" replaces a retry waiting 30 seconds and lands at once;
+  "Try again" while a look runs gives exactly nine calls, the replaced look's one and the new
+  look's four tries of two, then the card asks) failed and pass; 213 unit tests pass.
+
+### fix(ios): a look cancelled while it waits in line lets go at once
+- What: the reader's gates kept a cancelled waiter in line until its turn, so a removed item's or a
+  revoked look's task, and the crop it carries, stayed in memory while slow looks ran ahead of it. A
+  task cancelled while it waits now leaves the line at once, holding nothing; a look that leaves this
+  way sends nothing.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: a new test (a look waiting behind a held one is removed) failed (still there after three
+  seconds) and passes; 211 unit tests pass.
+
+### fix(ios): an unreadable cloud choice record counts as unasked, and a failed write says so
+- What: a choice file that was there but could not be read (the iPhone locked, a read error) read as
+  no record, so the box file's "allowed" alone could hold. It now reads as unasked, so the stricter
+  record wins. Writing the record reports whether it worked; when it did not, the box shows "Your
+  cloud choice is not saved on this iPhone. Set it again before you close the app." even when the
+  box itself saved. The record existed only in this unreleased change, so nothing is migrated.
+- Source: automated security review of the consent file commit.
+- Verified: two new tests (a choice file made unreadable reads as unasked; a failed record write
+  shows the message, and a later good write clears it) failed and pass; 210 unit tests pass.
+
+### fix(ios): a second look sends only if it is still wanted right before the upload
+- What: the check that a look's item is still in the box and its cloud checks still allowed ran
+  before sign-in; the last check before the upload read only the pause. A look whose item was
+  removed, or whose cloud checks were taken back and allowed again, during sign-in still uploaded.
+  The cloud runner now reads the caller's gate again together with the pause right before the
+  upload starts, and every look carries its own id, so a forgotten look can never pass as a later
+  one.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: two new tests (the runner sends nothing when the read is no longer wanted after sign-in;
+  cloud checks taken back and allowed again while a look signs in send nothing) failed and pass;
+  208 unit tests pass.
+
+### fix(ios-core): cancelling a timed model call cancels the call itself
+- What: `Timeout.run` ran the call in a task of its own, so cancelling the caller (a look whose item
+  was removed, say) left the call running and its upload going. The caller's cancellation now
+  cancels the call, also when it comes before the call has started.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: a new engine-host test (cancel the caller of a 30-second call limited to 3 seconds)
+  failed (the call never saw the cancellation; the limit returned nil after 3 seconds) and passes;
+  37 engine-host tests pass.
+
+### fix(ios): the cloud choice is written to its own file at once, not to UserDefaults
+- What: the separate record of the cloud choice was kept in UserDefaults, which writes to disk later,
+  so an app stopped right after "off" (with the box save failed) could lose it and come back allowed.
+  The choice is now written synchronously and atomically to its own file, `<box id>.consent` beside
+  the box file, with the box file's protection; it is on disk when the call returns. The ranking of
+  the two records is unchanged. The App Privacy note on UserDefaults names only the box ID again.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: the file test now reads `b1.consent` from disk right after the write (it failed: no
+  file) and passes, reads a later choice back, and writes nothing for an unsafe id; 206 unit tests
+  pass.
+
+### fix(ios): a label picked after a rule update is tagged by the edition in force
+- What: picking one read's label words copied the words saved with the dispute, which the earlier
+  edition had found, while the item already said it was tagged by the new edition. A warning the new
+  edition finds on the picked label was lost. Now a pick tags the picked label again with the edition
+  in force while this iPhone holds it, and a rule update also tags both sides of an open label dispute
+  again, so the saved words always match the item's edition. Both labels stay in memory and the item
+  records which side was picked, so picking the other side later uses that side's own label (the
+  earlier fix replaced the first read's label on a cloud pick).
+- Source: review round 2 (Codex and Gemini, on the second-look PR).
+- Verified: a new test (rule update while the label words are disputed, then pick the first read)
+  failed (the new edition's word was missing) and passes; the existing pick-then-pick-again test
+  caught the replaced label during the fix and passes; 206 unit tests pass.
+
+### docs(ios): the App Privacy evidence says why an iPhone backup adds no row
+- What: note 3 now says the box folder is in the sender's own iPhone backup (iCloud Backup, if they
+  use it), which is the sender's own Apple service and not data Before You Tape collects, so it adds
+  no App Privacy row; the public privacy page already says a backup can keep a copy.
+- Source: review (Codex, on the second-look PR; optional note).
+- Verified: the privacy page's line on iPhone backups read on the live page; no answer changes.
+
+### fix(ios): a look that failed for no connection is tried again, at most three times
+- What: a look that failed for no connection waited for the next reconnect. When the connection came
+  back while the call was still failing, that reconnect had already passed, so the card promised a
+  run that never came; and repeated failures could be queued again forever. Now, if the iPhone says
+  it is online when the failure lands, the look is tried again after a wait (2, 4, then 8 seconds);
+  if it is offline, it waits for the reconnect. After three automatic tries the card says "The cloud
+  step did not run. Try again.", and "Try again" starts afresh. docs/LIMITS.md says so.
+- Source: review (Codex and Gemini, on the second-look PR).
+- Verified: two new tests (a failure while online is tried again after a wait and lands; eight
+  failures in a row make four tries, with waits 1, 2, 3, then the card asks, and "Try again" lands)
+  failed before and pass after; the reconnect test now holds the call so the iPhone is offline when
+  the failure lands; 205 unit tests pass.
+
+### fix(ios): removing an item or taking back cloud checks cancels and forgets its second looks
+- What: the box screen removed items straight from the box, so the app never heard of it. A look
+  waiting for another look's lane still went to the cloud after its item was removed (the item
+  was checked only before the wait), and a failed look kept its crop in memory after the item was
+  removed or cloud checks were turned off. Every finished look also kept its task. Now removal goes
+  through the app model, which cancels the item's looks and forgets their crops, failures and
+  waits. Turning cloud checks off (or clearing the choice) does the same for every look. The gate
+  each cloud call reads at the moment of sending also asks whether the look is still wanted, and a
+  look forgotten while it ran lands nothing. Each look's task drops itself when it ends.
+- Source: review (Codex and Gemini, on the second-look PR).
+- Verified: three new tests (a removed item's look held behind another sends nothing; turning
+  cloud checks off forgets a failed look's crop and "Try again" then sends nothing; a finished
+  look leaves no task) failed before and pass after, the first with a cloud reader held mid-call so
+  the order is fixed; the older turned-off test now expects the forgotten look; 203 unit tests pass.
+
+### fix(ios): a slow second look no longer holds up a new photo read on the iPhone
+- What: the second look took the reader's one gate for the whole cloud call (up to 45 seconds a
+  try, with a retry and a fallback), so a new photo waited behind it. Second looks now have a gate
+  of their own: one runs at a time, and a read never waits for one.
+- Source: review (Gemini, on the second-look PR).
+- Verified: a new reader test (a second look whose cloud call takes a second, and a photo read on
+  the device while it runs) failed (the read waited) and passes; 200 unit tests pass.
+
+### fix(ios): picking a disputed reading replaces an earlier correction of the same facts
+- What: picking a reading wrote it into the read, but an earlier correction stayed on top, and the
+  rules read corrections first. A sender who had corrected only the capacity to 2,500 mAh and then
+  picked the cloud's 10,000 mAh got the cloud's volts and watt-hours judged with 2,500 mAh. A pick
+  now removes the corrections of the facts it sets (all three battery numbers, the label, or the
+  one fact). The web app keeps the correction in the same case.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test (correct the capacity, then pick the cloud's battery numbers) failed (the
+  correction stayed) and passes; 199 unit tests pass.
+
+### fix(ios): a rule update keeps the label words of the read the sender picked
+- What: a new rule edition tags again the label still in memory. After a second look, that was
+  only the first read's whole label, so a warning word only the cloud read saw (for example
+  FLAMMABLE) was dropped by the update, whether the words were still merged or the sender had
+  picked the cloud's, and "Take it out" could become "OK to pack". The cloud's whole label now stays
+  in memory with the item (never saved): a new edition tags both labels while their words count
+  together, and only the picked read's label once the sender picks one.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test (merged, cloud picked, first read picked; then a new edition) failed for the
+  merged and cloud-picked cases (tags and verdict changed) and passes for all three; 198 unit tests
+  pass.
+
+### fix(ios): the cloud question names the second look, and an earlier "allowed" is asked again
+- What: the question said Gemini checks items "this iPhone can't", but a second look sends a photo
+  the iPhone already read. It now reads "To check items this iPhone can't read, and to check a read
+  again when the rules ask, a cropped photo of the item, or the label words you typed or scanned,
+  goes to Google's Gemini. Allow?". The answer is versioned (`BoxStore.consentVersion` = 2, saved
+  with the box and in the separate record): an "allowed" given to the earlier words counts as
+  unasked, so that sender is asked again before any cloud call; "off" stays off. The review notes
+  quote the new sentence.
+- Source: review (Codex, on the second-look PR); wording from the privacy page review.
+- Verified: the consent sentence test and a new box test (an earlier "allowed" in the file or the
+  record is asked again; a current one comes back; "off" stays off) failed before and pass after;
+  one fixture that saved an "allowed" now saves it with the current version; 197 unit tests pass;
+  `check_lengths.py` exits 0.
+
+### fix(ios): a cloud choice taken back holds after a relaunch even when its box save failed
+- What: the cloud choice was kept only in the box file. When turning cloud checks off failed to
+  save, the next launch read the last good box and its "allowed", so a photo read on the iPhone
+  could go for a second look without the question. The choice is now also recorded apart from the
+  box file (UserDefaults, written before the box is saved), and a relaunch takes the stricter of
+  the two (off, then unasked, then allowed). An "allowed" whose box save failed is asked again; a
+  box saved before the record existed keeps its own choice. The App Privacy note on UserDefaults
+  names the cloud choice.
+- Source: review (Codex, on the second-look PR).
+- Verified: five new box tests (off and cleared choices hold through a failed save, an allowed
+  choice whose save failed is asked again, saved choices come back, a box with no record keeps its
+  file's choice): the first two failed before and pass after; a new file test reads the record
+  back in a later launch; 196 unit tests pass.
+
+### fix(ios): turning cloud checks off closes the upload gate before the choice is saved
+- What: "Turn off cloud checks" (and "Turn on cloud checks", which clears the choice) saved the box
+  first and closed the upload gate after the save returned, so an upload already allowed could
+  reach the network during the save. The gate now closes first, then the choice is saved.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test that reads the gate at the moment of each save failed (the gate was open
+  while the off choice was saved) and passes; 190 unit tests pass.
+
+### fix(ios): the app declares the installation ID Remote Config receives as a Device ID
+- What: the app's privacy manifest and the App Privacy evidence now declare Identifiers > Device
+  ID, not linked, not for tracking, for App Functionality: the random installation ID that Remote
+  Config receives on every settings fetch. Neither Firebase's disclosure page nor its Installations
+  manifest classifies it, so it is declared rather than left out. Note 5 gives the reasons; the
+  not-collected list no longer names device ID.
+- Source: the privacy page review (ruling on the open Device ID question).
+- Verified: the manifest test, now expecting the Device ID entry (not linked) beside the two
+  linked cloud-check entries, failed before and passes after; `plutil -lint` OK; 189 unit tests
+  pass; tone and hygiene pass; the app's code never reads the installation ID (no use in
+  `ios/BYT` or `ios/BYTCore`).
+
+### fix(ios): the cloud question says the photo or the typed words go, not both
+- What: the one-time cloud question said "a cropped photo of the item and the words on its label
+  go to Google's Gemini", which reads as both being sent. A cloud request carries the crop or the
+  label words typed or scanned, never both, so it now says "a cropped photo of the item, or the
+  label words you typed or scanned, goes to Google's Gemini". The web app's sentence stays as it
+  is (the web sends photos only); the test now checks the shared start and end of the sentence
+  against the web's. The review notes quote the new sentence.
+- Source: the privacy page review.
+- Verified: the renamed consent test failed on the old sentence and passes on the new one; 189
+  unit tests pass; `check_lengths.py` exits 0 (review notes 2552 of 4000).
+
+### docs(ios): the App Store notes say a cloud check sends the photo or the words, never both
+- What: the App Privacy evidence, the description and the review notes said the label's words go
+  with the crop. A cloud request carries the crop or the words, never both
+  (`ios/BYTCore/Sources/BYTCore/CloudOutbound.swift`); they now say so, as the public privacy page
+  does. A new App Privacy note lists what Remote Config receives (installation ID, app version,
+  language, country and time zone settings, system version), matching the privacy page and
+  Firebase's own disclosure page, and why it adds no location or Device ID row; the Device ID
+  reading is left to the account holder. The not-collected list says nothing in the box leaves
+  the iPhone.
+- Source: the privacy page review.
+- Verified: `CloudOutbound` has one constructor for a crop and one for words; the bundled Remote
+  Config and Installations manifests declare only Other Diagnostic Data (not linked, Analytics);
+  `check_lengths.py` exits 0; tone and hygiene pass; the privacy manifest tests pass.
+
+### fix(ios): the dispute lines wrap instead of being cut short
+- What: "The two reads disagree. Pick what the item shows." and the confirm sentence are set to
+  wrap at any height. As disputes were settled the card's list row shrank, and the first line was
+  cut to "The two reads disagree. Pick what the ite...".
+- Source: the second-look UI test's screenshots.
+- Verified: with one dispute left, the UI test's screenshot shows the line on two full lines; the
+  UI test, `LoopUITests` and 189 unit tests pass.
+
+### test(ios): a UI test drives a second look and settles its disputes on screen
+- What: with the launch arguments `-uiTestFakeReader -uiTestSecondLook` (debug builds only), the
+  app reads one photo at start on a fixed on-device reader as a power bank (5000 mAh, 18.5 Wh, no
+  battery words), with cloud checks allowed, and a fixed cloud reader gives other numbers and
+  battery words, so the app's own trigger, second look, engine merge and card run. The new UI test
+  sees the reason line, settles the battery numbers at once, sees the confirm step for "Not seen"
+  (keeps both, then uses it), settles the label words from the second look's side, and sees the
+  disputes gone. It keeps four screenshots. The fixed reader's read is now a parameter.
+- Source: the iPhone second look (the card had no UI-level test).
+- Verified: the UI test passes (21 s); `LoopUITests` and 189 unit tests pass. Its first run's
+  screenshots showed the label words dispute (the fixed device reader tags no words) and the
+  "reads disagree" line cut to one line; the next entry fixes the line.
+
+### docs(ios): the README, limits and App Store notes say when a second look runs
+- What: the iPhone README and docs/LIMITS.md no longer say the iPhone runs no second look; they say
+  a photo read on the iPhone gets one only when the rules ask and cloud checks are allowed at that
+  moment, label words get none, and a look waiting for a connection runs only while the app stays
+  open. The App Store review notes, the description and the App Privacy evidence say that once
+  cloud checks are allowed, a photo the iPhone already read can be checked again in the cloud, in
+  the words the public privacy page uses for the same fact.
+- Source: the iPhone second look; the privacy page review.
+- Verified: `python3 ios/app-store/check_lengths.py` exits 0 (description 1551 of 4000, review
+  notes 2492 of 4000); no dashes or curly quotes in the changed files.
+
+### feat(ios): the item card shows a second look and lets the sender settle what the reads dispute
+- What: the card says "Checking again in the cloud." while a look runs, then the web app's reason
+  sentence; a failed look shows why, with "Try again". When the two reads disagree, the card lists
+  each open dispute in the web app's words ("The two reads disagree. Pick what the item shows.",
+  "First read: ..." and "Second look: ..."); a pick that drops what the other read saw (a lithium
+  amount, battery numbers, a hazard flag or a label word) asks first ("The second look saw ... Use
+  ... only if the item really shows that.", "Yes, use ...", "Keep both for now"). A pick settles the
+  dispute in the box. The dispute field list is now readable off the main actor.
+- Source: the iPhone second look (web parity with src/ui/ItemCard.tsx).
+- Verified: five dispute-word tests (labels, box and evidence words and side names equal the web
+  source; the card's sentences are the web's; each reading in plain words; the confirm rule; open
+  disputes in order) failed to compile before and pass after; 189 unit tests and the UI test pass.
+
+### feat(ios): a photo read on this iPhone gets a cloud second look when the rules ask for one
+- What: after a photo is read on this iPhone, the engine says whether it needs a second look (the web
+  app's needsSecondLook, with the Remote Config policy). With a reason and the cloud allowed right
+  then (consent given, online, not paused), the same crop is read again in the cloud in the
+  background, merged with the first read by the engine and landed in the box with the web app's
+  reason sentence. A look that fails says why in the web app's words ("No connection. This check
+  will run when you are back online." and the others; a refusal names no browser), keeps the device
+  read and its verdict, runs again when the iPhone is back online after a connection failure, and
+  can be tried again. A look on an item removed meanwhile is dropped. Typed label words get no
+  second look, as on the web, which looks again at photos only. The copy test that said the iPhone
+  runs no second look is replaced: the reason sentences must be the web app's own.
+- Source: the iPhone second look (web parity).
+- Verified: seven tests (a power bank photo read on the device is looked at again and lands with its
+  reason and confirmation; no look without consent, with consent unanswered, offline, or with no
+  reason; none for typed words; a no-connection failure waits and runs when back online; a failed
+  look says why and can be tried again; turning cloud checks off stops it; the reasons equal the web
+  app's) failed to compile before and pass after; 184 unit tests pass. One run stopped with "Test
+  crashed with signal term" while nothing of this lane was running; the re-run passed.
+
+### feat(ios): the reader runs a cloud second look of an input already read
+- What: `ItemReader.secondLook(_:situation:)` reads the same input on the cloud-only route, even when
+  this iPhone's model could read it, with a first read's retry and fallback and the cloud gate read
+  again before every call (the web app's runSecondLook). Its records carry a new route reason,
+  `second_look`. A first read's routing is unchanged.
+- Source: the iPhone second look.
+- Verified: three reader tests (only the cloud runner runs and the record says second_look; a closed
+  gate sends nothing; a server error is tried once more) failed to compile before and pass after;
+  177 unit tests and 36 engine-host tests pass. One earlier run stopped with "Test crashed with
+  signal term before establishing connection" while nothing of this lane was running; the re-run
+  passed.
+
+### feat(ios): the box lands a cloud second look and keeps its disputes
+- What: `BoxStore.applySecondLook` (the web app's): the merged read replaces the device's, the
+  item keeps the tags of every label either read saw, a label word only one read saw becomes a
+  dispute of tags (never of label text), a fact the sender corrected while the cloud read ran keeps
+  no dispute, the item counts as confirmed when both reads saw the same category, and the box
+  counts the second look. `settleDispute` uses the picked read (the battery as a whole set; the
+  label brings back that read's words and text; picking the category confirms the item and names
+  it as that read did, or by its category after a reload). A sender's own correction settles the
+  dispute on that fact; the battery only on a whole set of numbers. `BoxItem` saves `secondLook`
+  and `disputes`, and the engine gets the disputes, so an open one holds the item at "Check this".
+- Source: the iPhone second look (web parity).
+- Verified: 13 tests ported from the web app's box store tests, same reads and expectations (an
+  agreeing look confirms and a different one does not; the union of tags; a correction kept across
+  a reload; a power bank read as a phone held at Check this; no cautious reading ends at OK; a
+  label-word dispute with no label text; no dispute on a corrected fact; settling each kind; a not
+  sure first read; naming after a reload; no hazard from a clipped label; battery settles only on a
+  whole set; a fix settles and the saved copy keeps the disputes). They failed to compile before and
+  pass after; 174 unit tests pass.
+
+### feat(ios-core): the engine wrapper gives the second-look reason and merge
+- What: `RulesEngine.secondLookReason(item:source:policy:)` returns the web app's reason (or nil) for an
+  item just added, and `mergeSecondLook(device:cloud:)` returns the merged read, the disputed facts
+  and whether both reads saw the same category, through the bridge's new functions.
+- Source: the iPhone second look.
+- Verified: two contract tests on the bundled engine (a power bank on the device gives
+  battery_numbers and in the cloud none; a policy with every reason off gives none; a lotion whose
+  label was read gives none; a malformed policy is an engine error; the merge keeps the read with
+  more watt-hours, any hazard either saw and the weaker evidence, and lists battery, liquid,
+  retailBox and evidence as disputed; a bad read is an engine error). They failed to compile before
+  and pass after; `swift test --package-path ios/BYTCore`: 36 tests pass.
+
 ### fix(ios): the mirror's simulator shutdown is quiet when it is already shut down
 - What: after "ci-local-ios: all checks passed", the exit trap printed "Unable to shutdown device in
   current state: Shutdown" when xcodebuild had already shut the simulator down. The shutdown's

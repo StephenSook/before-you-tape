@@ -43,12 +43,13 @@ class BoxLiveTest {
         val owner = withTimeout(30_000) { FirebaseSignIn.ensureSignedIn() }
         val repo = FirestoreBoxRepository()
         log("step: create box")
-        val boxId = repo.createBox(owner, "CA", "byt-live-test")
+        val created = repo.createBox(owner, "CA", "byt-live-test")
+        val boxId = created.boxId
         log("step: box created")
         val item = BoxLogic.addRead(BoxLogic.empty("CA"), read, listOf("label_text"), Source.IN_CLOUD, 900, "live-item-1").items.single()
         // An item written while offline waits in the Firestore cache and is sent when the link returns.
         Firebase.firestore.disableNetwork().await()
-        repo.putItem(boxId, item)
+        repo.putItem(boxId, item, created.expiresAt)
         Firebase.firestore.enableNetwork().await()
         log("step: watch for the item")
         val snap = withTimeout(30_000) { repo.watch(boxId).first { s -> s.items.any { it.input.itemId == "live-item-1" } } }
@@ -58,6 +59,9 @@ class BoxLiveTest {
         assertEquals("", (server.get("read") as Map<String, Any?>)["labelText"])
         assertEquals(1L, server.getLong("quantity"))
         assertEquals(listOf(owner), snap.header.memberUids)
+        assertEquals(created.expiresAt, snap.header.expiresAt)
+        val itemExpiry = server.getTimestamp("expiresAt")
+        assertEquals(created.expiresAt, itemExpiry?.let { app.beforeyoutape.android.data.BoxExpiry(it.seconds, it.nanoseconds) })
         log("box made on the phone; an item written offline reached the server with no label text")
 
         log("step: set destination")
