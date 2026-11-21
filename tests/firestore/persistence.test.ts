@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem } from "../../src/data/boxStore";
 import type { BoxMeta } from "../../src/data/boxOps";
 import { firestorePersistence, revisionOf } from "../../src/data/persistence";
+import { NotBoxOwner } from "../../src/data/boxOps";
 import { createBoxStore } from "../../src/data/boxStore";
 import { ed } from "../engine/helpers";
 
@@ -148,7 +149,7 @@ describe("firestorePersistence", () => {
     await firestorePersistence(db("alice"), "alice", "byt-test").putItem("b2", item("i1"));
     // A second member (only an admin can add one): the delete stops before touching anything.
     await admin((d) => updateDoc(doc(d, "boxes/b2"), { memberUids: ["alice", "bob"] }));
-    await expect(firestorePersistence(db("bob"), "bob", "byt-test").deleteBox!("b2")).rejects.toThrow();
+    await expect(firestorePersistence(db("bob"), "bob", "byt-test").deleteBox!("b2")).rejects.toBeInstanceOf(NotBoxOwner);
     expect(await at("boxes/b2")).toBeDefined();
     expect(await at("boxes/b2/items/i1")).toBeDefined();
   });

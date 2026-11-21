@@ -821,6 +821,18 @@ describe("PackPage", () => {
       expect(onDeleteBox).toHaveBeenLastCalledWith("signIn");
     });
 
+    it("asks to connect when the delete cannot reach the box, having changed nothing", async () => {
+      const onDeleteBox = vi.fn(async () => ({ ok: false as const, offline: true as const }));
+      const afterDelete = vi.fn();
+      const { store } = setup({ onDeleteBox, afterDelete });
+      await store.ready;
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Connect to the internet to delete your saved box.");
+      expect(screen.getByRole("button", { name: "Delete my saved box" })).toBeInTheDocument();
+      expect(afterDelete).not.toHaveBeenCalled();
+    });
+
     it("says once that the box was deleted, and when the sign-in was only signed out, that Firebase removes it later", () => {
       setup({ deletedNotice: "signed_out" });
       expect(screen.getByTestId("box-deleted")).toHaveTextContent(

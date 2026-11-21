@@ -96,6 +96,7 @@ export function buildDeps(): PackDeps | Error {
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
       onStale: leave,
+      online: () => navigator.onLine,
     });
     built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {

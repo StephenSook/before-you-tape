@@ -6,7 +6,7 @@
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
 import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
-import { stableJson, type BoxGone, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
+import { NotBoxOwner, stableJson, type BoxGone, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -126,7 +126,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
         async () => {
           const data = snap!.data()!;
           // A member who is not the owner may delete items, so the check comes before any of them is touched.
-          if (data.ownerUid !== uid) throw new Error("only the box's owner can delete it");
+          if (data.ownerUid !== uid) throw new NotBoxOwner();
           const expiresAt = (data.expiresAt as Timestamp | undefined) ?? null;
           // Its tombstone takes its time from the box's expiry; without one the last batch would be refused after the
           // items were gone, so it is refused here, first. Every box has one since the backfill.

@@ -3,12 +3,14 @@
 // must finish before the next; the first that fails stops the rest and is named, so the sender knows what is left,
 // and a retry starts there. The keys go last because taking away the pointer to the box tells other tabs to start
 // again (whenDeletedElsewhere), which must wait until the sign-in is gone, or they would save a new box under it.
-import type { BoxGone } from "./boxOps";
+import { NotBoxOwner, type BoxGone } from "./boxOps";
 
 export type DeleteStep = "box" | "crops" | "signIn";
 // kept: the sign-in was not this box's to delete (another tab signed in since, or no box was in Firestore for it).
 export type SignInOutcome = "deleted" | "signed_out" | "kept";
-export type DeleteResult = { ok: true; signIn: SignInOutcome } | { ok: false; stoppedAt: DeleteStep };
+// offline: the delete could not reach the box as its owner (offline, no Firebase session, or another owner's box), so
+// nothing was changed.
+export type DeleteResult = { ok: true; signIn: SignInOutcome } | { ok: false; stoppedAt: DeleteStep } | { ok: false; offline: true };
 
 export interface DeleteSavedBoxDeps {
   // Resolves once this page's writes already out have answered; nothing more is kept or sent.
@@ -34,9 +36,10 @@ export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from:
     try {
       await d.stopSaving();
       gone = await d.deleteBox(boxId);
-    } catch {
+    } catch (e) {
       d.resumeSaving();
-      return { ok: false, stoppedAt: "box" };
+      // Checked before anything of the box is touched, so nothing was changed.
+      return e instanceof NotBoxOwner ? { ok: false, offline: true } : { ok: false, stoppedAt: "box" };
     }
   }
   if (runs("crops")) {
@@ -83,6 +86,8 @@ export interface DeleterParts {
   signOut: () => Promise<void>;
   // This tab still holds a box another tab deleted (the pointer names another box): it leaves it and starts again.
   onStale: () => void;
+  // Whether the browser says it is online.
+  online: () => boolean;
 }
 
 // The box in Firestore is deleted under whoever is signed in when the delete runs, not through this page's own
@@ -102,21 +107,26 @@ export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise
       return Promise.resolve({ ok: false, stoppedAt: "box" });
     }
     const here = p.store.getState().items.flatMap((i) => (i.cropKey ? [i.cropKey] : []));
-    return deleteSavedBox(boxId, {
-      stopSaving: () => p.store.close(),
-      resumeSaving: () => p.store.reopen(),
-      deleteBox: async (id) => {
-        await p.signedIn.catch(() => {});
-        const uid = p.currentUid();
-        found = uid ? await p.deleteFirestoreBox(uid, id) : { ownerUid: null, cropKeys: [] };
-        return found;
-      },
-      deleteCrops: async (keys) => { for (const key of new Set([...here, ...keys])) await p.deleteCrop(key); },
-      currentUid: p.currentUid,
-      clearLocal: (id) => clearLocalBox(p.storage, id),
-      deleteSignIn: p.deleteSignIn,
-      signOut: p.signOut,
-    }, from, found);
+    return (async (): Promise<DeleteResult> => {
+      // A delete it cannot confirm is never claimed: offline, or with no Firebase session, nothing is touched.
+      await p.signedIn.catch(() => {});
+      if (!p.online() || !p.currentUid()) return { ok: false, offline: true };
+      return deleteSavedBox(boxId, {
+        stopSaving: () => p.store.close(),
+        resumeSaving: () => p.store.reopen(),
+        deleteBox: async (id) => {
+          const uid = p.currentUid();
+          if (!uid) throw new NotBoxOwner();
+          found = await p.deleteFirestoreBox(uid, id);
+          return found;
+        },
+        deleteCrops: async (keys) => { for (const key of new Set([...here, ...keys])) await p.deleteCrop(key); },
+        currentUid: p.currentUid,
+        clearLocal: (id) => clearLocalBox(p.storage, id),
+        deleteSignIn: p.deleteSignIn,
+        signOut: p.signOut,
+      }, from, found);
+    })();
   };
 }
 

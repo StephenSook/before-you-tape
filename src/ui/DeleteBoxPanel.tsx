@@ -13,16 +13,21 @@ const LEFT: Record<DeleteStep, string> = {
 export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: (from?: DeleteStep) => Promise<DeleteResult>; onDone: (signIn: SignInOutcome) => void }) {
   const [stage, setStage] = useState<"idle" | "asking" | "working">("idle");
   const [left, setLeft] = useState<DeleteStep | null>(null);
+  // The delete could not reach the box, and nothing was changed.
+  const [offline, setOffline] = useState(false);
   const run = async (from?: DeleteStep) => {
     setStage("working");
     setLeft(null);
+    setOffline(false);
     const r = await onDelete(from);
     if (r.ok) { onDone(r.signIn); return; }
-    setLeft(r.stoppedAt);
+    if ("offline" in r) setOffline(true);
+    else setLeft(r.stoppedAt);
     setStage("idle");
   };
   return (
     <div data-testid="delete-box" className="delete-box">
+      {offline && <p role="alert">Connect to the internet to delete your saved box.</p>}
       {left && (
         <p role="alert">{LEFT[left]} <button type="button" onClick={() => void run(left)}>Try deleting again</button></p>
       )}

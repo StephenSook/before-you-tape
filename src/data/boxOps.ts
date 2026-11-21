@@ -25,6 +25,14 @@ export interface BoxOps {
   deleteBox?(boxId: string): Promise<BoxGone>;
 }
 
+// The one signed in does not own the box (or no one is), so nothing of it was deleted.
+export class NotBoxOwner extends Error {
+  constructor() {
+    super("only the box's owner can delete it");
+    this.name = "NotBoxOwner";
+  }
+}
+
 // What a whole-box delete found: whose the box was (null when no box was in Firestore) and the crops its items used.
 export interface BoxGone {
   ownerUid: string | null;

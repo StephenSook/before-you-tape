@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NotBoxOwner } from "./boxOps";
 import { clearLocalBox, deleteSavedBox, leaveDeletedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, whenDeletedElsewhere, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
 
 const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
@@ -45,6 +46,12 @@ describe("deleteSavedBox", () => {
     const { d, order } = deps({ deleteBox: vi.fn(async () => { throw new Error("offline"); }) });
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: false, stoppedAt: "box" });
     // The box is still there, so this page saves again.
+    expect(order).toEqual(["stop", "resume"]);
+  });
+
+  it("refuses, changing nothing, when this sign-in does not own the box", async () => {
+    const { d, order } = deps({ deleteBox: vi.fn(async () => { throw new NotBoxOwner(); }) });
+    expect(await deleteSavedBox("b1", d)).toEqual({ ok: false, offline: true });
     expect(order).toEqual(["stop", "resume"]);
   });
 
@@ -141,12 +148,13 @@ describe("savedBoxDeleter", () => {
       deleteSignIn: vi.fn(async () => {}),
       signOut: vi.fn(async () => {}),
       onStale: vi.fn(),
+      online: () => true,
       ...over,
     };
     return p;
   };
 
-  it("deletes the box in Firestore under whoever is signed in now, even on a page that fell back to this browser", async () => {
+  it("deletes the box in Firestore under whoever is signed in now, even on a page whose own sign-in failed", async () => {
     // A page whose own sign-in failed: another tab signed in since, under the same account, and saved the box.
     const p = parts({ signedIn: Promise.reject(new Error("offline")) });
     expect(await savedBoxDeleter(p)()).toEqual({ ok: true, signIn: "deleted" });
@@ -172,10 +180,14 @@ describe("savedBoxDeleter", () => {
     expect(none.onStale).not.toHaveBeenCalled();
   });
 
-  it("has nothing in Firestore to delete when no one is signed in", async () => {
-    const p = parts({ currentUid: () => null });
-    await savedBoxDeleter(p)();
-    expect(p.deleteFirestoreBox).not.toHaveBeenCalled();
+  // A delete it cannot confirm is never claimed: offline, or with no Firebase session, nothing is touched.
+  it("refuses, changing nothing, when this page is offline or has no Firebase session", async () => {
+    localStorage.setItem("byt.journal.b1", "{}");
+    for (const p of [parts({ online: () => false }), parts({ currentUid: () => null })]) {
+      expect(await savedBoxDeleter(p)()).toEqual({ ok: false, offline: true });
+      for (const f of [p.store.close, p.deleteFirestoreBox, p.deleteCrop, p.deleteSignIn, p.signOut]) expect(f).not.toHaveBeenCalled();
+    }
+    expect(localStorage.getItem("byt.journal.b1")).toBe("{}");
   });
 
   // Never every crop on the device: another box may have started here since, and its photos are not this box's.
