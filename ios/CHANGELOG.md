@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### feat(ios): a script for the iPhone session: build, install, pull the box, summarize it
+- What: `ios/scripts/device-session.sh build|install|pull|summary`. It finds the one connected
+  physical iPhone (or `$BYT_DEVICE`), builds Release with signing, installs and opens the app,
+  copies `Library/Application Support/boxes` off the phone with the device details and the commit
+  into `docs/evidence/ios/<date>-device/`, and prints each item's route and read time.
+- Source: lane goal (record each read's route and time).
+- Verified: with the phone not connected it stops with "Expected one connected physical iPhone;
+  found: none"; the UDID is found on a line whose device name has spaces; the summary prints a
+  sample box's routes and times, refuses an empty folder (exit 1) and a bad command (exit 2). The
+  build, install and pull steps have not run against the phone yet.
+
 ### docs(ios): record three on-device photo reads on the simulator
 - What: `docs/evidence/ios/2026-11-20-simulator-live-read.md`: a lotion, a perfume and a power
   bank read offline on the simulator's Apple model (the Mac's), with route, time, tokens and the
