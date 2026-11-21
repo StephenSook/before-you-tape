@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearLocalBox, deleteSavedBox, type DeleteSavedBoxDeps } from "./deleteSavedBox";
+import { clearLocalBox, deleteSavedBox, rememberDeleted, takeDeletedNotice, type DeleteSavedBoxDeps } from "./deleteSavedBox";
 
 const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const order: string[] = [];
@@ -49,5 +49,20 @@ describe("clearLocalBox", () => {
     for (const k of ["byt.box.b1", "byt.journal.b1", "byt.names.b1", "byt.currentBox", "byt.box.b2", "byt.cloudConsent.v2"]) localStorage.setItem(k, "x");
     clearLocalBox(localStorage, "b1");
     expect(Object.keys(localStorage).sort()).toEqual(["byt.box.b2", "byt.cloudConsent.v2"]);
+  });
+});
+
+describe("the notice after a delete", () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it("is kept across the reload that starts a new box, and shown only once", () => {
+    rememberDeleted(sessionStorage, "signed_out");
+    expect(takeDeletedNotice(sessionStorage)).toBe("signed_out");
+    expect(takeDeletedNotice(sessionStorage)).toBeNull();
+  });
+
+  it("ignores anything else stored under its key", () => {
+    sessionStorage.setItem("byt.deleted", "something");
+    expect(takeDeletedNotice(sessionStorage)).toBeNull();
   });
 });

@@ -3,6 +3,7 @@
 // edition Remote Config pins (the bundled one unless a published one verifies). The Pack page uses them, and
 // /judge loads this module only when its live read is pressed.
 import type { AI } from "firebase/ai";
+import { deleteUser, signOut } from "firebase/auth";
 import bundledEdition from "../../rules/edition.json";
 import { afterSignIn } from "../ai/authGate";
 import { createItemModels } from "../ai/firebaseModels";
@@ -11,6 +12,8 @@ import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
+import { deleteCropsExcept } from "../data/crops";
+import { clearLocalBox, deleteSavedBox, type DeleteResult } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
@@ -25,6 +28,8 @@ export interface PackDeps {
   store: BoxStore;
   lm: unknown;
   followEdition: (onNotice: (notice: string | null) => void) => () => void;
+  // Deletes this browser's saved box everywhere it is kept, then its anonymous sign-in.
+  deleteSavedBox: () => Promise<DeleteResult>;
 }
 
 let built: PackDeps | Error | null = null;
@@ -76,7 +81,14 @@ export function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
-    built = { ai, makeModels, source, store: box, lm, followEdition };
+    const deleteThisBox = () => deleteSavedBox(box.getState().boxId, {
+      deleteBox: async (id) => { await persistence.deleteBox?.(id); },
+      deleteCrops: () => deleteCropsExcept(() => false),
+      clearLocal: (id) => clearLocalBox(localStorage, id),
+      deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
+      signOut: () => signOut(fb.auth),
+    });
+    built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
   }

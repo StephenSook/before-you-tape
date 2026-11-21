@@ -33,3 +33,20 @@ export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps): Prom
 export function clearLocalBox(storage: Storage, boxId: string): void {
   for (const key of [`byt.box.${boxId}`, `byt.journal.${boxId}`, `byt.names.${boxId}`, "byt.currentBox"]) storage.removeItem(key);
 }
+
+// A delete ends by reloading the page onto a new, empty box; this keeps how the sign-in went for that page to say once.
+const DELETED_KEY = "byt.deleted";
+
+export function rememberDeleted(storage: Storage, signIn: "deleted" | "signed_out"): void {
+  try { storage.setItem(DELETED_KEY, signIn); } catch { /* the notice is a courtesy */ }
+}
+
+export function takeDeletedNotice(storage: Storage): "deleted" | "signed_out" | null {
+  try {
+    const v = storage.getItem(DELETED_KEY);
+    storage.removeItem(DELETED_KEY);
+    return v === "deleted" || v === "signed_out" ? v : null;
+  } catch {
+    return null;
+  }
+}

@@ -8,6 +8,7 @@ import type { GateState } from "../ai/port";
 import { openCamera } from "../capture/camera";
 import { sweepCropsWhenOpen } from "../data/cropSweep";
 import { deleteCrop, deleteCropsExcept, saveCrop } from "../data/crops";
+import { rememberDeleted, takeDeletedNotice } from "../data/deleteSavedBox";
 import { SAMPLE_READ } from "../data/sampleRead";
 import { FirebaseConfigError } from "../firebase/app";
 import { isPhoneDevice } from "../shared/phoneDevice";
@@ -26,6 +27,8 @@ export function PackRoute() {
   const [progress, setProgress] = useState<number | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [editionNotice, setEditionNotice] = useState<string | null>(null);
+  // Read once: the page a delete reloaded into says so, and a later reload does not.
+  const [deletedNotice] = useState(() => (typeof sessionStorage === "undefined" ? null : takeDeletedNotice(sessionStorage)));
 
   useEffect(() => (deps instanceof Error ? undefined : deps.followEdition(setEditionNotice)), [deps]);
   // Crops no item in the saved box uses are deleted from this device once it opens.
@@ -63,6 +66,7 @@ export function PackRoute() {
 
   return (
     <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera} sampleRead={SAMPLE_READ} phone={PHONE}
-      index={destinationIndex} saveCrop={saveCrop} deleteCrop={deleteCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
+      index={destinationIndex} saveCrop={saveCrop} deleteCrop={deleteCrop}
+      onDeleteBox={deps.deleteSavedBox} afterDelete={(signIn) => { rememberDeleted(sessionStorage, signIn); window.location.reload(); }} deletedNotice={deletedNotice} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
   );
 }

@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The live page wires Delete my saved box: the box in Firestore with its tombstone, every crop on this device, this browser's box keys, then the anonymous sign-in (signed out if it needs a recent login), and then a reload onto a new, empty box that says once how it went (sessionStorage byt.deleted). Source: Delete my saved box plan. Verified: new notice tests failed first and pass; typecheck, the full suite and the home-page browser checks pass.
+
 - The pack page has Delete my saved box under the box, when the route can delete it and the saved box has been read. It asks first ("This deletes every item in this box from this device and from our database. It cannot be undone.", Delete or Keep), says which part is left if deleting stops part-way (Try deleting again), and after a delete says once that the box is deleted, and whether the anonymous sign-in was deleted or Firebase may remove it after 30 days. Source: Delete my saved box plan. Verified: new PackPage tests failed first where expected and pass.
 
 - The sign-in wrapper passes a whole-box delete to Firestore once signed in; a box kept only in this browser (sign-in failed) has nothing in Firestore to delete. Source: Delete my saved box plan. Verified: a new persistence test failed first and passes.
