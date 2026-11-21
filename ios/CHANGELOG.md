@@ -3,6 +3,18 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### docs(ios): the device checklist names the 5 items and starts from the newest main
+- What: the checklist now names the 5 items to bring (a lotion or cream; a perfume or another
+  alcohol-based spray; a power bank; a boxed device with a battery; one clearly harmless item). A
+  new first step moves to the newest main (`git checkout --detach origin/main`, which works in a
+  worktree) and runs `check_engine_bundle.sh`, so the phone runs the web app's engine. It runs
+  after any other app's install in the same session. The pull step says it records the model and
+  iOS version only.
+- Source: session planning.
+- Verified: `bash ios/scripts/check_engine_bundle.sh` exit 0 at 5f47e05; tone check clean.
+
 ## 2026-11-20
 
 ### fix(ios): the iPhone session's evidence holds no phone identifiers
