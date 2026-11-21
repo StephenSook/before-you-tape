@@ -3,6 +3,7 @@
 // fails), the rule edition Remote Config pins (the bundled one unless a published one verifies), and the
 // destination index. A build without its Firebase settings says so plainly instead of breaking.
 import { SAMPLE_READ } from "../data/sampleRead";
+import { isPhoneDevice } from "../shared/phoneDevice";
 import { useEffect, useState } from "react";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
@@ -34,6 +35,9 @@ interface PackDeps {
   lm: unknown;
   followEdition: (onNotice: (notice: string | null) => void) => () => void;
 }
+
+// Read once: whether this is a phone does not change while the page is open.
+const PHONE = typeof navigator !== "undefined" && isPhoneDevice(navigator as Navigator & { userAgentData?: { mobile?: boolean } });
 
 let built: PackDeps | Error | null = null;
 
@@ -134,7 +138,7 @@ export function PackRoute() {
   };
 
   return (
-    <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera} sampleRead={SAMPLE_READ}
+    <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera} sampleRead={SAMPLE_READ} phone={PHONE}
       index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
   );
 }

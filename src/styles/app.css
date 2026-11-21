@@ -43,11 +43,16 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .hold-zone { position: absolute; border: 3px dashed var(--paper); border-radius: 12px; pointer-events: none; }
 .stage-line { margin: var(--space-3) 0 0; font-size: 18px; }
 /* The crop box over an added photo: a two-tone edge so it shows on light and dark photos. */
-.crop-box { border: 3px dashed var(--paper); outline: 2px solid var(--night); cursor: move; }
+.photo-crop { text-align: center; }
+/* The frame wraps the photo exactly, so the box's percentages match the photo; the photo never fills the screen. */
+.crop-frame { position: relative; display: inline-block; max-width: 100%; overflow: hidden; touch-action: none; vertical-align: top; }
+.crop-photo { display: block; max-width: 100%; max-height: min(60vh, 560px); width: auto; height: auto; }
+/* Everything outside the box is dimmed: that part stays on this device. */
+.crop-box { border: 3px dashed var(--paper); outline: 2px solid var(--night); cursor: move; box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.45); }
+/* Check and Cancel stay in view while the sender places the box. */
+.crop-actions { position: sticky; bottom: 0; z-index: 1; margin: 0; padding: var(--space-3) 0; background: var(--night); }
 .crop-box:focus-visible { outline: 3px solid var(--amber); outline-offset: 0; }
 .crop-handle { position: absolute; right: -10px; bottom: -10px; width: 20px; height: 20px; background: var(--paper); border: 2px solid var(--night); border-radius: 4px; cursor: nwse-resize; }
-.crop-preview { margin: var(--space-3) 0 0; }
-.crop-preview img { display: block; max-width: 240px; height: auto; border-radius: 8px; }
 
 .card { border: var(--outline); border-radius: var(--radius-card); padding: var(--space-4); background: var(--paper); }
 .card + .card { margin-top: var(--space-3); }
@@ -56,6 +61,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .judge, .about, .rules, .ran { max-width: 760px; margin: 0 auto; padding: var(--space-5); }
 .about .credits { font-size: 14px; }
 .sample-card img { width: 160px; }
+.pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.pair-side { margin: 0; min-width: 0; }
+.pair-side img { width: 100%; height: auto; border-radius: var(--radius-card); }
+.pair-label { font-weight: 600; margin: var(--space-2) 0; }
+.pair-reason, .pair-side .credit { font-size: 14px; }
 .sample-card .credit { font-size: 13px; margin-bottom: 0; }
 
 .chip { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3); border-radius: var(--radius-chip); font-weight: 700; }
