@@ -15,6 +15,11 @@
       "valueType": "STRING",
       "description": "The cloud model for customs descriptions and listing reads."
     },
+    "holiday_dates_json": {
+      "defaultValue": { "value": "[]" },
+      "valueType": "JSON",
+      "description": "USPS holiday mailing dates read from usps.com: service, mail-by and arrive-by dates, the page and the day it was read. An empty list shows none."
+    },
     "kill_cloud": {
       "defaultValue": { "value": "false" },
       "valueType": "BOOLEAN",

@@ -6,6 +6,6 @@ describe("CONFIG_DEFAULTS", () => {
     expect(CONFIG_DEFAULTS).toEqual({
       cloudModelItem: "gemini-3.5-flash-lite", cloudModelItemFallback: "gemini-3.8-flash", cloudModelText: "gemini-3.5-flash-lite", killCloud: false,
       secondLook: { whMismatch: true, batteryNumbers: true, notSure: true, hazardNoLabel: true, identity: true },
-      rulesEditionId: "", rulesEditionSha256: "",
+      rulesEditionId: "", rulesEditionSha256: "", holidayDates: [],
     }));
 });

@@ -32,7 +32,7 @@ const values = (v: Record<string, string>) => (key: string) => ({ asString: () =
 describe("readConfig", () => {
   it("maps the Remote Config keys to the app's config", () => {
     expect(readConfig(values({ cloud_model_item: "gemini-3.8-flash", cloud_model_item_fallback: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.8-flash", kill_cloud: "true" })))
-      .toEqual({ cloudModelItem: "gemini-3.8-flash", cloudModelItemFallback: "gemini-3.5-flash-lite", cloudModelText: "gemini-3.8-flash", killCloud: true, secondLook: CONFIG_DEFAULTS.secondLook, rulesEditionId: "", rulesEditionSha256: "" });
+      .toEqual({ cloudModelItem: "gemini-3.8-flash", cloudModelItemFallback: "gemini-3.5-flash-lite", cloudModelText: "gemini-3.8-flash", killCloud: true, secondLook: CONFIG_DEFAULTS.secondLook, holidayDates: CONFIG_DEFAULTS.holidayDates, rulesEditionId: "", rulesEditionSha256: "" });
   });
 
   it("keeps the default model when a value is not a Gemini model name", () => {
@@ -69,8 +69,21 @@ describe("readConfig", () => {
     expect(RC_DEFAULTS).toEqual({
       cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-3.8-flash", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: false,
       second_look_policy_json: '{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}',
-      rules_edition_id: "", rules_edition_sha256: "",
+      rules_edition_id: "", rules_edition_sha256: "", holiday_dates_json: "[]",
     }));
+
+  it("reads the holiday mailing dates from JSON; an empty list turns them off, and anything broken keeps the default", () => {
+    const d = { service: "Priority Mail International", sendBy: "2026-12-09", deliverBy: "2026-12-25", sourceUrl: "https://www.usps.com/holiday/holiday-shipping-dates.htm", checkedOn: "2026-11-21" };
+    const dates = (raw: string) => readConfig(values({ cloud_model_item: "gemini-3.5-flash-lite", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: "false", holiday_dates_json: raw })).holidayDates;
+    expect(dates(JSON.stringify([d]))).toEqual([d]);
+    expect(dates("[]")).toEqual([]);
+    for (const bad of ["", "not json", "{}", "null", JSON.stringify([{ ...d, extra: 1 }]), JSON.stringify([{ ...d, sendBy: "Dec 9" }]),
+      JSON.stringify([{ ...d, sendBy: "2026-02-30" }]), JSON.stringify([{ ...d, sendBy: "2026-12-26" }]), JSON.stringify([{ ...d, service: "" }]),
+      JSON.stringify([{ ...d, sourceUrl: "https://example.com/holiday" }]), JSON.stringify([{ ...d, sourceUrl: "http://www.usps.com/holiday/" }]),
+      JSON.stringify(Array.from({ length: 11 }, () => d))]) {
+      expect(dates(bad), bad).toEqual(CONFIG_DEFAULTS.holidayDates);
+    }
+  });
 });
 
 describe("remoteConfigSource", () => {

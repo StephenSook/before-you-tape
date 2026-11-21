@@ -3,6 +3,7 @@
     "cloud_model_item",
     "cloud_model_item_fallback",
     "cloud_model_text",
+    "holiday_dates_json",
     "kill_cloud",
     "rules_edition_id",
     "rules_edition_sha256",
