@@ -51,6 +51,19 @@ import Testing
         #expect(j.events == ["signIn"])
     }
 
+    @MainActor final class Answers { var left: [Bool]; init(_ a: [Bool]) { left = a }; func next() -> Bool { left.isEmpty ? false : left.removeFirst() } }
+
+    /// Wanted when the upload starts, no longer wanted by the time the upload itself would send (the item
+    /// removed in between): the upload asks again inside itself, right before the call, and sends nothing.
+    @Test func anUploadNoLongerWantedWhenItRunsSendsNothing() async {
+        let j = FakeItemRunner.Journal()
+        let answers = Answers([true, false])
+        let inner = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))])
+        let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: PauseSwitch(), inner: inner)
+        #expect(await runner.read(words, stillWanted: { answers.next() }) == .failure(ReadError(.cloudPaused)))
+        #expect(j.events.isEmpty)
+    }
+
     /// Stands in for AI Logic: it waits (as it does for the App Check token), then sends unless the
     /// read was cancelled meanwhile, the way URLSession refuses a cancelled task.
     final class TokenThenSend: ItemModelRunner, @unchecked Sendable {

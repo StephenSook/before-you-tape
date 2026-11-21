@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a cloud upload asks again inside itself whether it is still wanted
+- What: the cloud runner checked "still wanted" with the pause and then started the upload as a task
+  of its own, and only afterwards linked the read's cancellation to it. An item removed in that gap
+  cancelled the read, but the upload had no check of its own and could still send. The upload now
+  asks again, right before the call, and the cancellation link is in place before the upload starts,
+  so a cancellation at any moment reaches it.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new runner test (wanted when the upload starts, not when it runs) failed (the call was
+  made) and passes; 216 unit tests pass.
+
 ### feat(ios): a card offers "Check it in the cloud" when the cloud question was never answered
 - What: an "allowed" given to the cloud question's earlier words now counts as unasked, and an iPhone
   that reads everything on the device never asks the question, so its second looks would silently

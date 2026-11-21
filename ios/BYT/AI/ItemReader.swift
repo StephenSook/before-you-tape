@@ -279,15 +279,52 @@ struct SignedInCloudRunner: ItemModelRunner {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
         guard !Task.isCancelled else { return .failure(ReadError(.cloudPaused)) }
         let inner = inner
-        guard let upload = await pause.startUnlessPaused(allowed: stillWanted, { await inner.read(input) }) else {
-            return .failure(ReadError(.cloudPaused))
+        // The upload runs apart from this read, so a read that is cancelled (its time limit, or its look
+        // given up) cancels it too. The link is in place before the upload starts, so a cancellation at
+        // any moment reaches it.
+        let link = UploadLink()
+        return await withTaskCancellationHandler {
+            guard let upload = await pause.startUnlessPaused(allowed: stillWanted, { () async -> Result<ItemReply, ReadError> in
+                // Asked again inside the upload, right before the call: a look given up between the start
+                // and this moment sends nothing.
+                guard await stillWanted(), !Task.isCancelled else { return Result.failure(ReadError(.cloudPaused)) }
+                return await inner.read(input)
+            }) else {
+                return .failure(ReadError(.cloudPaused))
+            }
+            link.set(upload.task)
+            let result = await upload.task.value
+            // The read's own record decides: a reply from a read the pause cancelled is dropped, even
+            // when the pause was lifted again before the reply came back.
+            if await pause.finished(upload.id) || upload.task.isCancelled { return .failure(ReadError(.cloudPaused)) }
+            return result
+        } onCancel: {
+            link.cancel()
         }
-        // The upload runs apart from this read, so a read that is cancelled (its time limit) cancels it too.
-        let result = await withTaskCancellationHandler { await upload.task.value } onCancel: { upload.task.cancel() }
-        // The read's own record decides: a reply from a read the pause cancelled is dropped, even
-        // when the pause was lifted again before the reply came back.
-        if await pause.finished(upload.id) || upload.task.isCancelled { return .failure(ReadError(.cloudPaused)) }
-        return result
+    }
+}
+
+/// The upload of one cloud read, cancellable from the read's cancellation handler, also when that
+/// handler runs before the upload has started.
+final class UploadLink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: Task<Result<ItemReply, ReadError>, Never>?
+    private var cancelled = false
+
+    func set(_ task: Task<Result<ItemReply, ReadError>, Never>) {
+        let cancelNow = lock.withLock {
+            self.task = task
+            return cancelled
+        }
+        if cancelNow { task.cancel() }
+    }
+
+    func cancel() {
+        let task = lock.withLock {
+            cancelled = true
+            return self.task
+        }
+        task?.cancel()
     }
 }
 
