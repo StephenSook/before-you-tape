@@ -4,6 +4,7 @@
 // Google Cloud access token through the Firestore REST API, which the security rules do not govern.
 //
 // Env: ACCESS_TOKEN (for example from `gcloud auth print-access-token`; never printed). Optional: EDITION_FILE.
+// Args: [--dry-run] prints the document and the pin and writes nothing (no token needed).
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -24,21 +25,34 @@ export function firestoreFields(d: EditionDocument): Record<string, { stringValu
   return { editionId: { stringValue: d.id }, json: { stringValue: d.json }, sha256: { stringValue: d.sha256 } };
 }
 
+// With --dry-run it prints the document's id, hash and size and writes nothing, so it needs no token.
+export async function publishEdition(o: { args: readonly string[]; token: string | undefined; raw: unknown; fetch: typeof fetch; log: (line: string) => void }): Promise<void> {
+  const d = await editionDocument(o.raw);
+  const dry = o.args.includes("--dry-run");
+  const token = o.token?.trim();
+  if (!dry && !token) throw new Error("ACCESS_TOKEN is not set");
+  if (dry) {
+    o.log(`ruleEditions/${d.id}: ${new TextEncoder().encode(d.json).length} bytes of canonical JSON; not written (--dry-run)`);
+  } else {
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/ruleEditions/${encodeURIComponent(d.id)}`;
+    const r = await o.fetch(url, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "x-goog-user-project": PROJECT },
+      body: JSON.stringify({ fields: firestoreFields(d) }),
+    });
+    if (!r.ok) throw new Error(`Firestore answered ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    o.log(`published ruleEditions/${d.id}`);
+  }
+  o.log(`rules_edition_id     ${d.id}`);
+  o.log(`rules_edition_sha256 ${d.sha256}`);
+}
+
 async function main(): Promise<void> {
-  const token = process.env.ACCESS_TOKEN?.trim();
-  if (!token) throw new Error("ACCESS_TOKEN is not set");
   const file = process.env.EDITION_FILE?.trim() || "rules/edition.json";
-  const d = await editionDocument(JSON.parse(readFileSync(file, "utf8")) as unknown);
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/ruleEditions/${encodeURIComponent(d.id)}`;
-  const r = await fetch(url, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "x-goog-user-project": PROJECT },
-    body: JSON.stringify({ fields: firestoreFields(d) }),
+  await publishEdition({
+    args: process.argv.slice(2), token: process.env.ACCESS_TOKEN, raw: JSON.parse(readFileSync(file, "utf8")) as unknown,
+    fetch, log: (line) => console.log(line),
   });
-  if (!r.ok) throw new Error(`Firestore answered ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  console.log(`published ruleEditions/${d.id}`);
-  console.log(`rules_edition_id     ${d.id}`);
-  console.log(`rules_edition_sha256 ${d.sha256}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
