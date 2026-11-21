@@ -13,7 +13,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
-The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build will be linked here when it ships. What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge) (`before-you-tape-android-76acd04.apk`, SHA-256 `df64d580a71f9cd01ea9efc95df0542d4286a94ff8dc39494cf012f840ab4f71`). What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
 
 ## Run it
 

@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The Android judge build is linked: /judge has an "Android app (APK)" link to the android-judge release, and the README names the APK and its SHA-256 instead of saying it will be linked when it ships. Source: the APK release. Verified: the release page and the APK answer HTTP 200 signed out (the APK is 27,277,603 bytes); a JudgePage test failed first and passes.
+
 - Removed `createTextCloudModel` and its test: no code called it, and the header of `src/ai/firebaseModels.ts` no longer promises a text-only cloud model. The `cloud_model_text` Remote Config value stays, now described as read by no web code. Source: doc review. Verified: no caller in src or scripts; lint, typecheck, the model guard and the ai and config tests pass.
 
 - SECURITY row 1c: the Android provider is Play Integrity, VERIFIED by the 2026-11-18 run of the release-signed app on a Samsung A16 (a 1037-character Play Integrity token, sign-in, a cloud read), not PENDING. Source: doc review. Verified: against `docs/evidence/android/a16-2026-11-18/README.md`.
