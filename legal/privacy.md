@@ -66,10 +66,10 @@ Like any online service, Google's servers see your IP address with each request.
   the app is deleted.
 - Android: the box lives in the app, and deleting the app deletes it.
 - On the web, a saved box lasts about 30 days. After that the anonymous sign-in may be removed, and
-  the box is deleted automatically within a few days. To delete a whole saved box or your anonymous
-  sign-in from Firebase, open an issue at
-  [github.com/StephenSook/before-you-tape/issues](https://github.com/StephenSook/before-you-tape/issues).
-  Don't post personal details in the issue. We will reply there and say how to do it.
+  the box is deleted automatically within a few days.
+- On the web, press Delete my saved box under Your box. It deletes every item, the box and your
+  anonymous sign-in. If the sign-in can't be deleted right away, Firebase may delete it automatically
+  any time after it is 30 days old.
 - The photo and words from a cloud check are not kept by Before You Tape.
 
 ## Contact
