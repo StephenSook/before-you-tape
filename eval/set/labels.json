@@ -1,6 +1,6 @@
 {
   "setId": "eval-v1",
-  "status": "draft: written from the rule sources before any model run; frozen by hash after the blind check, before the first run",
+  "status": "frozen 2026-11-21: verdict labels drafted in a build session (author not verified), adopted by the developer 2026-11-20 without a row-by-row review; no blind second-person check. Typed categories derived by a fixed table from the item descriptions, not typed by a person.",
   "items": {
     "own-01": {
       "CA": {

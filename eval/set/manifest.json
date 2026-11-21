@@ -14,8 +14,8 @@
     "maxSide": 1600,
     "jpegQuality": 88
   },
-  "protocolSha256": "",
-  "labelsSha256": "",
+  "protocolSha256": "1e02182a2f84f65ab027cfe471af3bdc7e8da09cb236bd1c8318fde8379f4575",
+  "labelsSha256": "860a8d73dd9ca8b75b43d7cf5c1d3c4868b2e9e02e0bd4b19f2ee5e83930721c",
   "items": [
     {
       "itemId": "own-01",
