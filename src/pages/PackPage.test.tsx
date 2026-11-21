@@ -792,6 +792,22 @@ describe("PackPage", () => {
     expect(deleteCrop.mock.calls.map(([k]) => k)).toEqual(["crop-a", "crop-b"]);
   });
 
+  it("asks for a reload when the server refuses saves this page used to make, instead of offering a retry that cannot work", async () => {
+    const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+    const ops = { ...noPersistence(), putMeta: vi.fn(async () => { throw refused; }) };
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    const onReload = vi.fn();
+    setup({ store, onReload });
+    await store.ready;
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" }); });
+    await store.settled();
+    const notice = await screen.findByTestId("out-of-date");
+    expect(notice).toHaveTextContent("Saving stopped because this page is out of date. Reload to keep saving.");
+    expect(screen.queryByRole("button", { name: "Try saving again" })).toBeNull();
+    await userEvent.click(within(notice).getByRole("button", { name: "Reload" }));
+    expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
     const { store } = setup();
     await store.ready;
