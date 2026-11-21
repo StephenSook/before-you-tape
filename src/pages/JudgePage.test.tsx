@@ -102,5 +102,9 @@ describe("JudgePage", () => {
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
 
+  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
 });
 

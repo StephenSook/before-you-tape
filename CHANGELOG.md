@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The country buttons carry the post office's announced suspensions, from the same rules the verdicts use: Canada shows "USPS stops Nov 29" until that day, then "USPS suspended". Source: UI review. Verified: new badge and page tests failed first and pass; the full unit suite passes.
+
 - The country picker is one 44 px button per country (a radio group: one tab stop, the arrow keys move between countries), in place of a 23 px dropdown. A line under it says who read the chosen country's rules, with a link to the rules page. While the saved box is still being read no country is marked, and the page asks where the box is going, so nothing switches without the sender seeing it. A country can carry a badge. Source: UI review. Verified: the new DestinationPicker tests failed first and pass; the page and browser tests now press the country buttons; the full unit suite passes.
 
 - `npm run fresh` (`scripts/fresh-through-judging.ts`): fails when a rule layer would read stale before the last judging day (2026-12-16). A stale layer turns every "OK to pack" into "Check this". Until the re-read window opens on 2026-11-27 it only warns, naming each layer and the day it turns stale (today: the CA and PH suspensions layers, last read 2026-11-20, stale from 2026-12-12); from then on it fails until the USPS alerts are read again and the edition is rebuilt. It runs in CI and in a daily job of the scheduled probe workflow, so it turns red even with no push. Source: review (the judging window). Verified: new tests (the stale day, warn before and fail from the window, the bundled edition) failed first and pass; the script warns and exits 0 today; both workflow files parse.

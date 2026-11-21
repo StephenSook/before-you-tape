@@ -490,6 +490,11 @@ describe("PackPage", () => {
     expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
   });
 
+  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
+    setup({ today: "2026-11-21" });
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);
     await act(async () => { await Promise.resolve(); });

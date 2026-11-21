@@ -20,6 +20,8 @@ import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
+import { destinationBadges } from "../ui/destinationBadges";
+import { localDay } from "../shared/localDay";
 import { AddByHand } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
@@ -65,6 +67,8 @@ export interface PackPageProps {
   // How long a photo added before the cloud settings load waits for them, and how long any one read may take.
   settingsWaitMs?: number;
   readTimeoutMs?: number;
+  // The day the suspension badges are for (this device's own day unless a test sets it).
+  today?: string;
 }
 
 // Remote Config usually answers within a second or two of the page opening.
@@ -455,7 +459,7 @@ export function PackPage(p: PackPageProps) {
       <p><a className="judge-link" href="/judge">Judges: start here</a></p>
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationKnown === false ? "" : state.destinationCode}
-          onChange={(code) => store.setDestination(code)} />
+          onChange={(code) => store.setDestination(code)} badges={destinationBadges(edition, index.map((d) => d.code), p.today ?? localDay())} />
         {state.loadState === "failed" && (
           <p role="alert">
             Your saved box could not be opened. New items stay on this device until it opens.{" "}
