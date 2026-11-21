@@ -27,19 +27,25 @@ let server: BuildServer;
 test.beforeAll(() => {
   next = mkdtempSync(join(tmpdir(), "byt-sw-next-"));
   cpSync("dist", next, { recursive: true });
-  const lazy = readdirSync(join(next, "assets")).find((f) => /^liveReadDeps-.+\.js$/.test(f));
+  const files = readdirSync(join(next, "assets"));
+  const lazy = files.find((f) => /^liveReadDeps-.+\.js$/.test(f));
   expect(lazy, "the build has a lazily loaded chunk to rename").toBeTruthy();
   oldChunk = `/assets/${lazy!}`;
-  const renamed = lazy!.replace(/-[^-]+\.js$/, "-next0000.js");
-  renameSync(join(next, "assets", lazy!), join(next, "assets", renamed));
+  // The page's own script names the lazy chunk, so its bytes change too, and a build would give it a new name.
+  const main = /src="\/assets\/(index-[^"]+\.js)"/.exec(readFileSync(join(next, "index.html"), "utf8"))?.[1];
+  expect(main, "the page names its own script").toBeTruthy();
   const texts = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? texts(join(dir, e.name)) : [".js", ".html", ".json", ".webmanifest"].includes(extname(e.name)) ? [join(dir, e.name)] : []);
-  let replaced = 0;
-  for (const f of texts(next)) {
-    const t = readFileSync(f, "utf8");
-    if (t.includes(lazy!)) { writeFileSync(f, t.split(lazy!).join(renamed)); replaced++; }
+  for (const name of [lazy!, main!]) {
+    const renamed = name.replace(/-[^-]+\.js$/, "-next0000.js");
+    renameSync(join(next, "assets", name), join(next, "assets", renamed));
+    let replaced = 0;
+    for (const f of texts(next)) {
+      const t = readFileSync(f, "utf8");
+      if (t.includes(name)) { writeFileSync(f, t.split(name).join(renamed)); replaced++; }
+    }
+    expect(replaced, `${name} is named by its importer and by the worker`).toBeGreaterThanOrEqual(2);
   }
-  expect(replaced, "the chunk is named by its importer and by the worker").toBeGreaterThanOrEqual(2);
   writeFileSync(join(next, "sw.js"), `${readFileSync(join(next, "sw.js"), "utf8")}\n// next deploy\n`);
   const page = readFileSync(join(next, "index.html"), "utf8");
   writeFileSync(join(next, "index.html"), page.replace("<head>", '<head><meta name="byt-test-build" content="next">'));
@@ -58,6 +64,12 @@ const servedSha = (page: Page) => page.evaluate(async () => ((await (await fetch
 const isNextPage = (page: Page) => page.locator('meta[name="byt-test-build"]').count();
 const mark = (page: Page) => page.evaluate(() => { (window as unknown as { bytStay: string }).bytStay = "open"; });
 const stayed = (page: Page) => page.evaluate(() => (window as unknown as { bytStay?: string }).bytStay);
+const holds = (page: Page) => page.evaluate(() => new Promise<unknown>((done) => {
+  const own = document.querySelector<HTMLScriptElement>('script[type="module"][src]')!.src;
+  const channel = new MessageChannel();
+  channel.port1.onmessage = (e) => done(e.data);
+  navigator.serviceWorker.controller!.postMessage({ type: "HOLDS", url: own }, [channel.port2]);
+}));
 const checkForUpdate = (page: Page) => page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())?.update(); });
 async function controlledTab(context: BrowserContext, url: string): Promise<Page> {
   const page = await context.newPage();
@@ -116,6 +128,9 @@ test("Reload in one tab reloads only that tab; another keeps its page and its ol
   // A file only the old app names, gone from the server, still loads for it.
   const status = await b.evaluate(async (u) => (await fetch(u)).status, oldChunk);
   expect(status).toBe(200);
+  // Asked whether it holds each page's own script, the new worker says no for the old page and yes for the new one.
+  expect(await holds(b)).toBe(false);
+  expect(await holds(a)).toBe(true);
 });
 
 // The very first tab had no worker when it registered one; Reload must still switch it to the new version.

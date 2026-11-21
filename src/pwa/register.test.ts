@@ -23,7 +23,7 @@ class FakeContainer extends EventTarget {
   takeOver() { this.controller = {}; this.dispatchEvent(new Event("controllerchange")); }
 }
 
-function env(controlled: boolean) {
+function env(controlled: boolean, holdsMine: boolean | null = true) {
   const container = new FakeContainer();
   if (controlled) container.controller = {};
   const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState });
@@ -33,6 +33,7 @@ function env(controlled: boolean) {
     document: doc as unknown as Document,
     reload: vi.fn(),
     every: (ms, f) => { expect(ms).toBe(3_600_000); timers.push(f); },
+    holdsThisPage: vi.fn(async () => holdsMine),
   };
   return { e, container, doc, timers };
 }
@@ -126,6 +127,31 @@ describe("registerServiceWorker", () => {
   });
 });
 
+// A page that started on one version while another took over before its own code ran missed that switch; it asks
+// the worker whether the worker holds this page's own files, and offers Reload when it does not.
+describe("a page older than its worker", () => {
+  it("offers Reload when the worker does not hold this page's files, and never reloads by itself", async () => {
+    const { e } = env(true, false);
+    await registerServiceWorker(e);
+    expect(e.holdsThisPage).toHaveBeenCalledTimes(1);
+    const apply = waiting().current;
+    expect(apply).not.toBeNull();
+    expect(e.reload).not.toHaveBeenCalled();
+    await apply!();
+    expect(e.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers nothing when the worker holds them, or does not answer, or there is no worker yet", async () => {
+    for (const [controlled, answer] of [[true, true], [true, null], [false, false]] as const) {
+      forgetUpdate();
+      const { e } = env(controlled, answer);
+      await registerServiceWorker(e);
+      expect(waiting().current, `${controlled} ${answer}`).toBeNull();
+      if (!controlled) expect(e.holdsThisPage).not.toHaveBeenCalled();
+    }
+  });
+});
+
 // A kill build's page cleans up too, on every load, so a kill worker stopped part way through still ends clean.
 describe("removeServiceWorkers", () => {
   it("unregisters every worker and deletes every cache, and registers nothing", async () => {
@@ -139,4 +165,3 @@ describe("removeServiceWorkers", () => {
     expect(container.register).not.toHaveBeenCalled();
   });
 });
-

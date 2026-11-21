@@ -16,7 +16,7 @@ import { appRoutes, type Rewrite } from "./routes";
 
 interface WaitableEvent extends Event { waitUntil(p: Promise<unknown>): void }
 interface SwFetchEvent extends WaitableEvent { request: Request; respondWith(r: Promise<Response>): void }
-interface SwMessageEvent extends WaitableEvent { data: unknown }
+interface SwMessageEvent extends WaitableEvent { data: unknown; ports: readonly MessagePort[] }
 interface SwWindowClient { url: string; navigate(url: string): Promise<unknown> }
 interface SwScope {
   __WB_MANIFEST: { url: string; revision: string | null }[];
@@ -96,8 +96,15 @@ if (ENTRIES.length === 0) {
     })());
   });
 
+  // SKIP_WAITING: a tab asked for this version. HOLDS: a page asks whether this worker holds its own script, so a
+  // page that started on another version can offer Reload (src/pwa/register.ts).
   sw.addEventListener("message", (event) => {
-    if ((event.data as { type?: unknown } | null)?.type === "SKIP_WAITING") void sw.skipWaiting();
+    const data = event.data as { type?: unknown; url?: unknown } | null;
+    if (data?.type === "SKIP_WAITING") void sw.skipWaiting();
+    if (data?.type === "HOLDS" && typeof data.url === "string" && event.ports[0]) {
+      const url = new URL(data.url, sw.location.origin);
+      event.ports[0].postMessage(FILES.has(url.origin + url.pathname));
+    }
   });
 
   sw.addEventListener("fetch", (event) => {
