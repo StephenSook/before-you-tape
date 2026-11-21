@@ -13,20 +13,66 @@ describe("deviceConsent", () => {
     expect(c.get()).toBe(false);
     c.set(null);
     expect(c.get()).toBeNull();
-    localStorage.setItem("byt.cloudConsent", "yes");
+    localStorage.setItem("byt.cloudConsent.v2", "yes");
     expect(c.get()).toBeNull();
+  });
+
+  it("asks again anyone who said yes to the earlier question, which did not mention a second look, and keeps an earlier no", () => {
+    localStorage.setItem("byt.cloudConsent", "true");
+    expect(deviceConsent(localStorage).get()).toBeNull();
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(deviceConsent(localStorage).get()).toBe(false);
+    // An answer to this question replaces the earlier one.
+    deviceConsent(localStorage).set(true);
+    expect(localStorage.getItem("byt.cloudConsent")).toBeNull();
+    expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("true");
+    expect(deviceConsent(localStorage).get()).toBe(true);
+    // A tab still on the earlier version can still take consent back, and its later yes never brings it back.
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(deviceConsent(localStorage).get()).toBe(false);
+    expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("false");
+    localStorage.setItem("byt.cloudConsent", "true");
+    expect(deviceConsent(localStorage).get()).toBe(false);
+  });
+
+  it("still says no when an earlier-version tab took consent back and this browser's storage is full", () => {
+    const stored = new Map<string, string>();
+    let full = false;
+    const s = {
+      getItem: (k: string) => stored.get(k) ?? null,
+      setItem: (k: string, v: string) => { if (full) throw new Error("full"); stored.set(k, v); },
+      removeItem: (k: string) => { stored.delete(k); },
+    } as unknown as Storage;
+    const c = deviceConsent(s);
+    c.set(true);
+    full = true;
+    stored.set("byt.cloudConsent", "false");
+    expect(c.get()).toBe(false);
+    expect(c.get()).toBe(false);
+  });
+
+  it("tells listeners each change another tab made, in order, even when only the last is still stored", () => {
+    const c = deviceConsent(localStorage);
+    const heard = vi.fn();
+    const stop = c.onChange(heard);
+    // A suspended tab hears an off and an on together, after both were written.
+    localStorage.setItem("byt.cloudConsent.v2", "true");
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
+    expect(heard.mock.calls).toEqual([[false], [true]]);
+    stop();
   });
 
   it("hears another tab's change to the answer, and only that key", () => {
     const c = deviceConsent(localStorage);
     const heard = vi.fn();
     const stop = c.onChange(heard);
-    localStorage.setItem("byt.cloudConsent", "false");
-    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "false" }));
+    localStorage.setItem("byt.cloudConsent.v2", "false");
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
     window.dispatchEvent(new StorageEvent("storage", { key: "byt.box.b1", newValue: "{}" }));
     expect(heard.mock.calls).toEqual([[false]]);
     stop();
-    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "true" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
