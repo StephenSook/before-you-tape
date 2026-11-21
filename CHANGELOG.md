@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/PRODUCTION-CHECKLIST.md links the A16 evidence for the revision 5 pin, and records the revision 6 pin (byt-08f3b8c7ff31, from main 260a42c): document written and read back with a matching hash, Remote Config version 7, the shared vectors passed on revision 6 with the Android emulator's and the iPhone build's engines, and no A16 run recorded yet. Source: the revision 6 pin. Verified: the linked file exists, hygiene, tone and the full gate.
+
 - The judge page says, beside the Android app link, that in the Android app any device with battery numbers shows Check this until the next update, and why: a photo can misread a label's numbers about ten times too low, only a cloud second look that reads the same numbers confirms them, and the Android app runs no second look. Source: rule edition revision 6, now pinned to the phones. Verified: the new judge page test failed first, full gate.
 
 - On the web, a second look that sees another kind of item now drops an earlier second look instead of keeping it, and a second look counts as agreeing only with the kind of item the box has now, so a category the sender changed is not taken as the cloud agreeing. Source: second-model review of the store fix (round 2). Verified: two store tests failed first, full gate.
