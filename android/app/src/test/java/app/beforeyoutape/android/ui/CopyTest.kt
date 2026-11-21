@@ -69,6 +69,17 @@ class CopyTest {
         assertTrue(Copy.ALL.containsAll(listOf(Copy.UPDATE_NEEDED, Copy.UPDATE_HOW, Copy.OPEN_DOWNLOADS)))
     }
 
+    /** Where a read ran and how long it took, so a measured time shows on the card. */
+    @Test fun aReadSaysWhereItRanAndHowLongItTook() {
+        assertEquals("Read on this phone in 1.2 s.", Copy.readLine("phone_on_device", 1234.0))
+        assertEquals("Read in the cloud, from this phone, in 3.5 s.", Copy.readLine("phone_cloud", 3497.0))
+        assertEquals("Read on the laptop in 4.6 s.", Copy.readLine("on_device", 4600.0))
+        assertEquals("Read in the cloud, from the laptop, in 12.3 s.", Copy.readLine("in_cloud", 12345.0))
+        // No time for a typed item, or for a read whose time was never recorded.
+        assertEquals("Typed by you", Copy.readLine("manual", 0.0))
+        assertEquals("Read on this phone", Copy.readLine("phone_on_device", 0.0))
+    }
+
     @Test fun noCopyUsesADashOrACurlyQuote() {
         for (text in Copy.ALL) {
             assertTrue(text, text.none { it in "\u2013\u2014\u2018\u2019\u201C\u201D" })

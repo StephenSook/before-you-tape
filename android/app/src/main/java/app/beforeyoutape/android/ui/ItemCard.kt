@@ -45,7 +45,7 @@ fun ItemCard(
                 style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text(verdict.headline, style = MaterialTheme.typography.titleLarge)
             verdict.hits.firstOrNull()?.let { Text(it.text, style = MaterialTheme.typography.bodyLarge) }
-            Text(Copy.source(item.readSource), style = MaterialTheme.typography.bodyMedium)
+            Text(Copy.readLine(item.readSource, item.readMs), style = MaterialTheme.typography.bodyMedium)
             onQuantity?.let { set ->
                 // Each tap sends a step, applied to the current quantity (1 to 99) in order.
                 val n = input.quantity.toInt()
