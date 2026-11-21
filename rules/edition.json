@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-6de003975d6d",
+  "editionId": "byt-18df94225733",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -245,7 +245,27 @@
       "tag": "explosive"
     },
     {
-      "pattern": "(?:replica|inert|dummy|deactivated|training|fake|toy|prop) (?:hand |mortar |artillery |practice )?(?:grenades?|ordnance|shells?|rounds?|munitions?|ammunition|ammo|mortars?|bombs?|rockets?|land ?mines?|mines?|warheads?|explosives?|detonators?)",
+      "pattern": "(?<!(?:protein|carb|killa)\\b[\\s\\S]*)grenades?(?![\\s\\S]*\\b(?:protein|carb|killa)\\b)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?:ordnance|munitions?|ammunition|detonators?)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?:munici[oó]n(?:es)?|detonador(?:es)?)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?:granadas?[\\s,-]+(?:de[\\s,-]+(?:mano|entrenamiento|pr[aá]ctica|fogueo|humo)|inertes?)|r[eé]plicas?[\\s,-]+de[\\s,-]+granadas?)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?<!(?:toys?|props?|foam|bath)[\\s,-]+)(?:replicas?|inert|dummy|deactivated|training|practice)(?:[\\s,-]+(?!(?:toys?|props?|foam|bath)\\b)[a-z0-9.]+){0,2}?[\\s,-]+(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?![\\s,-]+(?:toys?|props?|foam|bath)\\b)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?<!(?:toys?|props?|foam|bath)[\\s,-]+)(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?:[\\s,-]+(?!(?:toys?|props?|foam|bath)\\b)[a-z0-9.]+){0,2}?[\\s,-]+(?:replicas?|inert|dummy|deactivated)(?![\\s,-]+(?:toys?|props?|foam|bath)\\b)",
       "tag": "replica_explosive"
     },
     {
