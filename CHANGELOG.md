@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /judge lays the sample cards out in a grid (three across on a laptop), with each verdict chip on its photo's corner, and puts each card's label words and photo credit behind a closed "Label and photo credit" disclosure, so the page is far shorter and the verdicts come first. Source: UI review (/judge was 4484 px tall, its first chip at y 923). Verified: a new JudgePage test failed first and passes; the full unit suite passes.
+
 - The box summary shows its counts as chips in the verdict colors ("1 to take out", "2 to check", "6 OK to pack"), on the Pack page and on /judge. Source: UI review. Verified: a new BoxSummary test failed first and passes; the full unit suite passes.
 
 - /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.

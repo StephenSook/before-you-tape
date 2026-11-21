@@ -55,7 +55,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card img { width: 96px; height: auto; border-radius: 8px; border: var(--outline); }
 .judge, .about, .rules, .ran { max-width: 760px; margin: 0 auto; padding: var(--space-5); }
 .about .credits { font-size: 14px; }
-.sample-card img { width: 160px; height: auto; }
+/* The sample box: three cards across on a laptop, the verdict on each photo's corner. */
+.sample-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+.sample-card { margin: 0; }
+.sample-photo { position: relative; }
+.sample-photo img { display: block; width: 100%; height: auto; border-radius: var(--radius-card); }
+.sample-photo .chip { position: absolute; top: var(--space-2); left: var(--space-2); }
+.sample-more summary { cursor: pointer; font-size: 14px; }
 .count-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; margin: var(--space-2) 0; }
 .sample-card .credit { font-size: 13px; margin-bottom: 0; }
 

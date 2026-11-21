@@ -22,7 +22,7 @@ describe("JudgePage", () => {
     const img = within(card("Body lotion")).getByRole("img");
     expect(img).toHaveAttribute("src", "/eval/thumbs/own-18-480.webp");
     expect(img).toHaveAttribute("srcset", "/eval/thumbs/own-18-240.webp 240w, /eval/thumbs/own-18-480.webp 480w");
-    expect(img).toHaveAttribute("sizes", "160px");
+    expect(img).toHaveAttribute("sizes", "(max-width: 700px) 50vw, 240px");
     expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
     expect(within(card("Body lotion")).getByText("Photo by the project owner")).toBeInTheDocument();
     expect(within(card("Power bank")).getByText(/^Photo: .*CC BY-SA 4\.0/)).toBeInTheDocument();
@@ -106,4 +106,20 @@ describe("JudgePage", () => {
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
+
+  it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    const grid = screen.getByTestId("sample-grid");
+    expect(within(grid).getAllByTestId("sample-card")).toHaveLength(9);
+    const c = card("Body lotion");
+    // The chip sits on the photo's corner: both in one photo box.
+    const photo = within(c).getByRole("img").parentElement!;
+    expect(photo).toHaveClass("sample-photo");
+    expect(within(photo).getByTestId("verdict-chip")).toBeInTheDocument();
+    const more = within(c).getByText("Label and photo credit").closest("details")!;
+    expect(more).not.toHaveAttribute("open");
+    expect(within(more).getByText(/^Label:/)).toBeInTheDocument();
+    expect(within(more).getByText("Photo by the project owner")).toBeInTheDocument();
+  });
 });
+
