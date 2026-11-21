@@ -77,3 +77,18 @@ The release APK attached to the `android-judge-3` release (`before-you-tape-andr
   at 2026-11-21T20:49Z: box 41, guards 64, destinations 25, and QuickJS equal to WebView V8 157.0.8103.50 on 442 inputs.
 - **Afterwards:** the test package was removed; the installed file still had the attached file's SHA-256.
 
+## A newer rule edition reaches the published app, 2026-11-21
+
+The published `android-judge-3` app (installed SHA-256 `89c36ece...26bc`, the attached release APK, nothing installed
+over it) on the same A16, while rule edition `byt-1e330a4fdf37` (revision 5) was published to Firestore
+(`ruleEditions/byt-1e330a4fdf37`) and pinned in Remote Config (version 6: `rules_edition_id` and
+`rules_edition_sha256`).
+
+- **Before the pin:** at 2026-11-21T21:39:08Z, its About screen read "Rules edition: byt-cfd7e337919a" (revision 4, the
+  edition built into this file) and "Rules bundle: cf36a8d (7eec63d00561)".
+- **After the pin:** the app was stopped and opened again at 21:47:51Z. At 21:48:06Z, on the first read, About read
+  "Rules edition: byt-1e330a4fdf37", and the home screen showed no notice that the edition could not be loaded or was
+  older.
+- The screens were read from the phone's UI tree. About was opened from the consent screen, which was left
+  unanswered; no setting was changed.
+
