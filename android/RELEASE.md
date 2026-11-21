@@ -29,10 +29,24 @@ ANDROID_SERIAL=<phone> BYT_RELEASE_PASSWORD="$(security find-generic-password -w
   -Pandroid.testInstrumentationRunnerArguments.notAnnotation=androidx.test.filters.FlakyTest
 ```
 
-Run it from `android/`. `ReleaseAppCheckProbeTest` passes only when the release App Check
-provider issues a token on that phone, the app signs in, and the app's own reader returns a cloud
-read of a drawn power bank label that the web app's parser accepts. Record the phone, the result
-and the date in `docs/evidence/android/`.
+Run it from `android/`, on a checkout of the APK's commit. `ReleaseAppCheckProbeTest` passes only
+when the release App Check provider issues a token on that phone, the app signs in, and the app's
+own reader returns a cloud read of a drawn power bank label that the web app's parser accepts.
+
+The Gradle run installs its own build of the commit, which is not byte for byte the file
+`release.sh` signed. So run it with `-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true`,
+then probe the shipped file itself:
+
+```sh
+adb install -r <the release APK>
+adb shell sha256sum "$(adb shell pm path app.beforeyoutape.android | tr -d '\r' | sed 's/package://')"
+adb shell am instrument -w -e class app.beforeyoutape.android.live.ReleaseAppCheckProbeTest \
+  app.beforeyoutape.android.test/androidx.test.runner.AndroidJUnitRunner
+adb uninstall app.beforeyoutape.android.test
+```
+
+The SHA-256 must be the APK's own, before and after the probe. Record the phone, both hashes, the
+result and the date in `docs/evidence/android/`.
 
 What it depends on, outside this repo:
 
