@@ -25,7 +25,7 @@
       "lineId": "CA-P-02",
       "section": "prohibitions",
       "lineSha256": "35f5ca0305e63a42365227922d0e964c948d1f3fbb0b87a61d9282f06a7d8937",
-      "ourWording": "No lighters with fuel in them. An empty new lighter is allowed.",
+      "ourWording": "No lighters with fuel in them. Canada allows an empty new lighter, but USPS takes no lighters by international mail, so the app takes every lighter out.",
       "matches": [
         {
           "tag": "lighter",

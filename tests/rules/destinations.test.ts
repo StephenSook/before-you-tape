@@ -79,6 +79,14 @@ describe("destination editions", () => {
     expect(wording("CA", "CA-P-12")).not.toMatch(/Canada-only/);
   });
 
+  it("says when the app is stricter than the Canada lighter line, and why", () => {
+    const l = ed.destinations.CA?.lines.find((x) => x.lineId === "CA-P-02");
+    // Canada lets a new lighter with no fuel through; USPS-INTL-MATCHES-LIGHTERS takes every lighter out.
+    expect(l?.ourWording).toMatch(/Canada allows an empty new lighter, but USPS takes no lighters by international mail/);
+    expect(l?.matches).toEqual([{ tag: "lighter", effect: "take_out" }]);
+    expect(ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS")?.outcome).toBe("take_out");
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");
