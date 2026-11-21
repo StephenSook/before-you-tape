@@ -5,7 +5,7 @@ name: Live probe
 # loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
 # shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
 # The read job, with the CI App Check debug token: one real read through the live app comes back as a read,
-# once a UTC day. The fresh job fails when the scheduled run before this one started more than 36 hours ago.
+# once a UTC day. The fresh job fails when no scheduled run before this one passed in the last 26 hours.
 # The probe reports itself retired after 2026-12-17; delete this file then.
 # A manual run can probe another site, so a wrong URL proves the probe fails.
 on:
@@ -77,28 +77,34 @@ jobs:
       - name: Rules stay fresh through judging
         run: npm run fresh
 
-  # A cron is no liveness guarantee: this fails when the scheduled run before this one started more than 36
-  # hours ago, so a long silence shows red on the next run. It counts runs of any result, because a failed run
-  # is already red, and counting only passing ones would keep this red after one bad day. It cannot alarm when
-  # no run starts at all.
+  # A cron is no liveness guarantee: this fails when the newest successful scheduled run before this one started 26
+  # hours ago or more (scripts/probe-schedule.ts), so a stopped, throttled or failing schedule shows red on the next
+  # run, and GitHub's failure email goes out. Counting only passing runs keeps it red for one more run after a bad
+  # day; that is the price of catching a schedule that runs but keeps failing. It cannot alarm when no run starts at
+  # all: an outside uptime check covers that.
   fresh:
     runs-on: ubuntu-24.04
-    timeout-minutes: 2
+    timeout-minutes: 5
     permissions:
       actions: read
+      contents: read
     steps:
-      - name: The scheduled run before this one started under 36 hours ago
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: A scheduled run passed under 26 hours ago
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Run ids only grow, so the newest run with a smaller id is the one before this; a newer queued run is
-          # skipped. Its start time, not its creation time, is when it ran.
-          last=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f per_page=20 \
-            --jq '[.workflow_runs[] | select(.id < ${{ github.run_id }})][0] | (.run_started_at // .created_at) // empty')
-          if [ -z "$last" ]; then echo "No earlier scheduled run found"; exit 1; fi
-          hours=$(python3 -c 'import sys, datetime as d; t = d.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00")); print(int((d.datetime.now(d.timezone.utc) - t).total_seconds() // 3600))' "$last")
-          echo "The scheduled run before this one started at $last, $hours hours ago"
-          if [ "$hours" -ge 36 ]; then echo "::error::No scheduled run started for $hours hours"; exit 1; fi
+          gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f per_page=30 > "$RUNNER_TEMP/runs.json"
+          npx tsx scripts/probe-schedule.ts "$RUNNER_TEMP/runs.json" "${{ github.run_id }}"
 
   # One real read through the live app's cloud path, with the CI App Check debug token: the reply must parse
   # as a complete read (tests/e2e/read.live.spec.ts). A paused API, a refused token or a quota error fails it,
