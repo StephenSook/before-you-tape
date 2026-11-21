@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /judge has a "Run one live read" panel below the sample box, with a link to it beside the GitHub and Android links. Its parts load only when the button is pressed, so the page asks nothing of Google before then. The live read's verdict is judged for the country picked now, and again when the country changes. The time shown runs from the press that starts the read to the verdict on screen. Source: /judge live-read plan. Verified: two new JudgePage tests failed first and pass; the panel's own tests pass; the /judge browser checks pass.
+
 - The live read's real parts for /judge (src/judge/liveReadDeps.ts): the Pack page's models, sign-in, App Check, Remote Config and device consent, plus the tracked sample photo, fetched and refused unless its sha256 matches the record, then cropped whole. Cloud settings that do not arrive within 10 s count as paused. Source: /judge live-read plan. Verified: four loader tests (matching and mismatching sample bytes, settings paused or not, settings that never arrive) failed first and pass.
 
 - The app's real parts (Firebase with App Check, Remote Config, the item-read models, the box store, the edition pin) are built in src/pages/packDeps.ts instead of inside PackRoute, so /judge can load them only when its live read is pressed. No behaviour changes. The README's getAi(true) pointer moves with it. Source: /judge live-read plan. Verified: typecheck, the full suite and the home-page browser checks pass.

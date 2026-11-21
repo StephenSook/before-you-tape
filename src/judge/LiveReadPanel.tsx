@@ -42,11 +42,12 @@ type View =
   | { kind: "idle" }
   | { kind: "busy" }
   | { kind: "asking"; deps: LiveReadDeps }
-  | { kind: "done"; read: ItemRead; inCloud: boolean; ms: number; level: VerdictLevel }
+  | { kind: "done"; read: ItemRead; inCloud: boolean; ms: number }
   | { kind: "failed"; text: string };
 
 export interface LiveReadPanelProps {
   load: () => Promise<LiveReadDeps>;
+  // The verdict for the read, judged for the country picked now, so a country change re-judges it.
   judge: (read: ItemRead) => VerdictLevel;
   now?: () => number;
   // One read at a time, then this long before the next, so the button cannot run reads back to back.
@@ -74,7 +75,7 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
       const part = await d.sample();
       const route = inCloudRoute ? "cloud_only" : "device_only";
       const out = await readItem(d.models(), part, route, () => performance.now(), () => !inCloudRoute || d.consent.get() === true);
-      finish({ kind: "done", read: out.read, inCloud: out.source === "in_cloud", ms: now() - start, level: judge(out.read) });
+      finish({ kind: "done", read: out.read, inCloud: out.source === "in_cloud", ms: now() - start });
     } catch (e) {
       finish({ kind: "failed", text: failText(e) });
     }
@@ -107,7 +108,7 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
 
   const busy = view.kind === "busy" || view.kind === "asking";
   return (
-    <section data-testid="live-read" aria-labelledby="live-read-heading">
+    <section id="live-read" data-testid="live-read" aria-labelledby="live-read-heading">
       <h2 id="live-read-heading">One live read</h2>
       <p>Reads the sample lotion photo with the app's real models: on this laptop when it can, otherwise in the cloud, after you allow it.</p>
       <button type="button" onClick={() => void press()} disabled={busy || cooling}>Run one live read</button>
@@ -118,7 +119,7 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
         <div data-testid="live-read-result">
           <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this laptop"}, {(view.ms / 1000).toFixed(1)} s</p>
           <p data-testid="live-read-name">The model read: {view.read.itemName}</p>
-          <VerdictChip level={view.level} />
+          <VerdictChip level={judge(view.read)} />
         </div>
       )}
     </section>
