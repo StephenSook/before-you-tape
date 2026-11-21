@@ -54,6 +54,17 @@ class ItemCardTest {
         rule.onNodeWithText(restating).assertDoesNotExist()
     }
 
+    /** As on the web: when the first reason only restates the question, the next reason shows in its place. */
+    @Test fun theNextReasonShowsInsteadOfOneThatRestatesTheQuestion() {
+        val item = box.state.items.single()
+        val verdict = box.state.result!!.items.getValue("a")
+        val question = checkNotNull(verdict.question)
+        val next = verdict.hits.drop(1).firstOrNull { !it.text.startsWith(question.text) }
+        assertTrue("premise: a reason other than the restating one (${verdict.hits.map { it.text }})", next != null)
+        rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }) }
+        rule.onNodeWithText(next!!.text).assertExists()
+    }
+
     /** One more and one fewer are real 48 dp buttons, with the same spoken names. */
     @Test fun theQuantityButtonsAreFullSize() {
         val item = box.state.items.single()

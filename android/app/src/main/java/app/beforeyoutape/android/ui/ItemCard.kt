@@ -47,9 +47,9 @@ fun ItemCard(
             Text(if (input.quantity > 1) "$name x ${input.quantity.toString().removeSuffix(".0")}" else name,
                 style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text(verdict.headline, style = MaterialTheme.typography.titleLarge)
-            // The first reason, unless it only restates the question asked below ("Is it new? Answer to finish this
-            // check." beside "Is it new?"): the card asks its question once.
-            verdict.hits.firstOrNull()?.takeUnless { h -> verdict.question?.let { h.text.startsWith(it.text) } == true }
+            // The first reason that does not only restate the question asked below ("Is it new? Answer to finish this
+            // check." beside "Is it new?"): the card asks its question once. Same rule as the web card.
+            verdict.hits.firstOrNull { h -> verdict.question?.let { h.text.startsWith(it.text) } != true }
                 ?.let { Text(it.text, style = MaterialTheme.typography.bodyLarge) }
             Text(Copy.readLine(item.readSource, item.readMs), style = MaterialTheme.typography.bodyMedium)
             onQuantity?.let { set ->
