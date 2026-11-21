@@ -6,6 +6,12 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The sample cards' "Label and photo credit" disclosure is 37 px tall instead of 21 px, so it meets the 24 px tap target size (WCAG 2.2 target-size). Source: the accessibility browser check on /judge, which failed on one card at 1440 and 390 px after main was merged in. Verified: axe found the 21 px summary; after the padding, the accessibility, judge, contrast and start browser checks pass (17).
+
+- /judge lays the sample cards out in a grid (three across on a laptop), with each verdict chip on its photo's corner, and puts each card's label words and photo credit behind a closed "Label and photo credit" disclosure, so the page is far shorter and the verdicts come first. Source: UI review (/judge was 4484 px tall, its first chip at y 923). Verified: a new JudgePage test failed first and passes; the full unit suite passes.
+
+- The box summary shows its counts as chips in the verdict colors ("1 to take out", "2 to check", "6 OK to pack"), on the Pack page and on /judge. Source: UI review. Verified: a new BoxSummary test failed first and passes; the full unit suite passes.
+
 - /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.
 
 - `scripts/eval-thumbs.py` writes a 240 px and a 480 px wide WebP copy of each of the 40 published eval photos into `public/eval/thumbs/` (80 files, 1.2 MB, against 11 MB for the photos), with no Exif or XMP block, and `src/judge/thumbs.json` records each one's size and SHA-256. `src/judge/thumbs.ts` gives a page the small copy, its size and a srcset. The published photos and the manifest do not change. Source: UI review (/judge showed 2.8 MB of photos at 160 px). Verified: a new test (every photo, both widths, the same shape, the hashes, no Exif or XMP) failed first and passes.
