@@ -66,7 +66,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .sample-photo { position: relative; }
 .sample-photo img { display: block; width: 100%; height: auto; border-radius: var(--radius-card); }
 .sample-photo .chip { position: absolute; top: var(--space-2); left: var(--space-2); }
-.sample-more summary { cursor: pointer; font-size: 14px; }
+.sample-more summary { cursor: pointer; font-size: 14px; padding-block: var(--space-2); }
 .count-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; margin: var(--space-2) 0; }
 .pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .pair-side { margin: 0; min-width: 0; }
