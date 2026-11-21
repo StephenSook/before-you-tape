@@ -72,8 +72,9 @@ describe("destination editions", () => {
       ["CA", "CA-P-12", /identical form in every edition distributed in its home country/], // free editions too
       ["CA", "CA-P-13", /Britain or any other British country/],
       ["CA", "CA-P-21", /prints in publications/],
-      ["PH", "PH-R-01", /two 500 g bottles of powdered coffee.*FDA Philippines/],
-      ["PH", "PH-O-01", /^A commercial invoice .* needs the Philippine Consulate's stamp/], // USPS: "are subject to"
+      ["PH", "PH-R-01", /two 500 g plastic bottles of powdered coffee.*FDA Philippines/],
+      // USPS: "are subject to authentication by the Philippine Consulate", for a fee of U.S. $30.
+      ["PH", "PH-O-01", /^A commercial invoice .* needs authentication by the Philippine Consulate, for a US\$30 fee\.$/],
     ];
     for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
     // USPS says any publication, and an ad aimed mainly at Canada, in the wording and in the reasons alike.
