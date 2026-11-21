@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Removed `createTextCloudModel` and its test: no code called it, and the header of `src/ai/firebaseModels.ts` no longer promises a text-only cloud model. The `cloud_model_text` Remote Config value stays, now described as read by no web code. Source: doc review. Verified: no caller in src or scripts; lint, typecheck, the model guard and the ai and config tests pass.
+
 - SECURITY row 1c: the Android provider is Play Integrity, VERIFIED by the 2026-11-18 run of the release-signed app on a Samsung A16 (a 1037-character Play Integrity token, sign-in, a cloud read), not PENDING. Source: doc review. Verified: against `docs/evidence/android/a16-2026-11-18/README.md`.
 
 - README: the release-gate note says the USPS service alerts were last read on 2026-11-20 (as `rules/suspensions.json` records), so that layer reads stale from 2026-12-12; it said 2026-11-17. Source: doc review. Verified: the layer state computed for 2026-12-11 (checked) and 2026-12-12 (stale).
