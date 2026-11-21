@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): drop Firebase Performance and Functions, which the app never calls
+- What: `ios/project.yml` linked FirebasePerformance and FirebaseFunctions, and no code used either.
+  Performance still collected by itself once linked (the IP address, app launch and network
+  request times, CPU and memory use, device information) and bundled no privacy manifest. Both
+  are removed, so less leaves the phone, and the App Privacy answers and the privacy page lose
+  their Performance rows.
+- Source: App Store preparation (an audit of what the built app sends).
+- Verified: a test that neither `FIRPerformance` nor `FIRFunctions` is in the app process failed
+  before (both present) and passes after; the built binary has 0 Performance and 0 Functions
+  symbols (14593 Firebase AI Logic symbols as a control); 160 unit tests and the UI test pass.
+
 ### feat(ios): the app carries its own privacy manifest
 - What: `ios/BYT/PrivacyInfo.xcprivacy`: no tracking and no tracking domains; the app's own use of
   UserDefaults (reason CA92.1, the box id) and of file metadata (reason C617.1, the saved box's

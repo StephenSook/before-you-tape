@@ -28,6 +28,13 @@ import Testing
                             "NSPrivacyAccessedAPICategoryFileTimestamp": ["C617.1"]])
     }
 
+    /// Firebase Performance collects by itself once it is linked, and Functions is never called, so
+    /// neither is in the app: nothing leaves the phone for a feature the app does not use.
+    @Test func theAppLinksNoFirebaseLibraryItNeverCalls() {
+        #expect(NSClassFromString("FIRPerformance") == nil)
+        #expect(NSClassFromString("FIRFunctions") == nil)
+    }
+
     @Test func theAppDeclaresWhatACloudCheckSends() throws {
         let types = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
         let byType = Dictionary(uniqueKeysWithValues: types.map { ($0["NSPrivacyCollectedDataType"] as? String ?? "", $0) })
