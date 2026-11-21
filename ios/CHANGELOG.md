@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the reader runs a cloud second look of an input already read
+- What: `ItemReader.secondLook(_:situation:)` reads the same input on the cloud-only route, even when
+  this iPhone's model could read it, with a first read's retry and fallback and the cloud gate read
+  again before every call (the web app's runSecondLook). Its records carry a new route reason,
+  `second_look`. A first read's routing is unchanged.
+- Source: the iPhone second look.
+- Verified: three reader tests (only the cloud runner runs and the record says second_look; a closed
+  gate sends nothing; a server error is tried once more) failed to compile before and pass after;
+  177 unit tests and 36 engine-host tests pass. One earlier run stopped with "Test crashed with
+  signal term before establishing connection" while nothing of this lane was running; the re-run
+  passed.
+
 ### feat(ios): the box lands a cloud second look and keeps its disputes
 - What: `BoxStore.applySecondLook` (the web app's): the merged read replaces the device's, the
   item keeps the tags of every label either read saw, a label word only one read saw becomes a

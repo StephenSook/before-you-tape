@@ -100,7 +100,17 @@ struct ItemReader: Sendable {
 
     func read(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
         await gate.acquire()
-        let outcome = await run(input, situation)
+        let outcome = await run(input, situation, ReadRoutePolicy.decide(Self.routeInput(input.kind, situation)))
+        await gate.release()
+        return outcome
+    }
+
+    /// A cloud second look of an input already read on this iPhone (the web app's runSecondLook): the
+    /// cloud-only route, with a first read's retry and fallback, and the cloud gate read again before every
+    /// call. Whether one should run at all is the caller's to decide (a reason and the cloud allowed now).
+    func secondLook(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
+        await gate.acquire()
+        let outcome = await run(input, situation, RouteDecision(route: .cloudOnly, first: .cloud, reason: .secondLook))
         await gate.release()
         return outcome
     }
@@ -121,8 +131,7 @@ struct ItemReader: Sendable {
         return ReadRoutePolicy.decide(input).first == .cloud
     }
 
-    private func run(_ input: ItemInput, _ s: ReadSituation) async -> ReadOutcome {
-        let decision = ReadRoutePolicy.decide(Self.routeInput(input.kind, s))
+    private func run(_ input: ItemInput, _ s: ReadSituation, _ decision: RouteDecision) async -> ReadOutcome {
         guard var path = decision.first else {
             return ReadOutcome(read: nil, source: nil, route: decision.route, failure: nil, records: [])
         }

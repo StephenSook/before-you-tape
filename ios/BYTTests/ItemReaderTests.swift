@@ -270,6 +270,37 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
         #expect(j.events == ["cloud start", "cloud end"])
     }
 
+    /// A second look reads the same input in the cloud only, even when this iPhone's model could read it,
+    /// and records itself as a second look.
+    @Test func aSecondLookReadsOnlyInTheCloud() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: TokenUse(input: 5, output: 1)))]),
+                             built: built).secondLook(photo, situation: situation())
+        #expect(o.read == read && o.source == .cloud && o.route == .cloudOnly)
+        #expect(j.events == ["cloud start", "cloud end"] && built.models == [RemoteConfigValues.defaults.cloudModelItem])
+        #expect(o.records.map(\.reason) == [.secondLook] && o.records.map(\.path) == [.cloud])
+    }
+
+    /// The cloud gate is read before a second look's call too: closed, nothing is sent.
+    @Test func aSecondLookSendsNothingWhenTheCloudIsClosed() async {
+        let j = FakeItemRunner.Journal(), built = Built()
+        var r = reader(device: FakeItemRunner("device", journal: j, results: []),
+                       cloud: FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]), built: built)
+        r.cloudOpen = { false }
+        let o = await r.secondLook(photo, situation: situation())
+        #expect(o.read == nil && o.failure == .cloudPaused && j.events.isEmpty && built.models.isEmpty)
+    }
+
+    /// A second look gets a first read's cloud retry: a server error is tried once more.
+    @Test func aSecondLookRetriesAServerErrorOnce() async {
+        let j = FakeItemRunner.Journal()
+        let o = await reader(device: FakeItemRunner("device", journal: j, results: []),
+                             cloud: FakeItemRunner("cloud", journal: j, results: [.failure(ReadError(.server)), .success(ItemReply(read: read, tokens: nil))]))
+            .secondLook(photo, situation: situation())
+        #expect(o.read == read && o.records.count == 2)
+    }
+
     @Test func theDeviceRunnerHoldsNoFirebaseAI() {
         #expect(Mirror(reflecting: DeviceRunner()).children.isEmpty)
     }
