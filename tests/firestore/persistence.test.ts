@@ -86,7 +86,9 @@ describe("firestorePersistence", () => {
     await p.putItem("b1", item("i1", { disputes: { liquid: { device: true, cloud: false, resolved: false } } }));
     await p.putItem("b1", item("i2"));
     const expiresAt = (await at("boxes/b1"))!.expiresAt;
-    await p.deleteBox!("b1");
+    // It says whose the box was and which crops its items used, so only those are deleted after it.
+    const gone = await p.deleteBox!("b1");
+    expect({ ...gone, cropKeys: [...gone.cropKeys].sort() }).toEqual({ ownerUid: "alice", cropKeys: ["k-i1", "k-i2"] });
     expect(await at("boxes/b1")).toBeUndefined();
     for (const sub of ["items", "disputes"]) expect((await admin((d) => getDocs(collection(d, `boxes/b1/${sub}`)))).size).toBe(0);
     // The tombstone outlives the box by 30 days, so TTL removes anything left behind first.
@@ -94,7 +96,7 @@ describe("firestorePersistence", () => {
     // The id is retired: no one can start a box there again.
     await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
     // Deleting a box that is already gone does nothing.
-    await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
+    await expect(p.deleteBox!("b1")).resolves.toEqual({ ownerUid: null, cropKeys: [] });
   });
 
   it("refuses a box with no expiry before touching any of its items, since its tombstone could not be written", async () => {
@@ -108,13 +110,13 @@ describe("firestorePersistence", () => {
 
   it("retires the id of a box not in Firestore yet, so a first save still on its way cannot create it", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    await p.deleteBox("b8");
+    expect(await p.deleteBox("b8")).toEqual({ ownerUid: null, cropKeys: [] });
     // 67 days out (the box's 37 plus 30), by this clock, which the rules check against the server's.
     const expiresAt = (await at("retiredBoxes/b8"))!.expiresAt as Timestamp;
     expect(Math.abs(expiresAt.toMillis() - (Date.now() + 67 * DAY))).toBeLessThan(60_000);
     await expect(p.putMeta("b8", meta())).rejects.toThrow();
     // Retired already: deleting it again does nothing.
-    await expect(p.deleteBox("b8")).resolves.toBeUndefined();
+    await expect(p.deleteBox("b8")).resolves.toEqual({ ownerUid: null, cropKeys: [] });
   });
 
   it("retires an id with no box on a device clock two days slow, and fails, retiring nothing, on one far off", async () => {

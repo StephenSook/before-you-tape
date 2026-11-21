@@ -827,6 +827,11 @@ describe("PackPage", () => {
         "Your saved box is deleted. Your anonymous sign-in could not be deleted right away; Firebase may delete it automatically any time after it is 30 days old.");
     });
 
+    it("says only that the box was deleted when the sign-in was not the box's to delete", () => {
+      setup({ deletedNotice: "kept" });
+      expect(screen.getByTestId("box-deleted")).toHaveTextContent(/^Your saved box is deleted\.$/);
+    });
+
     it("offers no delete button where the page cannot delete a saved box", () => {
       setup();
       expect(screen.queryByRole("button", { name: "Delete my saved box" })).toBeNull();

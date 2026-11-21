@@ -1,7 +1,7 @@
 // "Delete my saved box": asks first, then deletes the box everywhere it is kept. If it stops part-way, it says what
 // is left; trying again is safe, since each step deletes only what is still there.
 import { useState } from "react";
-import type { DeleteResult, DeleteStep } from "../data/deleteSavedBox";
+import type { DeleteResult, DeleteStep, SignInOutcome } from "../data/deleteSavedBox";
 
 const LEFT: Record<DeleteStep, string> = {
   box: "The saved box could not be fully deleted. Try again.",
@@ -10,7 +10,7 @@ const LEFT: Record<DeleteStep, string> = {
 };
 
 // onDelete(from): a retry passes the step that stopped, so the steps already done are not run again.
-export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: (from?: DeleteStep) => Promise<DeleteResult>; onDone: (signIn: "deleted" | "signed_out") => void }) {
+export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: (from?: DeleteStep) => Promise<DeleteResult>; onDone: (signIn: SignInOutcome) => void }) {
   const [stage, setStage] = useState<"idle" | "asking" | "working">("idle");
   const [left, setLeft] = useState<DeleteStep | null>(null);
   const run = async (from?: DeleteStep) => {

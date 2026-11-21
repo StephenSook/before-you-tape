@@ -3,16 +3,22 @@
 // must finish before the next; the first that fails stops the rest and is named, so the sender knows what is left,
 // and a retry starts there. The keys go last because taking away the pointer to the box tells other tabs to start
 // again (whenDeletedElsewhere), which must wait until the sign-in is gone, or they would save a new box under it.
+import type { BoxGone } from "./boxOps";
+
 export type DeleteStep = "box" | "crops" | "signIn";
-export type DeleteResult = { ok: true; signIn: "deleted" | "signed_out" } | { ok: false; stoppedAt: DeleteStep };
+// kept: the sign-in was not this box's to delete (another tab signed in since, or no box was in Firestore for it).
+export type SignInOutcome = "deleted" | "signed_out" | "kept";
+export type DeleteResult = { ok: true; signIn: SignInOutcome } | { ok: false; stoppedAt: DeleteStep };
 
 export interface DeleteSavedBoxDeps {
   // Resolves once this page's writes already out have answered; nothing more is kept or sent.
   stopSaving(): Promise<void>;
   // The box step failed, so the box is still there: this page keeps and sends its edits again.
   resumeSaving(): void;
-  deleteBox(boxId: string): Promise<void>;
-  deleteCrops(): Promise<unknown>;
+  // Says whose the box was and which crops its items used.
+  deleteBox(boxId: string): Promise<BoxGone>;
+  deleteCrops(keys: string[]): Promise<unknown>;
+  currentUid(): string | null;
   clearLocal(boxId: string): void;
   deleteSignIn(): Promise<void>;
   signOut(): Promise<void>;
@@ -20,29 +26,35 @@ export interface DeleteSavedBoxDeps {
 
 const STEPS: DeleteStep[] = ["box", "crops", "signIn"];
 
-export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from: DeleteStep = "box"): Promise<DeleteResult> {
+// known: on a retry that starts after the box step, what that step found.
+export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from: DeleteStep = "box", known?: BoxGone): Promise<DeleteResult> {
   const runs = (step: DeleteStep) => STEPS.indexOf(step) >= STEPS.indexOf(from);
+  let gone: BoxGone | null = known ?? null;
   if (runs("box")) {
     try {
       await d.stopSaving();
-      await d.deleteBox(boxId);
+      gone = await d.deleteBox(boxId);
     } catch {
       d.resumeSaving();
       return { ok: false, stoppedAt: "box" };
     }
   }
   if (runs("crops")) {
-    try { await d.deleteCrops(); } catch { return { ok: false, stoppedAt: "crops" }; }
+    try { await d.deleteCrops(gone?.cropKeys ?? []); } catch { return { ok: false, stoppedAt: "crops" }; }
   }
-  let signIn: "deleted" | "signed_out" = "deleted";
-  try {
-    await d.deleteSignIn();
-  } catch (e) {
-    // An old anonymous session cannot sign in again to prove itself, so it is signed out instead; Firebase removes
-    // unused anonymous sign-ins on its own.
-    if ((e as { code?: unknown } | null)?.code !== "auth/requires-recent-login") return { ok: false, stoppedAt: "signIn" };
-    try { await d.signOut(); } catch { return { ok: false, stoppedAt: "signIn" }; }
-    signIn = "signed_out";
+  // Only the sign-in that owned this box goes: another tab may have signed in since as the owner of a newer box.
+  let signIn: SignInOutcome = "kept";
+  if (gone?.ownerUid && d.currentUid() === gone.ownerUid) {
+    try {
+      await d.deleteSignIn();
+      signIn = "deleted";
+    } catch (e) {
+      // An old anonymous session cannot sign in again to prove itself, so it is signed out instead; Firebase removes
+      // unused anonymous sign-ins on its own.
+      if ((e as { code?: unknown } | null)?.code !== "auth/requires-recent-login") return { ok: false, stoppedAt: "signIn" };
+      try { await d.signOut(); } catch { return { ok: false, stoppedAt: "signIn" }; }
+      signIn = "signed_out";
+    }
   }
   // Storage this browser refuses holds nothing of the box to remove.
   try { d.clearLocal(boxId); } catch { /* nothing was kept */ }
@@ -59,13 +71,13 @@ export function clearLocalBox(storage: Storage, boxId: string): void {
 
 // The live page's parts for a delete.
 export interface DeleterParts {
-  store: { getState(): { boxId: string }; close(): Promise<void>; reopen(): void };
+  store: { getState(): { boxId: string; items: ReadonlyArray<{ cropKey: string | null }> }; close(): Promise<void>; reopen(): void };
   // Settles once this page's own sign-in has finished, whether it worked or not.
   signedIn: Promise<unknown>;
   // Whoever is signed in now: another tab may have signed in after this page's own sign-in failed.
   currentUid: () => string | null;
-  deleteFirestoreBox: (uid: string, boxId: string) => Promise<void>;
-  deleteCropsExcept: (keep: (key: string) => boolean) => Promise<unknown>;
+  deleteFirestoreBox: (uid: string, boxId: string) => Promise<BoxGone>;
+  deleteCrop: (key: string) => Promise<unknown>;
   storage: Storage;
   deleteSignIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -74,9 +86,11 @@ export interface DeleterParts {
 }
 
 // The box in Firestore is deleted under whoever is signed in when the delete runs, not through this page's own
-// saving, which may have fallen back to this browser. Every crop on this device goes: no other box can start here
-// before the delete ends (the pointer goes last), so each is this box's, a photo another tab added since included.
+// saving, which may have fallen back to this browser. Only this box's crops go, never every crop on the device:
+// those its items use on this page, and those its items in Firestore used, another tab's included.
 export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise<DeleteResult> {
+  // What the box step found, for a retry that starts after it.
+  let found: BoxGone | undefined;
   return (from) => {
     const boxId = p.store.getState().boxId;
     // A tab that missed another tab's delete still holds the old box; deleting from it would delete the crops and the
@@ -87,34 +101,37 @@ export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise
       p.onStale();
       return Promise.resolve({ ok: false, stoppedAt: "box" });
     }
+    const here = p.store.getState().items.flatMap((i) => (i.cropKey ? [i.cropKey] : []));
     return deleteSavedBox(boxId, {
       stopSaving: () => p.store.close(),
       resumeSaving: () => p.store.reopen(),
       deleteBox: async (id) => {
         await p.signedIn.catch(() => {});
         const uid = p.currentUid();
-        if (uid) await p.deleteFirestoreBox(uid, id);
+        found = uid ? await p.deleteFirestoreBox(uid, id) : { ownerUid: null, cropKeys: [] };
+        return found;
       },
-      deleteCrops: () => p.deleteCropsExcept(() => false),
+      deleteCrops: async (keys) => { for (const key of new Set([...here, ...keys])) await p.deleteCrop(key); },
+      currentUid: p.currentUid,
       clearLocal: (id) => clearLocalBox(p.storage, id),
       deleteSignIn: p.deleteSignIn,
       signOut: p.signOut,
-    }, from);
+    }, from, found);
   };
 }
 
 // A delete ends by reloading the page onto a new, empty box; this keeps how the sign-in went for that page to say once.
 const DELETED_KEY = "byt.deleted";
 
-export function rememberDeleted(storage: Storage, signIn: "deleted" | "signed_out"): void {
+export function rememberDeleted(storage: Storage, signIn: SignInOutcome): void {
   try { storage.setItem(DELETED_KEY, signIn); } catch { /* the notice is a courtesy */ }
 }
 
-export function takeDeletedNotice(storage: Storage): "deleted" | "signed_out" | null {
+export function takeDeletedNotice(storage: Storage): SignInOutcome | null {
   try {
     const v = storage.getItem(DELETED_KEY);
     storage.removeItem(DELETED_KEY);
-    return v === "deleted" || v === "signed_out" ? v : null;
+    return v === "deleted" || v === "signed_out" || v === "kept" ? v : null;
   } catch {
     return null;
   }

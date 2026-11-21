@@ -6,7 +6,7 @@
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
 import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
-import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
+import { stableJson, type BoxGone, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -120,6 +120,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     async deleteBox(boxId: string) {
       const box = doc(db, "boxes", boxId);
       let snap: DocumentSnapshot | null = null;
+      let gone: BoxGone = { ownerUid: null, cropKeys: [] };
       await deleteOrRetire(
         async () => (snap = await getDocFromServer(box)).exists(),
         async () => {
@@ -130,9 +131,15 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
           // Its tombstone takes its time from the box's expiry; without one the last batch would be refused after the
           // items were gone, so it is refused here, first. Every box has one since the backfill.
           if (!expiresAt) throw new Error("this box has no expiry, so it cannot be retired");
+          // The crops its items used, as the server holds them, another tab's items included.
+          const cropKeys = new Set<string>();
           await sweepUntilEmpty(
             async () => {
               const [items, disputes] = await Promise.all([getDocsFromServer(collection(box, "items")), getDocsFromServer(collection(box, "disputes"))]);
+              for (const d of items.docs) {
+                const key: unknown = d.get("cropKey");
+                if (typeof key === "string" && key) cropKeys.add(key);
+              }
               return [...items.docs, ...disputes.docs].map((d) => d.ref);
             },
             async (refs) => {
@@ -146,6 +153,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
           last.set(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(expiresAt.toMillis() + 30 * DAY_MS) });
           last.delete(box);
           await last.commit();
+          gone = { ownerUid: String(data.ownerUid), cropKeys: [...cropKeys] };
         },
         // Retired anyway, so a first save still on its way from another tab cannot create the box after this. There is
         // no box expiry to count from, so this device's clock counts, and the rules allow it a week either side.
@@ -153,6 +161,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
         async () => (await getDocFromServer(doc(db, "retiredBoxes", boxId))).exists(),
       );
       expiries.delete(boxId);
+      return gone;
     },
     async deleteItem(boxId: string, itemId: string) {
       const box = doc(db, "boxes", boxId);

@@ -22,7 +22,13 @@ export interface BoxOps {
   // True when the writes land only in this browser (sign-in failed): the store keeps them for the server.
   localOnly?(): boolean;
   // Deletes the whole box for good: its items and disputes, then the box itself. Only its owner may.
-  deleteBox?(boxId: string): Promise<void>;
+  deleteBox?(boxId: string): Promise<BoxGone>;
+}
+
+// What a whole-box delete found: whose the box was (null when no box was in Firestore) and the crops its items used.
+export interface BoxGone {
+  ownerUid: string | null;
+  cropKeys: string[];
 }
 
 // The same JSON text for the same value, whatever order its keys were set in.

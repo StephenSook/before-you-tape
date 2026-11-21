@@ -6,8 +6,9 @@ const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const d: DeleteSavedBoxDeps = {
     stopSaving: vi.fn(async () => { order.push("stop"); }),
     resumeSaving: vi.fn(() => { order.push("resume"); }),
-    deleteBox: vi.fn(async () => { order.push("box"); }),
-    deleteCrops: vi.fn(async () => { order.push("crops"); }),
+    deleteBox: vi.fn(async () => { order.push("box"); return { ownerUid: "alice", cropKeys: ["c2"] }; }),
+    deleteCrops: vi.fn<(keys: string[]) => Promise<void>>(async () => { order.push("crops"); }),
+    currentUid: () => "alice",
     clearLocal: vi.fn(() => { order.push("local"); }),
     deleteSignIn: vi.fn(async () => { order.push("signIn"); }),
     signOut: vi.fn(async () => { order.push("signOut"); }),
@@ -22,7 +23,22 @@ describe("deleteSavedBox", () => {
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "deleted" });
     expect(order).toEqual(["stop", "box", "crops", "signIn", "local"]);
     expect(d.deleteBox).toHaveBeenCalledWith("b1");
+    expect(d.deleteCrops).toHaveBeenCalledWith(["c2"]);
     expect(d.clearLocal).toHaveBeenCalledWith("b1");
+  });
+
+  // Another tab may have signed in since as the owner of a newer box; that sign-in is not this box's to delete.
+  it("keeps the sign-in when it is not the one that owned the box", async () => {
+    const { d, order } = deps({ currentUid: () => "bob" });
+    expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "kept" });
+    expect(order).toEqual(["stop", "box", "crops", "local"]);
+    expect(d.deleteSignIn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the sign-in when no box was in Firestore for it to own", async () => {
+    const { d } = deps({ deleteBox: vi.fn(async () => ({ ownerUid: null, cropKeys: [] })) });
+    expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "kept" });
+    expect(d.deleteSignIn).not.toHaveBeenCalled();
   });
 
   it("stops at the first step that fails and says which, leaving the later steps undone", async () => {
@@ -47,11 +63,14 @@ describe("deleteSavedBox", () => {
 
   it("starts a retry at the step that stopped, so the steps already done are not run again", async () => {
     const { d, order } = deps();
-    expect(await deleteSavedBox("b1", d, "signIn")).toEqual({ ok: true, signIn: "deleted" });
+    expect(await deleteSavedBox("b1", d, "signIn", { ownerUid: "alice", cropKeys: [] })).toEqual({ ok: true, signIn: "deleted" });
     expect(order).toEqual(["signIn", "local"]);
     const again = deps();
-    await deleteSavedBox("b1", again.d, "crops");
+    await deleteSavedBox("b1", again.d, "crops", { ownerUid: "alice", cropKeys: ["c9"] });
     expect(again.order).toEqual(["crops", "signIn", "local"]);
+    expect(again.d.deleteCrops).toHaveBeenCalledWith(["c9"]);
+    // A retry that does not know whose the box was keeps the sign-in.
+    expect(await deleteSavedBox("b1", deps().d, "signIn")).toEqual({ ok: true, signIn: "kept" });
   });
 
   // Taking away the pointer to the box tells other tabs to start again; they must not before the sign-in is gone, or
@@ -99,6 +118,8 @@ describe("the notice after a delete", () => {
     rememberDeleted(sessionStorage, "signed_out");
     expect(takeDeletedNotice(sessionStorage)).toBe("signed_out");
     expect(takeDeletedNotice(sessionStorage)).toBeNull();
+    rememberDeleted(sessionStorage, "kept");
+    expect(takeDeletedNotice(sessionStorage)).toBe("kept");
   });
 
   it("ignores anything else stored under its key", () => {
@@ -111,11 +132,11 @@ describe("savedBoxDeleter", () => {
   beforeEach(() => localStorage.clear());
   const parts = (over: Partial<DeleterParts> = {}) => {
     const p: DeleterParts = {
-      store: { getState: () => ({ boxId: "b1" }), close: vi.fn(async () => {}), reopen: vi.fn() },
+      store: { getState: () => ({ boxId: "b1", items: [{ cropKey: "c1" }, { cropKey: null }] }), close: vi.fn(async () => {}), reopen: vi.fn() },
       signedIn: Promise.resolve(),
       currentUid: () => "alice",
-      deleteFirestoreBox: vi.fn(async () => {}),
-      deleteCropsExcept: vi.fn(async () => 0),
+      deleteFirestoreBox: vi.fn(async () => ({ ownerUid: "alice", cropKeys: ["c3"] })),
+      deleteCrop: vi.fn(async () => {}),
       storage: localStorage,
       deleteSignIn: vi.fn(async () => {}),
       signOut: vi.fn(async () => {}),
@@ -138,7 +159,7 @@ describe("savedBoxDeleter", () => {
     const p = parts();
     expect(await savedBoxDeleter(p)()).toEqual({ ok: false, stoppedAt: "box" });
     expect(p.onStale).toHaveBeenCalled();
-    for (const f of [p.store.close, p.deleteFirestoreBox, p.deleteCropsExcept, p.deleteSignIn, p.signOut]) expect(f).not.toHaveBeenCalled();
+    for (const f of [p.store.close, p.deleteFirestoreBox, p.deleteCrop, p.deleteSignIn, p.signOut]) expect(f).not.toHaveBeenCalled();
   });
 
   it("deletes when the pointer names this box, or when this browser keeps no pointer", async () => {
@@ -157,14 +178,20 @@ describe("savedBoxDeleter", () => {
     expect(p.deleteFirestoreBox).not.toHaveBeenCalled();
   });
 
-  // No other box can start on this device before the delete ends (the pointer goes last), so every crop here is
-  // this box's, a photo another tab added since this page last looked included.
-  it("deletes every crop on this device", async () => {
+  // Never every crop on the device: another box may have started here since, and its photos are not this box's.
+  it("deletes only this box's crops: its items' on this page and those Firestore held for it", async () => {
     const p = parts();
     await savedBoxDeleter(p)();
-    const keep = vi.mocked(p.deleteCropsExcept).mock.calls[0]![0];
-    expect(keep("c1")).toBe(false);
-    expect(keep("added-in-another-tab")).toBe(false);
+    expect(vi.mocked(p.deleteCrop).mock.calls.map(([k]) => k).sort()).toEqual(["c1", "c3"]);
+  });
+
+  it("retries with what the delete found, so a later sign-in step still knows whose the box was", async () => {
+    const deleteSignIn = vi.fn<() => Promise<void>>().mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce();
+    const p = parts({ deleteSignIn });
+    const run = savedBoxDeleter(p);
+    expect(await run()).toEqual({ ok: false, stoppedAt: "signIn" });
+    expect(await run("signIn")).toEqual({ ok: true, signIn: "deleted" });
+    expect(p.deleteFirestoreBox).toHaveBeenCalledTimes(1);
   });
 });
 
