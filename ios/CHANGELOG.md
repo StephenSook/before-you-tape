@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): five 6.9-inch App Store screenshots from real on-device reads
+- What: `ios/app-store/screenshots/`: Ready check, a power bank read on the iPhone, the box with
+  all three verdicts, an item's reason with the date of each rule layer, and the same box
+  re-checked for the Philippines with 0 model calls. A README says how each was made and its
+  limits.
+- Source: App Store preparation.
+- Verified: each file is 1320 x 2868; every read was made by Apple's on-device model on the
+  iPhone 17 Pro Max simulator through Add a photo; only the owner's own photos appear (a CC BY-SA
+  photo first used in 02 was replaced). The simulator was shut down afterwards.
+
 ### docs(ios): the App Privacy answers, with where each one comes from
 - What: `ios/app-store/app-privacy.md`: tracking (no), and each Apple data type the iPhone app
   collects (User ID; the photo crop and label words only after Allow; Firebase's own diagnostic
