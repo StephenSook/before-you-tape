@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: the judges paragraph says how to run one live read on /judge, where it runs, and what its time measures (from the press that starts the read to the verdict on screen). Source: /judge live-read plan. Verified: tone, guard, hygiene and the full suite pass.
+
 - A browser check for the /judge live read, run in CI with the App Check token: no request to Google before the press; after the press and Allow, the sample is read in the cloud (the model host is stubbed) and its verdict shows. Source: /judge live-read plan. Verified: locally it reaches the cloud step and stops at App Check, which needs CI's token, the same as pack.local.
 
 - /judge has a "Run one live read" panel below the sample box, with a link to it beside the GitHub and Android links. Its parts load only when the button is pressed, so the page asks nothing of Google before then. The live read's verdict is judged for the country picked now, and again when the country changes. The time shown runs from the press that starts the read to the verdict on screen. Source: /judge live-read plan. Verified: two new JudgePage tests failed first and pass; the panel's own tests pass; the /judge browser checks pass.
