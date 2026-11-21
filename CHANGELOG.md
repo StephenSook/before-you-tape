@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- CI now runs tests/e2e/leaves.local.spec.ts, in the browser step that has the App Check token; it was in neither step, so its pull request passed without the spec ever running. scripts/ci-e2e.test.ts now fails when a local browser spec is missing from both steps, or a step names one that does not exist. Source: review of that pull request's CI log. Verified: the guard failed first naming the missing spec, then passed.
+
 - A browser check (tests/e2e/leaves.local.spec.ts) holds the page to what it says leaves the device. On a cloud read, the one request carries exactly the part the crop step showed (by SHA-256) and no text but the app's own fixed prompts, and the /ran row says so. On a read on the device, with a stand-in for Chrome's model, no request goes to a model host. Source: review of the judge-facing claims. Verified: the device test passes locally; the cloud test needs the App Check debug token, which only CI has (the existing upload test fails the same way locally without it).
 
 - docs/LIMITS.md records that the built-in model misread a power bank's battery numbers about ten times too low in both network-off reads on 2026-11-21 (5,000 mAh where the label says 50000 mAh). Source: the network-off read on the live site. Verified: hygiene, tone and the full gate.
