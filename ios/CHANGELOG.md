@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): a known limit for a sign-in deleted on the server but left in the keychain
+- What: docs/LIMITS.md says that when Firebase has deleted the anonymous sign-in on its servers and
+  the iPhone then cannot remove it from its keychain, a copy can stay on the iPhone, and it no longer
+  works.
+- Source: review (Codex, on the delete PR), accepted as a known limit.
+- Verified: tone passes; no dashes or curly quotes in docs/LIMITS.md.
+
 ### fix(ios): deleting the sign-in waits for one in progress and deletes only the user it began with
 - What: "Delete everything" could run while the app's anonymous sign-in was still in progress: it saw no
   user, reported success, and the sign-in then landed; and a retry after two sign-ins could delete the
