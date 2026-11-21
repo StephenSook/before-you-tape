@@ -39,6 +39,8 @@ export interface CameraStageProps {
   onUsePhone?: () => void;
   onTypeIt?: () => void;
   onError?: (text: string) => void;
+  // A press of Check now or of the sample, at the moment it happens, before any cropping.
+  onPress?: () => void;
   // The camera may read an item that sits still by itself. Only true when that read stays on this device.
   autoRead?: boolean;
   // A tracked test photo a sender with no camera or no item can try. It goes through the same crop step and the
@@ -67,7 +69,7 @@ const CAMERA_TEXT: Record<CameraErrorKind, string> = {
   busy: "The camera is in use by another app. Add a photo instead.",
 };
 
-export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, autoRead = false, sample, loadSample = fetchSample, onSampleSend }: CameraStageProps) {
+export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phone, capture, decodeFile, cropPart, onUsePhone, onTypeIt, onError, onPress, autoRead = false, sample, loadSample = fetchSample, onSampleSend }: CameraStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const [started, setStarted] = useState(false);
@@ -81,8 +83,8 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
 
   // The latest callbacks, kept in refs so a parent re-render never restarts the frame watch: a fresh
   // detector would see the item still in the zone and read it a second time.
-  const latest = useRef({ onImage, onError, capture, autoRead, started });
-  useEffect(() => { latest.current = { onImage, onError, capture, autoRead, started }; });
+  const latest = useRef({ onImage, onError, onPress, capture, autoRead, started });
+  useEffect(() => { latest.current = { onImage, onError, onPress, capture, autoRead, started }; });
 
   // What the sender reads when a read or a photo fails: plain words, never the code's own message.
   const plain = (e: unknown, photo: boolean): string => {
@@ -95,7 +97,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const pickSeq = useRef(0);
   const pressSeq = useRef(0);
   const read = useCallback(async (box: Box, how: ImageHow) => {
-    if (how === "check_now") ++pressSeq.current;
+    if (how === "check_now") { ++pressSeq.current; latest.current.onPress?.(); }
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
       const video = videoRef.current;
@@ -183,6 +185,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   // it (that read is of the whole photo); with none, it is an added photo like any other.
   const trySample = async () => {
     if (!sample) return;
+    latest.current.onPress?.();
     const mine = ++pickSeq.current;
     const press = pressSeq.current;
     const current = () => mine === pickSeq.current && press === pressSeq.current;

@@ -22,7 +22,7 @@ describe("Pack page after the sender leaves", () => {
     store.setConsent(true);
     const { unmount } = render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }}
       openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />);
+      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} deleteCrop={async () => {}} online />);
     const emit = late.emit;
     expect(emit).not.toBeNull();
     unmount();
@@ -45,7 +45,7 @@ describe("Pack page after the sender leaves", () => {
     const { unmount } = render(<>
       <PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }}
         openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-        index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />
+        index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} deleteCrop={async () => {}} online />
       <LateCrop />
     </>);
     unmount();

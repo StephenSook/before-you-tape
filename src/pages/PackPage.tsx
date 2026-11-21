@@ -53,6 +53,8 @@ export interface PackPageProps {
   openCamera: typeof openCameraFn;
   index: readonly DestinationIndexEntry[];
   saveCrop: (key: string, part: ImagePart, labelText: string) => Promise<void>;
+  // Deletes a saved crop and its label words from this device.
+  deleteCrop: (key: string) => Promise<void>;
   online: boolean;
   phoneReady?: boolean;
   // On a phone: the back camera, and the photo picker opens the camera.
@@ -89,7 +91,8 @@ const GATE_SLOW = "This laptop is still checking whether it can read photos itse
 const CHOICE_CHANGED = "Your cloud choice changed while this laptop was getting ready. Add the photo again.";
 const ASK_CHANGED = "Your cloud choice changed in another tab. Add the photo again.";
 type AskFor = { kind: "chip" } | { kind: "photo"; part: ImagePart; how: ImageHow } | { kind: "look"; itemId: string };
-type Ask = AskFor & { id: number };
+// at: the choice when the question opened; an answer given after it changed elsewhere is not taken.
+type Ask = AskFor & { id: number; at: boolean | null };
 const TOO_SLOW = "The check took too long. Try again or type the item.";
 const SECOND_LOOK_TOO_SLOW = "The cloud step took too long. Try again.";
 
@@ -158,10 +161,18 @@ export function PackPage(p: PackPageProps) {
   // One question at a time: a newer photo, a removed item or a choice made in another tab closes it.
   const [ask, setAsk] = useState<Ask | null>(null);
   const askIds = useRef(0);
-  const openAsk = (a: AskFor) => setAsk({ ...a, id: ++askIds.current });
+  const openAsk = (a: AskFor) => setAsk({ ...a, id: ++askIds.current, at: store.consentNow() });
   // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
   const [removed, setRemoved] = useState("");
   const focusAfterRemove = useRef<string | null>(null);
+  // An item's crop and label words stay on this device only while the box holds the item: they are deleted when
+  // it leaves, removed here or on another device. A delete that fails is retried when the box next opens.
+  const cropOf = useRef(new Map<string, string>());
+  useEffect(() => {
+    const kept = new Map(state.items.flatMap((i) => (i.cropKey ? [[i.itemId, i.cropKey] as const] : [])));
+    for (const [itemId, key] of cropOf.current) if (!kept.has(itemId)) void p.deleteCrop(key).catch(() => {});
+    cropOf.current = kept;
+  }, [state.items, p]);
   const removeItem = (itemId: string) => {
     const at = state.items.findIndex((i) => i.itemId === itemId);
     const removedItem = state.items[at];
@@ -495,6 +506,11 @@ export function PackPage(p: PackPageProps) {
     const pending = ask;
     askWatch.current?.();
     setAsk(null);
+    // Another tab answered first (its storage event may not have arrived): this answer is not taken.
+    if (pending && store.consentNow() !== pending.at) {
+      if (pending.kind === "photo") setNotice(ASK_CHANGED);
+      return;
+    }
     store.setConsent(allow);
     // The question's buttons go, so focus returns to the chip that shows the answer.
     document.getElementById("cloud-chip")?.focus();
@@ -508,9 +524,8 @@ export function PackPage(p: PackPageProps) {
   const askWatch = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!ask) return;
-    const at = store.consentNow();
     const stop = store.subscribe(() => {
-      if (store.consentNow() === at) return;
+      if (store.consentNow() === ask.at) return;
       setAsk(null);
       if (ask.kind === "photo") setNotice(ASK_CHANGED);
     });
@@ -579,7 +594,7 @@ export function PackPage(p: PackPageProps) {
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} {...(p.phone ? { phone: true } : {})} onError={setNotice}
-            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
+            onTypeIt={() => setTyping(true)} onPress={() => setAsk(null)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
             {...(p.sampleRead ? { onSampleSend } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}

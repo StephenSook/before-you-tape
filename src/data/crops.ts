@@ -47,3 +47,21 @@ export async function loadCrop(key: string): Promise<StoredCrop | null> {
 export async function deleteCrop(key: string): Promise<void> {
   await run("readwrite", (s) => s.delete(key));
 }
+
+// Deletes every crop whose key `keep` turns down, in one transaction, so a crop saved meanwhile is either
+// listed and judged or not touched. Returns how many it deleted.
+export async function deleteCropsExcept(keep: (key: string) => boolean): Promise<number> {
+  const db = await openDb();
+  return new Promise((done, fail) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    let gone = 0;
+    const keys = store.getAllKeys();
+    keys.onsuccess = () => {
+      for (const key of keys.result) if (typeof key === "string" && !keep(key)) { store.delete(key); gone++; }
+    };
+    tx.oncomplete = () => done(gone);
+    tx.onerror = () => fail(tx.error ?? new Error("local storage failed"));
+    tx.onabort = () => fail(tx.error ?? new Error("local storage was aborted"));
+  });
+}

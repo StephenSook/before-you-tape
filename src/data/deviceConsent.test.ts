@@ -27,11 +27,24 @@ describe("deviceConsent", () => {
     expect(localStorage.getItem("byt.cloudConsent")).toBeNull();
     expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("true");
     expect(deviceConsent(localStorage).get()).toBe(true);
-    // A tab still on the earlier version can still take consent back; its yes never counts.
+    // A tab still on the earlier version can still take consent back, and its later yes never brings it back.
     localStorage.setItem("byt.cloudConsent", "false");
     expect(deviceConsent(localStorage).get()).toBe(false);
+    expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("false");
     localStorage.setItem("byt.cloudConsent", "true");
-    expect(deviceConsent(localStorage).get()).toBe(true);
+    expect(deviceConsent(localStorage).get()).toBe(false);
+  });
+
+  it("tells listeners each change another tab made, in order, even when only the last is still stored", () => {
+    const c = deviceConsent(localStorage);
+    const heard = vi.fn();
+    const stop = c.onChange(heard);
+    // A suspended tab hears an off and an on together, after both were written.
+    localStorage.setItem("byt.cloudConsent.v2", "true");
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
+    expect(heard.mock.calls).toEqual([[false], [true]]);
+    stop();
   });
 
   it("hears another tab's change to the answer, and only that key", () => {

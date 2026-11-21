@@ -19,10 +19,17 @@ export function deviceConsent(storage: Storage): DeviceConsent {
   // With storage blocked the answer lasts for this visit, and starts unanswered.
   let blocked = false;
   let memory: boolean | null = null;
+  // An earlier-version tab took consent back: the no is recorded under this key too, so a later yes from that
+  // tab, to the earlier question, never brings consent back.
+  const takeBack = () => {
+    storage.setItem(KEY, "false");
+    storage.removeItem(EARLIER_KEY);
+    return false;
+  };
   const get = () => {
     if (blocked) return memory;
     try {
-      if (parse(storage.getItem(EARLIER_KEY)) === false) return false;
+      if (parse(storage.getItem(EARLIER_KEY)) === false) return takeBack();
       return parse(storage.getItem(KEY));
     } catch {
       blocked = true;
@@ -44,7 +51,17 @@ export function deviceConsent(storage: Storage): DeviceConsent {
     },
     onChange(f) {
       if (typeof window === "undefined") return () => {};
-      const onStorage = (e: StorageEvent) => { if (e.key === KEY || e.key === EARLIER_KEY || e.key === null) f(get()); };
+      // Each change is told with the value that event wrote, so a tab that hears an off and an on together
+      // still hears the off.
+      const onStorage = (e: StorageEvent) => {
+        if (e.key === KEY && e.newValue !== null) { f(parse(e.newValue)); return; }
+        if (e.key === EARLIER_KEY && parse(e.newValue) === false) {
+          try { takeBack(); } catch { blocked = true; }
+          f(false);
+          return;
+        }
+        if (e.key === KEY || e.key === EARLIER_KEY || e.key === null) f(get());
+      };
       window.addEventListener("storage", onStorage);
       return () => window.removeEventListener("storage", onStorage);
     },

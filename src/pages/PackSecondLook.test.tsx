@@ -33,7 +33,7 @@ function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent
   const models = { device: answers(read, "on_device"), hybrid: answers(read, "on_device"), cloud: o.cloud ?? answers(phoneCloud, "in_cloud"), fallback: answers(phoneCloud, "in_cloud") };
   const props = (online: boolean): PackPageProps => ({
     store, models, gate: "available", config: { killCloud: o.killCloud ?? false, ...(o.secondLook ? { secondLook: o.secondLook } : {}) }, index: [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }],
-    openCamera: async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} }), saveCrop: async () => {}, online,
+    openCamera: async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} }), saveCrop: async () => {}, deleteCrop: async () => {}, online,
   });
   const view = render(<PackPage {...props(o.online ?? true)} />);
   return { store, models, rerender: (online: boolean) => view.rerender(<PackPage {...props(online)} />) };
@@ -226,7 +226,7 @@ describe("Pack page second look", () => {
     const props = (online: boolean): PackPageProps => ({
       store, models: { device, hybrid: device, cloud }, gate: "available", config: { killCloud: false },
       index: [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }],
-      openCamera: async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} }), saveCrop: async () => {}, online,
+      openCamera: async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} }), saveCrop: async () => {}, deleteCrop: async () => {}, online,
     });
     const view = render(<PackPage {...props(false)} />);
     await upload();
@@ -244,7 +244,7 @@ describe("Pack page second look", () => {
     store.setConsent(true);
     render(<PackPage store={store} models={{ device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud }} gate="available" config={{ killCloud: false }}
       index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-      saveCrop={async () => {}} online readTimeoutMs={50} />);
+      saveCrop={async () => {}} deleteCrop={async () => {}} online readTimeoutMs={50} />);
     await upload();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The cloud step took too long. Try again."));
     expect(screen.queryByText("Checking again in the cloud.")).toBeNull();
