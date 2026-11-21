@@ -172,6 +172,40 @@ describe("PackPage", () => {
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
+  it("closes a photo's cloud question when the choice changes in another tab, and sends nothing", async () => {
+    const { store, models } = setup({}, null);
+    await addPhoto();
+    await screen.findByRole("button", { name: "Allow" });
+    // Another tab answers; this page hears it through the store.
+    act(() => store.setConsent(false));
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed in another tab. Add the photo again.");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("drops an older photo's cloud question when a newer photo is added, so Allow can only send the newest", async () => {
+    const store = newStore();
+    const models = spyModels();
+    const ui = (online: boolean) => <PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
+      saveCrop={async () => {}} online={online} />;
+    const view = render(ui(true));
+    await addPhoto();
+    await screen.findByRole("button", { name: "Allow" });
+    view.rerender(ui(false));
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("You're offline");
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("puts focus back on the cloud chip once the question is answered", async () => {
+    setup({}, null);
+    await userEvent.click(screen.getByTestId("cloud-chip"));
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: on");
+    expect(screen.getByTestId("cloud-chip")).toHaveFocus();
+  });
+
   it("keeps a photo on this laptop when the sender says so at the ask, and says why it cannot be read", async () => {
     const { store, models } = setup({}, null);
     await addPhoto();

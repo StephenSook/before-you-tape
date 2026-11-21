@@ -2,7 +2,7 @@
 // before turning them on. "Paused" when the app's settings have stopped cloud checks for everyone.
 export function CloudChip({ consent, paused, onToggle }: { consent: boolean; paused: boolean; onToggle: () => void }) {
   return (
-    <button type="button" data-testid="cloud-chip" className="segment cloud-chip" aria-pressed={consent} onClick={onToggle}>
+    <button type="button" id="cloud-chip" data-testid="cloud-chip" className="segment cloud-chip" aria-pressed={consent} onClick={onToggle}>
       Cloud: {consent ? (paused ? "paused" : "on") : "off"}
     </button>
   );
