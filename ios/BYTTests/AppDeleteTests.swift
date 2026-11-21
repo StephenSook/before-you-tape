@@ -23,14 +23,83 @@ import Testing
         }
     }
 
-    func model(_ p: MemoryBoxPersistence, _ signIn: FakeSignIn, _ defaults: UserDefaults) -> AppModel {
+    func model(_ p: MemoryBoxPersistence, _ signIn: FakeSignIn, _ defaults: UserDefaults, reader: ItemReader? = nil,
+               status: OnDeviceStatus = .wordsAndPhotos) -> AppModel {
         let j = FakeItemRunner.Journal()
-        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: AppSecondLookTests.powerBank, tokens: nil))]),
-                                makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
-        let m = AppModel(signIn: signIn.signIn, onDeviceStatus: { .wordsAndPhotos }, persistence: p, reader: reader,
+        let reader = reader ?? ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: AppSecondLookTests.powerBank, tokens: nil))]),
+                                          makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
+        let m = AppModel(signIn: signIn.signIn, onDeviceStatus: { status }, persistence: p, reader: reader,
                          defaults: defaults, config: .defaults)
         m.network.pathChanged(satisfied: true)
         return m
+    }
+
+    /// A reader whose calls wait until the test lets them go.
+    final class HeldRunner: ItemModelRunner, @unchecked Sendable {
+        let name: String
+        let journal: FakeItemRunner.Journal
+        let reply: JSONValue
+        private let lock = NSLock()
+        private var waiting: [CheckedContinuation<Void, Never>] = []
+        private var open = false
+        init(_ name: String, _ journal: FakeItemRunner.Journal, reply: JSONValue) {
+            self.name = name
+            self.journal = journal
+            self.reply = reply
+        }
+        func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+            journal.add("\(name) start")
+            await withCheckedContinuation { c in
+                lock.lock()
+                if open { lock.unlock(); c.resume() } else { waiting.append(c); lock.unlock() }
+            }
+            journal.add("\(name) end")
+            return .success(ItemReply(read: reply, tokens: nil))
+        }
+        func letGo() {
+            let all = lock.withLock { open = true; let w = waiting; waiting = []; return w }
+            all.forEach { $0.resume() }
+        }
+    }
+
+    /// A photo read on the iPhone that ends after everything was deleted lands nothing: no item, no crop,
+    /// nothing saved under the new box.
+    @Test func aReadThatEndsAfterTheDeleteLandsNothing() async throws {
+        let j = FakeItemRunner.Journal()
+        let device = HeldRunner("device", j, reply: AppSecondLookTests.powerBank)
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
+        let p = MemoryBoxPersistence()
+        let m = model(p, FakeSignIn([.deleted]), try defaults(), reader: reader)
+        let read = Task { await m.readPhoto(jpeg) }
+        while !j.events.contains("device start") { await Task.yield() }
+        #expect(await m.deleteEverything() == .done(signIn: .deleted))
+        device.letGo()
+        await read.value
+        #expect(m.box?.items.isEmpty == true && m.lastCrop == nil && m.lastItemId == nil)
+        #expect(!p.saved.contains { $0.boxId == m.box?.boxId })
+    }
+
+    /// A photo waiting for the cloud behind a slow read, from before the delete, never uploads, even after
+    /// cloud checks are allowed again for the new box.
+    @Test func aCloudReadQueuedBeforeTheDeleteNeverUploads() async throws {
+        let j = FakeItemRunner.Journal()
+        let powerBank = AppSecondLookTests.powerBank
+        let device = HeldRunner("device", j, reply: powerBank)
+        let reader = ItemReader(device: device,
+                                makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: powerBank, tokens: nil))]) },
+                                parse: { ParsedRead(read: $0) })
+        let m = model(MemoryBoxPersistence(), FakeSignIn([.deleted]), try defaults(), reader: reader, status: .wordsOnly)
+        m.box?.setConsent(true)
+        let words = Task { await m.readWords("LI-ION 3.7V 5000mAh") }
+        while !j.events.contains("device start") { await Task.yield() }
+        let photo = Task { await m.readPhoto(jpeg) }
+        for _ in 0..<50 { await Task.yield() }
+        #expect(await m.deleteEverything() == .done(signIn: .deleted))
+        await m.answerConsent(true)
+        device.letGo()
+        await words.value
+        await photo.value
+        #expect(!j.events.contains("cloud start") && m.box?.items.isEmpty == true, "\(j.events)")
     }
 
     func defaults() throws -> UserDefaults { try #require(UserDefaults(suiteName: "delete-\(UUID().uuidString)")) }

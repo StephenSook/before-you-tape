@@ -71,6 +71,10 @@ final class AppModel {
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
     /// Where this iPhone keeps which box is its own.
     @ObservationIgnored private let defaults: UserDefaults
+    /// Counts "Delete everything": a read begun before one lands nothing and sends nothing.
+    @ObservationIgnored private var boxEpoch = 0
+    /// Counts changes of the cloud choice: a read begun before one sends nothing to the cloud.
+    @ObservationIgnored private var consentEpoch = 0
 
     init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
@@ -141,6 +145,7 @@ final class AppModel {
     /// gate closes first, before the choice is saved, so no upload can start while the save runs.
     func turnOffCloudChecks() {
         pause.paused = true
+        consentEpoch += 1
         forgetLooks { _ in true }
         box?.setConsent(false)
         refreshCloudGate()
@@ -150,6 +155,7 @@ final class AppModel {
     /// closes first, as when cloud checks are turned off, and every look not landed is forgotten.
     func turnOnCloudChecks() {
         pause.paused = true
+        consentEpoch += 1
         forgetLooks { _ in true }
         box?.setConsent(nil)
         refreshCloudGate()
@@ -228,10 +234,17 @@ final class AppModel {
             askingConsent = true
             return
         }
-        // The pause and the sender's choice are read again, live, before every cloud call of this read.
+        // The pause and the sender's choice are read again, live, before every cloud call of this read; and the
+        // read sends nothing once the box it began for was deleted or the cloud choice changed since.
+        let boxAtStart = boxEpoch, choiceAtStart = consentEpoch
         var live = reader
-        live.cloudOpen = { [weak self] in self?.cloudAllowed ?? false }
+        live.cloudOpen = { [weak self] in
+            guard let self else { return false }
+            return self.cloudAllowed && self.boxEpoch == boxAtStart && self.consentEpoch == choiceAtStart
+        }
         let outcome = await live.read(input, situation: situation)
+        // A read that ends after "Delete everything" lands nothing: no item, no crop, nothing saved.
+        guard boxEpoch == boxAtStart else { return }
         if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
@@ -484,8 +497,11 @@ final class AppModel {
     /// and is named; `from` lets a retry start there, so a step already done is not run again.
     func deleteEverything(from: DeleteStep = .box) async -> DeleteResult {
         if from == .box {
-            // Nothing more goes to the cloud for this box: the gate closes and every look is forgotten first.
+            // Nothing more goes to the cloud for this box: the gate closes, every read still running is cut off
+            // from it (it lands nothing and sends nothing), and every look is forgotten first.
             pause.paused = true
+            boxEpoch += 1
+            consentEpoch += 1
             forgetLooks { _ in true }
             let newId = UUID().uuidString
             do {
@@ -518,6 +534,7 @@ final class AppModel {
     /// it was asked for runs (or, kept on the iPhone, every offered look is forgotten).
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
+        consentEpoch += 1
         if !allow { forgetLooks { _ in true } }
         box?.setConsent(allow)
         refreshCloudGate()

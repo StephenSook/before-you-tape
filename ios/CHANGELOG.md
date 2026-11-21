@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a read begun before "Delete everything" or a change of cloud choice lands and sends nothing
+- What: a slow photo read on the iPhone that ended after "Delete everything" put its item and crop
+  into the new box; a photo waiting for the cloud behind it uploaded under the new box's cloud choice.
+  Every read now records the box and the cloud choice it began under (each counted): it sends to the
+  cloud only while both are unchanged, and it lands nothing when the box was deleted meanwhile.
+  "Delete everything", turning cloud checks off or on, and answering the cloud question each count
+  as a change.
+- Source: review (Codex, on the delete PR).
+- Verified: two new tests (a read held past the delete lands nothing and saves nothing under the new
+  box; a cloud photo queued behind it never uploads, even after cloud checks are allowed for the new
+  box) failed and pass; 231 unit tests pass.
+
 ### fix(ios): deleting a box is done only when a fresh listing shows none of its files
 - What: after removing a box's files, the delete lists the folder again and fails the box step if any
   file of the box is still there.
