@@ -35,14 +35,19 @@ import Testing
         #expect(NSClassFromString("FIRFunctions") == nil)
     }
 
-    @Test func theAppDeclaresWhatACloudCheckSends() throws {
+    /// What the app's own use sends: the crop and the label words of a cloud check (linked: the
+    /// request carries the anonymous sign-in), and the installation ID Remote Config receives on every
+    /// settings fetch (declared as a Device ID, not linked). All for App Functionality, none for tracking.
+    @Test func theAppDeclaresWhatItSends() throws {
         let types = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
         let byType = Dictionary(uniqueKeysWithValues: types.map { ($0["NSPrivacyCollectedDataType"] as? String ?? "", $0) })
-        #expect(Set(byType.keys) == ["NSPrivacyCollectedDataTypePhotosorVideos", "NSPrivacyCollectedDataTypeOtherUserContent"])
-        for entry in byType.values {
-            #expect(entry["NSPrivacyCollectedDataTypeTracking"] as? Bool == false)
-            #expect(entry["NSPrivacyCollectedDataTypeLinked"] as? Bool == true)
-            #expect(entry["NSPrivacyCollectedDataTypePurposes"] as? [String] == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])
+        let linked = ["NSPrivacyCollectedDataTypePhotosorVideos": true, "NSPrivacyCollectedDataTypeOtherUserContent": true,
+                      "NSPrivacyCollectedDataTypeDeviceID": false]
+        #expect(Set(byType.keys) == Set(linked.keys))
+        for (type, entry) in byType {
+            #expect(entry["NSPrivacyCollectedDataTypeTracking"] as? Bool == false, "\(type)")
+            #expect(entry["NSPrivacyCollectedDataTypeLinked"] as? Bool == linked[type], "\(type)")
+            #expect(entry["NSPrivacyCollectedDataTypePurposes"] as? [String] == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"], "\(type)")
         }
     }
 }

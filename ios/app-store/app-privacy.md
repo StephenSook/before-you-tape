@@ -16,6 +16,7 @@ Tracking Transparency prompt is not needed.
 | Apple data type | Collected | Linked to the user | Used for tracking | Purpose | Where it comes from |
 |---|---|---|---|---|---|
 | Identifiers > User ID | Yes | Yes | No | App Functionality | Firebase Authentication signs in anonymously at start (`ios/BYT/Data/SignIn.swift`). The Auth manifest declares it the same way. |
+| Identifiers > Device ID | Yes | No | No | App Functionality | The random installation ID (Firebase Installations) that Remote Config receives on every settings fetch (note 5). |
 | User Content > Photos or Videos | Yes, only after the sender taps Allow | Yes (see note 1) | No | App Functionality | The label crop, sent to Gemini through Firebase AI Logic for a cloud check (`CloudRunner`, `ios/BYT/AI/ModelSessionFactory.swift`), including a second look of a crop the iPhone already read (`AppModel.runSecondLook`), which also runs only after Allow. |
 | User Content > Other User Content | Yes, only after the sender taps Allow | Yes (see note 1) | No | App Functionality | Label words the sender types, or scans with the keyboard's Scan Text, sent for a cloud check in place of the crop. A cloud request carries the crop or the words, never both (`ios/BYTCore/Sources/BYTCore/CloudOutbound.swift`). |
 | Diagnostics > Other Diagnostic Data | Yes | No | No | Analytics | Declared by the bundled manifests of FirebaseAuth, Firestore (with its networking libraries), Installations and Remote Config (Firebase's own SDK health data). See note 5 for what Remote Config receives. |
@@ -23,8 +24,8 @@ Tracking Transparency prompt is not needed.
 Not collected: contact info, health, financial info, precise location, coarse location (note 5),
 sensitive info, contacts, emails or messages, audio, gameplay, browsing or search history,
 purchases, usage data (no analytics events), crash data (no Crashlytics in the iPhone app),
-performance data (no Firebase Performance), device ID (note 5), and other data. Nothing in the box
-leaves the iPhone (note 3).
+performance data (no Firebase Performance), and other data. Nothing in the box leaves the iPhone
+(note 3).
 
 ## Notes
 
@@ -44,8 +45,9 @@ leaves the iPhone (note 3).
    do.
 4. **The app's own privacy manifest.** `ios/BYT/PrivacyInfo.xcprivacy` (PR #127) declares the
    app's use of UserDefaults (reason CA92.1, the box ID) and file metadata (reason C617.1, the saved
-   box's size), and the two data types above that a cloud check sends; a test reads it from the
-   app bundle. The answers on this page are the same as that file.
+   box's size), and the three data types the app's own use sends: the two of a cloud check and the
+   Device ID (note 5); a test reads it from the app bundle. The answers on this page are the same
+   as that file.
 5. **Settings (Remote Config).** To pick the app's settings, Remote Config receives a random
    installation ID (Firebase Installations), the app's version, the language, the country and time
    zone settings and the system version, as the public privacy page says (item 5). Firebase's own
@@ -53,8 +55,10 @@ leaves the iPhone (note 3).
    (https://firebase.google.com/docs/ios/app-store-data-collection). The bundled Remote Config and
    Installations manifests declare this as Other Diagnostic Data, not linked, for Analytics, the
    row above. No location row: the country is the iPhone's region setting, not a location the app
-   finds (the app has no Location Services). No Device ID row: the installation ID is made for this
-   install of the app, not a device-level ID such as the advertising identifier, and the
-   Installations manifest does not declare one. This is a judgment call for the account holder; if
-   they count the installation ID as a Device ID, add Identifiers > Device ID (not linked, App
-   Functionality) here and in the questionnaire.
+   finds (the app has no Location Services). The installation ID is declared as Identifiers >
+   Device ID, not linked, App Functionality, in the table and in the app's own manifest. It is made
+   for this install of the app, not a device-level ID such as the advertising identifier, and
+   neither Firebase's disclosure page nor the Installations manifest classifies it; Remote Config
+   needs it on every fetch, so it is declared rather than left out. "Not linked": the app's own
+   code never reads the installation ID or keeps it with the anonymous user ID (no use of it in
+   `ios/BYT` or `ios/BYTCore`; Firebase's libraries handle it).

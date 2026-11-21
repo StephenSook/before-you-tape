@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the app declares the installation ID Remote Config receives as a Device ID
+- What: the app's privacy manifest and the App Privacy evidence now declare Identifiers > Device
+  ID, not linked, not for tracking, for App Functionality: the random installation ID that Remote
+  Config receives on every settings fetch. Neither Firebase's disclosure page nor its Installations
+  manifest classifies it, so it is declared rather than left out. Note 5 gives the reasons; the
+  not-collected list no longer names device ID.
+- Source: the privacy page review (ruling on the open Device ID question).
+- Verified: the manifest test, now expecting the Device ID entry (not linked) beside the two
+  linked cloud-check entries, failed before and passes after; `plutil -lint` OK; 189 unit tests
+  pass; tone and hygiene pass; the app's code never reads the installation ID (no use in
+  `ios/BYT` or `ios/BYTCore`).
+
 ### fix(ios): the cloud question says the photo or the typed words go, not both
 - What: the one-time cloud question said "a cropped photo of the item and the words on its label
   go to Google's Gemini", which reads as both being sent. A cloud request carries the crop or the
