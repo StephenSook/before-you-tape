@@ -89,7 +89,11 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     if (e instanceof CropError && /empty crop box/.test(e.message)) return "Hold the item inside the box, or type it instead.";
     return photo ? "That photo could not be opened. Try another, or type the item." : "That could not be read. Try again, or type the item.";
   };
+  // Each photo pick, the sender's or the sample's, and each press of Check now, gets the next number; a sample
+  // that finishes after a newer one started is dropped, so a slow sample never covers the sender's own check.
+  const pickSeq = useRef(0);
   const read = useCallback(async (box: Box, how: ImageHow) => {
+    if (how === "check_now") ++pickSeq.current;
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
       const video = videoRef.current;
@@ -156,9 +160,6 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     return () => window.removeEventListener("keydown", onKey);
   }, [read]);
 
-  // Each photo pick, the sender's or the sample's, gets the next number; a pick that finishes after a newer one
-  // started is dropped, so a slow sample can never take the place of the sender's own photo.
-  const pickSeq = useRef(0);
   // An added photo turns the camera off and opens the crop step; nothing is read yet.
   const onFile = async (file: File | undefined, isSample = false, seq?: number) => {
     if (!file) return;
@@ -189,13 +190,18 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       if (!onSampleSend) { await onFile(file, true, mine); return; }
       const source = await (decodeFile ?? decodePhoto)(file);
       if (mine !== pickSeq.current) { release(source); return; }
-      const part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
-      release(source);
+      let part: ImagePart;
+      try {
+        part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
+      } finally {
+        release(source);
+      }
       if (mine !== pickSeq.current) return;
       setSampleSent(true);
       onSampleSend(part);
     } catch {
-      onError?.(SAMPLE_FAILED);
+      // A sample a newer photo or press replaced says nothing over it.
+      if (mine === pickSeq.current) onError?.(SAMPLE_FAILED);
     }
   };
 
