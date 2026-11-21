@@ -79,6 +79,7 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     /// A record that is there but cannot be read (the iPhone locked, a read error) reads as unasked, so the
     /// stricter record still holds and nothing is allowed by default.
     func recordedConsent(boxId: String) -> String? {
+        // Both markers left (an off, then a failed ask-again) read as off: this errs toward off.
         for choice in [false, nil] as [Bool?] {
             if let marker = consentMarkerURL(boxId: boxId, choice), FileManager.default.fileExists(atPath: marker.path) {
                 return BoxStore.consentRecord(choice)

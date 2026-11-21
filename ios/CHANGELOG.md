@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the limits name what no fix can close for the cloud choice and a sent photo
+- What: docs/LIMITS.md says that when no file at all can be saved as cloud checks are turned off
+  (storage full, say), the earlier choice can come back after a restart, and that the app warns; and
+  that a photo already on its way to the cloud when its item is removed or cloud checks are turned
+  off cannot be called back (its reply is not used). A test pins the first: with the record, its
+  marker and the box all failing, the warning shows, and the earlier "allowed" comes back after a
+  restart. A comment says why two markers left read as off (it errs toward off).
+- Source: review round 4 (Codex, on the second-look PR), accepted as known limits.
+- Verified: the new test passes; 220 unit tests pass; no dashes or curly quotes in docs/LIMITS.md.
+
 ### fix(ios): the upload's cancellation link is set in the same main-actor step as the last check
 - What: the link that carries a read's cancellation to its upload got the upload only after the upload
   had started, back in the read; a removal in that moment reached the upload late, possibly after it

@@ -29,6 +29,22 @@ import Testing
         func recordedConsent(boxId: String) -> String? { records[boxId] }
     }
 
+    /// A known limit (docs/LIMITS.md): when no file at all can be saved as cloud checks are turned off
+    /// (the record, its marker and the box all fail; storage full, say), nothing durable holds "off", so
+    /// the earlier "allowed" comes back after a restart. The app warns at once.
+    @Test func offCanComeBackAfterARestartWhenNoFileCanBeSavedAndTheAppWarns() throws {
+        let p = FlakyBox()
+        let s = try relaunched(p)
+        s.setConsent(true)
+        p.failRecords = true
+        p.failSaves = true
+        s.setConsent(false)
+        #expect(s.saveProblem == BoxStore.consentNotSaved && s.cloudConsent == false)
+        p.failRecords = false
+        p.failSaves = false
+        #expect(try relaunched(p).cloudConsent == true)
+    }
+
     /// A choice whose separate record could not be written says so, even when the box saved.
     @Test func aChoiceWhoseRecordFailedSaysItIsNotSaved() throws {
         let p = FlakyBox()
