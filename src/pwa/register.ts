@@ -12,20 +12,21 @@ export interface SwEnv {
   document: Document;
   reload(): void;
   every(ms: number, f: () => void): void;
-  // Whether the worker serving this page holds this page's own script: false when it is another version's
-  // worker, null when it does not answer (a worker from before this check, or the kill worker).
-  holdsThisPage(): Promise<boolean | null>;
+  // This page's build id, and the build id of the worker serving it: null when it does not answer (a worker from
+  // before this check, or the kill worker).
+  ownBuild: string;
+  workerBuild(): Promise<string | null>;
 }
 
-// Asks the worker serving this page, with a time limit.
-function askWorker(container: ServiceWorkerContainer, url: string): Promise<boolean | null> {
+// Asks the worker serving this page for its build id, with a time limit.
+function askWorker(container: ServiceWorkerContainer): Promise<string | null> {
   const worker = container.controller;
   if (!worker) return Promise.resolve(null);
   return new Promise((done) => {
     const channel = new MessageChannel();
     const timer = window.setTimeout(() => done(null), 3000);
-    channel.port1.onmessage = (e: MessageEvent) => { window.clearTimeout(timer); done(typeof e.data === "boolean" ? e.data : null); };
-    worker.postMessage({ type: "HOLDS", url }, [channel.port2]);
+    channel.port1.onmessage = (e: MessageEvent) => { window.clearTimeout(timer); done(typeof e.data === "string" ? e.data : null); };
+    worker.postMessage({ type: "BUILD" }, [channel.port2]);
   });
 }
 
@@ -34,7 +35,8 @@ const browser = (): SwEnv => ({
   document,
   reload: () => window.location.reload(),
   every: (ms, f) => { window.setInterval(f, ms); },
-  holdsThisPage: () => askWorker(navigator.serviceWorker, import.meta.url),
+  ownBuild: __BYT_BUILD_ID__,
+  workerBuild: () => askWorker(navigator.serviceWorker),
 });
 
 export async function registerServiceWorker(env: SwEnv = browser()): Promise<void> {
@@ -63,8 +65,11 @@ export async function registerServiceWorker(env: SwEnv = browser()): Promise<voi
   registration.addEventListener("updatefound", () => watch(registration.installing));
 
   // A page that started on one version while another took over before this code ran missed that switch: offer
-  // Reload when the worker serving it does not hold this page's own files.
-  if (controlled && (await env.holdsThisPage()) === false) markUpdateReady(async () => env.reload());
+  // Reload when the worker serving it is another build's.
+  if (controlled) {
+    const theirs = await env.workerBuild();
+    if (theirs !== null && theirs !== env.ownBuild) markUpdateReady(async () => env.reload());
+  }
 
   const check = () => { void registration.update().catch(() => undefined); };
   env.document.addEventListener("visibilitychange", () => { if (env.document.visibilityState === "visible") check(); });

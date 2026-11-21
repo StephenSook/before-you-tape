@@ -10,6 +10,7 @@ import { startBuildServer, type BuildServer } from "./swServer";
 // under a new name, so its old name no longer exists on the server. A tab never reloads without its own tap, and a
 // tab still on the old app keeps loading the old app's files after another tab switched to the new version.
 const NEXT_SHA = "b".repeat(40);
+const NEXT_ID = `byt-build-${NEXT_SHA}`;
 let next = "";
 let mixed = "";
 let oldChunk = "";
@@ -46,6 +47,15 @@ test.beforeAll(() => {
     }
     expect(replaced, `${name} is named by its importer and by the worker`).toBeGreaterThanOrEqual(2);
   }
+  // A deploy is a new commit, so a new build id, in the page's script and in the worker.
+  const oldId = /byt-build-(?:[0-9a-f]{40}|unknown)(?:-dirty-\d+)?/.exec(readFileSync(join(next, "sw.js"), "utf8"))?.[0];
+  expect(oldId, "the worker carries its build id").toBeTruthy();
+  let carried = 0;
+  for (const f of texts(next)) {
+    const t = readFileSync(f, "utf8");
+    if (t.includes(oldId!)) { writeFileSync(f, t.split(oldId!).join(NEXT_ID)); carried++; }
+  }
+  expect(carried, "the page's script and the worker carry the build id").toBeGreaterThanOrEqual(2);
   writeFileSync(join(next, "sw.js"), `${readFileSync(join(next, "sw.js"), "utf8")}\n// next deploy\n`);
   const page = readFileSync(join(next, "index.html"), "utf8");
   writeFileSync(join(next, "index.html"), page.replace("<head>", '<head><meta name="byt-test-build" content="next">'));
@@ -64,11 +74,10 @@ const servedSha = (page: Page) => page.evaluate(async () => ((await (await fetch
 const isNextPage = (page: Page) => page.locator('meta[name="byt-test-build"]').count();
 const mark = (page: Page) => page.evaluate(() => { (window as unknown as { bytStay: string }).bytStay = "open"; });
 const stayed = (page: Page) => page.evaluate(() => (window as unknown as { bytStay?: string }).bytStay);
-const holds = (page: Page) => page.evaluate(() => new Promise<unknown>((done) => {
-  const own = document.querySelector<HTMLScriptElement>('script[type="module"][src]')!.src;
+const workerBuild = (page: Page) => page.evaluate(() => new Promise<unknown>((done) => {
   const channel = new MessageChannel();
   channel.port1.onmessage = (e) => done(e.data);
-  navigator.serviceWorker.controller!.postMessage({ type: "HOLDS", url: own }, [channel.port2]);
+  navigator.serviceWorker.controller!.postMessage({ type: "BUILD" }, [channel.port2]);
 }));
 const checkForUpdate = (page: Page) => page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())?.update(); });
 async function controlledTab(context: BrowserContext, url: string): Promise<Page> {
@@ -128,9 +137,9 @@ test("Reload in one tab reloads only that tab; another keeps its page and its ol
   // A file only the old app names, gone from the server, still loads for it.
   const status = await b.evaluate(async (u) => (await fetch(u)).status, oldChunk);
   expect(status).toBe(200);
-  // Asked whether it holds each page's own script, the new worker says no for the old page and yes for the new one.
-  expect(await holds(b)).toBe(false);
-  expect(await holds(a)).toBe(true);
+  // Asked for its build id, the worker serving both tabs is the next build's, which the old tab is not.
+  expect(await workerBuild(a)).toBe(NEXT_ID);
+  expect(await workerBuild(b)).toBe(NEXT_ID);
 });
 
 // The very first tab had no worker when it registered one; Reload must still switch it to the new version.

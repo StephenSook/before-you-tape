@@ -96,15 +96,12 @@ if (ENTRIES.length === 0) {
     })());
   });
 
-  // SKIP_WAITING: a tab asked for this version. HOLDS: a page asks whether this worker holds its own script, so a
-  // page that started on another version can offer Reload (src/pwa/register.ts).
+  // SKIP_WAITING: a tab asked for this version. BUILD: a page asks for this worker's build id, so a page that
+  // started on another build can offer Reload (src/pwa/register.ts).
   sw.addEventListener("message", (event) => {
-    const data = event.data as { type?: unknown; url?: unknown } | null;
+    const data = event.data as { type?: unknown } | null;
     if (data?.type === "SKIP_WAITING") void sw.skipWaiting();
-    if (data?.type === "HOLDS" && typeof data.url === "string" && event.ports[0]) {
-      const url = new URL(data.url, sw.location.origin);
-      event.ports[0].postMessage(FILES.has(url.origin + url.pathname));
-    }
+    if (data?.type === "BUILD" && event.ports[0]) event.ports[0].postMessage(__BYT_BUILD_ID__);
   });
 
   sw.addEventListener("fetch", (event) => {
