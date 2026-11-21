@@ -12,5 +12,8 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts", "tests/**/*.test.ts"],
     // The Firestore rules tests need the emulator: npm run test:rules.
     exclude: ["tests/e2e/**", "tests/firestore/**", "node_modules/**"],
+    // UI tests that add a photo take about a second, and five times that on a machine busy with other builds;
+    // 15 s still ends a test that hangs.
+    testTimeout: 15_000,
   },
 });
