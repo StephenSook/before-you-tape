@@ -4,6 +4,12 @@ import { createItemModels } from "../../src/ai/firebaseModels";
 import { checkGate } from "../../src/ai/gate";
 import { readItem, ReadFailure } from "../../src/ai/itemRead";
 import { initFirebase, type FirebaseEnv } from "../../src/firebase/app";
+import { cropToJpeg, decodePhoto } from "../../src/capture/crop";
+import { parseEdition } from "../../src/engine/edition";
+import { evalRows, type EvalPath, type RunnerResult } from "../../src/eval/runner";
+import type { EvalSet } from "../../src/eval/types";
+import { CROP_LIMITS } from "../../src/shared/cropLimits";
+import type { ImagePart } from "../../src/ai/port";
 
 interface Photo { file: string; base64: string }
 interface HarnessRead {
@@ -17,9 +23,22 @@ interface HarnessRead {
   evidence?: string;
 }
 
+interface EvalRunInput {
+  items: { itemId: string; base64: string }[];
+  set: EvalSet;
+  edition: unknown;
+  date: string;
+  repeat: number;
+  paths: EvalPath[];
+  coldCall: boolean;
+  cloudModel: string;
+  fallbackModel: string;
+}
+
 declare global {
   interface Window {
     bytDeviceE2E: (photos: Photo[]) => Promise<{ gate: string; reads: HarnessRead[] }>;
+    bytEvalRun: (input: EvalRunInput) => Promise<{ gate: string } & RunnerResult>;
   }
 }
 
@@ -41,6 +60,27 @@ window.bytDeviceE2E = async (photos) => {
     }
   }
   return { gate, reads };
+};
+
+// The eval's model run (scripts/eval-run.ts). Refuses the live project here too, before any model is made.
+window.bytEvalRun = async (input) => {
+  const env = import.meta.env as unknown as FirebaseEnv;
+  if (!env.VITE_FB_PROJECT_ID || env.VITE_FB_PROJECT_ID === "before-you-tape-2026") throw new Error("the eval runs only against an eval project");
+  const { getAi } = initFirebase(env);
+  const lm = (globalThis as { LanguageModel?: unknown }).LanguageModel;
+  const gate = await checkGate(lm);
+  // As the Pack page makes them (getAi(true), as in src/pages/PackRoute.tsx).
+  const models = createItemModels(getAi(true), input.cloudModel, lm, input.fallbackModel);
+  // Each photo cropped as the app crops an added photo before any model call: the whole photo, 768 px at most.
+  const images: Record<string, ImagePart> = {};
+  for (const it of input.items) {
+    const bytes = Uint8Array.from(atob(it.base64), (c) => c.charCodeAt(0));
+    const source = await decodePhoto(new Blob([bytes], { type: "image/jpeg" }));
+    images[it.itemId] = await cropToJpeg(source, { x: 0, y: 0, w: 1, h: 1 }, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality);
+    source.close();
+  }
+  const out = await evalRows({ set: input.set, edition: parseEdition(input.edition), date: input.date, models, images, now: () => performance.now(), repeat: input.repeat, paths: input.paths, coldCall: input.coldCall });
+  return { gate, ...out };
 };
 
 document.body.dataset.ready = "1";

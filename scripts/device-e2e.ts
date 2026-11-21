@@ -38,15 +38,15 @@ export function profileLockState(target: string | null, host: string, isAlive: (
   return isAlive(Number(m[2])) ? "in_use" : "stale";
 }
 
-interface EvalManifest { items: { itemId: string; photo: string; photoSha256: string }[] }
+export interface EvalManifest { items: { itemId: string; photo: string; photoSha256: string }[] }
 export interface E2EPhoto { file: string; base64: string; itemId?: string }
 
 // Named eval/set photos, read from public/ and checked byte for byte against the manifest, so the record
 // says exactly which tracked photo was read.
-export function evalPhotos(list: string, manifest: EvalManifest, readFile: (path: string) => Buffer): E2EPhoto[] {
+export function evalPhotos(list: string, manifest: EvalManifest, readFile: (path: string) => Buffer, max = MAX_PHOTOS): E2EPhoto[] {
   const ids = list.split(",").map((s) => s.trim()).filter((s) => s !== "");
   if (ids.length === 0) throw new Error("no eval/set item named in BYT_DEVICE_E2E_EVAL_ITEMS");
-  if (ids.length > MAX_PHOTOS) throw new Error(`name at most ${MAX_PHOTOS} eval/set items`);
+  if (ids.length > max) throw new Error(`name at most ${max} eval/set items`);
   return ids.map((id) => {
     const item = manifest.items.find((i) => i.itemId === id);
     if (!item) throw new Error(`${id} is not in eval/set/manifest.json`);

@@ -21,6 +21,7 @@
     "hygiene": "tsx scripts/hygiene-guard.ts",
     "blind": "tsx scripts/blind.ts",
     "eval:baseline": "tsx scripts/eval-baselines.ts",
+    "eval:run": "tsx scripts/eval-run.ts",
     "rc:publish": "tsx scripts/rc-publish.ts",
     "edition": "tsx scripts/build-edition.ts",
     "edition:check": "tsx scripts/build-edition.ts --check",

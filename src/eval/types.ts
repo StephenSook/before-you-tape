@@ -20,18 +20,31 @@ export interface EvalItem {
 
 export interface EvalSet { setId: string; manifestSha256: string; protocolSha256: string; destinations: string[]; items: EvalItem[] }
 
-export interface PathResult { read: ItemRead; msRuns: number[]; level: Level }
-export interface PublicPathResult { numbersExact: boolean | null; msRuns: number[]; level: Level }
+// noItem: the read named no item, so the Pack page would add no card; its level means nothing, but its numbers and
+// its time still count.
+export interface PathResult { read: ItemRead; msRuns: number[]; level: Level; noItem?: true }
+export interface PublicPathResult { numbersExact: boolean | null; msRuns: number[]; level: Level; noItem?: true }
 
 export interface EvalRow {
   itemId: string;
   destination: string;
   device: PathResult | null;
   cloud: PathResult | null;
-  shipped: { level: Level; source: string; secondLook: boolean };
+  shipped: ShippedResult;
 }
+
+// The route the app ships. read and msRuns are there when the route answered: the read its card shows (after any
+// second look), or a read of no item, and the time of each timed read. secondLookMs: the second look's own time, so
+// the time to the final verdict is msRuns plus it.
+export interface ShippedResult { level: Level; source: string; secondLook: boolean; read?: ItemRead; msRuns?: number[]; secondLookMs?: number }
+export interface PublicShippedResult { level: Level; source: string; secondLook: boolean; numbersExact?: boolean | null; msRuns?: number[]; secondLookMs?: number }
+
+// Shipped sources that mean the Pack page shows no verdict at all (it adds no card): the read failed, was not run,
+// found no item, or ran past the page's time limit. Such a row is never agreement and never "Check this".
+export const NO_VERDICT_SOURCES: readonly string[] = ["failed", "not_run", "no_item", "too_slow"];
+export const hasVerdict = (r: Pick<EvalRow, "shipped">): boolean => !NO_VERDICT_SOURCES.includes(r.shipped.source);
 
 export interface EvalRun { runId: string; setId: string; date: string; machine: string; chromeVersion: string; modelShown: string; editionId: string; rows: EvalRow[] }
 
-export type PublicEvalRow = Omit<EvalRow, "device" | "cloud"> & { device: PublicPathResult | null; cloud: PublicPathResult | null };
+export type PublicEvalRow = Omit<EvalRow, "device" | "cloud" | "shipped"> & { device: PublicPathResult | null; cloud: PublicPathResult | null; shipped: PublicShippedResult };
 export type PublicEvalRun = Omit<EvalRun, "rows"> & { rows: PublicEvalRow[] };

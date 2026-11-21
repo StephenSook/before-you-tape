@@ -14,6 +14,7 @@ import { deriveFacts } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { ItemRead } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
+import { READ_TIMEOUT_MS } from "../shared/readLimit";
 import { chooseImageRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
@@ -66,7 +67,6 @@ export interface PackPageProps {
 // Remote Config usually answers within a second or two of the page opening.
 const SETTINGS_WAIT_MS = 10_000;
 // A cloud read takes about 2 s and an on-device one under 10 s; anything far past that is not coming back.
-const READ_TIMEOUT_MS = 45_000;
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
 const GATE_SLOW = "This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.";

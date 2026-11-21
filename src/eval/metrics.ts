@@ -2,7 +2,8 @@
 // the hazard bound counts items, and an item fails if any destination shows OK where its label does not.
 // Latency takes the median of the warm runs per crop, then p50 and p90 across crops, and the paired median
 // difference between the two paths with a bootstrap interval resampled by item (fixed seed).
-import type { EvalItem, EvalRun, EvalSet, PathResult, PublicEvalRun, PublicPathResult } from "./types";
+import { untouchedItems } from "./ruleChanges";
+import { hasVerdict, type EvalItem, type EvalRun, type EvalSet, type PathResult, type PublicEvalRun, type PublicPathResult, type PublicShippedResult, type ShippedResult } from "./types";
 
 type AnyPath = PathResult | PublicPathResult;
 type AnyRun = EvalRun | PublicEvalRun;
@@ -48,6 +49,12 @@ const exactOf = (item: EvalItem | undefined, path: AnyPath): boolean | null => {
   return path.read.volts === p.volts && path.read.milliampHours === p.milliampHours && path.read.wattHours === p.wattHours;
 };
 
+// The shipped route's numbers: from its public flag, or from the read its card shows.
+const shippedExactOf = (item: EvalItem | undefined, s: ShippedResult | PublicShippedResult): boolean | null => {
+  if ("numbersExact" in s) return s.numbersExact ?? null;
+  return "read" in s && s.read ? exactOf(item, { read: s.read, msRuns: [], level: s.level }) : null;
+};
+
 // A small fixed-seed generator, so the interval is the same on every machine.
 export function seeded(seed: number): () => number {
   let a = seed >>> 0;
@@ -65,16 +72,22 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const rows = run.rows;
   const truthOf = (itemId: string, d: string) => items.get(itemId)?.truth[d]?.expected;
 
-  const agree = rows.filter((r) => truthOf(r.itemId, r.destination) === r.shipped.level).length;
-  const checks = rows.filter((r) => r.shipped.level === "check").length;
-  const hazards = set.items.filter((i) => i.hazard);
-  const failed = hazards.filter((i) => rows.some((r) => r.itemId === i.itemId && r.shipped.level === "ok" && truthOf(i.itemId, r.destination) !== "ok")).length;
+  // A row with no verdict is never agreement and never a check; it is counted on its own.
+  const judged = rows.filter(hasVerdict);
+  const agree = judged.filter((r) => truthOf(r.itemId, r.destination) === r.shipped.level).length;
+  const checks = judged.filter((r) => r.shipped.level === "check").length;
+  const calledOk = (itemId: string) => rows.some((r) => r.itemId === itemId && hasVerdict(r) && r.shipped.level === "ok" && truthOf(itemId, r.destination) !== "ok");
+  // A hazard item is a trial only if the shipped route judged every one of its rows, or if it called it OK somewhere:
+  // an item the route never judged is no evidence of safety.
+  const hazards = set.items.filter((i) => i.hazard && (calledOk(i.itemId) || (rows.some((r) => r.itemId === i.itemId) && rows.every((r) => r.itemId !== i.itemId || hasVerdict(r)))));
+  const failed = hazards.filter((i) => calledOk(i.itemId)).length;
 
   // One read per crop and path: the first row of each item carries them.
   const firstRow = new Map<string, (typeof rows)[number]>();
   for (const r of rows) if (!firstRow.has(r.itemId)) firstRow.set(r.itemId, r);
-  let exactK = 0;
-  let exactN = 0;
+  // Exact numbers, per path (eval/PROTOCOL.md, "Exact numbers").
+  const exact = { device: { k: 0, n: 0 }, cloud: { k: 0, n: 0 }, shipped: { k: 0, n: 0 } };
+  const shippedMs: number[] = [];
   let misreads = 0;
   let caught = 0;
   const deviceMs: number[] = [];
@@ -82,16 +95,25 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const diffs: number[] = [];
   for (const [itemId, r] of firstRow) {
     const item = items.get(itemId);
-    for (const path of [r.device, r.cloud]) {
+    for (const name of ["device", "cloud"] as const) {
+      const path = r[name];
       if (!path) continue;
       const e = exactOf(item, path);
       if (e === null) continue;
-      exactN++;
-      if (e) exactK++;
+      exact[name].n++;
+      if (e) exact[name].k++;
     }
+    // Any shipped read counts here, a read of no item too; only a route that never answered has none.
+    const e = shippedExactOf(item, r.shipped);
+    if (e !== null) {
+      exact.shipped.n++;
+      if (e) exact.shipped.k++;
+    }
+    // The time to the final verdict: the read, then the second look when one ran.
+    if (r.shipped.msRuns?.length) shippedMs.push(median(r.shipped.msRuns) + (r.shipped.secondLookMs ?? 0));
     if (r.device && exactOf(item, r.device) === false) {
       misreads++;
-      if (rows.every((x) => x.itemId !== itemId || x.shipped.level !== "ok")) caught++;
+      if (rows.every((x) => x.itemId !== itemId || (hasVerdict(x) && x.shipped.level !== "ok"))) caught++;
     }
     const d = r.device?.msRuns.length ? median(r.device.msRuns) : null;
     const c = r.cloud?.msRuns.length ? median(r.cloud.msRuns) : null;
@@ -111,14 +133,28 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
     truthAgreement: { k: agree, n: rows.length },
     hazardCalledOk: { k: failed, n: hazards.length, upper95: hazards.length ? clopperPearsonUpper(failed, hazards.length, 0.05) : NaN },
     checkRate: { k: checks, n: rows.length },
-    numbersExact: { k: exactK, n: exactN },
+    noVerdict: { k: rows.length - judged.length, n: rows.length },
+    numbersExact: exact,
     misreadsCaught: { k: caught, n: misreads },
     latency: {
       device: { p50: percentile(deviceMs, 50), p90: percentile(deviceMs, 90), n: deviceMs.length },
       cloud: { p50: percentile(cloudMs, 50), p90: percentile(cloudMs, 90), n: cloudMs.length },
+      shipped: { p50: percentile(shippedMs, 50), p90: percentile(shippedMs, 90), n: shippedMs.length },
       pairedMedianDiffMs: diffs.length ? median(diffs) : NaN,
       diffCi95: (boots.length ? [percentile(boots, 2.5), percentile(boots, 97.5)] : [NaN, NaN]) as [number, number],
     },
+  };
+}
+
+// Every metric twice, as every eval report gives it: over all items, and over the items that prompted no rule change
+// after labelling (src/eval/ruleChanges.ts).
+export function computeEvalReport(set: EvalSet, run: AnyRun) {
+  const part = untouchedItems(set);
+  const kept = new Set(part.items.map((i) => i.itemId));
+  const runPart = { ...run, rows: run.rows.filter((r) => kept.has(r.itemId)) } as AnyRun;
+  return {
+    allItems: { items: set.items.length, ...computeEvalMetrics(set, run) },
+    withoutRuleChangeItems: { items: part.items.length, ...computeEvalMetrics(part, runPart) },
   };
 }
 
@@ -126,6 +162,10 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
 export function redactRun(run: EvalRun, set: EvalSet): PublicEvalRun {
   const items = new Map(set.items.map((i) => [i.itemId, i]));
   const pub = (itemId: string, p: PathResult | null): PublicPathResult | null =>
-    p ? { numbersExact: exactOf(items.get(itemId), p), msRuns: [...p.msRuns], level: p.level } : null;
-  return { ...run, rows: run.rows.map((r) => ({ ...r, device: pub(r.itemId, r.device), cloud: pub(r.itemId, r.cloud) })) };
+    p ? { numbersExact: exactOf(items.get(itemId), p), msRuns: [...p.msRuns], level: p.level, ...(p.noItem ? { noItem: true as const } : {}) } : null;
+  const pubShipped = (itemId: string, s: ShippedResult): PublicShippedResult => {
+    const { read, msRuns, ...rest } = s;
+    return read ? { ...rest, numbersExact: shippedExactOf(items.get(itemId), s), ...(msRuns ? { msRuns: [...msRuns] } : {}) } : { ...rest, ...(msRuns ? { msRuns: [...msRuns] } : {}) };
+  };
+  return { ...run, rows: run.rows.map((r) => ({ ...r, device: pub(r.itemId, r.device), cloud: pub(r.itemId, r.cloud), shipped: pubShipped(r.itemId, r.shipped) })) };
 }

@@ -34,3 +34,5 @@ test-results/
 # Python bytecode from operator scripts
 __pycache__/
 *.py[cod]
+# The full eval run (reads, label text) stays private; only its public copy is tracked.
+eval/runs/private/
