@@ -7,6 +7,7 @@ import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
 import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
+import type { HolidayDate } from "../config/holidayDates";
 import type { BoxStore } from "../data/boxStore";
 import type { DeleteResult, DeleteStep, SignInOutcome } from "../data/deleteSavedBox";
 import { longDate } from "../engine/destination";
@@ -22,6 +23,7 @@ import { CameraStage } from "../ui/CameraStage";
 import { CloudChip } from "../ui/CloudChip";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { DeleteBoxPanel } from "../ui/DeleteBoxPanel";
+import { DeadlineClock } from "../ui/DeadlineClock";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
 import { localDay } from "../shared/localDay";
@@ -40,6 +42,8 @@ export interface PackConfig {
   // Remote Config has not given the pause yet, so cloud checks are off until it does.
   pauseUnknown?: boolean;
   secondLook?: SecondLookPolicy;
+  // The USPS holiday mailing dates (holiday_dates_json); none shows no clock.
+  holidayDates?: readonly HolidayDate[];
 }
 
 export interface PackPageProps {
@@ -611,6 +615,8 @@ export function PackPage(p: PackPageProps) {
           The post office stops taking mail to {countryName(dest.code, index)} on {longDate(dest.suspendsFrom)}. Mail this box before then.
         </p>
       )}
+      <DeadlineClock dates={config.holidayDates ?? []} now={p.today ? new Date(`${p.today}T12:00:00`) : new Date()}
+        destination={{ name: countryName(dest.code, index), suspended: dest.suspended, suspendsFrom: dest.suspendsFrom ?? null }} />
       {waiting > 0 && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}

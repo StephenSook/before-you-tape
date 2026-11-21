@@ -133,6 +133,25 @@ describe("PackPage", () => {
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent(`Post office suspension list checked ${ed.suspensions.checkedOn}`);
   });
 
+  const holiday = { service: "Priority Mail International", sendBy: "2026-12-09", deliverBy: "2026-12-25", sourceUrl: "https://www.usps.com/holiday/holiday-shipping-dates.htm", checkedOn: "2026-11-21" };
+
+  it("says how many days are left to mail by the USPS holiday date, with its page", () => {
+    setup({ config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-21" });
+    expect(screen.getByTestId("deadline-clock")).toHaveTextContent("USPS suggests mailing by December 9 for December 25 (Priority Mail International): 18 days left.");
+    expect(screen.getByRole("link", { name: "USPS holiday dates" })).toHaveAttribute("href", holiday.sourceUrl);
+  });
+
+  it("shows no holiday clock for a country whose mail stops first, or with no dates", () => {
+    const store = newStore();
+    store.setDestination("CA");
+    setup({ store, config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-21" });
+    expect(screen.getByTestId("suspension-ahead-banner")).toBeInTheDocument();
+    expect(screen.queryByTestId("deadline-clock")).toBeNull();
+    cleanup();
+    setup({ today: "2026-11-21" });
+    expect(screen.queryByTestId("deadline-clock")).toBeNull();
+  });
+
   it("says ahead of time when the post office will stop taking mail to the destination, and suspends it from that day", () => {
     // The bundled edition: USPS announced Canada's suspension from 2026-11-29; the page's date is 2026-11-20.
     const store = newStore();
