@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### docs(ios): the README names why four tests failed on Nov 19, and how the iPhone reads photos
+- What: the test status now says the four Nov 19 failures happen in a checkout without the
+  gitignored Firebase settings file and pass with it, replacing the earlier guess about the build
+  cache. The reading line says a photo goes to Apple's model as an image when the model reports
+  image understanding, and that there is no cloud second look yet.
+- Source: the Nov 20 runs in a fresh worktree.
+- Verified: docs only; the facts are the runs in the entry below.
+
 ### fix(ios): the local CI mirror stops and says so when the Firebase settings file is missing
 - What: `ios/BYT/Config/GoogleService-Info.plist` is gitignored, so a fresh clone or worktree has
   none. Without it the app shows its missing-settings screen (LoopUITests cannot find "Check an
