@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### chore(ios): a script measures the App Store fields against Apple's limits
+- What: `ios/app-store/check_lengths.py` measures the name, subtitle, promotional text,
+  description, keywords, what's new and review notes, and fails on a field that is too long or
+  missing, or on a dash or curly quote.
+- Source: App Store preparation.
+- Verified: every field fits (promotional text 169 of 170, keywords 99 of 100); exit 0.
+
 ### docs(ios): App Review notes, with the path for an iPhone without Apple Intelligence
 - What: `ios/app-store/review-notes.md`: no account needed; a two-minute path; what happens with
   Apple Intelligence on (read on the iPhone, also offline) and without it (the cloud question in
