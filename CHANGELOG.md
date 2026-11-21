@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Privacy page: on the web, a saved box lasts about 30 days; after that the anonymous sign-in may be removed, and the box is deleted automatically within a few days (Firestore TTL on expiresAt, now on). The GitHub-issue route to delete a box sooner stays until the delete button ships. Source: box expiry rollout (approved text). Verified: npm run legal regenerated the served page; the page tests, the tone check and the full suite pass.
+
 - A one-time backfill script, scripts/backfill-expiry.ts, for boxes, items and disputes saved before expiry: a box gets its creation time plus 37 days, each item and disputes document its box's. It reads only names, creation times and expiresAt through the Firestore REST API with the signed-in gcloud account, prints counts only (no ids or contents), and writes only with --apply. Source: box expiry plan (backfill). Verified: four planning tests failed first and pass; a dry run printed counts only.
 
 - The web app writes expiresAt: a new box gets its creation time plus 37 days, and every item and disputes write carries that box's expiresAt (remembered from creating or loading the box, or read once). The items the app holds never carry it, so item revisions and the disputes they pair are unchanged, including after the one-time backfill. tests/contracts/box-docs.json describes the field for phone clients. Source: box expiry plan. Verified: new persistence tests (a new box and its items and disputes; a session that only loaded the box or never read it; a box from before expiry, backfilled, keeps its disputes paired) and the updated contract test failed first and pass; all 42 emulator tests and the full unit suite pass.
