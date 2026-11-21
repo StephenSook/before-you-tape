@@ -281,6 +281,13 @@ final class AppModel {
     /// removing the item or taking back cloud checks cancels it.
     @ObservationIgnored private var lookTasks: [UUID: (itemId: String, task: Task<Void, Never>)] = [:]
 
+    /// Seconds to wait before automatic try `n` (1, 2, 3) of a look that failed for no connection.
+    @ObservationIgnored var lookBackoff: (Int) -> Double = { n in 2 * pow(2, Double(n - 1)) }
+    /// How many times a look that failed for no connection is tried again by itself; then the card asks.
+    static let lookAutoTries = 3
+    /// Automatic tries made so far, by item; reset by a look that worked and by "Try again".
+    @ObservationIgnored private var lookAutoTried: [String: Int] = [:]
+
     var pendingLookCount: Int { pendingLooks.count }
     var lookTaskCount: Int { lookTasks.count }
 
@@ -303,6 +310,7 @@ final class AppModel {
         lookErrors = lookErrors.filter { !match($0.key) }
         waitingForOnline = waitingForOnline.filter { !match($0) }
         lookAgain = lookAgain.filter { !match($0) }
+        lookAutoTried = lookAutoTried.filter { !match($0.key) }
     }
 
     func isCheckingAgain(_ itemId: String) -> Bool { checkingAgain.contains(itemId) }
@@ -319,16 +327,35 @@ final class AppModel {
         startLook(itemId)
     }
 
-    /// The sender's "Try again" on a look that failed.
-    func retrySecondLook(_ itemId: String) { startLook(itemId) }
+    /// The sender's "Try again" on a look that failed: it starts afresh, with its automatic tries again.
+    func retrySecondLook(_ itemId: String) {
+        lookAutoTried[itemId] = nil
+        startLook(itemId)
+    }
 
-    private func startLook(_ itemId: String) {
+    private func startLook(_ itemId: String, after seconds: Double = 0) {
         let id = UUID()
         let task = Task { [weak self] in
-            await self?.runSecondLook(itemId)
+            if seconds > 0 { try? await Task.sleep(for: .seconds(seconds)) }
+            if !Task.isCancelled { await self?.runSecondLook(itemId) }
             self?.lookTasks[id] = nil
         }
         lookTasks[id] = (itemId, task)
+    }
+
+    /// A look that failed for no connection: tried again by itself up to `lookAutoTries` times, after a
+    /// wait while the iPhone says it is online (a reconnect may have come and gone while the call failed),
+    /// or when the iPhone is back online. Then the card says to try again.
+    private func lookFailedForNoConnection(_ itemId: String) {
+        let tried = lookAutoTried[itemId, default: 0]
+        guard tried < Self.lookAutoTries else {
+            lookAutoTried[itemId] = nil
+            lookErrors[itemId] = Self.secondLookFailure(.other)
+            return
+        }
+        lookAutoTried[itemId] = tried + 1
+        lookErrors[itemId] = Self.secondLookFailure(.network)
+        if network.online { startLook(itemId, after: lookBackoff(tried + 1)) } else { waitingForOnline.insert(itemId) }
     }
 
     private func runLooksWaitingForOnline() {
@@ -372,10 +399,11 @@ final class AppModel {
             pendingLooks[itemId] = nil
             // A look that worked replaces any earlier failure of it.
             lookErrors[itemId] = nil
+            lookAutoTried[itemId] = nil
+        } else if let failure = outcome.failure, failure == .network {
+            lookFailedForNoConnection(itemId)
         } else {
-            let failure = outcome.failure ?? .parseFailed
-            if failure == .network { waitingForOnline.insert(itemId) }
-            lookErrors[itemId] = Self.secondLookFailure(failure)
+            lookErrors[itemId] = Self.secondLookFailure(outcome.failure ?? .parseFailed)
         }
         if lookAgain.remove(itemId) != nil, pendingLooks[itemId] != nil { await runSecondLook(itemId) }
     }

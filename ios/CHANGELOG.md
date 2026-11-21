@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a look that failed for no connection is tried again, at most three times
+- What: a look that failed for no connection waited for the next reconnect. When the connection came
+  back while the call was still failing, that reconnect had already passed, so the card promised a
+  run that never came; and repeated failures could be queued again forever. Now, if the iPhone says
+  it is online when the failure lands, the look is tried again after a wait (2, 4, then 8 seconds);
+  if it is offline, it waits for the reconnect. After three automatic tries the card says "The cloud
+  step did not run. Try again.", and "Try again" starts afresh. docs/LIMITS.md says so.
+- Source: review (Codex and Gemini, on the second-look PR).
+- Verified: two new tests (a failure while online is tried again after a wait and lands; eight
+  failures in a row make four tries, with waits 1, 2, 3, then the card asks, and "Try again" lands)
+  failed before and pass after; the reconnect test now holds the call so the iPhone is offline when
+  the failure lands; 205 unit tests pass.
+
 ### fix(ios): removing an item or taking back cloud checks cancels and forgets its second looks
 - What: the box screen removed items straight from the box, so the app never heard of it. A look
   waiting for another look's lane still went to the cloud after its item was removed (the item

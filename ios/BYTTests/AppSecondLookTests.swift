@@ -39,12 +39,15 @@ import Testing
     final class HeldCloud: ItemModelRunner, @unchecked Sendable {
         let journal: FakeItemRunner.Journal
         let reply: JSONValue
+        /// Answers given before the reply, in order.
+        private var results: [Result<ItemReply, ReadError>]
         private let lock = NSLock()
         private var waiting: [CheckedContinuation<Void, Never>] = []
         private var open = false
-        init(_ journal: FakeItemRunner.Journal, reply: JSONValue) {
+        init(_ journal: FakeItemRunner.Journal, reply: JSONValue, first results: [Result<ItemReply, ReadError>] = []) {
             self.journal = journal
             self.reply = reply
+            self.results = results
         }
 
         func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
@@ -54,7 +57,7 @@ import Testing
                 if open { lock.unlock(); c.resume() } else { waiting.append(c); lock.unlock() }
             }
             journal.add("cloud end")
-            return .success(ItemReply(read: reply, tokens: nil))
+            return lock.withLock { results.isEmpty ? .success(ItemReply(read: reply, tokens: nil)) : results.removeFirst() }
         }
 
         func letGo() {
@@ -155,17 +158,53 @@ import Testing
         #expect(j.events == ["device start", "device end"] && m.box?.sources.secondLooks == 0)
     }
 
-    /// No connection: the look waits, the card says so, and it runs once the iPhone is back online.
+    /// No connection, and the iPhone offline when the failure lands: the look waits, the card says so,
+    /// and it runs once the iPhone is back online.
     @Test func aLookThatFailedForNoConnectionRunsWhenBackOnline() async throws {
         let j = FakeItemRunner.Journal()
-        let m = model(j, cloud: [.failure(ReadError(.network)), .failure(ReadError(.network)), .success(ItemReply(read: Self.powerBank, tokens: nil))])
+        let cloud = HeldCloud(j, reply: Self.powerBank, first: [.failure(ReadError(.network)), .failure(ReadError(.network))])
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [Self.ok(Self.powerBank)]),
+                                makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
+        let m = model(reader)
+        m.lookBackoff = { _ in 0 }
         await m.readPhoto(jpeg)
+        while !j.events.contains("cloud start") { await Task.yield() }
+        m.network.pathChanged(satisfied: false)
+        cloud.letGo()
         await settle(m)
         let id = try #require(m.box?.items.first?.itemId)
         #expect(m.secondLookError(id) == "No connection. This check will run when you are back online.")
         #expect(m.box?.items.first?.secondLook == nil)
-        m.network.pathChanged(satisfied: false)
         m.network.pathChanged(satisfied: true)
+        await settle(m)
+        #expect(m.box?.items.first?.secondLook != nil && m.secondLookError(id) == nil)
+    }
+
+    /// No connection while the iPhone says it is online (the connection came back before the failure
+    /// landed, so no reconnect will come): the look is tried again after a wait.
+    @Test func aConnectionFailureWhileOnlineIsTriedAgainAfterAWait() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [.failure(ReadError(.network)), .failure(ReadError(.network)), Self.ok(Self.powerBank)])
+        m.lookBackoff = { _ in 0 }
+        await m.readPhoto(jpeg)
+        await settle(m)
+        let id = try #require(m.box?.items.first?.itemId)
+        #expect(m.box?.items.first?.secondLook != nil && m.secondLookError(id) == nil)
+    }
+
+    /// Tried again three times at most; then the card says so, and "Try again" starts afresh.
+    @Test func connectionFailuresStopAfterThreeTriesAgain() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: Array(repeating: .failure(ReadError(.network)), count: 8) + [Self.ok(Self.powerBank)])
+        var waits: [Int] = []
+        m.lookBackoff = { n in waits.append(n); return 0 }
+        await m.readPhoto(jpeg)
+        await settle(m)
+        let id = try #require(m.box?.items.first?.itemId)
+        // Each try is a call and its one retry: the first try and three more.
+        #expect(j.events.filter { $0 == "cloud start" }.count == 8 && waits == [1, 2, 3])
+        #expect(m.secondLookError(id) == "The cloud step did not run. Try again." && m.box?.items.first?.secondLook == nil)
+        m.retrySecondLook(id)
         await settle(m)
         #expect(m.box?.items.first?.secondLook != nil && m.secondLookError(id) == nil)
     }
