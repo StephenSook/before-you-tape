@@ -60,8 +60,19 @@ test("the kill build's page removes a worker that never cleaned up", async ({ pa
   expect(await cacheNames(page)).toBeGreaterThan(0);
 
   server.serve(stuck);
-  await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())?.update(); });
-  await page.reload();
+  await page.evaluate(async () => {
+    const r = await navigator.serviceWorker.getRegistration();
+    (window as unknown as { bytBefore: unknown }).bytBefore = r?.active;
+    await r?.update();
+  });
+  // Wait until the stand-in has taken over (a different active worker, with nothing left installing or waiting)
+  // before opening the page again.
+  await expect.poll(() => page.evaluate(async () => {
+    const r = await navigator.serviceWorker.getRegistration();
+    const before = (window as unknown as { bytBefore: unknown }).bytBefore;
+    return Boolean(r?.active && r.active !== before && r.active.state === "activated" && !r.installing && !r.waiting);
+  }).catch(() => false), { timeout: 30_000 }).toBe(true);
+  await page.goto(`${server.url}/`);
   await expect.poll(() => workers(page), { timeout: 30_000 }).toBe(0);
   await expect.poll(() => cacheNames(page), { timeout: 30_000 }).toBe(0);
 
