@@ -293,6 +293,21 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     }
 
     /// A second look gets a first read's cloud retry: a server error is tried once more.
+    /// A second look takes its own lane: a photo read on the device while a slow cloud second look runs
+    /// does not wait for it.
+    @Test func aSlowSecondLookDoesNotHoldUpAReadOnTheDevice() async {
+        let j = FakeItemRunner.Journal()
+        let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))])
+        cloud.delaySeconds = 1
+        let r = reader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: read, tokens: nil))]), cloud: cloud)
+        let look = Task { await r.secondLook(photo, situation: situation()) }
+        while !j.events.contains("cloud start") { await Task.yield() }
+        let o = await r.read(photo, situation: situation())
+        #expect(o.source == .onDevice && !j.events.contains("cloud end"))
+        _ = await look.value
+        #expect(j.events == ["cloud start", "device start", "device end", "cloud end"])
+    }
+
     @Test func aSecondLookRetriesAServerErrorOnce() async {
         let j = FakeItemRunner.Journal()
         let o = await reader(device: FakeItemRunner("device", journal: j, results: []),

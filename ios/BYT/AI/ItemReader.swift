@@ -90,6 +90,9 @@ struct ItemReader: Sendable {
     var deviceSeconds: Double = 30
     var cloudSeconds: Double = 45
     private let gate = ReadGate()
+    /// Second looks run one at a time in a lane of their own, so a slow cloud look never holds up a new
+    /// photo read on the device.
+    private let lookGate = ReadGate()
 
     init(device: any ItemModelRunner, makeCloud: @escaping @Sendable (String) -> any ItemModelRunner,
          parse: @escaping @Sendable (JSONValue) -> ParsedRead?) {
@@ -108,10 +111,11 @@ struct ItemReader: Sendable {
     /// A cloud second look of an input already read on this iPhone (the web app's runSecondLook): the
     /// cloud-only route, with a first read's retry and fallback, and the cloud gate read again before every
     /// call. Whether one should run at all is the caller's to decide (a reason and the cloud allowed now).
+    /// It waits only for other second looks, never for a read.
     func secondLook(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
-        await gate.acquire()
+        await lookGate.acquire()
         let outcome = await run(input, situation, RouteDecision(route: .cloudOnly, first: .cloud, reason: .secondLook))
-        await gate.release()
+        await lookGate.release()
         return outcome
     }
 

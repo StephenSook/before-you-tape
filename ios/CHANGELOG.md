@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a slow second look no longer holds up a new photo read on the iPhone
+- What: the second look took the reader's one gate for the whole cloud call (up to 45 seconds a
+  try, with a retry and a fallback), so a new photo waited behind it. Second looks now have a gate
+  of their own: one runs at a time, and a read never waits for one.
+- Source: review (Gemini, on the second-look PR).
+- Verified: a new reader test (a second look whose cloud call takes a second, and a photo read on
+  the device while it runs) failed (the read waited) and passes; 200 unit tests pass.
+
 ### fix(ios): picking a disputed reading replaces an earlier correction of the same facts
 - What: picking a reading wrote it into the read, but an earlier correction stayed on top, and the
   rules read corrections first. A sender who had corrected only the capacity to 2,500 mAh and then
