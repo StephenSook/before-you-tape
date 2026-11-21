@@ -96,6 +96,15 @@ describe("destination editions", () => {
     expect(line("CA-P-05")?.noMatch?.reason).toMatch(/IMM 136\.2/);
   });
 
+  it("checks every medicine to the Philippines against its narcotics and psychotropic drugs line", () => {
+    const l = ed.destinations.PH?.lines.find((x) => x.lineId === "PH-P-06");
+    expect(l?.matches).toEqual([{ tag: "pharmaceutical", effect: "check" }]);
+    expect(l?.ourWording).toMatch(/psychotropic drugs/);
+    // Drug Facts and active-ingredient labels (hand sanitizer, sunscreen) carry the same tag, so the question
+    // says when it applies.
+    expect(l?.ourWording).toMatch(/If this is a medicine/);
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");

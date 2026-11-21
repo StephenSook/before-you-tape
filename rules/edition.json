@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-3e42038de2d7",
+  "editionId": "byt-4ae845b1a508",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -2077,12 +2077,13 @@
           "lineId": "PH-P-06",
           "section": "prohibitions",
           "lineSha256": "2e8c7d9e321db97e40d7640eec6a13c83a1970a83d9a6c9229f50feeb3b194fb",
-          "ourWording": "No narcotics or similar drugs.",
-          "matches": [],
-          "noMatch": {
-            "decision": "not_a_gift_item",
-            "reason": "Controlled narcotics; ordinary medicines are tagged and checked by other rules."
-          }
+          "ourWording": "No narcotics, psychotropic drugs or similar drugs. If this is a medicine, check that it is not one of them.",
+          "matches": [
+            {
+              "tag": "pharmaceutical",
+              "effect": "check"
+            }
+          ]
         },
         {
           "lineId": "PH-P-07",
