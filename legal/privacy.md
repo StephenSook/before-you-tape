@@ -13,6 +13,8 @@ Last updated: November 21, 2026.
   read them: Apple's on-device model on iPhone, Gemini Nano on Android, and the browser's built-in
   model on the web.
 - Before You Tape saves the photo and the full label text only on your device.
+- On the web, after your first visit your browser keeps a copy of this app's own files, so the page
+  can open with no connection. That copy holds no photo, no label text and no answer from the cloud.
 
 ## What can leave your device, and when
 
