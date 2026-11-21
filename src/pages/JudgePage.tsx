@@ -10,6 +10,7 @@ import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
 import manifest from "../../eval/set/manifest.json";
+import { MATCHED_PAIRS, type MatchedPair } from "../judge/matchedPairs";
 import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
 import type { ItemCategory } from "../shared/itemRead";
@@ -17,6 +18,7 @@ import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
+import { MatchedPairs } from "../ui/MatchedPairs";
 import { QuestionRow } from "../ui/QuestionRow";
 import { VerdictChip } from "../ui/VerdictChip";
 
@@ -27,6 +29,8 @@ export interface JudgePageProps {
   now?: () => number;
   // A tracked record of the app's own read on Chrome's built-in model (src/judge/recordedReads.ts), or none.
   recorded?: RecordedReads | null;
+  // Matched pairs (src/judge/matchedPairs.ts); none shows until the project owner's photos are listed.
+  pairs?: readonly MatchedPair[];
 }
 
 const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
@@ -45,7 +49,7 @@ function sampleStore(edition: RuleEdition, today: string, now: () => number): Bo
   return store;
 }
 
-export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null }: JudgePageProps) {
+export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null, pairs = MATCHED_PAIRS }: JudgePageProps) {
   const [store] = useState(() => sampleStore(edition, today, now));
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -76,6 +80,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+      <MatchedPairs pairs={pairs} edition={edition} destinationCode={state.destinationCode} today={today} />
       {!dest.suspended && dest.suspendsFrom && (
         <p data-testid="suspension-ahead-banner" className="banner" role="status">
           The post office stops taking mail to {country} on {longDate(dest.suspendsFrom)}. Mail this box before then.
