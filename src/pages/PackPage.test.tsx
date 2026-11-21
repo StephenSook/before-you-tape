@@ -792,6 +792,45 @@ describe("PackPage", () => {
     expect(deleteCrop.mock.calls.map(([k]) => k)).toEqual(["crop-a", "crop-b"]);
   });
 
+  describe("Delete my saved box", () => {
+    it("asks first, deletes everything on Delete, then starts the page again; Keep does nothing", async () => {
+      const onDeleteBox = vi.fn(async () => ({ ok: true as const, signIn: "deleted" as const }));
+      const afterDelete = vi.fn();
+      const { store } = setup({ onDeleteBox, afterDelete });
+      await store.ready;
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      expect(screen.getByText("This deletes every item in this box from this device and from our database. It cannot be undone.")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Keep" }));
+      expect(onDeleteBox).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(afterDelete).toHaveBeenCalledWith("deleted"));
+      expect(onDeleteBox).toHaveBeenCalledTimes(1);
+    });
+
+    it("says which part is left when deleting stops, and lets the sender try again", async () => {
+      const onDeleteBox = vi.fn(async () => ({ ok: false as const, stoppedAt: "signIn" as const }));
+      const { store } = setup({ onDeleteBox, afterDelete: vi.fn() });
+      await store.ready;
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("The saved box is deleted, but your anonymous sign-in could not be. Try again.");
+      await userEvent.click(screen.getByRole("button", { name: "Try deleting again" }));
+      expect(onDeleteBox).toHaveBeenCalledTimes(2);
+    });
+
+    it("says once that the box was deleted, and when the sign-in was only signed out, that Firebase removes it later", () => {
+      setup({ deletedNotice: "signed_out" });
+      expect(screen.getByTestId("box-deleted")).toHaveTextContent(
+        "Your saved box is deleted. Your anonymous sign-in could not be deleted right away; Firebase may delete it automatically any time after it is 30 days old.");
+    });
+
+    it("offers no delete button where the page cannot delete a saved box", () => {
+      setup();
+      expect(screen.queryByRole("button", { name: "Delete my saved box" })).toBeNull();
+    });
+  });
+
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
     const { store } = setup();
     await store.ready;
