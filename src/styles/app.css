@@ -100,13 +100,21 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   .newest-sheet { display: flex; align-items: center; gap: var(--space-3); position: fixed; left: var(--space-2); right: var(--space-2); bottom: var(--space-2); z-index: 2;
     background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); }
   .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
+  .sheet-close { min-width: 44px; min-height: 44px; padding: 0; font-size: 1.4rem; line-height: 1; }
   .pack-page { padding-bottom: 96px; }
+  /* While the sheet shows, the page ends far enough below it that the footer is never under it. */
+  body:has(.newest-sheet) .site-footer { padding-bottom: 104px; }
+  /* The page links stay on one row that scrolls sideways, instead of wrapping into a second row. */
+  .site-header nav { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .nav-pill { flex: none; white-space: nowrap; }
 }
 
 /* The page says what it is for, in one line, and where judges should start. */
 .purpose { font-size: 1.15rem; margin: 0 0 8px; }
 .judge-link { font-weight: 600; }
 a { color: var(--ink); text-underline-offset: 2px; }
+/* A link in a sentence gets a tap area at least 24 px tall; inline padding leaves the lines where they are. */
+p a, li a, figcaption a { padding-block: 3px; }
 
 /* "Add a photo": a label drawn as a button, around a picker that is hidden but still focusable. */
 .button-like { display: inline-block; padding: 8px 16px; border: 1px solid currentColor; border-radius: 999px; cursor: pointer; }

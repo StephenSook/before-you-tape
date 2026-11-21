@@ -67,6 +67,8 @@ export interface PackPageProps {
   // How long a photo added before the cloud settings load waits for them, and how long any one read may take.
   settingsWaitMs?: number;
   readTimeoutMs?: number;
+  // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
+  newestSheetMs?: number;
 }
 
 // Remote Config usually answers within a second or two of the page opening.
@@ -442,6 +444,14 @@ export function PackPage(p: PackPageProps) {
   // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
   const removedUnsaved = (state.unsaved ?? []).filter((id) => !state.items.some((i) => i.itemId === id)).length;
   const newestVerdict = newestItem ? state.result.items[newestItem.itemId] : undefined;
+  // The sheet sits over the bottom of a phone screen, so it goes after a while or when closed; a newer item shows again.
+  const [sheetGone, setSheetGone] = useState<string | null>(null);
+  const newestId = newestItem?.itemId ?? null;
+  useEffect(() => {
+    if (newestId === null) return;
+    const t = setTimeout(() => setSheetGone(newestId), p.newestSheetMs ?? 8000);
+    return () => clearTimeout(t);
+  }, [newestId, p.newestSheetMs]);
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
     const r = rulesReadBy(resolveDestination(edition, d.code));
@@ -541,11 +551,12 @@ export function PackPage(p: PackPageProps) {
         </div>
       </div>
       {/* On a phone the newest verdict stays in view in this sheet; the full card is in the list above. */}
-      {newestItem && newestVerdict && (
+      {newestItem && newestVerdict && sheetGone !== newestItem.itemId && (
         <div className="newest-sheet" data-testid="newest-sheet" role="status">
           <p className="item-name">{newestItem.overrides.itemName ?? newestItem.read.itemName}</p>
           <VerdictChip level={newestVerdict.level} />
           <a href={`#item-${newestItem.itemId}`}>See the card</a>
+          <button type="button" className="sheet-close" aria-label="Close" onClick={() => setSheetGone(newestItem.itemId)}>×</button>
         </div>
       )}
     </div>

@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- On a phone the page links stay on one row that scrolls sideways, and a link inside a sentence gets a tap area at least 24 px tall (3 px of inline padding above and below, which leaves the lines where they are). Source: UI review (links were 17 to 19 px tall). Verified: lint and the build pass; the layout is to be checked live at 390 px once deployed.
+
+- On a phone the newest-item sheet has a Close button and goes by itself after 8 seconds, so it no longer sits over the stage's buttons (such as "Try a sample photo"); a newer item shows it again. While it shows, the footer ends below it. Source: UI review (at 390 px the sheet covered the sample button). Verified: a new PackPage test (close, then a newer item's sheet goes by itself) failed first and passes; the full unit suite passes.
+
 - The iPhone's engine file is rebuilt from the stricter settled-question engine. Source: the engine fix. Verified: `ios/scripts/check_engine_bundle.sh` reports it fresh (sha256 350bddbda726).
 
 - The settled-question check is stricter and cheaper. A question is dropped only when a take-out hit that does not hang on it exists, and when, with every answer, the item stays out and every other item in the box keeps its verdict (a "Used" answer can change the lithium count of the other phones). An item with no battery is judged alone, so a box of 100 perfumes stays quick. Source: review. Verified: three new engine tests (three phones keep their question, a take-out always keeps its deciding hit, 100 perfumes under 100 ms) failed first and pass; the full unit suite passes.

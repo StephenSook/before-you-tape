@@ -514,6 +514,24 @@ describe("PackPage", () => {
     expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
   });
 
+  it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {
+    setup({ newestSheetMs: 60 });
+    const add = async (name: string) => {
+      await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+      await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+      await userEvent.type(screen.getByLabelText("Name (optional)"), name);
+      await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    };
+    await add("Wool scarf");
+    const sheet = await screen.findByTestId("newest-sheet");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(screen.queryByTestId("newest-sheet")).toBeNull();
+    // A newer item shows its own sheet, which then goes by itself.
+    await add("Cotton socks");
+    expect(within(await screen.findByTestId("newest-sheet")).getByText("Cotton socks")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId("newest-sheet")).toBeNull());
+  });
+
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);
     await act(async () => { await Promise.resolve(); });
