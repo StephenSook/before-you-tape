@@ -20,6 +20,25 @@ test("reloads offline and still checks by rules", async ({ page, context }) => {
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("OK to pack");
 });
 
+// A photo with no network: this browser has no built-in model, so a read needs the cloud. Offline the page says so,
+// asks nothing of the cloud and shows no answer from anywhere else.
+test("offline, a photo check says it needs the network, and shows no answer", async ({ page, context }) => {
+  await page.goto("/");
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  const modelRequests: string[] = [];
+  page.on("request", (r) => { if (/firebasevertexai\.googleapis\.com/.test(r.url())) modelRequests.push(r.url()); });
+  await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
+  await page.getByRole("button", { name: "Check this part" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "You're offline" })).toHaveText(
+    "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
+  await expect(page.getByRole("button", { name: "Allow" })).toHaveCount(0);
+  await expect(page.getByTestId("item-card")).toHaveCount(0);
+  expect(modelRequests).toEqual([]);
+});
+
 // The service worker answers only for this site's own files: a model call or a database call is never served
 // from a cache, so with no network it fails rather than replaying an old answer.
 test("never answers a model or database request from a cache", async ({ page, context }) => {
