@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `eval/set/labels.json` records the typed category of all 40 items (`typed`), written from `typedFromManifest` with no model call, so the rules-only baseline can run. A test holds that the block equals the table's output. Source: the protocol records the typed categories with the labels, before the freeze. Verified: the new test failed first and passes; the rules-only baseline runs over 80 rows.
+
 - `src/eval/typedFromAlt.ts`: the typed categories for the rules-only baseline, derived by a fixed table from each eval item's description (its alt text in `eval/set/manifest.json`), not typed by a person and with no model call. The first rule that matches decides. Tests hold that every one of the 40 items matches, that overlapping rules agree, and that no rule is unused. Source: the rules-only baseline needs a category per item before the freeze. Verified: the new tests failed first and pass; lint and typecheck pass.
 
 - The eval protocol says the blind check's calls are scored against the labels (agreement over the same rows, and Cohen's kappa over the three verdicts) and shown beside the model numbers, so readers see how often two people agree before reading how often a model does. Written before any model run and before the protocol hash is pinned. Source: review. Verified: tone passes; the manifest's protocolSha256 is still empty.

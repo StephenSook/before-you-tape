@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import labels from "../../eval/set/labels.json";
 import manifest from "../../eval/set/manifest.json";
 import { ALT_TO_CATEGORY, categoryFromAlt, typedFromManifest } from "./typedFromAlt";
 
@@ -30,5 +31,9 @@ describe("the fixed table from item descriptions to typed categories", () => {
     const typed = typedFromManifest(manifest);
     expect(Object.keys(typed)).toEqual(manifest.items.map((i) => i.itemId));
     expect(typed["own-01"]).toEqual({ category: "power_bank" });
+  });
+
+  it("is exactly the typed block recorded in eval/set/labels.json", () => {
+    expect((labels as { typed?: unknown }).typed).toEqual(typedFromManifest(manifest));
   });
 });

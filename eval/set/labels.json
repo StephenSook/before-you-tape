@@ -418,5 +418,127 @@
         "section": "No USPS export rule and no line of this destination in the rule edition applies to a sealed dried-fruit snack"
       }
     }
+  },
+  "typed": {
+    "own-01": {
+      "category": "power_bank"
+    },
+    "own-03": {
+      "category": "power_bank"
+    },
+    "own-04": {
+      "category": "nail_polish"
+    },
+    "own-14": {
+      "category": "nail_polish"
+    },
+    "own-16": {
+      "category": "nail_polish"
+    },
+    "own-18": {
+      "category": "lotion_cream"
+    },
+    "own-20": {
+      "category": "lotion_cream"
+    },
+    "own-23": {
+      "category": "perfume_fragrance"
+    },
+    "own-25": {
+      "category": "perfume_fragrance"
+    },
+    "own-27": {
+      "category": "perfume_fragrance"
+    },
+    "own-30": {
+      "category": "alcohol_drink"
+    },
+    "own-32": {
+      "category": "alcohol_drink"
+    },
+    "own-33": {
+      "category": "alcohol_drink"
+    },
+    "i01": {
+      "category": "power_bank"
+    },
+    "i02": {
+      "category": "power_bank"
+    },
+    "i03": {
+      "category": "power_bank"
+    },
+    "i04": {
+      "category": "loose_battery"
+    },
+    "i05": {
+      "category": "loose_battery"
+    },
+    "i06": {
+      "category": "phone"
+    },
+    "i07": {
+      "category": "e_cigarette"
+    },
+    "i08": {
+      "category": "aerosol_spray"
+    },
+    "i09": {
+      "category": "aerosol_spray"
+    },
+    "i10": {
+      "category": "lighter_matches"
+    },
+    "i11": {
+      "category": "lighter_matches"
+    },
+    "i12": {
+      "category": "hand_sanitizer"
+    },
+    "i13": {
+      "category": "clothing"
+    },
+    "i14": {
+      "category": "clothing"
+    },
+    "i15": {
+      "category": "clothing"
+    },
+    "i16": {
+      "category": "shoes"
+    },
+    "i17": {
+      "category": "book_paper"
+    },
+    "i18": {
+      "category": "toy"
+    },
+    "i19": {
+      "category": "toy"
+    },
+    "i20": {
+      "category": "ceramic"
+    },
+    "i21": {
+      "category": "book_paper"
+    },
+    "i22": {
+      "category": "clothing"
+    },
+    "i23": {
+      "category": "other"
+    },
+    "i24": {
+      "category": "earbuds"
+    },
+    "i25": {
+      "category": "chocolate"
+    },
+    "i26": {
+      "category": "coffee"
+    },
+    "i27": {
+      "category": "food_packaged"
+    }
   }
 }
