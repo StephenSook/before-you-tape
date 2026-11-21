@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A browser check (tests/e2e/leaves.local.spec.ts) holds the page to what it says leaves the device. On a cloud read, the one request carries exactly the part the crop step showed (by SHA-256) and no text but the app's own fixed prompts, and the /ran row says so. On a read on the device, with a stand-in for Chrome's model, no request goes to a model host. Source: review of the judge-facing claims. Verified: the device test passes locally; the cloud test needs the App Check debug token, which only CI has (the existing upload test fails the same way locally without it).
+
 - docs/LIMITS.md records that the built-in model misread a power bank's battery numbers about ten times too low in both network-off reads on 2026-11-21 (5,000 mAh where the label says 50000 mAh). Source: the network-off read on the live site. Verified: hygiene, tone and the full gate.
 
 - README.md now says a photo was read offline on the device, where Chrome has the built-in model, citing the TEST-MATRIX row for the network-off read on the live site (right verdict, battery numbers misread). It replaces the line that said no such test was recorded. Source: review of the judge-facing claims. Verified: hygiene, tone and the full gate.
