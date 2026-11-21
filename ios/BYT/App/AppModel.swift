@@ -71,6 +71,8 @@ final class AppModel {
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
     /// Where this iPhone keeps which box is its own.
     @ObservationIgnored private let defaults: UserDefaults
+    /// Where the box is kept, also for deleting it when the rules could not load and there is no box.
+    @ObservationIgnored private let persistence: BoxPersistence
     /// Counts "Delete everything": a read begun before one lands nothing and sends nothing.
     @ObservationIgnored private var boxEpoch = 0
     /// Counts changes of the cloud choice: a read begun before one sends nothing to the cloud.
@@ -88,6 +90,7 @@ final class AppModel {
         self.signIn = signIn
         self.onDeviceStatus = onDeviceStatus
         self.defaults = defaults
+        self.persistence = persistence
         self.onDevice = onDeviceStatus()
         // The engine counts only once it has loaded the shipped edition; a refusal is said, not swallowed.
         let engine: RulesEngine? = {
@@ -505,7 +508,13 @@ final class AppModel {
             forgetLooks { _ in true }
             let newId = UUID().uuidString
             do {
-                try box?.deleteEverything(newBoxId: newId)
+                if let box {
+                    try box.deleteEverything(newBoxId: newId)
+                } else {
+                    // The rules could not load, so there is no box on screen; the saved box is deleted by the id
+                    // this iPhone keeps.
+                    try persistence.deleteBox(boxId: Self.currentBoxId(defaults))
+                }
             } catch {
                 refreshCloudGate()
                 return .stopped(at: .box)

@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): "Delete everything" deletes the saved box even when the rules could not load
+- What: when the rules engine could not load there is no box on screen, and the box step skipped the
+  saved files while reporting success. It now deletes the saved box by the box id this iPhone keeps.
+- Source: review (Codex, on the delete PR).
+- Verified: a new test (rules not loaded, a saved box on disk) failed (nothing deleted) and passes;
+  232 unit tests pass.
+
 ### fix(ios): a read begun before "Delete everything" or a change of cloud choice lands and sends nothing
 - What: a slow photo read on the iPhone that ended after "Delete everything" put its item and crop
   into the new box; a photo waiting for the cloud behind it uploaded under the new box's cloud choice.

@@ -121,6 +121,19 @@ import Testing
         #expect(m.pendingLookCount == 0 && m.lastCrop == nil && !m.signedIn)
     }
 
+    /// When the rules could not load there is no box on screen, but the saved box is still deleted, by the id
+    /// this iPhone keeps.
+    @Test func withTheRulesNotLoadedTheSavedBoxIsStillDeleted() async throws {
+        let p = MemoryBoxPersistence(stored: BoxSnapshot(boxId: "old-box", destinationCode: "CA", items: [], cloudConsent: true, sources: BoxSources()))
+        let d = try defaults()
+        d.set("old-box", forKey: AppModel.boxIdKey)
+        let m = AppModel(signIn: FakeSignIn([.deleted]).signIn, onDeviceStatus: { .wordsAndPhotos }, persistence: p,
+                         defaults: d, editionText: nil, config: .defaults)
+        #expect(m.box == nil)
+        #expect(await m.deleteEverything() == .done(signIn: .deleted))
+        #expect(p.deleted == ["old-box"] && d.string(forKey: AppModel.boxIdKey) != "old-box")
+    }
+
     /// An anonymous sign-in too old to delete without signing in again is signed out instead, as on the web.
     @Test func aSignInThatCannotBeDeletedNowIsSignedOut() async throws {
         let m = model(MemoryBoxPersistence(), FakeSignIn([.signedOut]), try defaults())
