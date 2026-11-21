@@ -17,6 +17,14 @@ describe("RanPage", () => {
     expect(within(row(/Check it in the cloud/)).getByText(/only when you press it/)).toBeInTheDocument();
   });
 
+  it("never says nothing leaves when the box list is saved, and points at what it holds", () => {
+    render(<RanPage />);
+    // Typing an item and changing the country call no model, but the box list (and its country) is saved.
+    expect(within(row(/Type an item/)).getByText("Nothing goes to a model. The box list is saved, as the line below the table says.")).toBeInTheDocument();
+    expect(within(row(/Change the country/)).getByText("Nothing goes to a model. The new country is saved with the box list.")).toBeInTheDocument();
+    for (const r of screen.getAllByRole("row")) expect(r.textContent, r.textContent ?? "").not.toMatch(/Nothing\.$/);
+  });
+
   it("says what the saved box list holds, and that it never holds the photo or the label text", () => {
     render(<RanPage />);
     expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
