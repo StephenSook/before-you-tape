@@ -203,7 +203,8 @@ describe("evaluateBox", () => {
       for (let i = 0; i < 5; i++) { fastSmall = Math.min(fastSmall, time(small)); fastBig = Math.min(fastBig, time(big)); }
       expect(fastBig / fastSmall).toBeLessThan(10);
       expect(run(small, "PH").items["perfume-7"]!.question).toBeNull();
-    });
+      // Ten judged boxes of 100 and 400 items: a busy machine needs more than 5 s for them.
+    }, 30_000);
   });
 });
 
