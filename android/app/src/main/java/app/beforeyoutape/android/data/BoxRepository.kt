@@ -2,6 +2,7 @@ package app.beforeyoutape.android.data
 
 import app.beforeyoutape.android.box.BoxItem
 import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
@@ -9,6 +10,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+
+/** A box just created: its id, and the expiry its items must carry. */
+data class NewBox(val boxId: String, val expiresAt: BoxExpiry)
 
 /** A box as Firestore holds it: its header and its items, as the members see them. */
 data class BoxSnapshot(val boxId: String, val header: BoxHeader, val items: List<BoxItem>)
@@ -19,9 +23,11 @@ data class BoxSnapshot(val boxId: String, val header: BoxHeader, val items: List
  * Firestore cache keeps it while the phone is offline.
  */
 interface BoxRepository {
-    suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String
+    suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): NewBox
     fun watch(boxId: String): Flow<BoxSnapshot>
-    fun putItem(boxId: String, item: BoxItem)
+
+    /** A full write of the item, carrying [boxExpiresAt] (the box's expiresAt, null for a box from before expiry). */
+    fun putItem(boxId: String, item: BoxItem, boxExpiresAt: BoxExpiry?)
     fun removeItem(boxId: String, itemId: String)
     fun setDestination(boxId: String, code: String, recheckAtMs: Long)
 
@@ -40,6 +46,7 @@ interface DocStore {
     fun delete(path: String)
     fun serverTime(): Any
     fun increment(by: Long): Any
+    fun timestamp(at: BoxExpiry): Any
 }
 
 class FirestoreDocStore : DocStore {
@@ -56,17 +63,29 @@ class FirestoreDocStore : DocStore {
     override fun delete(path: String) { db.document(path).delete() }
     override fun serverTime(): Any = FieldValue.serverTimestamp()
     override fun increment(by: Long): Any = FieldValue.increment(by)
+    override fun timestamp(at: BoxExpiry): Any = Timestamp(at.seconds, at.nanos)
 }
 
-class FirestoreBoxRepository(private val store: DocStore = FirestoreDocStore()) : BoxRepository {
+class FirestoreBoxRepository(
+    private val store: DocStore = FirestoreDocStore(),
+    private val nowMs: () -> Long = System::currentTimeMillis,
+) : BoxRepository {
     private val db by lazy { Firebase.firestore }
     private fun box(id: String) = db.collection("boxes").document(id)
 
-    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): String =
-        store.create("boxes", BoxDocs.newBoxDoc(ownerUid, destinationCode, editionId) + ("updatedAt" to store.serverTime()))
+    // The rules take a box's expiresAt within a day of creation plus 37 days by the server's clock, so this phone's
+    // clock is used for it; one off by more than a day has its box refused.
+    override suspend fun createBox(ownerUid: String, destinationCode: String, editionId: String): NewBox {
+        val expiresAt = BoxExpiry.fromCreation(nowMs())
+        val doc = BoxDocs.newBoxDoc(ownerUid, destinationCode, editionId) +
+            ("updatedAt" to store.serverTime()) + (BoxDocs.EXPIRES_AT to store.timestamp(expiresAt))
+        return NewBox(store.create("boxes", doc), expiresAt)
+    }
 
-    override fun putItem(boxId: String, item: BoxItem) {
-        store.set("boxes/$boxId/items/${item.input.itemId}", BoxDocs.itemToDoc(item))
+    // A set replaces the whole item, and the rules keep an item's expiresAt equal to its box's, so every write carries it.
+    override fun putItem(boxId: String, item: BoxItem, boxExpiresAt: BoxExpiry?) {
+        val expiry = boxExpiresAt?.let { mapOf(BoxDocs.EXPIRES_AT to store.timestamp(it)) }.orEmpty()
+        store.set("boxes/$boxId/items/${item.input.itemId}", BoxDocs.itemToDoc(item) + expiry)
     }
 
     override fun removeItem(boxId: String, itemId: String) {
@@ -94,7 +113,8 @@ class FirestoreBoxRepository(private val store: DocStore = FirestoreDocStore()) 
         regs += box(boxId).addSnapshotListener { snap, err ->
             if (err != null) { close(err); return@addSnapshotListener }
             val data = snap?.data ?: return@addSnapshotListener
-            header = runCatching { BoxDocs.boxFromDoc(data) }.getOrNull()
+            val expiresAt = (data[BoxDocs.EXPIRES_AT] as? Timestamp)?.let { BoxExpiry(it.seconds, it.nanoseconds) }
+            header = runCatching { BoxDocs.boxFromDoc(data, expiresAt) }.getOrNull()
             emit()
         }
         regs += box(boxId).collection("items").addSnapshotListener { snap, err ->

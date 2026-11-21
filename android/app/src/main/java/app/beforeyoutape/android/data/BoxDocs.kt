@@ -18,6 +18,20 @@ import kotlinx.serialization.json.longOrNull
 /** The box's counts of where reads ran, as the web app keeps them. */
 data class BoxSources(val onDevice: Int, val inCloud: Int, val secondLooks: Int, val rulesOnlyRechecks: Int, val cloudFallbacks: Int)
 
+/**
+ * When a box expires, as a Firestore timestamp (whole seconds and nanoseconds), so the value a box was written with is
+ * written back exactly on each of its items.
+ */
+data class BoxExpiry(val seconds: Long, val nanos: Int) {
+    companion object {
+        /** A box's expiry: its creation time plus [BoxDocs.BOX_DAYS] days. */
+        fun fromCreation(createdMs: Long): BoxExpiry {
+            val ms = createdMs + BoxDocs.BOX_DAYS * 24L * 60 * 60 * 1000
+            return BoxExpiry(Math.floorDiv(ms, 1000L), (Math.floorMod(ms, 1000L) * 1_000_000).toInt())
+        }
+    }
+}
+
 /** The box document (boxes/{boxId}), without its items. */
 data class BoxHeader(
     val ownerUid: String,
@@ -28,6 +42,8 @@ data class BoxHeader(
     val cloudConsent: Boolean?,
     val sources: BoxSources,
     val lastRecheckMs: Double?,
+    /** Null for a box from before expiry; its items then carry none either. */
+    val expiresAt: BoxExpiry? = null,
 )
 
 /**
@@ -36,6 +52,12 @@ data class BoxHeader(
  * or typed; its tags travel instead.
  */
 object BoxDocs {
+    /**
+     * The field a Firestore TTL policy deletes by: on a box, set once at creation; on each item, its box's value on
+     * every write (tests/contracts/box-docs.json, "expiry").
+     */
+    const val EXPIRES_AT = "expiresAt"
+    const val BOX_DAYS = 37
     private val EXTRA_KEYS = listOf("secondLook", "readFallback", "cropKey", "customs", "addedAt")
     private val EMPTY_CUSTOMS: Map<String, Any?> =
         linkedMapOf("description" to "", "lintOk" to false, "weightOz" to null, "valueUsd" to null, "countryOfOrigin" to null, "upc" to null)
@@ -150,7 +172,8 @@ object BoxDocs {
     fun newBoxDoc(ownerUid: String, destinationCode: String, editionId: String): Map<String, Any?> =
         boxToDoc(BoxHeader(ownerUid, listOf(ownerUid), "", destinationCode, editionId, null, BoxSources(0, 0, 0, 0, 0), null))
 
-    fun boxFromDoc(doc: Map<String, Any?>): BoxHeader {
+    /** The box document; [expiresAt] is its expiresAt field as read from Firestore, or null when it has none. */
+    fun boxFromDoc(doc: Map<String, Any?>, expiresAt: BoxExpiry? = null): BoxHeader {
         val s = map(doc["sources"])
         fun count(k: String) = (s[k] as? Number)?.toInt() ?: 0
         return BoxHeader(
@@ -162,6 +185,7 @@ object BoxDocs {
             cloudConsent = doc["cloudConsent"] as Boolean?,
             sources = BoxSources(count("onDevice"), count("inCloud"), count("secondLooks"), count("rulesOnlyRechecks"), count("cloudFallbacks")),
             lastRecheckMs = (doc["lastRecheckMs"] as? Number)?.toDouble(),
+            expiresAt = expiresAt,
         )
     }
 }
