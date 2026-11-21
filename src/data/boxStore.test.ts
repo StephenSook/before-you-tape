@@ -514,4 +514,16 @@ describe("createBoxStore", () => {
   });
 
   it("gives the edition its verdicts come from, for its limits and reviewed countries", () => expect(store().edition()).toBe(ed));
+
+  it("adds a sample's recorded read under its own source, and counts it as no read made on this laptop", async () => {
+    let k = 0;
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `r-${k++}` });
+    await s.ready;
+    const id = s.addRecorded(liquidLotionRead, 3997, "sample-key");
+    const item = s.getState().items.find((i) => i.itemId === id)!;
+    expect(item).toMatchObject({ readSource: "sample_recorded", readMs: 3997, cropKey: "sample-key", identityConfirmedBy: null });
+    expect(s.getState().result.items[id]).toBeDefined();
+    expect(s.getState().sources).toMatchObject({ onDevice: 0, inCloud: 0 });
+  });
 });
+
