@@ -3,6 +3,7 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **An old build shows an update screen.** `RcValues.needsUpdate` was called only from tests, so raising `minimum_version_android` in Remote Config changed nothing on a phone. `BoxViewModel.needsUpdate` now follows Remote Config, and while this build's version name is older than the minimum the app shows only `UpdateScreen`: "This app needs an update.", how to install the newest version, and "Open the download page" (the releases page). Source: audit item 18. Verified: `CopyTest.anOldBuildIsToldToUpdate` (the strings, the page, and that they are in the copy list checked for dashes and a second look) and `UpdateScreenTest` on an Android 17 emulator pass; `:engine:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:compileDebugAndroidTestKotlin` pass.
 - **The consent choice no longer says "Keep everything on this phone".** It now reads "Check on this
   phone only": the box list still saves each item's category, battery numbers and answers to the
   account, so "everything" was not true. The web button changes the same way ("Check on this laptop
