@@ -12,7 +12,8 @@ export interface MatchedPairsProps { pairs: readonly MatchedPair[]; edition: Rul
 function Side({ side, edition, destinationCode, today }: { side: PairSide } & Omit<MatchedPairsProps, "pairs">) {
   const item = { itemId: "pair", read: side.read, overrides: {}, answers: side.answers, quantity: 1, identityConfirmedBy: "sender" as const,
     labelTags: labelTagsOf(side.read.labelText, edition) };
-  const verdict = evaluateBox([item], edition, resolveDestination(edition, destinationCode, undefined, today), today).items.pair!;
+  const code = side.destination ?? destinationCode;
+  const verdict = evaluateBox([item], edition, resolveDestination(edition, code, undefined, today), today).items.pair!;
   const reason = verdict.hits.find((h) => h.level !== "note");
   return (
     <figure data-testid="pair-side" className="pair-side">

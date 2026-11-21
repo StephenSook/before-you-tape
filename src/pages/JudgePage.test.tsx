@@ -114,8 +114,8 @@ describe("JudgePage", () => {
     expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
   });
 
-  it("shows no matched pairs section while none is listed", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+  it("shows no matched pairs section when none is given", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[]} />);
     expect(screen.queryByTestId("matched-pair")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Same item, one thing different" })).toBeNull();
   });

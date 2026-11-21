@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -18,11 +20,30 @@ const side = (label: string, answer: string, retailBox: ItemRead["retailBox"]) =
 const pair: MatchedPair = { id: "phone", title: "The same phone, new in its box or used", left: side("New, in its sealed box", "new_sealed", "sealed"), right: side("Used", "used", "open_or_none") };
 
 describe("MatchedPairs", () => {
-  it("shows nothing until a real pair exists", () => {
+  it("shows nothing when no pair is given", () => {
     const { container } = render(<MatchedPairs pairs={[]} edition={ed} destinationCode="PH" today="2026-11-21" />);
     expect(container).toBeEmptyDOMElement();
-    // No pair is listed until the project owner's own photos are in the repo.
-    expect(MATCHED_PAIRS).toEqual([]);
+  });
+
+  it("lists one real pair today: the published lotion photo, sent to Canada and to the Philippines", () => {
+    expect(MATCHED_PAIRS.map((p) => p.id)).toEqual(["lotion-two-countries"]);
+    const [lotion] = MATCHED_PAIRS;
+    expect([lotion!.left.photo, lotion!.right.photo]).toEqual(["/eval/items/own-18.jpg", "/eval/items/own-18.jpg"]);
+    expect([lotion!.left.destination, lotion!.right.destination]).toEqual(["CA", "PH"]);
+    // The stated size is the published file's own, read from its JPEG frame header.
+    const jpeg = readFileSync(join(process.cwd(), "public", lotion!.left.photo));
+    let i = 2;
+    while (jpeg[i + 1] !== 0xc0 && jpeg[i + 1] !== 0xc2) i += 2 + jpeg.readUInt16BE(i + 2);
+    expect({ width: jpeg.readUInt16BE(i + 7), height: jpeg.readUInt16BE(i + 5) }).toEqual({ width: lotion!.left.width, height: lotion!.left.height });
+  });
+
+  it("judges a side fixed to a country for that country, whatever the page has picked", () => {
+    render(<MatchedPairs pairs={MATCHED_PAIRS} edition={ed} destinationCode="PH" today="2026-11-21" />);
+    const sides = screen.getAllByTestId("pair-side");
+    expect(within(sides[0]!).getByText("To Canada")).toBeInTheDocument();
+    expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    expect(within(sides[1]!).getByText("To the Philippines")).toBeInTheDocument();
+    expect(within(sides[1]!).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
   });
 
   it("judges each side with the app's own rules, and names the rule that decides it", () => {

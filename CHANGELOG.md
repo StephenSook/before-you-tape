@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The first matched pair on /judge: the same lotion (the published own-18 photo, with the label we typed in the sample box), sent to Canada (OK to pack) and to the Philippines (Take it out), to show that the rules depend on the destination. A side can now be fixed to a country, whatever the page has picked. Source: review. Verified: new MatchedPairs tests (the listed pair, both verdicts, the photo's real size) failed first and pass; the full unit suite passes.
+
 - Matched pairs on /judge (`src/judge/matchedPairs.ts`, `src/ui/MatchedPairs.tsx`): two of the same kind of item that differ in one thing, such as a phone new in its sealed box and the same phone used. They sit side by side below the country picker. The app's own rules judge each side for the country picked, and each side names the rule that decides it. No pair is listed until the project owner's own photos are in the repo, so the section shows nothing yet. Source: review (a judge sees both answers at once). Verified: new MatchedPairs and JudgePage tests (empty shows nothing; new sealed is OK to pack and used is Take it out, for both countries) failed first and pass; the full unit suite passes.
 
 - Check now keeps its own count, so a press drops only a pending sample, never a photo the sender added that is still decoding. Source: review. Verified: a new CameraStage test (a failed Check now while the photo decodes) failed first and passes; CameraStage and PackPage tests pass.
