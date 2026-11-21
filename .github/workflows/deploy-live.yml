@@ -102,6 +102,10 @@ jobs:
           VITE_FB_APP_ID: ${{ vars.VITE_FB_APP_ID }}
           VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
           VITE_USE_EMULATORS: "false"
+          # The service worker kill switch. With the repository variable BYT_SW_KILL set to 1, every deploy ships a
+          # worker that unregisters itself and deletes its caches, until the variable is removed. A variable, not a
+          # commit, so a merge during an incident never brings the worker back.
+          BYT_SW_KILL: ${{ vars.BYT_SW_KILL }}
         run: npm run build
 
       - name: Build serves this commit from a clean tree

@@ -96,10 +96,10 @@ jobs:
         run: npx playwright install chromium
 
       # The built app in a real browser: it starts, every camera-stage control is readable, /judge works with no
-      # request to a Google API, and after one visit it reloads and checks a typed item with no network. These need
-      # no App Check token.
+      # request to a Google API, and after one visit it reloads and checks a typed item with no network; the
+      # service worker kill switch build removes an installed worker. These need no App Check token.
       - name: Browser checks on the built app
-        run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts tests/e2e/offline.local.spec.ts
+        run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts tests/e2e/offline.local.spec.ts tests/e2e/sw-kill.local.spec.ts
 
       # The specs that need App Check get it from a debug token kept for CI only ("ci-2026-11", revoke by
       # 2026-12-17). It is set only for this step, and the workflow never prints it: the fixtures put it in the

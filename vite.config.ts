@@ -36,7 +36,8 @@ function versionFile(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), versionFile(), VitePWA(pwaOptions({ kill: false, routes: appRoutes(hosting.rewrites) }))],
+  // BYT_SW_KILL=1 builds the kill switch: a worker that unregisters itself and deletes its caches (scripts/pwa-options.ts).
+  plugins: [react(), versionFile(), VitePWA(pwaOptions({ kill: process.env.BYT_SW_KILL === "1", routes: appRoutes(hosting.rewrites) }))],
   build: {
     rollupOptions: {
       input: {
