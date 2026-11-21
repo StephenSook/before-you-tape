@@ -30,8 +30,13 @@ export interface EvalRow {
   destination: string;
   device: PathResult | null;
   cloud: PathResult | null;
-  shipped: { level: Level; source: string; secondLook: boolean };
+  shipped: ShippedResult;
 }
+
+// The route the app ships. read and msRuns are there when it gave a verdict: the read its card shows (after any
+// second look) and the time of each timed read.
+export interface ShippedResult { level: Level; source: string; secondLook: boolean; read?: ItemRead; msRuns?: number[] }
+export interface PublicShippedResult { level: Level; source: string; secondLook: boolean; numbersExact?: boolean | null; msRuns?: number[] }
 
 // Shipped sources that mean the Pack page shows no verdict at all (it adds no card): the read failed, was not run,
 // found no item, or ran past the page's time limit. Such a row is never agreement and never "Check this".
@@ -40,5 +45,5 @@ export const hasVerdict = (r: Pick<EvalRow, "shipped">): boolean => !NO_VERDICT_
 
 export interface EvalRun { runId: string; setId: string; date: string; machine: string; chromeVersion: string; modelShown: string; editionId: string; rows: EvalRow[] }
 
-export type PublicEvalRow = Omit<EvalRow, "device" | "cloud"> & { device: PublicPathResult | null; cloud: PublicPathResult | null };
+export type PublicEvalRow = Omit<EvalRow, "device" | "cloud" | "shipped"> & { device: PublicPathResult | null; cloud: PublicPathResult | null; shipped: PublicShippedResult };
 export type PublicEvalRun = Omit<EvalRun, "rows"> & { rows: PublicEvalRow[] };

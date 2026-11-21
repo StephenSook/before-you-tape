@@ -12,6 +12,7 @@ import type { RuleEdition } from "../engine/types";
 import { needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy } from "../routing/policy";
 import { isNoItem } from "../shared/noItem";
 import { READ_TIMEOUT_MS } from "../shared/readLimit";
+import type { ItemRead } from "../shared/itemRead";
 import type { EvalRow, EvalSet, Level, PathResult } from "./types";
 
 export interface RunnerInput {
@@ -66,9 +67,10 @@ async function within<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): 
   }
 }
 
-// The level the Pack page shows for this read, alone in its box, for each destination, after an optional second look.
-async function levelsOf(edition: RuleEdition, date: string, destinations: readonly string[], outcome: ReadOutcome,
-  after?: (store: ReturnType<typeof createBoxStore>, itemId: string) => Promise<void>): Promise<Record<string, Level>> {
+// The level the Pack page shows for this read, alone in its box, for each destination, after an optional second look,
+// and the read the card then shows.
+async function judged(edition: RuleEdition, date: string, destinations: readonly string[], outcome: ReadOutcome,
+  after?: (store: ReturnType<typeof createBoxStore>, itemId: string) => Promise<void>): Promise<{ levels: Record<string, Level>; read: ItemRead }> {
   let n = 0;
   const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now: () => 0, today: () => date, newId: () => `eval-${n++}` });
   await store.ready;
@@ -81,7 +83,9 @@ async function levelsOf(edition: RuleEdition, date: string, destinations: readon
     if (!verdict) throw new Error(`no verdict for ${itemId} in ${d}`);
     out[d] = verdict.level;
   }
-  return out;
+  const shown = store.getState().items.find((x) => x.itemId === itemId);
+  if (!shown) throw new Error(`no item ${itemId}`);
+  return { levels: out, read: shown.read };
 }
 
 export interface RunnerResult { rows: EvalRow[]; failures: RunnerFailure[]; cold: { device: number | null; cloud: number | null } }
@@ -127,7 +131,7 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
         }
         // A read of no item gets no card on the Pack page, so it has no level of its own.
         const levels = noItem ? Object.fromEntries(i.set.destinations.map((d) => [d, "check" as Level]))
-          : await levelsOf(i.edition, i.date, i.set.destinations, first);
+          : (await judged(i.edition, i.date, i.set.destinations, first)).levels;
         return { read: first.read, msRuns: ms.map((v) => Math.round(v)), levels, ...(noItem ? { noItem: true as const } : {}) };
       } catch (e) {
         failures.push({ itemId: item.itemId, path: name, error: message(e) });
@@ -137,13 +141,13 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
     const device = paths.has("device") ? await path("device", "device_only") : null;
     const cloud = paths.has("cloud") ? await path("cloud", "cloud_only") : null;
 
-    let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean } | null = null;
+    let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean; read: ItemRead; msRuns: number[] } | null = null;
     let noVerdict = paths.has("shipped") ? "failed" : "not_run";
     if (paths.has("shipped")) try {
       const outcome: ReadOutcome = await read("hybrid");
       if (isNoItem(outcome.read)) throw new NoItem();
       let looked = false;
-      const levels = await levelsOf(i.edition, i.date, i.set.destinations, outcome, async (store, itemId) => {
+      const result = await judged(i.edition, i.date, i.set.destinations, outcome, async (store, itemId) => {
         const added = store.getState().items.find((x) => x.itemId === itemId);
         const reason = added ? needsSecondLook(deriveFacts(added, i.edition), outcome, policy) : null;
         if (!reason || !shouldRunSecondLook(reason, CLOUD_ON)) return;
@@ -156,7 +160,16 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
           failures.push({ itemId: item.itemId, path: "second_look", error: message(e) });
         }
       });
-      shipped = { levels, source: outcome.source, secondLook: looked };
+      // The first shipped read is the one judged; the others only time the route, as on the other paths.
+      const ms = [outcome.ms];
+      for (let k = 1; k < repeat; k++) {
+        try {
+          ms.push((await read("hybrid")).ms);
+        } catch (e) {
+          failures.push({ itemId: item.itemId, path: "shipped", error: `timing run ${k + 1}: ${message(e)}` });
+        }
+      }
+      shipped = { levels: result.levels, source: outcome.source, secondLook: looked, read: result.read, msRuns: ms.map((v) => Math.round(v)) };
     } catch (e) {
       if (e instanceof NoItem) noVerdict = "no_item";
       else {
@@ -170,7 +183,7 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
         (p ? { read: p.read, msRuns: p.msRuns, level: p.levels[destination]!, ...(p.noItem ? { noItem: true as const } : {}) } : null);
       rows.push({
         itemId: item.itemId, destination, device: pathResult(device), cloud: pathResult(cloud),
-        shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook }
+        shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook, read: shipped.read, msRuns: shipped.msRuns }
           : { level: "check", source: noVerdict, secondLook: false },
       });
     }

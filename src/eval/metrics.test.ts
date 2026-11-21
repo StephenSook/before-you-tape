@@ -84,6 +84,17 @@ describe("computeEvalMetrics", () => {
     expect(m.misreadsCaught).toEqual({ k: 0, n: 1 });
   });
 
+  it("checks the shipped route's numbers and times it too", () => {
+    const pb = item("pb", true, { CA: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const shipped = { level: "take_out" as Level, source: "on_device", secondLook: false, read: read({ volts: 3.7, milliampHours: 10000, wattHours: 37 }), msRuns: [900, 1000, 1100] };
+    const m = computeEvalMetrics(set([pb]), run([row("pb", "CA", "take_out", { shipped })]));
+    expect(m.numbersExact.shipped).toEqual({ k: 1, n: 1 });
+    expect(m.latency.shipped).toMatchObject({ p50: 1000, n: 1 });
+    const pub = redactRun(run([row("pb", "CA", "take_out", { shipped })]), set([pb]));
+    expect(pub.rows[0]!.shipped).toEqual({ level: "take_out", source: "on_device", secondLook: false, numbersExact: true, msRuns: [900, 1000, 1100] });
+    expect(computeEvalMetrics(set([pb]), pub)).toEqual(m);
+  });
+
   it("counts a read of no item against exact numbers, since the model gave its numbers", () => {
     const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
     const empty = { read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [5], level: "check" as Level, noItem: true as const };
@@ -110,7 +121,8 @@ describe("computeEvalMetrics", () => {
     const wrong = read({ volts: 3.7, milliampHours: 5000, wattHours: 185 });
     const r = run([row("pb", "CA", "take_out", { device: { read: wrong, msRuns: [1], level: "check" }, cloud: { read: exact, msRuns: [1], level: "take_out" }, shipped: { level: "take_out", source: "in_cloud", secondLook: true } })]);
     const m = computeEvalMetrics(set([pb]), r);
-    expect(m.numbersExact).toEqual({ device: { k: 0, n: 1 }, cloud: { k: 1, n: 1 } });
+    // The shipped row here carries no read, so it adds nothing to the shipped count.
+    expect(m.numbersExact).toEqual({ device: { k: 0, n: 1 }, cloud: { k: 1, n: 1 }, shipped: { k: 0, n: 0 } });
     expect(m.misreadsCaught).toEqual({ k: 1, n: 1 });
   });
 });

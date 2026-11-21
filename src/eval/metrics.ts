@@ -3,7 +3,7 @@
 // Latency takes the median of the warm runs per crop, then p50 and p90 across crops, and the paired median
 // difference between the two paths with a bootstrap interval resampled by item (fixed seed).
 import { untouchedItems } from "./ruleChanges";
-import { hasVerdict, type EvalItem, type EvalRun, type EvalSet, type PathResult, type PublicEvalRun, type PublicPathResult } from "./types";
+import { hasVerdict, type EvalItem, type EvalRun, type EvalSet, type PathResult, type PublicEvalRun, type PublicPathResult, type PublicShippedResult, type ShippedResult } from "./types";
 
 type AnyPath = PathResult | PublicPathResult;
 type AnyRun = EvalRun | PublicEvalRun;
@@ -49,6 +49,12 @@ const exactOf = (item: EvalItem | undefined, path: AnyPath): boolean | null => {
   return path.read.volts === p.volts && path.read.milliampHours === p.milliampHours && path.read.wattHours === p.wattHours;
 };
 
+// The shipped route's numbers: from its public flag, or from the read its card shows.
+const shippedExactOf = (item: EvalItem | undefined, s: ShippedResult | PublicShippedResult): boolean | null => {
+  if ("numbersExact" in s) return s.numbersExact ?? null;
+  return "read" in s && s.read ? exactOf(item, { read: s.read, msRuns: [], level: s.level }) : null;
+};
+
 // A small fixed-seed generator, so the interval is the same on every machine.
 export function seeded(seed: number): () => number {
   let a = seed >>> 0;
@@ -80,7 +86,8 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const firstRow = new Map<string, (typeof rows)[number]>();
   for (const r of rows) if (!firstRow.has(r.itemId)) firstRow.set(r.itemId, r);
   // Exact numbers, per path (eval/PROTOCOL.md, "Exact numbers").
-  const exact = { device: { k: 0, n: 0 }, cloud: { k: 0, n: 0 } };
+  const exact = { device: { k: 0, n: 0 }, cloud: { k: 0, n: 0 }, shipped: { k: 0, n: 0 } };
+  const shippedMs: number[] = [];
   let misreads = 0;
   let caught = 0;
   const deviceMs: number[] = [];
@@ -95,6 +102,14 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
       if (e === null) continue;
       exact[name].n++;
       if (e) exact[name].k++;
+    }
+    if (hasVerdict(r)) {
+      const e = shippedExactOf(item, r.shipped);
+      if (e !== null) {
+        exact.shipped.n++;
+        if (e) exact.shipped.k++;
+      }
+      if (r.shipped.msRuns?.length) shippedMs.push(median(r.shipped.msRuns));
     }
     if (r.device && exactOf(item, r.device) === false) {
       misreads++;
@@ -124,6 +139,7 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
     latency: {
       device: { p50: percentile(deviceMs, 50), p90: percentile(deviceMs, 90), n: deviceMs.length },
       cloud: { p50: percentile(cloudMs, 50), p90: percentile(cloudMs, 90), n: cloudMs.length },
+      shipped: { p50: percentile(shippedMs, 50), p90: percentile(shippedMs, 90), n: shippedMs.length },
       pairedMedianDiffMs: diffs.length ? median(diffs) : NaN,
       diffCi95: (boots.length ? [percentile(boots, 2.5), percentile(boots, 97.5)] : [NaN, NaN]) as [number, number],
     },
@@ -147,5 +163,9 @@ export function redactRun(run: EvalRun, set: EvalSet): PublicEvalRun {
   const items = new Map(set.items.map((i) => [i.itemId, i]));
   const pub = (itemId: string, p: PathResult | null): PublicPathResult | null =>
     p ? { numbersExact: exactOf(items.get(itemId), p), msRuns: [...p.msRuns], level: p.level, ...(p.noItem ? { noItem: true as const } : {}) } : null;
-  return { ...run, rows: run.rows.map((r) => ({ ...r, device: pub(r.itemId, r.device), cloud: pub(r.itemId, r.cloud) })) };
+  const pubShipped = (itemId: string, s: ShippedResult): PublicShippedResult => {
+    const { read, msRuns, ...rest } = s;
+    return read ? { ...rest, numbersExact: shippedExactOf(items.get(itemId), s), ...(msRuns ? { msRuns: [...msRuns] } : {}) } : { ...rest, ...(msRuns ? { msRuns: [...msRuns] } : {}) };
+  };
+  return { ...run, rows: run.rows.map((r) => ({ ...r, device: pub(r.itemId, r.device), cloud: pub(r.itemId, r.cloud), shipped: pubShipped(r.itemId, r.shipped) })) };
 }

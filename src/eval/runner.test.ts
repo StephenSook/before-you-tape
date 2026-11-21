@@ -54,6 +54,9 @@ describe("evalRows", () => {
     const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud: answers(phoneCloud, "in_cloud") };
     const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: true });
+    // The read the shipped route shows, after its second look, and its time.
+    expect(out.rows[0]!.shipped.read?.category).toBe("phone");
+    expect(out.rows[0]!.shipped.msRuns).toHaveLength(1);
     // The cloud path's own read plus the second look on the shipped route.
     expect(models.cloud.generate).toHaveBeenCalledTimes(2);
   });
