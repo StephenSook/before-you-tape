@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(test): the test journal is read under its lock
+- What: the fake runners' journal added events under a lock but handed out its array without one.
+  A test waiting for "cloud start" read it while the fake cloud added from another thread, and the
+  test host crashed with "Index out of range" (crash report: a `contains` over the journal inside
+  aLookThatFailedForNoConnectionRunsWhenBackOnline). The journal now copies its events under the lock.
+- Source: a local test run that crashed the test host.
+- Verified: a new stress test (eight tasks add while one reads) crashed the old journal with the same
+  error on 2 of 3 runs at its first size and 1 of 3 at the size kept (a race test catches it only
+  sometimes); with the fix it passes every run, and 236 unit tests pass twice in a row.
+
 ### docs(ios): a known limit for a sign-in deleted on the server but left in the keychain
 - What: docs/LIMITS.md says that when Firebase has deleted the anonymous sign-in on its servers and
   the iPhone then cannot remove it from its keychain, a copy can stay on the iPhone, and it no longer
