@@ -145,5 +145,13 @@ describe("JudgePage", () => {
     expect(screen.queryByTestId("matched-pair")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Same item, one thing different" })).toBeNull();
   });
-});
 
+  it("never says a card's question twice: a reason that only restates the question is left out", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    const phone = card("Smartphone");
+    expect(within(phone).queryByText(/^Is it new\? Answer to finish this check\./)).toBeNull();
+    expect(within(phone).getAllByText("Is it new?")).toHaveLength(1);
+    // The reason that says more than the question stays.
+    expect(within(phone).getByText(/We can't see the battery rating through the box/)).toBeInTheDocument();
+  });
+});

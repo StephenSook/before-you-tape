@@ -36,11 +36,32 @@ test("the heading uses the self-hosted display font, loaded from this site", asy
 
 // WCAG reflow: at 320 CSS px nothing scrolls sideways, even before the web fonts arrive. A native select sizes
 // itself to its longest option, and the fallback font a phone or a Linux browser draws it in is wider.
-test("the page fits a 320 px screen even before the web fonts load", async ({ page }) => {
+// 280 px stands in for a fallback font wider than this machine's: a Mac's fits where a Linux browser's did not.
+for (const width of [320, 280]) test(`the page fits a ${width} px screen even before the web fonts load`, async ({ page }) => {
   await page.route(/\.woff2$/, (r) => r.abort());
-  await page.setViewportSize({ width: 320, height: 800 });
+  await page.setViewportSize({ width, height: 800 });
   await page.goto("/judge");
   await expect(page.getByTestId("destination-picker")).toBeVisible();
+  await expect(page.getByTestId("sample-card")).toHaveCount(9);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow, "no sideways page scroll").toBeLessThanOrEqual(0);
+});
+
+test("on a phone the sample cards sit two across, each verdict chip small and readable on its photo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/judge");
+  const cards = page.getByTestId("sample-card");
+  await expect(cards).toHaveCount(9);
+  const [first, second] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
+  expect(Math.round(first!.y)).toBe(Math.round(second!.y));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  for (let i = 0; i < 9; i++) {
+    const photo = cards.nth(i).locator(".sample-photo");
+    const img = await photo.locator("img").boundingBox();
+    const chip = await photo.getByTestId("verdict-chip").boundingBox();
+    // The chip covers at most a third of the photo, and its words stay at least 12 px.
+    expect(chip!.width * chip!.height).toBeLessThanOrEqual((img!.width * img!.height) / 3);
+    const fontPx = await photo.getByTestId("verdict-chip").evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(fontPx).toBeGreaterThanOrEqual(12);
+  }
 });

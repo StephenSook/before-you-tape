@@ -40,7 +40,7 @@ function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "n
   store.setConsent(true);
   const cfg = fakeSource(start);
   const ui = (over: PageOver) => <LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-    index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online {...page} {...over} />;
+    index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} deleteCrop={async () => {}} online {...page} {...over} />;
   const view = render(ui({}));
   return { models, makeModels, push: cfg.push, retry: cfg.retry, store, rerender: (over: PageOver) => view.rerender(ui(over)) };
 }
@@ -85,7 +85,7 @@ describe("LivePack", () => {
     store.setConsent(true);
     const cfg = fakeSource();
     render(<LivePack source={cfg.source} makeModels={makeModels} store={store} gate="no_api" openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
-      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} online />);
+      index={[{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }]} saveCrop={async () => {}} deleteCrop={async () => {}} online />);
     await addPhoto();
     await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
     expect(signal?.aborted).toBe(false);

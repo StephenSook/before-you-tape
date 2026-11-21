@@ -56,7 +56,7 @@ function setup(over: Partial<PackPageProps> = {}, consent: boolean | null = true
   if (consent !== null) store.setConsent(consent);
   const models = (over.models as ReturnType<typeof spyModels> | undefined) ?? spyModels();
   render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
-    saveCrop={async () => {}} online {...over} />);
+    saveCrop={async () => {}} deleteCrop={async () => {}} online {...over} />);
   return { store, models };
 }
 
@@ -193,7 +193,7 @@ describe("PackPage", () => {
     const cloud = { generate: vi.fn(() => new Promise<never>((_r, reject) => { fail = reject; })) };
     const fallback = { generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" as const })) };
     const models = { ...spyModels(), cloud, fallback };
-    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, online: true };
+    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, deleteCrop: async () => {}, online: true };
     const { rerender } = render(<PackPage {...props} config={{ killCloud: false }} />);
     await addPhoto();
     await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
@@ -238,7 +238,7 @@ describe("PackPage", () => {
     const store = newStore();
     store.setConsent(true);
     const saveCrop = vi.fn(async () => {});
-    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} online />);
+    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} deleteCrop={async () => {}} online />);
     await addPhoto();
     await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
     unmount();
@@ -357,7 +357,7 @@ describe("PackPage", () => {
     const page = (store: ReturnType<typeof newStore>, models: ReturnType<typeof spyModels>, gate: PackPageProps["gate"], settingsWaitMs = 10_000,
       online = true, config: PackPageProps["config"] = { killCloud: false }) => (
       <PackPage store={store} models={models} gate={gate} config={config} openCamera={okCamera} index={index}
-        saveCrop={async () => {}} online={online} loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
+        saveCrop={async () => {}} deleteCrop={async () => {}} online={online} loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
     );
 
     it("drops the press when the cloud choice changes while it waits, and says so", async () => {
@@ -557,7 +557,7 @@ describe("PackPage", () => {
     const store = newStore();
     store.setConsent(true);
     const models = spyModels();
-    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {} };
+    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {}, deleteCrop: async () => {} };
     const { rerender } = render(<PackPage {...props} online={false} />);
     await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
@@ -635,6 +635,24 @@ describe("PackPage", () => {
     await userEvent.click(within(screen.getByTestId("removal-unsaved")).getByRole("button", { name: "Try saving again" }));
     await store.settled();
     await waitFor(() => expect(screen.queryByTestId("removal-unsaved")).toBeNull());
+  });
+
+  it("deletes an item's saved photo and label words from this device when the item leaves the box, here or from another device", async () => {
+    const deleteCrop = vi.fn<(key: string) => Promise<void>>(async () => {});
+    const { store } = setup({ deleteCrop });
+    await store.ready;
+    act(() => { store.addRecorded({ ...liquidLotionLabelRead, itemName: "Lotion A" }, 1000, "crop-a"); });
+    act(() => { store.addRecorded({ ...liquidLotionLabelRead, itemName: "Lotion B" }, 1000, "crop-b"); });
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Typed lotion" }); });
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Lotion A" }));
+    await waitFor(() => expect(deleteCrop).toHaveBeenCalledWith("crop-a"));
+    // A removal from another device reaches this one as the item leaving the box.
+    const b = store.getState().items.find((i) => i.read.itemName === "Lotion B")!;
+    act(() => { store.remove(b.itemId); });
+    await waitFor(() => expect(deleteCrop).toHaveBeenCalledWith("crop-b"));
+    // A typed item has no photo to delete.
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Typed lotion" }));
+    expect(deleteCrop.mock.calls.map(([k]) => k)).toEqual(["crop-a", "crop-b"]);
   });
 
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
