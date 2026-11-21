@@ -8,7 +8,7 @@ import type { GateState } from "../ai/port";
 import { openCamera } from "../capture/camera";
 import { sweepCropsWhenOpen } from "../data/cropSweep";
 import { deleteCrop, deleteCropsExcept, saveCrop } from "../data/crops";
-import { rememberDeleted, takeDeletedNotice, whenDeletedElsewhere } from "../data/deleteSavedBox";
+import { leaveDeletedBox, rememberDeleted, takeDeletedNotice, whenDeletedElsewhere } from "../data/deleteSavedBox";
 import { SAMPLE_READ } from "../data/sampleRead";
 import { FirebaseConfigError } from "../firebase/app";
 import { isPhoneDevice } from "../shared/phoneDevice";
@@ -33,10 +33,12 @@ export function PackRoute() {
   useEffect(() => (deps instanceof Error ? undefined : deps.followEdition(setEditionNotice)), [deps]);
   // Crops no item in the saved box uses are deleted from this device once it opens.
   useEffect(() => { if (!(deps instanceof Error)) void sweepCropsWhenOpen(deps.store, deleteCropsExcept).catch(() => {}); }, [deps]);
-  // When another tab deletes this box, this tab stops saving, so it keeps nothing of the old box, and starts again.
-  useEffect(() => (deps instanceof Error ? undefined : whenDeletedElsewhere(window, deps.store.getState().boxId, () => {
-    void deps.store.close().then(() => window.location.reload());
-  })), [deps]);
+  // When another tab deletes this box, this tab stops saving, keeps nothing of the old box, and starts again.
+  useEffect(() => {
+    if (deps instanceof Error) return undefined;
+    const boxId = deps.store.getState().boxId;
+    return whenDeletedElsewhere(window, boxId, () => { void leaveDeletedBox(deps.store, localStorage, boxId, () => window.location.reload()); });
+  }, [deps]);
 
   useEffect(() => {
     if (deps instanceof Error) return;

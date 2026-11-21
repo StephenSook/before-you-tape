@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A tab whose box another tab deleted removes the box's keys from this browser again after its store has closed (leaveDeletedBox), then reloads: a local write still on its way when the delete reached it could otherwise put the old box or its journal back. Source: review. Verified: a new test (a write that lands while the store closes is removed before the reload) failed first and passes; typecheck, build, the full suite and the home-page browser check pass.
+
 - Delete my saved box deletes every crop on this device again, not only those of the items this page last saw: no other box can start on this device before the delete ends (the pointer to the box goes last), so each crop is this box's, and a photo another tab added since was left behind until the next box opened. Source: review. Verified: the changed savedBoxDeleter test failed first and passes; full suite passes.
 
 - Delete my saved box now deletes the anonymous sign-in before this browser's box keys. Taking away the pointer to the box tells other tabs to start again, and a tab that did so before the sign-in was gone could save a new box under it, which the sign-in delete (or a retry of it) then stranded. Clearing the keys can no longer stop the delete: storage this browser refuses holds nothing of the box. Source: review. Verified: new and changed deleteSavedBox tests (the order; the keys stay while the sign-in step fails; a refused storage still finishes) failed first and pass; full suite passes.

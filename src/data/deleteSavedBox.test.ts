@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearLocalBox, deleteSavedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, whenDeletedElsewhere, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
+import { clearLocalBox, deleteSavedBox, leaveDeletedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, whenDeletedElsewhere, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
 
 const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const order: string[] = [];
@@ -172,5 +172,19 @@ describe("whenDeletedElsewhere", () => {
     stop();
     change("byt.currentBox", "b1", null);
     expect(gone).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("leaveDeletedBox", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("stops saving, removes what a write still on its way put back in this browser, then starts again", async () => {
+    const order: string[] = [];
+    // A write of the old box that lands while the store closes.
+    const store = { close: vi.fn(async () => { localStorage.setItem("byt.journal.b1", "{}"); localStorage.setItem("byt.box.b1", "{}"); order.push("closed"); }) };
+    await leaveDeletedBox(store, localStorage, "b1", () => order.push("reload"));
+    expect(order).toEqual(["closed", "reload"]);
+    expect(localStorage.getItem("byt.journal.b1")).toBeNull();
+    expect(localStorage.getItem("byt.box.b1")).toBeNull();
   });
 });

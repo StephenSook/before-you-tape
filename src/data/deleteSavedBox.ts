@@ -114,3 +114,11 @@ export function whenDeletedElsewhere(target: Pick<Window, "addEventListener" | "
   target.addEventListener("storage", onStorage);
   return () => target.removeEventListener("storage", onStorage);
 }
+
+// In a tab whose box another tab deleted: stop saving, remove anything of the box a write still on its way put back
+// in this browser once that write has answered, then start again on a new box.
+export async function leaveDeletedBox(store: { close(): Promise<void> }, storage: Storage, boxId: string, reload: () => void): Promise<void> {
+  await store.close();
+  try { clearLocalBox(storage, boxId); } catch { /* storage this browser refuses holds nothing */ }
+  reload();
+}
