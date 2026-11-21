@@ -5,6 +5,7 @@ const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const order: string[] = [];
   const d: DeleteSavedBoxDeps = {
     stopSaving: vi.fn(async () => { order.push("stop"); }),
+    resumeSaving: vi.fn(() => { order.push("resume"); }),
     deleteBox: vi.fn(async () => { order.push("box"); }),
     deleteCrops: vi.fn(async () => { order.push("crops"); }),
     clearLocal: vi.fn(() => { order.push("local"); }),
@@ -27,7 +28,8 @@ describe("deleteSavedBox", () => {
   it("stops at the first step that fails and says which, leaving the later steps undone", async () => {
     const { d, order } = deps({ deleteBox: vi.fn(async () => { throw new Error("offline"); }) });
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: false, stoppedAt: "box" });
-    expect(order).toEqual(["stop"]);
+    // The box is still there, so this page saves again.
+    expect(order).toEqual(["stop", "resume"]);
   });
 
   it("signs out when the anonymous sign-in cannot be deleted without signing in again", async () => {
@@ -57,6 +59,7 @@ describe("deleteSavedBox", () => {
   it("keeps this browser's keys until the sign-in is gone", async () => {
     const { d, order } = deps({ deleteSignIn: vi.fn(async () => { throw new Error("network"); }) });
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: false, stoppedAt: "signIn" });
+    // The box is gone, so this page does not save again.
     expect(order).toEqual(["stop", "box", "crops"]);
     expect(d.clearLocal).not.toHaveBeenCalled();
   });
@@ -108,7 +111,7 @@ describe("savedBoxDeleter", () => {
   beforeEach(() => localStorage.clear());
   const parts = (over: Partial<DeleterParts> = {}) => {
     const p: DeleterParts = {
-      store: { getState: () => ({ boxId: "b1", items: [{ cropKey: "c1" }, { cropKey: null }] }), close: vi.fn(async () => {}) },
+      store: { getState: () => ({ boxId: "b1" }), close: vi.fn(async () => {}), reopen: vi.fn() },
       signedIn: Promise.resolve(),
       currentUid: () => "alice",
       deleteFirestoreBox: vi.fn(async () => {}),

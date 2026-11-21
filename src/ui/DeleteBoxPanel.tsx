@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { DeleteResult, DeleteStep } from "../data/deleteSavedBox";
 
 const LEFT: Record<DeleteStep, string> = {
-  box: "Nothing was deleted: the saved box could not be reached. Try again.",
+  box: "The saved box could not be fully deleted. Try again.",
   crops: "The saved box is deleted, but this device's photos could not be. Try again.",
   signIn: "The saved box is deleted, but your anonymous sign-in could not be. Try again.",
 };

@@ -9,6 +9,8 @@ export type DeleteResult = { ok: true; signIn: "deleted" | "signed_out" } | { ok
 export interface DeleteSavedBoxDeps {
   // Resolves once this page's writes already out have answered; nothing more is kept or sent.
   stopSaving(): Promise<void>;
+  // The box step failed, so the box is still there: this page keeps and sends its edits again.
+  resumeSaving(): void;
   deleteBox(boxId: string): Promise<void>;
   deleteCrops(): Promise<unknown>;
   clearLocal(boxId: string): void;
@@ -21,7 +23,13 @@ const STEPS: DeleteStep[] = ["box", "crops", "signIn"];
 export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from: DeleteStep = "box"): Promise<DeleteResult> {
   const runs = (step: DeleteStep) => STEPS.indexOf(step) >= STEPS.indexOf(from);
   if (runs("box")) {
-    try { await d.stopSaving(); await d.deleteBox(boxId); } catch { return { ok: false, stoppedAt: "box" }; }
+    try {
+      await d.stopSaving();
+      await d.deleteBox(boxId);
+    } catch {
+      d.resumeSaving();
+      return { ok: false, stoppedAt: "box" };
+    }
   }
   if (runs("crops")) {
     try { await d.deleteCrops(); } catch { return { ok: false, stoppedAt: "crops" }; }
@@ -51,7 +59,7 @@ export function clearLocalBox(storage: Storage, boxId: string): void {
 
 // The live page's parts for a delete.
 export interface DeleterParts {
-  store: { getState(): { boxId: string }; close(): Promise<void> };
+  store: { getState(): { boxId: string }; close(): Promise<void>; reopen(): void };
   // Settles once this page's own sign-in has finished, whether it worked or not.
   signedIn: Promise<unknown>;
   // Whoever is signed in now: another tab may have signed in after this page's own sign-in failed.
@@ -70,6 +78,7 @@ export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise
   return (from) => {
     return deleteSavedBox(p.store.getState().boxId, {
       stopSaving: () => p.store.close(),
+      resumeSaving: () => p.store.reopen(),
       deleteBox: async (id) => {
         await p.signedIn.catch(() => {});
         const uid = p.currentUid();

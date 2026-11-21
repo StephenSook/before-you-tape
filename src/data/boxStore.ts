@@ -113,9 +113,11 @@ export interface BoxStore {
   retryLoad(): Promise<void>;
   // Resolves once the box has been read and every write started so far has answered (tests, leaving the page).
   settled(): Promise<void>;
-  // Before the box is deleted: no edit is kept or sent from now on, and this resolves once the writes already out
-  // have answered, so none of them can land after the delete.
+  // Before the box is deleted: no edit is kept or sent from now on (the page still shows it), and this resolves once
+  // the writes already out have answered, so none of them can land after the delete.
   close(): Promise<void>;
+  // After a delete that failed with the box still there: keeps and sends again, the edits made while closed too.
+  reopen(): void;
   // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
   // a page last rendered, if another tab changed it.
   consentNow(): boolean | null;
@@ -331,8 +333,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
 
   // edit: the change came from the sender (or a read), so it is journaled and sent; a load or a notice is not.
   const commit = (result: BoxResult = evaluate(), edit = true) => {
-    if (closed) return;
     state = snapshot(result);
+    if (closed) { publish(); return; }
     deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
     if (edit) {
       recordEdits();
@@ -583,6 +585,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     async close() {
       closed = true;
       while (flushing) await flushing;
+    },
+    reopen() {
+      if (!closed) return;
+      closed = false;
+      commit();
     },
     setConsent(v) {
       deps.consent?.set(v);

@@ -65,12 +65,27 @@ describe("saving by explicit operations", () => {
     expect(closed).toBe(false);
     land();
     await closing;
-    // The box's creation landed; its item was not sent after close, and the edit made after close was neither
-    // sent nor kept here.
+    // The box's creation landed; its item was not sent after close, and the edit made after close shows on the page
+    // but was neither sent nor kept here.
     expect(p.o.putItem).not.toHaveBeenCalled();
     expect(p.o.putMeta).toHaveBeenCalledTimes(1);
     expect(Object.keys(journal.read("b1")!.items)).toEqual([first]);
-    expect(s.getState().items).toHaveLength(1);
+    expect(s.getState().items).toHaveLength(2);
+  });
+
+  it("after a delete that failed, reopens and sends the edits made while it was closed", async () => {
+    const p = ops(found([savedItem("a")]));
+    const s = make(p.o);
+    p.answer();
+    await s.ready;
+    await s.close();
+    s.addManual(shirt);
+    await settle();
+    expect(p.o.putItem).not.toHaveBeenCalled();
+    s.reopen();
+    await s.settled();
+    expect(p.o.putItem).toHaveBeenCalledTimes(1);
+    expect(s.getState().unsaved).toEqual([]);
   });
 
   it("writes nothing when a box loads, found or missing", async () => {
