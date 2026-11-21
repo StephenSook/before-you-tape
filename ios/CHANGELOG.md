@@ -3,6 +3,31 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### fix(ios): drop Firebase Performance and Functions, which the app never calls
+- What: `ios/project.yml` linked FirebasePerformance and FirebaseFunctions, and no code used either.
+  Performance still collected by itself once linked (the IP address, app launch and network
+  request times, CPU and memory use, device information) and bundled no privacy manifest. Both
+  are removed, so less leaves the phone, and the App Privacy answers and the privacy page lose
+  their Performance rows.
+- Source: App Store preparation (an audit of what the built app sends).
+- Verified: a test that neither `FIRPerformance` nor `FIRFunctions` is in the app process failed
+  before (both present) and passes after; the built binary has 0 Performance and 0 Functions
+  symbols (14593 Firebase AI Logic symbols as a control); 160 unit tests and the UI test pass.
+
+### feat(ios): the app carries its own privacy manifest
+- What: `ios/BYT/PrivacyInfo.xcprivacy`: no tracking and no tracking domains; the app's own use of
+  UserDefaults (reason CA92.1, the box id) and of file metadata (reason C617.1, the saved box's
+  size, which also brings `stat` into the binary); and what a cloud check sends after the sender
+  taps Allow (the photo crop and the label words, linked, for app functionality, not tracking).
+  Firebase's own bundles declare their own collection. Without the API reasons, App Store Connect
+  refuses the upload.
+- Source: App Store preparation (the built app had no manifest of its own).
+- Verified: three tests read the manifest from the app bundle; they failed with "BYT.app carries
+  no PrivacyInfo.xcprivacy" before and pass after; `plutil -lint` OK; XcodeGen puts the file in
+  the app's resources; 159 unit tests pass.
+
 ## 2026-11-20
 
 ### fix(ios): the iPhone session's evidence holds no phone identifiers
