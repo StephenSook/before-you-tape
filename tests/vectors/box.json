@@ -226,8 +226,26 @@
     "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "rocket", "read": { "category": "toy", "labelText": "FOAM TOY ROCKET" } },
       { "itemId": "shells", "read": { "category": "toy", "labelText": "TOY SHELL SET" } },
-      { "itemId": "bar", "read": { "category": "food_packaged", "labelText": "GRENADE PROTEIN BAR CARB KILLA" } }],
-    "expect": { "rocket": "ok", "shells": "ok" },
-    "notRules": { "rocket": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shells": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "bar": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+      { "itemId": "bar", "read": { "category": "food_packaged", "labelText": "GRENADE PROTEIN BAR CARB KILLA" } },
+      { "itemId": "shirt", "read": { "category": "clothing", "labelText": "TRAINING SHIRT\nROUND NECK" } },
+      { "itemId": "golf", "read": { "category": "other", "labelText": "PRACTICE ROUND GOLF BALLS 12 PACK" } }],
+    "expect": { "rocket": "ok", "shells": "ok", "shirt": "ok" },
+    "notRules": { "rocket": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shells": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "bar": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shirt": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "golf": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+  },
+  {
+    "name": "replica_props_ca", "source": "IMM 136.2 and Canada CA-P-05: a prop named fake or imitation is still checked, since a label can't show it doesn't look real",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "bomb", "read": { "category": "toy", "labelText": "FAKE BOMB PROP" } },
+      { "itemId": "grenade", "read": { "category": "toy", "labelText": "IMITATION GRENADE PROP" } }],
+    "expect": { "bomb": "check", "grenade": "check" },
+    "expectRules": { "bomb": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+  },
+  {
+    "name": "replica_props_ph", "source": "IMM 136.2 and Philippines PH-P-03: the same props to the Philippines",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "bomb", "read": { "category": "toy", "labelText": "FAKE BOMB PROP" } },
+      { "itemId": "grenade", "read": { "category": "toy", "labelText": "IMITATION GRENADE PROP" } }],
+    "expect": { "bomb": "check", "grenade": "check" },
+    "expectRules": { "bomb": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"], "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"] }
   }
 ]

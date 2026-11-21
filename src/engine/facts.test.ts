@@ -112,16 +112,19 @@ describe("labelTagsOf", () => {
   });
 
   it("reads replica and inert munitions (IMM 136.2), not a grenade brand or a toy word alone", () => {
-    // A weapon noun alone is enough, in any order and with hyphens; a word that also names everyday things
-    // (shell, round, bomb, rocket, mine, mortar, warhead, ammo) needs a weapon word near it, never toy, prop, foam or bath.
+    // A weapon noun alone is enough, in any order and with hyphens. A word that also names everyday things (shell,
+    // round, bomb, rocket, mine, mortar, warhead, ammo) needs replica, inert, dummy, fake or the like on the same line;
+    // training or practice count only with a caliber word too; toy, prop, foam and bath neither count nor cancel.
     for (const label of ["REPLICA GRENADE", "GRENADE REPLICA", "REPLICA-GRENADE", "REPLICA M67 GRENADE", "GRANADA DE ENTRENAMIENTO",
       "Inert hand grenade, display only", "DUMMY ORDNANCE", "TRAINING ROUNDS 40MM", "deactivated mortar shell", "INERT 81MM MORTAR ROUND",
-      "SHELL, INERT", "MUNICIONES DE FOGUEO", "Replica de granada", "AMMUNITION BOX 50 CAL REPLICA ROUNDS"]) {
+      "SHELL, INERT", "MUNICIONES DE FOGUEO", "Replica de granada", "AMMUNITION BOX 50 CAL REPLICA ROUNDS", "FAKE BOMB PROP",
+      "IMITATION GRENADE PROP", "SIMULATED LAND MINE", "MOCK MORTAR SHELL", "TRAINING TOY ROCKET 40MM"]) {
       expect(labelTagsOf(label, ed), label).toContain("replica_explosive");
     }
     for (const label of ["GRENADE PROTEIN BAR CARB KILLA", "Carb Killa by Grenade", "TOY CAR", "SEA SHELL NECKLACE", "INERT GAS",
       "BATH BOMB LAVENDER", "FOAM TOY ROCKET", "TOY SHELL SET", "WARHEADS EXTREME SOUR HARD CANDY", "MORTAR AND PESTLE GRANITE",
-      "JUGO DE GRANADA 100%", "AMMO CAN STORAGE BOX", "ROUND TRAINING TABLE", "TRAINING PANTS SIZE 4T"]) {
+      "JUGO DE GRANADA 100%", "AMMO CAN STORAGE BOX", "ROUND TRAINING TABLE", "TRAINING PANTS SIZE 4T", "TRAINING SHIRT\nROUND NECK",
+      "TRAINING SHIRT. ROUND NECK", "Training Day DVD", "PRACTICE ROUND GOLF BALLS 12 PACK", "MOCK NECK SWEATER"]) {
       expect(labelTagsOf(label, ed), label).not.toContain("replica_explosive");
     }
   });

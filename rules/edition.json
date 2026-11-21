@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-d91a59b25cbf",
+  "editionId": "byt-713b368cc2e9",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -257,15 +257,23 @@
       "tag": "replica_explosive"
     },
     {
-      "pattern": "(?:granadas?[\\s,-]+(?:de[\\s,-]+(?:mano|entrenamiento|pr[aá]ctica|fogueo|humo)|inertes?)|r[eé]plicas?[\\s,-]+de[\\s,-]+granadas?)",
+      "pattern": "(?:granadas?[ \\t,-]+(?:de[ \\t,-]+(?:mano|entrenamiento|pr[aá]ctica|fogueo|humo)|inertes?)|r[eé]plicas?[ \\t,-]+de[ \\t,-]+granadas?)",
       "tag": "replica_explosive"
     },
     {
-      "pattern": "(?<!(?:toys?|props?|foam|bath)[\\s,-]+)(?:replicas?|inert|dummy|deactivated|training|practice)(?:[\\s,-]+(?!(?:toys?|props?|foam|bath)\\b)[a-z0-9.]+){0,2}?[\\s,-]+(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?![\\s,-]+(?:toys?|props?|foam|bath)\\b)",
+      "pattern": "(?:replicas?|inert|dummy|deactivated|fake|simulated|imitation|mock)(?:[ \\t,-]+[a-z0-9]+){0,2}?[ \\t,-]+(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)",
       "tag": "replica_explosive"
     },
     {
-      "pattern": "(?<!(?:toys?|props?|foam|bath)[\\s,-]+)(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?:[\\s,-]+(?!(?:toys?|props?|foam|bath)\\b)[a-z0-9.]+){0,2}?[\\s,-]+(?:replicas?|inert|dummy|deactivated)(?![\\s,-]+(?:toys?|props?|foam|bath)\\b)",
+      "pattern": "(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?:[ \\t,-]+[a-z0-9]+){0,2}?[ \\t,-]+(?:replicas?|inert|dummy|deactivated|fake|simulated|imitation|mock)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?:training|practice)(?:[ \\t,-]+[a-z0-9]+){0,2}?[ \\t,-]+(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)(?=[^\\n.]*?\\b(?:\\d+(?:\\.\\d+)?[ \\t]?mm|\\d+[ \\t]?cal(?:iber)?|caliber|calibre|ammo|cartridges?)\\b)",
+      "tag": "replica_explosive"
+    },
+    {
+      "pattern": "(?<=\\b(?:\\d+(?:\\.\\d+)?[ \\t]?mm|\\d+[ \\t]?cal(?:iber)?|caliber|calibre|ammo|cartridges?)\\b[^\\n.]*?)(?:training|practice)(?:[ \\t,-]+[a-z0-9]+){0,2}?[ \\t,-]+(?:shells?|rounds?|bombs?|rockets?|mines?|mortars?|warheads?|ammo)",
       "tag": "replica_explosive"
     },
     {
