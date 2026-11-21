@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): a UI test drives a second look and settles its disputes on screen
+- What: with the launch arguments `-uiTestFakeReader -uiTestSecondLook` (debug builds only), the
+  app reads one photo at start on a fixed on-device reader as a power bank (5000 mAh, 18.5 Wh, no
+  battery words), with cloud checks allowed, and a fixed cloud reader gives other numbers and
+  battery words, so the app's own trigger, second look, engine merge and card run. The new UI test
+  sees the reason line, settles the battery numbers at once, sees the confirm step for "Not seen"
+  (keeps both, then uses it), settles the label words from the second look's side, and sees the
+  disputes gone. It keeps four screenshots. The fixed reader's read is now a parameter.
+- Source: the iPhone second look (the card had no UI-level test).
+- Verified: the UI test passes (21 s); `LoopUITests` and 189 unit tests pass. Its first run's
+  screenshots showed the label words dispute (the fixed device reader tags no words) and the
+  "reads disagree" line cut to one line; the next entry fixes the line.
+
 ### docs(ios): the README, limits and App Store notes say when a second look runs
 - What: the iPhone README and docs/LIMITS.md no longer say the iPhone runs no second look; they say
   a photo read on the iPhone gets one only when the rules ask and cloud checks are allowed at that
