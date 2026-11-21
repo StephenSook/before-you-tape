@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The iPhone's engine file (`ios/BYTCore/Sources/BYTCore/Resources/byt-engine.js` and its SHA-256) is rebuilt from this engine, with the settled-question change. Source: the engine change. Verified: `ios/scripts/check_engine_bundle.sh` reports it fresh (54,035 bytes, sha256 f15cc85132c7).
+
 - An item another rule has already taken out is no longer asked a question when every answer to it would still take it out. For example, a perfume to the Philippines is out under the line on liquids, so it is not asked whether its label lists alcohol; to Canada, where the answer can change the verdict, it still is. The engine checks this by judging the item with each answer in turn. Source: UI review. Verified: a new engine test (the Philippines not asked, Canada asked) failed first and passes; the shared vectors, the edition check and the full unit suite pass.
 
 - docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.

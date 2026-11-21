@@ -964,7 +964,7 @@ var BYT = (() => {
     if (askId) hit.askId = askId;
     return hit;
   }
-  function evaluateBox(items, edition2, dest, today) {
+  function evaluateBox(items, edition2, dest, today, settle = true) {
     const sorted = [...items].sort((a, b) => a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0);
     const layers = layerStatuses(edition2, dest, today);
     const notChecked = layers.filter((l) => l.state !== "checked");
@@ -1016,7 +1016,14 @@ var BYT = (() => {
       const level = top && top.level !== "note" ? top.level : "ok";
       const askId = hits.find((h) => h.askId)?.askId;
       const question = askId ? edition2.questions.find((q) => q.id === askId) ?? null : null;
-      result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition2.service };
+      if (settle && level === "take_out" && question && question.answers.length > 0 && question.answers.every((a) => {
+        const answered = items.map((i) => i.itemId === p.itemId ? { ...i, answers: { ...i.answers, [question.id]: a.id } } : i);
+        return evaluateBox(answered, edition2, dest, today, false).items[p.itemId]?.level === "take_out";
+      })) {
+        result[p.itemId] = { level, headline: HEADLINE[level], hits: hits.filter((h) => h.askId !== question.id), question: null, layers, service: edition2.service };
+      } else {
+        result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition2.service };
+      }
       if (level === "ok") counts.ok++;
       else if (level === "check") counts.check++;
       else counts.takeOut++;
