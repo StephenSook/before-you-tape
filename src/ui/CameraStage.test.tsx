@@ -156,21 +156,41 @@ describe("CameraStage", () => {
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
   });
 
-  it("hands a sample photo to its recorded read when the page has one, and reads no model", async () => {
+  it("hands the whole sample photo to its recorded read, with no crop step, and reads no model", async () => {
     const onImage = vi.fn();
     const onSampleSend = vi.fn();
     const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
     const decodeFile = vi.fn<(f: File) => Promise<HTMLCanvasElement>>(async () => document.createElement("canvas"));
-    render(<CameraStage openCamera={okCamera} onImage={onImage} onSampleSend={onSampleSend} decodeFile={decodeFile} cropPart={async () => part}
+    const cropPart = vi.fn(async () => part);
+    render(<CameraStage openCamera={okCamera} onImage={onImage} onSampleSend={onSampleSend} decodeFile={decodeFile} cropPart={cropPart}
       sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }}
       loadSample={async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)} />);
     await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
-    const send = await screen.findByRole("button", { name: "Check this part" });
-    await waitFor(() => expect(send).toBeEnabled());
-    await userEvent.click(send);
-    expect(onSampleSend).toHaveBeenCalledWith(part);
+    await waitFor(() => expect(onSampleSend).toHaveBeenCalledWith(part));
+    // The recorded read is of the whole photo, so the whole photo is what the card keeps.
+    expect(cropPart).toHaveBeenCalledWith(expect.anything(), { x: 0, y: 0, w: 1, h: 1 });
+    expect(screen.queryByRole("button", { name: "Check this part" })).toBeNull();
     expect(onImage).not.toHaveBeenCalled();
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check showed a recorded read of a sample photo from our test set, not your item.");
+  });
+
+  it("drops a sample that arrives after the sender added their own photo, so their photo never gets the sample's read", async () => {
+    const onImage = vi.fn();
+    const onSampleSend = vi.fn();
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    let arrive: (b: ArrayBuffer) => void = () => {};
+    const loadSample = () => new Promise<ArrayBuffer>((r) => { arrive = r; });
+    render(<CameraStage openCamera={okCamera} onImage={onImage} onSampleSend={onSampleSend} decodeFile={async () => document.createElement("canvas")}
+      cropPart={async () => part} sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }} loadSample={loadSample} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    await userEvent.upload(screen.getByTestId("upload-input"), new File(["x"], "bank.jpg", { type: "image/jpeg" }));
+    const send = await screen.findByRole("button", { name: "Check this part" });
+    arrive(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    await waitFor(() => expect(send).toBeEnabled());
+    await userEvent.click(send);
+    expect(onImage).toHaveBeenCalledWith(part, "upload");
+    expect(onSampleSend).not.toHaveBeenCalled();
   });
 
   it("opens nothing when the sample photo does not match its tracked SHA-256", async () => {

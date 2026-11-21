@@ -14,6 +14,7 @@ import { PhotoCrop, type CropSource } from "./PhotoCrop";
 export const HOLD_ZONE: Box = { x: 0.25, y: 0.15, w: 0.5, h: 0.7 };
 // Where the box starts on an added photo: the middle, leaving out the edges, where an address would sit.
 export const PHOTO_BOX: Box = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+const WHOLE_PHOTO: Box = { x: 0, y: 0, w: 1, h: 1 };
 // Starting values; Task 17 Step 4 tunes them on the packing clip.
 export const STEADY_CONFIG: SteadyConfig = { threshold: 24, steadyFrames: 8, minChangedFraction: 0.08, cooldownMs: 1500, minSharpness: 200, zone: HOLD_ZONE };
 const FRAME_W = 64;
@@ -155,13 +156,18 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     return () => window.removeEventListener("keydown", onKey);
   }, [read]);
 
+  // Each photo pick, the sender's or the sample's, gets the next number; a pick that finishes after a newer one
+  // started is dropped, so a slow sample can never take the place of the sender's own photo.
+  const pickSeq = useRef(0);
   // An added photo turns the camera off and opens the crop step; nothing is read yet.
-  const onFile = async (file: File | undefined, isSample = false) => {
+  const onFile = async (file: File | undefined, isSample = false, seq?: number) => {
     if (!file) return;
-    setFromSample(isSample);
+    const mine = seq ?? ++pickSeq.current;
     setSampleSent(false);
     try {
       const source = await (decodeFile ?? decodePhoto)(file);
+      if (mine !== pickSeq.current) { release(source); return; }
+      setFromSample(isSample);
       setStarted(false);
       setEvent(null);
       setPicked((old) => { if (old) release(old); return source; });
@@ -170,13 +176,24 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     }
   };
   const closePicked = () => setPicked((old) => { if (old) release(old); return null; });
-  // The sample is used only when its bytes are the tracked photo's; then it is an added photo like any other.
+  // The sample is used only when its bytes are the tracked photo's. With a recorded read, the whole photo goes to
+  // it (that read is of the whole photo); with none, it is an added photo like any other.
   const trySample = async () => {
     if (!sample) return;
+    const mine = ++pickSeq.current;
     try {
       const bytes = await loadSample(sample.url);
+      if (mine !== pickSeq.current) return;
       if ((await bytesSha256(bytes)) !== sample.sha256) { onError?.(SAMPLE_FAILED); return; }
-      await onFile(new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" }), true);
+      const file = new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" });
+      if (!onSampleSend) { await onFile(file, true, mine); return; }
+      const source = await (decodeFile ?? decodePhoto)(file);
+      if (mine !== pickSeq.current) { release(source); return; }
+      const part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
+      release(source);
+      if (mine !== pickSeq.current) return;
+      setSampleSent(true);
+      onSampleSend(part);
     } catch {
       onError?.(SAMPLE_FAILED);
     }
@@ -187,12 +204,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       <section data-testid="stage" className="stage" aria-label="Camera">
         {fromSample && sample && <p data-testid="sample-note" className="stage-line">Sample photo from our test set: {sample.alt}. It is not your item.</p>}
         <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
-          onSend={(part) => {
-            closePicked();
-            setSampleSent(fromSample);
-            if (fromSample && onSampleSend) onSampleSend(part);
-            else onImage(part, "upload");
-          }} onCancel={closePicked} />
+          onSend={(part) => { closePicked(); setSampleSent(fromSample); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
     );
   }
