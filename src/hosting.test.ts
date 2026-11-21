@@ -64,4 +64,13 @@ describe("hosting", () => {
     // No service worker is served that could keep an old app.
     expect(readFileSync(join(root, "firebase.json"), "utf8")).not.toMatch(/sw\.js/);
   });
+
+  it("ships an icon that every page names, so no browser asks for a missing favicon.ico", () => {
+    const icon = readFileSync(join(root, "public", "favicon.svg"), "utf8");
+    expect(icon.startsWith("<svg")).toBe(true);
+    for (const page of ["index.html", "public/404.html"]) {
+      expect(readFileSync(join(root, page), "utf8"), page).toMatch(/<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/);
+    }
+  });
 });
+

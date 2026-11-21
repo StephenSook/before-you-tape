@@ -70,7 +70,7 @@ class PackScreenTest {
         inCard("a", verdict.hits.first().text).assertExists()
         inCard("a", question.text).assertExists()
         for (a in question.answers) inCard("a", a.label).assertExists()
-        inCard("a", Copy.source("phone_cloud")).assertExists()
+        inCard("a", "Read in the cloud, from this phone, in 0.9 s.").assertExists()
     }
 
     @Test fun answeringAQuestionRechecks() {
