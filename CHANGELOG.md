@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- When the saved box opens, crops on this device that no item in it uses are deleted: ones left by removals before removals deleted crops, or by a delete that failed. Nothing is deleted if the box could not be opened. One IndexedDB transaction lists and deletes, so a crop saved at the same moment is never caught half way. Source: privacy review. Verified: new tests for deleteCropsExcept (fake IndexedDB) and sweepCropsWhenOpen (keeps only crops of items in the box; does nothing when the box failed to open; judges by the box at delete time) failed first and pass; the full suite and the home-page browser checks pass.
+
 - Removing an item now deletes its saved photo crop and label words from this device (IndexedDB), and so does the item leaving the box from another device; before, the crop stayed after the item was gone. PackPage takes a required deleteCrop, which the route wires to the crop store. Source: privacy review (the privacy page says a removed item's saved copy is deleted). Verified: a new PackPage test (remove here, removal from another device, a typed item with no photo) failed first and passes; the full suite passes (799).
 
 - The card citations test, which renders every card of every test box and country, has a 30 s limit instead of 5 s, so a busy machine does not fail it. Source: it timed out at 5 to 7 s while other work loaded the machine (load average over 300). Verified: the full suite passes at load average 324.

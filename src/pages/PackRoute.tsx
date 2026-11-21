@@ -18,7 +18,8 @@ import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
-import { deleteCrop, saveCrop } from "../data/crops";
+import { deleteCrop, deleteCropsExcept, saveCrop } from "../data/crops";
+import { sweepCropsWhenOpen } from "../data/cropSweep";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
@@ -106,6 +107,8 @@ export function PackRoute() {
   const [editionNotice, setEditionNotice] = useState<string | null>(null);
 
   useEffect(() => (deps instanceof Error ? undefined : deps.followEdition(setEditionNotice)), [deps]);
+  // Crops no item in the saved box uses are deleted from this device once it opens.
+  useEffect(() => { if (!(deps instanceof Error)) void sweepCropsWhenOpen(deps.store, deleteCropsExcept).catch(() => {}); }, [deps]);
 
   useEffect(() => {
     if (deps instanceof Error) return;
