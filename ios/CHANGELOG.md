@@ -5,6 +5,25 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): a photo read on this iPhone gets a cloud second look when the rules ask for one
+- What: after a photo is read on this iPhone, the engine says whether it needs a second look (the web
+  app's needsSecondLook, with the Remote Config policy). With a reason and the cloud allowed right
+  then (consent given, online, not paused), the same crop is read again in the cloud in the
+  background, merged with the first read by the engine and landed in the box with the web app's
+  reason sentence. A look that fails says why in the web app's words ("No connection. This check
+  will run when you are back online." and the others; a refusal names no browser), keeps the device
+  read and its verdict, runs again when the iPhone is back online after a connection failure, and
+  can be tried again. A look on an item removed meanwhile is dropped. Typed label words get no
+  second look, as on the web, which looks again at photos only. The copy test that said the iPhone
+  runs no second look is replaced: the reason sentences must be the web app's own.
+- Source: the iPhone second look (web parity).
+- Verified: seven tests (a power bank photo read on the device is looked at again and lands with its
+  reason and confirmation; no look without consent, with consent unanswered, offline, or with no
+  reason; none for typed words; a no-connection failure waits and runs when back online; a failed
+  look says why and can be tried again; turning cloud checks off stops it; the reasons equal the web
+  app's) failed to compile before and pass after; 184 unit tests pass. One run stopped with "Test
+  crashed with signal term" while nothing of this lane was running; the re-run passed.
+
 ### feat(ios): the reader runs a cloud second look of an input already read
 - What: `ItemReader.secondLook(_:situation:)` reads the same input on the cloud-only route, even when
   this iPhone's model could read it, with a first read's retry and fallback and the cloud gate read
