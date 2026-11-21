@@ -59,6 +59,7 @@ export function buildDeps(): PackDeps | Error {
       boxId: currentBoxId(localStorage, newId),
       consent: deviceConsent(localStorage),
       deviceNames: deviceNames(localStorage),
+      verified: () => fb.verified(),
     });
     // One set of models per pair of model names, so a Remote Config change builds them once.
     const byName = new Map<string, ItemModels>();

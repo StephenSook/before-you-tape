@@ -40,8 +40,9 @@ const spyPersistence = (loaded: Partial<BoxState> | null = null) => {
 };
 const writes = (p: ReturnType<typeof spyPersistence>) => p.putMeta.mock.calls.length + p.putItem.mock.calls.length + p.deleteItem.mock.calls.length;
 let ids = 0;
-const store = (o: { persistence?: BoxOps } = {}) => createBoxStore({
+const store = (o: { persistence?: BoxOps; verified?: () => Promise<boolean> } = {}) => createBoxStore({
   edition: () => ed, persistence: o.persistence ?? spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
+  ...(o.verified ? { verified: o.verified } : {}),
 });
 
 const phoneItem: BoxItem = {
@@ -563,6 +564,47 @@ describe("createBoxStore", () => {
       s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
       await s.settled();
       expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+
+    // Firestore refuses a request App Check could not verify with the same permission-denied, and a reload fixes nothing.
+    it("says this browser could not be verified, never that the page is out of date, and clears once a save lands", async () => {
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValueOnce(refused());
+      let ok = false;
+      const s = store({ persistence: p, verified: async () => ok });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+      expect(s.getState().outOfDate ?? false).toBe(false);
+      ok = true;
+      s.retrySave();
+      await s.settled();
+      expect(s.getState().unverified ?? false).toBe(false);
+      expect(s.getState().unsaved).toEqual([]);
+    });
+
+    it("still says out of date when the server refuses a save from a browser App Check verifies", async () => {
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValue(refused());
+      const s = store({ persistence: p, verified: async () => true });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      await vi.waitFor(() => expect(s.getState().outOfDate).toBe(true));
+      expect(s.getState().unverified ?? false).toBe(false);
+    });
+
+    it("asks App Check nothing about a save that failed for no connection", async () => {
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValue(Object.assign(new Error("offline"), { code: "unavailable" }));
+      const verified = vi.fn(async () => false);
+      const s = store({ persistence: p, verified });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(verified).not.toHaveBeenCalled();
+      expect(s.getState().unverified ?? false).toBe(false);
     });
 
     it("leaves a box this visit could not open to its own notice, since a reload would not fix it", async () => {

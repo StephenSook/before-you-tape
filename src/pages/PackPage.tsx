@@ -579,6 +579,12 @@ export function PackPage(p: PackPageProps) {
             <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload</button>
           </p>
         )}
+        {state.unverified && (
+          <p data-testid="unverified" role="alert">
+            Saving stopped because this browser couldn't be verified. Try again in a moment.{" "}
+            <button type="button" onClick={() => store.retrySave()}>Try again</button>
+          </p>
+        )}
         {state.loadState === "failed" && (
           <p role="alert">
             Your saved box could not be opened. New items stay on this device until it opens.{" "}
