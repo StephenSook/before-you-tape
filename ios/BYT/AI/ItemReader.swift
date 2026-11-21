@@ -110,8 +110,9 @@ struct ItemReader: Sendable {
     }
 
     func read(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
-        await gate.acquire()
-        let outcome = await run(input, situation, ReadRoutePolicy.decide(Self.routeInput(input.kind, situation)))
+        let decision = ReadRoutePolicy.decide(Self.routeInput(input.kind, situation))
+        guard await gate.acquire() else { return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .other, records: []) }
+        let outcome = await run(input, situation, decision)
         await gate.release()
         return outcome
     }
@@ -121,8 +122,10 @@ struct ItemReader: Sendable {
     /// call. Whether one should run at all is the caller's to decide (a reason and the cloud allowed now).
     /// It waits only for other second looks, never for a read.
     func secondLook(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
-        await lookGate.acquire()
-        let outcome = await run(input, situation, RouteDecision(route: .cloudOnly, first: .cloud, reason: .secondLook))
+        let decision = RouteDecision(route: .cloudOnly, first: .cloud, reason: .secondLook)
+        // A look cancelled while it waits for its turn sends nothing.
+        guard await lookGate.acquire() else { return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .cloudPaused, records: []) }
+        let outcome = await run(input, situation, decision)
         await lookGate.release()
         return outcome
     }
@@ -220,21 +223,34 @@ struct ItemReader: Sendable {
     }
 }
 
-/// One read at a time, first come first served.
+/// One read at a time, first come first served. A task cancelled while it waits leaves the line at
+/// once, holding nothing, so what it carries (a crop) is let go without waiting for its turn.
 actor ReadGate {
     private var busy = false
-    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private var waiting: [(id: UUID, turn: CheckedContinuation<Bool, Never>)] = []
 
-    func acquire() async {
+    /// True when the gate is held and must be released; false when the task was cancelled first.
+    func acquire() async -> Bool {
+        if Task.isCancelled { return false }
         if !busy {
             busy = true
-            return
+            return true
         }
-        await withCheckedContinuation { waiting.append($0) }
+        let id = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { waiting.append((id, $0)) }
+        } onCancel: {
+            Task { await self.leave(id) }
+        }
+    }
+
+    private func leave(_ id: UUID) {
+        guard let i = waiting.firstIndex(where: { $0.id == id }) else { return }
+        waiting.remove(at: i).turn.resume(returning: false)
     }
 
     func release() {
-        if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
+        if waiting.isEmpty { busy = false } else { waiting.removeFirst().turn.resume(returning: true) }
     }
 }
 

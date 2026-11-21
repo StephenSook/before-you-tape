@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a look cancelled while it waits in line lets go at once
+- What: the reader's gates kept a cancelled waiter in line until its turn, so a removed item's or a
+  revoked look's task, and the crop it carries, stayed in memory while slow looks ran ahead of it. A
+  task cancelled while it waits now leaves the line at once, holding nothing; a look that leaves this
+  way sends nothing.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: a new test (a look waiting behind a held one is removed) failed (still there after three
+  seconds) and passes; 211 unit tests pass.
+
 ### fix(ios): an unreadable cloud choice record counts as unasked, and a failed write says so
 - What: a choice file that was there but could not be read (the iPhone locked, a read error) read as
   no record, so the box file's "allowed" alone could hold. It now reads as unasked, so the stricter

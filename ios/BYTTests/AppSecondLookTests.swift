@@ -91,6 +91,27 @@ import Testing
         #expect(m.pendingLookCount == 0 && m.secondLookError(second) == nil)
     }
 
+    /// A look removed while it waits in line behind another lets go at once (its task ends and its crop
+    /// goes), without waiting for the look ahead to finish.
+    @Test func aRemovedLookWaitingInLineLetsGoAtOnce() async throws {
+        let j = FakeItemRunner.Journal()
+        let cloud = HeldCloud(j, reply: Self.powerBank)
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [Self.ok(Self.powerBank), Self.ok(Self.powerBank)]),
+                                makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
+        let m = model(reader)
+        await m.readPhoto(jpeg)
+        while !j.events.contains("cloud start") { await Task.yield() }
+        await m.readPhoto(jpeg)
+        let second = try #require(m.box?.items.last?.itemId)
+        while !m.isCheckingAgain(second) { await Task.yield() }
+        #expect(m.lookTaskCount == 2)
+        m.remove(second)
+        for _ in 0..<300 where m.lookTaskCount > 1 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(m.lookTaskCount == 1 && !m.isCheckingAgain(second))
+        cloud.letGo()
+        await settle(m)
+    }
+
     /// Sign-in that does not answer until the test lets it.
     @MainActor final class HeldSignIn {
         private(set) var started = false
