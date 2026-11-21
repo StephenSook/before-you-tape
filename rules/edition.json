@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-b803f155f206",
+  "editionId": "byt-99d1318199f0",
   "revision": 5,
   "service": "Priority Mail International",
   "sources": [
@@ -1630,7 +1630,7 @@
           "lineId": "CA-P-02",
           "section": "prohibitions",
           "lineSha256": "35f5ca0305e63a42365227922d0e964c948d1f3fbb0b87a61d9282f06a7d8937",
-          "ourWording": "No lighters with fuel in them. Canada allows an empty new lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out.",
+          "ourWording": "No non-refillable lighters and no lighter with fuel in it. Canada allows a new, empty lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out.",
           "matches": [
             {
               "tag": "lighter",
@@ -1858,11 +1858,11 @@
           "lineId": "CA-P-22",
           "section": "prohibitions",
           "lineSha256": "ac4f6693f7c788b46bb349f0943dcf0cec5ea7faff5ddac14254d2a998333094",
-          "ourWording": "No smoke-making devices for cars or boats.",
+          "ourWording": "No smoke-making devices meant for motor vehicles or boats.",
           "matches": [],
           "noMatch": {
             "decision": "not_a_gift_item",
-            "reason": "Smoke-making devices for cars and boats; not a household gift."
+            "reason": "Smoke-making devices for motor vehicles and boats; not a household gift."
           }
         },
         {
@@ -1976,11 +1976,11 @@
           "lineId": "CA-R-09",
           "section": "restrictions",
           "lineSha256": "5d318a03f5290b87660cb7d1738d9feee10b413bea9b2b86b4a1c53e16150686",
-          "ourWording": "Animal vaccines and serums need a permit from Canada.",
+          "ourWording": "Veterinary biological products, such as serums and vaccines, need a permit from Canada's Veterinary Director General.",
           "matches": [],
           "noMatch": {
             "decision": "not_a_gift_item",
-            "reason": "Animal vaccines and serums; not a household gift."
+            "reason": "Veterinary serums, vaccines and other biological products; not a household gift."
           }
         },
         {

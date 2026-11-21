@@ -82,6 +82,8 @@ describe("destination editions", () => {
       ["CA", "CA-R-03", /USDA vet.*State vet.*Newcastle disease, fowl pest and fowl typhoid/],
       ["CA", "CA-R-08", /shelf-stable foods, treats and compound chews.*CFIA import permit.*USDA APHIS zoosanitary certificate.*outside of the box/],
       ["PH", "PH-R-02", /Bureau of Plant Industry of the Philippines.*can be destroyed/],
+      ["CA", "CA-P-22", /motor vehicles or boats/], // not only cars
+      ["CA", "CA-R-09", /^Veterinary biological products, such as serums and vaccines,.*Veterinary Director General/],
     ];
     for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
     // USPS says any publication, and an ad aimed mainly at Canada, in the wording and in the reasons alike.
@@ -96,7 +98,8 @@ describe("destination editions", () => {
     // Instruction 3C sits under Class 3), not empty ones. A photo can't show that a lighter is empty, so the app
     // takes every lighter out and says that is its own choice.
     const l = ed.destinations.CA?.lines.find((x) => x.lineId === "CA-P-02");
-    expect(l?.ourWording).toMatch(/Canada allows an empty new lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out/);
+    // Canada bars non-refillable lighters as a class, as well as any with fuel; only a new, empty one may go.
+    expect(l?.ourWording).toMatch(/^No non-refillable lighters and no lighter with fuel in it\. Canada allows a new, empty lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out\.$/);
     expect(l?.ourWording).not.toMatch(/USPS takes no lighters/);
     expect(l?.matches).toEqual([{ tag: "lighter", effect: "take_out" }]);
     const usps = ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS");
