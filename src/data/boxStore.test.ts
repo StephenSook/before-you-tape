@@ -434,6 +434,22 @@ describe("createBoxStore", () => {
       expect(level(lab.s, lab.id)).toBe("take_out");
     });
 
+    it("judges the reading the sender picks, not an earlier correction of the same facts", () => {
+      // A capacity corrected by hand, then the cloud's battery reading picked: the rules see the picked numbers only.
+      const wh = look({ ...powerBank, volts: 3.7, milliampHours: 25675, wattHours: 95 }, { ...powerBank, volts: 3.6, milliampHours: 10000, wattHours: 37 });
+      wh.s.override(wh.id, { milliampHours: 2500 });
+      wh.s.settleDispute(wh.id, "battery", "cloud");
+      const item = wh.s.getState().items[0]!;
+      expect(item.overrides.milliampHours).toBeUndefined();
+      expect(item.read).toMatchObject({ volts: 3.6, milliampHours: 10000, wattHours: 37 });
+      // A picked label replaces a corrected label text; a picked fact replaces a correction of that fact only.
+      const lotion = { ...liquidLotionRead, flammableOnLabel: false };
+      const lab = look({ ...lotion, labelText: "FLAMMABLE BODY LOTION" }, { ...lotion, labelText: "SHEA BUTTER BODY LOTION 8 FL OZ" });
+      lab.s.override(lab.id, { labelText: "TYPED BY HAND", liquid: false });
+      lab.s.settleDispute(lab.id, "labelTags", "cloud");
+      expect(lab.s.getState().items[0]?.overrides).toEqual({ liquid: false });
+    });
+
     it("keeps a first read that was not sure at Check this when the cloud read the label", () => {
       const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone" };
       const { s, id } = look({ ...phone, evidence: "not_sure" }, { ...phone, evidence: "label_read" });

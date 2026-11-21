@@ -495,7 +495,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const d = i.disputes?.[field];
       if (!d) return i;
       const value = d[side];
-      const next: BoxItem = { ...i, disputes: { ...i.disputes, [field]: { ...d, resolved: true } } as ReadDisputes };
+      // The picked reading is what the rules judge: an earlier correction of the same facts (part of the battery
+      // numbers, say) no longer stays on top of it. Corrections of other facts stay.
+      const picked: readonly string[] = field === "battery" ? ["volts", "milliampHours", "wattHours"] : field === "labelTags" ? ["labelText"] : [field];
+      const overrides = Object.fromEntries(Object.entries(i.overrides).filter(([k]) => !picked.includes(k))) as Partial<ItemRead>;
+      const next: BoxItem = { ...i, overrides, disputes: { ...i.disputes, [field]: { ...d, resolved: true } } as ReadDisputes };
       if (field === "battery") return { ...next, read: { ...next.read, ...(value as DisputeValues["battery"]) } };
       if (field === "labelTags") {
         // The label's words come with it; its text too while this device still has it (never after a reload).
