@@ -64,6 +64,28 @@ import Testing
         #expect(j.events.isEmpty)
     }
 
+    @MainActor final class CallerBox { var task: Task<Result<ItemReply, ReadError>, Never>? }
+
+    /// The caller is cancelled (its item removed) between the check before the upload and the upload's
+    /// start, while every check still says wanted: the cancellation reaches the upload, and no read is made.
+    @Test func aCallerCancelledBetweenTheCheckAndTheStartMakesNoRead() async {
+        let j = FakeItemRunner.Journal()
+        let inner = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: read, tokens: nil))])
+        let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: PauseSwitch(), inner: inner)
+        let caller = CallerBox()
+        var checks = 0
+        let words = words
+        caller.task = Task {
+            await runner.read(words, stillWanted: {
+                checks += 1
+                if checks == 1 { caller.task?.cancel() }
+                return true
+            })
+        }
+        let result = await caller.task?.value
+        #expect(result == .failure(ReadError(.cloudPaused)) && j.events.isEmpty, "\(j.events)")
+    }
+
     /// Stands in for AI Logic: it waits (as it does for the App Check token), then sends unless the
     /// read was cancelled meanwhile, the way URLSession refuses a cancelled task.
     final class TokenThenSend: ItemModelRunner, @unchecked Sendable {

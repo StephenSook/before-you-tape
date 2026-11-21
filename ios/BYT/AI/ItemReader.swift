@@ -279,20 +279,20 @@ struct SignedInCloudRunner: ItemModelRunner {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
         guard !Task.isCancelled else { return .failure(ReadError(.cloudPaused)) }
         let inner = inner
-        // The upload runs apart from this read, so a read that is cancelled (its time limit, or its look
-        // given up) cancels it too. The link is in place before the upload starts, so a cancellation at
-        // any moment reaches it.
+        // The upload runs as a task of its own, so the pause can cancel it; a read that is cancelled (its
+        // time limit, or its look given up) cancels it too. The link is in place before the upload starts
+        // and gets the upload on the main actor in the same step as the last check, so a removal on the
+        // main actor lands either before that check (nothing starts) or after the link has the upload (it
+        // is cancelled at once). The upload asks again on the main actor and only then checks that it was
+        // not cancelled, right before the call.
         let link = UploadLink()
         return await withTaskCancellationHandler {
-            guard let upload = await pause.startUnlessPaused(allowed: stillWanted, { () async -> Result<ItemReply, ReadError> in
-                // Asked again inside the upload, right before the call: a look given up between the start
-                // and this moment sends nothing.
+            guard let upload = await pause.startUnlessPaused(allowed: stillWanted, started: { link.set($0) }, { () async -> Result<ItemReply, ReadError> in
                 guard await stillWanted(), !Task.isCancelled else { return Result.failure(ReadError(.cloudPaused)) }
                 return await inner.read(input)
             }) else {
                 return .failure(ReadError(.cloudPaused))
             }
-            link.set(upload.task)
             let result = await upload.task.value
             // The read's own record decides: a reply from a read the pause cancelled is dropped, even
             // when the pause was lifted again before the reply came back.
@@ -349,13 +349,16 @@ final class PauseSwitch {
         let task: Task<T, Never>
     }
 
-    /// Starts the upload unless paused or no longer `allowed`; nil then. Checking and starting happen
-    /// together, so neither can change between them.
-    func startUnlessPaused<T: Sendable>(allowed: @MainActor () -> Bool = { true }, _ work: @escaping @Sendable () async -> T) -> Upload<T>? {
+    /// Starts the upload unless paused or no longer `allowed`; nil then. Checking, starting and handing the
+    /// started upload to `started` (the caller's cancellation link) happen together on the main actor, so
+    /// nothing on the main actor (an item removed, cloud checks taken back) can fall between them.
+    func startUnlessPaused<T: Sendable>(allowed: @MainActor () -> Bool = { true }, started: @MainActor (Task<T, Never>) -> Void = { _ in },
+                                        _ work: @escaping @Sendable () async -> T) -> Upload<T>? {
         guard !paused, allowed() else { return nil }
         let id = UUID()
         let task = Task.detached { await work() }
         running[id] = { task.cancel() }
+        started(task)
         return Upload(id: id, task: task)
     }
 

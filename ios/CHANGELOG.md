@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the upload's cancellation link is set in the same main-actor step as the last check
+- What: the link that carries a read's cancellation to its upload got the upload only after the upload
+  had started, back in the read; a removal in that moment reached the upload late, possibly after it
+  had begun the call. The pause switch now hands the started upload to the link on the main actor in
+  the same step as the last check, so a removal (also on the main actor) lands either before the check
+  (nothing starts) or after the link has the upload (it is cancelled at once). The upload asks again
+  on the main actor and then checks it was not cancelled, right before the call. The upload stays a
+  task of its own so the server's pause can still cancel it.
+- Source: review round 4 (Codex, on the second-look PR).
+- Verified: a new runner test cancels the caller inside the last check, with every check still
+  saying wanted, and asserts no read; it passes. It also passed three times against the code before
+  this fix (the gap is too narrow to hit on demand), so it shows the guarantee, not the earlier
+  failure. 219 unit tests pass.
+
 ### fix(ios): the card offers "Try again" only when no automatic try is coming
 - What: after a failure for no connection, the card showed "Try again" while the look was already
   waiting to be tried again by itself, and a tap reset its tries and sent the crop once more. The card
