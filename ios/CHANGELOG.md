@@ -5,6 +5,23 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### feat(ios): the screens say whether a photo is read on this iPhone, and what to do when not
+- What: Ready check gets a photo line: "Label photos are read on this iPhone, with no network.",
+  or, when the model reads words but not photos, "This iPhone's model does not read photos. Type
+  the label's words instead.", or, with no model, "Without Apple's on-device model, photos are
+  checked only in the cloud, when you allow it." The check screen shows that line only when a
+  photo is not read on this iPhone. A blocked photo now says why and what to do ("Type the
+  label's words instead." when the model reads words, else "Add it by hand with Type it in Your
+  box."), replacing "this iPhone does not read photos yet". A photo read on this iPhone that fails
+  with no cloud to try says "This iPhone could not read that photo. Try another photo, or type the
+  label's words instead." The app's minimum is iOS 27, which is where image input starts, so no
+  older iOS can run it.
+- Source: lane goal (when the model cannot read the photo, fall back to typed words and say why).
+- Verified: the new line tests failed to compile before the change and pass after (photo line for
+  each model state, the four blocked lines, the failed on-device photo line, the notice shown only
+  when photos are not read here); 154 unit tests and the UI test pass on the iPhone 18 Pro
+  simulator. Not yet checked by eye on a screen.
+
 ### feat(ios): a label photo is read on Apple's model when the model reads images
 - What: photos went to the cloud on every iPhone (`ClaimTier.photoOnDevice` was false). The router
   now sends a photo to Apple's on-device model whenever the model reports image understanding

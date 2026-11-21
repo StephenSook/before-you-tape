@@ -66,7 +66,7 @@ import Testing
         await model.readPhoto(jpeg)
         await model.answerConsent(false)
         #expect(j.events.isEmpty && model.box?.cloudConsent == false && model.box?.items.isEmpty == true)
-        #expect(model.readLine == "You chose to keep everything on this iPhone, and this iPhone does not read photos yet.")
+        #expect(model.readLine == "You chose to keep everything on this iPhone, and this iPhone's model does not read photos. Type the label's words instead.")
         // Asked once: a second photo does not ask again.
         await model.readPhoto(jpeg)
         #expect(!model.askingConsent && j.events.isEmpty)
@@ -121,6 +121,31 @@ import Testing
         #expect(AppModel.readLine(read, verdict: ok, name: "") == "This item: OK to pack. Read on this iPhone.")
         #expect(AppModel.readLine(read, verdict: ok, name: "  ") == "This item: OK to pack. Read on this iPhone.")
         #expect(AppModel.readLine(read, verdict: ok, name: "Hand cream") == "Hand cream: OK to pack. Read on this iPhone.")
+    }
+
+    /// A photo this iPhone cannot read says why and what to do instead.
+    @Test func aPhotoThisIPhoneCannotReadSaysWhyAndWhatToDo() {
+        let blocked = ReadOutcome(read: nil, source: nil, route: .blocked, failure: nil, records: [])
+        let off = OnDeviceStatus(unavailable: .appleIntelligenceOff, localeSupported: true, contextSize: 4096, variant: "t", vision: true)
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: false, status: .wordsOnly)
+                == "You chose to keep everything on this iPhone, and this iPhone's model does not read photos. Type the label's words instead.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: false, status: off)
+                == "You chose to keep everything on this iPhone, and Apple's on-device model is not available on it. Add it by hand with Type it in Your box.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: nil, status: .wordsOnly)
+                == "Checking a photo needs the cloud, and the cloud is not allowed right now. Type the label's words instead.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: true, status: off)
+                == "Checking a photo needs the cloud, and the cloud is not allowed right now. Add it by hand with Type it in Your box.")
+        // A photo read on this iPhone that failed, with no cloud to try, says what to do.
+        let failed = ReadOutcome(read: nil, source: nil, route: .deviceOnly, failure: .timeout, records: [])
+        #expect(AppModel.readLine(failed, verdict: nil, status: .wordsAndPhotos)
+                == "This iPhone could not read that photo. Try another photo, or type the label's words instead.")
+    }
+
+    /// The check screen says why a photo is not read on this iPhone; it says nothing when it is.
+    @Test func theCheckScreenSaysWhyPhotosAreNotReadOnThisIPhone() {
+        let j = FakeItemRunner.Journal()
+        #expect(fakeModel(j, status: .wordsAndPhotos).photoNotice == nil)
+        #expect(fakeModel(j, status: .wordsOnly).photoNotice == "This iPhone's model does not read photos. Type the label's words instead.")
     }
 
     @Test func theConsentQuestionIsTheWebAppsSentenceForThisIPhone() throws {
