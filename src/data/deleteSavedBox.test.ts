@@ -145,6 +145,7 @@ describe("savedBoxDeleter", () => {
       deleteFirestoreBox: vi.fn(async () => ({ ownerUid: "alice", cropKeys: ["c3"] })),
       deleteCrop: vi.fn(async () => {}),
       storage: localStorage,
+      session: sessionStorage,
       deleteSignIn: vi.fn(async () => {}),
       signOut: vi.fn(async () => {}),
       onStale: vi.fn(),
@@ -153,6 +154,14 @@ describe("savedBoxDeleter", () => {
     };
     return p;
   };
+
+  // An item still being typed belongs to the deleted box: the new box opens with none.
+  it("forgets every typed draft in this tab once the box is deleted", async () => {
+    sessionStorage.setItem("byt.draft.b1", "{}");
+    sessionStorage.setItem("byt.draft.b0", "{}");
+    expect(await savedBoxDeleter(parts())()).toEqual({ ok: true, signIn: "deleted" });
+    expect([sessionStorage.getItem("byt.draft.b1"), sessionStorage.getItem("byt.draft.b0")]).toEqual([null, null]);
+  });
 
   it("deletes the box in Firestore under whoever is signed in now, even on a page whose own sign-in failed", async () => {
     // A page whose own sign-in failed: another tab signed in since, under the same account, and saved the box.
@@ -243,9 +252,12 @@ describe("leaveDeletedBox", () => {
     const order: string[] = [];
     // A write of the old box that lands while the store closes.
     const store = { close: vi.fn(async () => { localStorage.setItem("byt.journal.b1", "{}"); localStorage.setItem("byt.box.b1", "{}"); order.push("closed"); }) };
-    await leaveDeletedBox(store, localStorage, "b1", () => order.push("reload"));
+    sessionStorage.setItem("byt.draft.b1", "{}");
+    await leaveDeletedBox(store, localStorage, "b1", () => order.push("reload"), sessionStorage);
     expect(order).toEqual(["closed", "reload"]);
     expect(localStorage.getItem("byt.journal.b1")).toBeNull();
     expect(localStorage.getItem("byt.box.b1")).toBeNull();
+    // The deleted box's typed draft goes too.
+    expect(sessionStorage.getItem("byt.draft.b1")).toBeNull();
   });
 });

@@ -1,8 +1,9 @@
 // The sender types an item instead of showing it. It counts as typed by the sender, never as a model read. An item
-// still being typed is kept in this tab's session storage, so a reload (for a new version, or any other) brings it
-// back; it is forgotten once added.
+// still being typed is kept in this tab's session storage under its box's id (src/data/typedDrafts.ts), so a reload
+// (for a new version, or any other) brings it back; it is forgotten once added, or when the box is deleted.
 import { useState } from "react";
 import { RETAIL_BOX_VALUES, type ItemRead } from "../shared/itemRead";
+import { draftKey } from "../data/typedDrafts";
 import { CATEGORY_LABELS } from "./categoryLabels";
 import { draftOf, FLAG_FIELDS, NUMBER_FIELDS, numbersValid, parseNumber, ReadFields, type ReadDraft } from "./ReadFields";
 
@@ -21,7 +22,6 @@ export function readFromDraft(d: ReadDraft): ItemRead | null {
   return read as ItemRead;
 }
 
-export const DRAFT_KEY = "byt-typed-item";
 
 const session = (): Storage | null => { try { return window.sessionStorage; } catch { return null; } };
 // The same fields as the empty form, each of the same type, all the way down.
@@ -34,9 +34,9 @@ const sameShape = (a: unknown, b: unknown): boolean => {
 };
 
 // The item still being typed in this tab, if one was kept and it has exactly the form's fields.
-export function savedDraft(store: Pick<Storage, "getItem"> | null = session()): ReadDraft | null {
+export function savedDraft(boxId: string, store: Pick<Storage, "getItem"> | null = session()): ReadDraft | null {
   try {
-    const v: unknown = JSON.parse(store?.getItem(DRAFT_KEY) ?? "null");
+    const v: unknown = JSON.parse(store?.getItem(draftKey(boxId)) ?? "null");
     if (!sameShape(v, draftOf(null))) return null;
     const d = v as ReadDraft;
     const knownKind = d.category === "" || Object.hasOwn(CATEGORY_LABELS, d.category);
@@ -46,17 +46,17 @@ export function savedDraft(store: Pick<Storage, "getItem"> | null = session()): 
   }
 }
 
-function keep(draft: ReadDraft | null) {
+function keep(boxId: string, draft: ReadDraft | null) {
   try {
     const store = session();
-    if (!draft || JSON.stringify(draft) === JSON.stringify(draftOf(null))) store?.removeItem(DRAFT_KEY);
-    else store?.setItem(DRAFT_KEY, JSON.stringify(draft));
+    if (!draft || JSON.stringify(draft) === JSON.stringify(draftOf(null))) store?.removeItem(draftKey(boxId));
+    else store?.setItem(draftKey(boxId), JSON.stringify(draft));
   } catch { /* storage full or blocked: the draft lives on in the form */ }
 }
 
-export function AddByHand({ onAdd }: { onAdd: (read: ItemRead) => void }) {
-  const [draft, setDraftState] = useState<ReadDraft>(() => savedDraft() ?? draftOf(null));
-  const setDraft = (d: ReadDraft) => { setDraftState(d); keep(d); };
+export function AddByHand({ boxId, onAdd }: { boxId: string; onAdd: (read: ItemRead) => void }) {
+  const [draft, setDraftState] = useState<ReadDraft>(() => savedDraft(boxId) ?? draftOf(null));
+  const setDraft = (d: ReadDraft) => { setDraftState(d); keep(boxId, d); };
   const read = readFromDraft(draft);
   return (
     <form data-testid="add-by-hand" aria-label="Add an item by hand" onSubmit={(e) => {
@@ -64,7 +64,7 @@ export function AddByHand({ onAdd }: { onAdd: (read: ItemRead) => void }) {
       if (!read) return;
       onAdd(read);
       setDraftState(draftOf(null));
-      keep(null);
+      keep(boxId, null);
     }}>
       <ReadFields draft={draft} onChange={setDraft} nameLabel="Name (optional)" />
       <button type="submit" disabled={!read}>Add</button>

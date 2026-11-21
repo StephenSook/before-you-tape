@@ -170,7 +170,7 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   // Open when this tab kept an item still being typed (src/ui/AddByHand.tsx), so a reload brings it back in view.
-  const [typing, setTyping] = useState(() => savedDraft() !== null);
+  const [typing, setTyping] = useState(() => savedDraft(store.getState().boxId) !== null);
   // The cloud question, asked when a photo or an offered second look first needs the cloud (and run once the
   // sender answers), or when the sender turns cloud checks on.
   // One question at a time: a newer photo, a removed item or a choice made in another tab closes it.
@@ -637,7 +637,7 @@ export function PackPage(p: PackPageProps) {
             {...(p.sampleRead ? { onSampleSend } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
-          {typing && <AddByHand onAdd={(read) => {
+          {typing && <AddByHand boxId={state.boxId} onAdd={(read) => {
             // A typed item is a press like any other: an older read's failure alert no longer applies once it is in.
             ++presses.current;
             setNotice(null);

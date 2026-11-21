@@ -3,6 +3,7 @@
 // must finish before the next; the first that fails stops the rest and is named, so the sender knows what is left,
 // and a retry starts there. The keys go last because taking away the pointer to the box tells other tabs to start
 // again (whenDeletedElsewhere), which must wait until the sign-in is gone, or they would save a new box under it.
+import { forgetTypedDrafts } from "./typedDrafts";
 import { NotBoxOwner, type BoxGone } from "./boxOps";
 
 export type DeleteStep = "box" | "crops" | "signIn";
@@ -82,6 +83,8 @@ export interface DeleterParts {
   deleteFirestoreBox: (uid: string, boxId: string) => Promise<BoxGone>;
   deleteCrop: (key: string) => Promise<unknown>;
   storage: Storage;
+  // This tab's session storage, which keeps an item still being typed; its drafts go with the box.
+  session?: Pick<Storage, "length" | "key" | "removeItem">;
   deleteSignIn: () => Promise<void>;
   signOut: () => Promise<void>;
   // This tab still holds a box another tab deleted (the pointer names another box): it leaves it and starts again.
@@ -122,7 +125,10 @@ export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise
         },
         deleteCrops: async (keys) => { for (const key of new Set([...here, ...keys])) await p.deleteCrop(key); },
         currentUid: p.currentUid,
-        clearLocal: (id) => clearLocalBox(p.storage, id),
+        clearLocal: (id) => {
+          clearLocalBox(p.storage, id);
+          if (p.session) forgetTypedDrafts(p.session);
+        },
         deleteSignIn: p.deleteSignIn,
         signOut: p.signOut,
       }, from, found);
@@ -164,8 +170,10 @@ export function whenDeletedElsewhere(target: Pick<Window, "addEventListener" | "
 
 // In a tab whose box another tab deleted: stop saving, remove anything of the box a write still on its way put back
 // in this browser once that write has answered, then start again on a new box.
-export async function leaveDeletedBox(store: { close(): Promise<void> }, storage: Storage, boxId: string, reload: () => void): Promise<void> {
+export async function leaveDeletedBox(store: { close(): Promise<void> }, storage: Storage, boxId: string, reload: () => void,
+  session?: Pick<Storage, "length" | "key" | "removeItem">): Promise<void> {
   await store.close();
   try { clearLocalBox(storage, boxId); } catch { /* storage this browser refuses holds nothing */ }
+  try { if (session) forgetTypedDrafts(session); } catch { /* nothing was kept */ }
   reload();
 }

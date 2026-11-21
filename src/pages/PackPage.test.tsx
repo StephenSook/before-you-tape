@@ -1,4 +1,4 @@
-import { DRAFT_KEY } from "../ui/AddByHand";
+import { draftKey } from "../data/typedDrafts";
 import { draftOf } from "../ui/ReadFields";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -137,8 +137,9 @@ describe("PackPage", () => {
 
   it("opens the typed item form after a reload when an item was still being typed", () => {
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draftOf(null), category: "lotion_cream", itemName: "Shea lotion" }));
-      setup();
+      const store = newStore();
+      sessionStorage.setItem(draftKey(store.getState().boxId), JSON.stringify({ ...draftOf(null), category: "lotion_cream", itemName: "Shea lotion" }));
+      setup({ store });
       expect(screen.getByRole("button", { name: "Type an item" })).toHaveAttribute("aria-expanded", "true");
       expect(within(screen.getByTestId("add-by-hand")).getByLabelText("Name (optional)")).toHaveValue("Shea lotion");
     } finally {

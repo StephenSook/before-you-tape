@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item still being typed is kept under its box's id, and Delete my saved box (here, or in another tab, which then leaves the deleted box) forgets every typed draft in the tab, so the new box never opens the deleted box's unfinished item or its label words. Source: review round 3 on the service worker. Verified: new tests failed first and pass (a draft belongs to its box; deleting the box forgets every draft; leaving a box deleted elsewhere forgets them too; forgetTypedDrafts removes only drafts); the PackPage test now keys its draft by the store's box; the full suite passes.
+
 - The kill test with a stand-in worker that never cleaned up now waits until that worker has taken over (a different active worker, with nothing installing or waiting) and then opens the page again, instead of reloading straight after the update check; on the CI runner the reload raced the takeover and was aborted. Source: CI (page.reload: net::ERR_ABORTED; maybe frame was detached). Verified: the test passes five times in a row with CI set, with the other kill test; lint, typecheck, tone and hygiene pass.
 
 - LIMITS: the kill switch reloads each open tab once without asking; a kill worker stopped part way through its cleanup is not tested, because a browser cannot be stopped there reliably in a test, and the kill build's page repeats the cleanup on every load, so the next visit ends clean either way. Source: review round 1 and 2 on the service worker (the untested case written down). Verified: tone, hygiene and the full suite pass.

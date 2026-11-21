@@ -85,7 +85,7 @@ export function buildDeps(): PackDeps | Error {
     };
     // For the whole life of the page, not only while the pack page shows: a tab on another page would otherwise miss
     // another tab's delete and come back to the old box.
-    const leave = () => { void leaveDeletedBox(box, localStorage, box.getState().boxId, () => window.location.reload()); };
+    const leave = () => { void leaveDeletedBox(box, localStorage, box.getState().boxId, () => window.location.reload(), sessionStorage); };
     whenDeletedElsewhere(window, box.getState().boxId, leave);
     const deleteThisBox = savedBoxDeleter({
       store: box,
@@ -94,6 +94,7 @@ export function buildDeps(): PackDeps | Error {
       deleteFirestoreBox: (uid, id) => firestorePersistence(fb.db, uid, editionId).deleteBox(id),
       deleteCrop,
       storage: localStorage,
+      session: sessionStorage,
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
       onStale: leave,
