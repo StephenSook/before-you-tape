@@ -26,13 +26,15 @@ test("upload, verdict, country flip", async ({ page }) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(modelReply) });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Allow" }).click();
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
   // The photo is never sent whole: the request carries exactly the part the crop step showed.
   const send = page.getByRole("button", { name: "Check this part" });
   await expect(send).toBeEnabled();
   const shownSha = await send.getAttribute("data-part-sha256");
   await send.click();
+  // Nothing asks on arrival: the photo that needs the cloud asks, then goes on to its check.
+  expect(modelCalls).toBe(0);
+  await page.getByRole("button", { name: "Allow" }).click();
   // A new box starts in the Philippines, where liquid lotion is out; Canada takes it.
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("Take it out");
   expect(sentImages.map((b) => createHash("sha256").update(b).digest("hex"))).toEqual([shownSha]);

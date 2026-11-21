@@ -19,6 +19,9 @@ describe("ReadyButton", () => {
 
   it("says the laptop is ready, or that this device checks in the cloud only while the cloud is on", () => {
     const { rerender, container } = render(<ReadyButton gate="available" progress={null} onReady={() => {}} cloudOn={false} />);
+    // With cloud checks off, photos and label text never leave a laptop that reads on its own.
+    expect(screen.getByText("This laptop checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
+    rerender(<ReadyButton gate="available" progress={null} onReady={() => {}} cloudOn />);
     expect(screen.getByText("This laptop checks items itself.")).toBeInTheDocument();
     rerender(<ReadyButton gate="no_api" progress={null} onReady={() => {}} cloudOn />);
     expect(screen.getByText("This device checks items in the cloud.")).toBeInTheDocument();

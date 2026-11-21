@@ -292,9 +292,9 @@ describe("createBoxStore", () => {
     const heard = vi.fn();
     s.subscribe(heard);
     // The other tab's write is visible at once, before its event arrives.
-    localStorage.setItem("byt.cloudConsent", "false");
+    localStorage.setItem("byt.cloudConsent.v2", "false");
     expect(s.consentNow()).toBe(false);
-    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "false" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
     expect(s.getState().cloudConsent).toBe(false);
     expect(heard).toHaveBeenLastCalledWith(expect.objectContaining({ cloudConsent: false }));
     localStorage.clear();
