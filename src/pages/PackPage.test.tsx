@@ -170,7 +170,7 @@ describe("PackPage", () => {
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
     expect(within(card).getByTestId("crop-image")).toHaveAttribute("src", expect.stringMatching(/^data:image\/jpeg/));
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(screen.getByTestId("recheck-line")).toHaveTextContent("0 model calls");
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
@@ -514,6 +514,11 @@ describe("PackPage", () => {
     expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
   });
 
+  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
+    setup({ today: "2026-11-21" });
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
   it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {
     setup({ newestSheetMs: 60 });
     const add = async (name: string) => {
@@ -606,12 +611,12 @@ describe("PackPage", () => {
     const loadBox = vi.fn(() => new Promise<LoadResult>((r) => { answer = r; }));
     const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox }, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
     setup({ store });
-    expect(screen.getByTestId("destination-picker")).toHaveValue("");
+    expect(within(screen.getByTestId("destination-picker")).getAllByRole("radio").map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false"]);
     await act(async () => { answer({ status: "failed", error: "offline" }); await store.ready; });
     expect(screen.getByRole("alert")).toHaveTextContent("Your saved box could not be opened. New items stay on this device until it opens.");
     loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "PH", items: [] } });
     await userEvent.click(screen.getByRole("button", { name: "Try opening it again" }));
-    await waitFor(() => expect(screen.getByTestId("destination-picker")).toHaveValue("PH"));
+    await waitFor(() => expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true"));
     expect(screen.queryByText("Your saved box could not be opened. New items stay on this device until it opens.")).toBeNull();
   });
 

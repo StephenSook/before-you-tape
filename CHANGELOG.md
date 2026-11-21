@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The country buttons carry the post office's announced suspensions, from the same rules the verdicts use: Canada shows "USPS stops Nov 29" until that day, then "USPS suspended". Source: UI review. Verified: new badge and page tests failed first and pass; the full unit suite passes.
+
+- The country picker is one 44 px button per country (a radio group: one tab stop, the arrow keys move between countries), in place of a 23 px dropdown. A line under it says who read the chosen country's rules, with a link to the rules page. While the saved box is still being read no country is marked, and the page asks where the box is going, so nothing switches without the sender seeing it. A country can carry a badge. Source: UI review. Verified: the new DestinationPicker tests failed first and pass; the page and browser tests now press the country buttons; the full unit suite passes.
+
 - The sample cards' "Label and photo credit" disclosure is 37 px tall instead of 21 px, so it meets the 24 px tap target size (WCAG 2.2 target-size). Source: the accessibility browser check on /judge, which failed on one card at 1440 and 390 px after main was merged in. Verified: axe found the 21 px summary; after the padding, the accessibility, judge, contrast and start browser checks pass (17).
 
 - /judge lays the sample cards out in a grid (three across on a laptop), with each verdict chip on its photo's corner, and puts each card's label words and photo credit behind a closed "Label and photo credit" disclosure, so the page is far shorter and the verdicts come first. Source: UI review (/judge was 4484 px tall, its first chip at y 923). Verified: a new JudgePage test failed first and passes; the full unit suite passes.

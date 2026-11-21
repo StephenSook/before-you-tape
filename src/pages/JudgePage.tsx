@@ -19,6 +19,7 @@ import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
+import { destinationBadges } from "../ui/destinationBadges";
 import { MatchedPairs } from "../ui/MatchedPairs";
 import { QuestionRow } from "../ui/QuestionRow";
 import { VerdictChip } from "../ui/VerdictChip";
@@ -88,7 +89,8 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
-      <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+      <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)}
+        badges={destinationBadges(edition, index.map((d) => d.code), today)} />
       <MatchedPairs pairs={pairs} edition={edition} destinationCode={state.destinationCode} today={today} />
       {!dest.suspended && dest.suspendsFrom && (
         <p data-testid="suspension-ahead-banner" className="banner" role="status">

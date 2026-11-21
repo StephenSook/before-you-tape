@@ -14,7 +14,7 @@ const verdict = (name: string) => within(card(name)).getByTestId("verdict-chip")
 describe("JudgePage", () => {
   it("shows nine real items with their photos and credits, judged for the Philippines", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
-    expect(screen.getByTestId("destination-picker")).toHaveValue("PH");
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
@@ -35,7 +35,7 @@ describe("JudgePage", () => {
 
   it("re-checks the whole box for Canada with no model call", async () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Body lotion")).toHaveTextContent("OK to pack");
     expect(verdict("Power bank")).toHaveTextContent("Take it out");
     expect(verdict("Ceramic mug")).toHaveTextContent("OK to pack");
@@ -46,12 +46,12 @@ describe("JudgePage", () => {
     const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stops taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
     expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
     unmount();
     render(<JudgePage edition={ed} index={index} today="2026-11-29" />);
     expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stopped taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Body lotion")).toHaveTextContent("Check this");
     expect(within(card("Body lotion")).getByText(/Mail to Canada is suspended right now/)).toBeInTheDocument();
     expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
@@ -60,7 +60,7 @@ describe("JudgePage", () => {
   it("asks what the label cannot show, and the verdict follows the answer", async () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     // In the Philippines perfume (a liquid in glass) is out whatever the label says; Canada asks.
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Perfume")).toHaveTextContent("Check this");
     const question = within(card("Perfume")).getByRole("group", { name: "Does the label list alcohol?" });
     await userEvent.click(within(question).getByRole("button", { name: "Yes" }));
@@ -107,6 +107,11 @@ describe("JudgePage", () => {
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
 
+  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
   it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     const grid = screen.getByTestId("sample-grid");
@@ -131,7 +136,7 @@ describe("JudgePage", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Same phone", left: side("New", "new_sealed"), right: side("Used", "used") }]} />);
     const pair = screen.getByTestId("matched-pair");
     expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
   });
 
