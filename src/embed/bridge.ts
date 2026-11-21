@@ -4,11 +4,12 @@
 // and none throws, so a native host never has to catch a JavaScript exception.
 import { canonicalJson, parseEdition, resolveDestination } from "../engine/edition";
 import { evaluateDestination } from "../engine/destination";
-import { labelTagsOf } from "../engine/facts";
+import { deriveFacts, labelTagsOf } from "../engine/facts";
 import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type ItemAnswers, type ItemFacts, type RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
-import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, parseItemReadWithLabel, type ItemReadField } from "../shared/itemRead";
+import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, itemReadJsonSchema, parseItemRead, parseItemReadWithLabel, type ItemRead, type ItemReadField } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
+import { mergeReads, needsSecondLook, readDisputes, SECOND_LOOK_DEFAULT, type SecondLookPolicy } from "../shared/secondLook";
 
 // QuickJS has no structuredClone, and parseEdition uses it. The engine only clones plain data
 // (objects, arrays, strings, numbers, booleans, null), so a recursive copy gives what the native
@@ -92,6 +93,29 @@ function checkField(f: ItemReadField, v: unknown, where: string, typedText = fal
 const FIELDS = new Map<string, ItemReadField>(ITEM_READ_FIELDS.map((f) => [f.name, f]));
 const IDENTITY_SOURCES = new Set(["sender", "second_look"]);
 
+// One model read, field by field. A read's label text is at most LABEL_TEXT_MAX characters (the
+// parser clips to it), and the engine tags whatever text it gets, so a longer read could earn tags
+// the web app never sees. A label the sender typed (an override) has no such limit, on the web or here.
+function checkRead(raw: unknown, where: string): ItemRead {
+  const read = plain(raw, where);
+  for (const f of ITEM_READ_FIELDS) checkField(f, read[f.name], where);
+  if (Array.from(read.labelText as string).length > LABEL_TEXT_MAX) {
+    throw new BadInputError(`${where}.labelText is longer than ${LABEL_TEXT_MAX} characters`);
+  }
+  return read as unknown as ItemRead;
+}
+
+const POLICY_KEYS = ["whMismatch", "batteryNumbers", "notSure", "hazardNoLabel", "identity"] as const;
+
+// A second-look policy has exactly its five switches, each true or false; anything else is refused
+// rather than read as every reason on.
+function checkPolicy(raw: unknown): SecondLookPolicy {
+  const o = plain(raw, "policy");
+  for (const k of Object.keys(o)) if (!(POLICY_KEYS as readonly string[]).includes(k)) throw new BadInputError(`policy.${k} is not a second-look reason`);
+  for (const k of POLICY_KEYS) if (typeof o[k] !== "boolean") throw new BadInputError(`policy.${k} must be true or false`);
+  return o as unknown as SecondLookPolicy;
+}
+
 // The engine trusts its input types, so a malformed item could read as "OK to pack". Every item
 // is checked here first, and a bad one is refused as a whole request.
 function checkItems(raw: unknown): BoxItemInput[] {
@@ -103,14 +127,7 @@ function checkItems(raw: unknown): BoxItemInput[] {
     if (typeof id !== "string" || id === "" || id in Object.prototype) throw new BadInputError(`items[${i}].itemId is not a usable id`);
     if (ids.has(id)) throw new BadInputError(`item id ${id} appears twice`);
     ids.add(id);
-    const read = plain(o.read, `${id}.read`);
-    for (const f of ITEM_READ_FIELDS) checkField(f, read[f.name], `${id}.read`);
-    // A read's label text is at most LABEL_TEXT_MAX characters (the parser clips to it), and the
-    // engine tags whatever text it gets, so a longer read could earn tags the web app never sees.
-    // A label the sender typed (an override) has no such limit, on the web or here.
-    if (Array.from(read.labelText as string).length > LABEL_TEXT_MAX) {
-      throw new BadInputError(`${id}.read.labelText is longer than ${LABEL_TEXT_MAX} characters`);
-    }
+    checkRead(o.read, `${id}.read`);
     for (const [k, v] of Object.entries(plain(o.overrides, `${id}.overrides`))) {
       const f = FIELDS.get(k);
       if (!f) throw new BadInputError(`${id}.overrides.${k} is not an item-read field`);
@@ -226,6 +243,36 @@ export function parseItemReadTaggedJson(text: string): string {
 /** True for a read of no item (a camera pointed at a room), which the web app drops instead of adding. */
 export function isNoItemJson(readJson: string): string {
   return reply(() => isNoItem(parseItemRead(readJson)));
+}
+
+/**
+ * Whether an item just added from a read gets a cloud second look, by the web app's own rule
+ * (needsSecondLook) on the facts the edition in force derives. Only a read that ran on the device
+ * qualifies. Input { item: BoxItemInput; source: string; policy?: SecondLookPolicy } (no policy: every
+ * reason on, the web app's default). Value { reason: SecondLookReason | null }.
+ */
+export function secondLookReasonJson(inputJson: string): string {
+  return reply(() => {
+    const input = object(inputJson);
+    const [item] = checkItems([input.item]);
+    const policy = input.policy === undefined ? SECOND_LOOK_DEFAULT : checkPolicy(input.policy);
+    return { reason: needsSecondLook(deriveFacts(item!, current()), { source: str(input, "source") }, policy) };
+  });
+}
+
+/**
+ * A cloud second look of the same photo, merged with the on-device read by the web app's rule: the cautious merge
+ * (mergeReads), the facts the two reads dispute (readDisputes; label words are compared by the caller, from each
+ * read's tags, as the web app's store does), and whether both saw the same kind of item. Input
+ * { device: ItemRead; cloud: ItemRead }. Value { merged: ItemRead; disputes: ReadDisputes; sameCategory: boolean }.
+ */
+export function mergeSecondLookJson(inputJson: string): string {
+  return reply(() => {
+    const input = object(inputJson);
+    const device = checkRead(input.device, "device");
+    const cloud = checkRead(input.cloud, "cloud");
+    return { merged: mergeReads(device, cloud), disputes: readDisputes(device, cloud), sameCategory: device.category === cloud.category };
+  });
 }
 
 /** The item-read fields, their JSON schema and the label text cap, for the native read type's tests. */

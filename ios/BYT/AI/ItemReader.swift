@@ -50,6 +50,14 @@ struct ReadError: Error, Equatable, Sendable {
 /// Runs one read on one path. The on-device and cloud runners live in `ModelSessionFactory`.
 protocol ItemModelRunner: Sendable {
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError>
+    /// The same read, sent only while `stillWanted` answers true right before the send.
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError>
+}
+
+extension ItemModelRunner {
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError> {
+        await read(input)
+    }
 }
 
 struct ReadSituation: Equatable, Sendable {
@@ -90,6 +98,9 @@ struct ItemReader: Sendable {
     var deviceSeconds: Double = 30
     var cloudSeconds: Double = 45
     private let gate = ReadGate()
+    /// Second looks run one at a time in a lane of their own, so a slow cloud look never holds up a new
+    /// photo read on the device.
+    private let lookGate = ReadGate()
 
     init(device: any ItemModelRunner, makeCloud: @escaping @Sendable (String) -> any ItemModelRunner,
          parse: @escaping @Sendable (JSONValue) -> ParsedRead?) {
@@ -99,9 +110,23 @@ struct ItemReader: Sendable {
     }
 
     func read(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
-        await gate.acquire()
-        let outcome = await run(input, situation)
+        let decision = ReadRoutePolicy.decide(Self.routeInput(input.kind, situation))
+        guard await gate.acquire() else { return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .other, records: []) }
+        let outcome = await run(input, situation, decision)
         await gate.release()
+        return outcome
+    }
+
+    /// A cloud second look of an input already read on this iPhone (the web app's runSecondLook): the
+    /// cloud-only route, with a first read's retry and fallback, and the cloud gate read again before every
+    /// call. Whether one should run at all is the caller's to decide (a reason and the cloud allowed now).
+    /// It waits only for other second looks, never for a read.
+    func secondLook(_ input: ItemInput, situation: ReadSituation) async -> ReadOutcome {
+        let decision = RouteDecision(route: .cloudOnly, first: .cloud, reason: .secondLook)
+        // A look cancelled while it waits for its turn sends nothing.
+        guard await lookGate.acquire() else { return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .cloudPaused, records: []) }
+        let outcome = await run(input, situation, decision)
+        await lookGate.release()
         return outcome
     }
 
@@ -121,8 +146,7 @@ struct ItemReader: Sendable {
         return ReadRoutePolicy.decide(input).first == .cloud
     }
 
-    private func run(_ input: ItemInput, _ s: ReadSituation) async -> ReadOutcome {
-        let decision = ReadRoutePolicy.decide(Self.routeInput(input.kind, s))
+    private func run(_ input: ItemInput, _ s: ReadSituation, _ decision: RouteDecision) async -> ReadOutcome {
         guard var path = decision.first else {
             return ReadOutcome(read: nil, source: nil, route: decision.route, failure: nil, records: [])
         }
@@ -134,6 +158,11 @@ struct ItemReader: Sendable {
         var fallbackAfter: FallbackAfter?
 
         while true {
+            // A cancelled read makes no further call: no retry, no fallback.
+            if Task.isCancelled, path == .cloud {
+                return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .cloudPaused, records: records,
+                                   fallbackAfter: fallbackAfter)
+            }
             let runner: any ItemModelRunner
             let model: String
             let seconds: Double
@@ -150,7 +179,12 @@ struct ItemReader: Sendable {
                 (runner, model, seconds) = (made, cloudModel, cloudSeconds)
             }
             let start = ContinuousClock.now
-            var result = await Timeout.run(seconds: seconds) { await runner.read(input) } ?? .failure(ReadError(.timeout))
+            // A cloud call reads the gate once more right before it sends (after sign-in, say).
+            let open = cloudOpen
+            let inCloud = path == .cloud
+            var result = await Timeout.run(seconds: seconds) {
+                inCloud ? await runner.read(input, stillWanted: open) : await runner.read(input)
+            } ?? .failure(ReadError(.timeout))
             if case let .success(reply) = result {
                 if let checked = parse(reply.read) {
                     result = .success(ItemReply(read: checked.read, tokens: reply.tokens, labelTags: checked.labelTags, wholeLabel: checked.wholeLabel))
@@ -194,21 +228,34 @@ struct ItemReader: Sendable {
     }
 }
 
-/// One read at a time, first come first served.
+/// One read at a time, first come first served. A task cancelled while it waits leaves the line at
+/// once, holding nothing, so what it carries (a crop) is let go without waiting for its turn.
 actor ReadGate {
     private var busy = false
-    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private var waiting: [(id: UUID, turn: CheckedContinuation<Bool, Never>)] = []
 
-    func acquire() async {
+    /// True when the gate is held and must be released; false when the task was cancelled first.
+    func acquire() async -> Bool {
+        if Task.isCancelled { return false }
         if !busy {
             busy = true
-            return
+            return true
         }
-        await withCheckedContinuation { waiting.append($0) }
+        let id = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { waiting.append((id, $0)) }
+        } onCancel: {
+            Task { await self.leave(id) }
+        }
+    }
+
+    private func leave(_ id: UUID) {
+        guard let i = waiting.firstIndex(where: { $0.id == id }) else { return }
+        waiting.remove(at: i).turn.resume(returning: false)
     }
 
     func release() {
-        if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
+        if waiting.isEmpty { busy = false } else { waiting.removeFirst().turn.resume(returning: true) }
     }
 }
 
@@ -223,15 +270,61 @@ struct SignedInCloudRunner: ItemModelRunner {
     let inner: any ItemModelRunner
 
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+        await read(input, stillWanted: { true })
+    }
+
+    /// What the caller wants is read again after sign-in, together with the pause, right before the
+    /// upload starts: a look whose item was removed, or whose cloud checks were taken back, sends nothing.
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError> {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
+        guard !Task.isCancelled else { return .failure(ReadError(.cloudPaused)) }
         let inner = inner
-        guard let upload = await pause.startUnlessPaused({ await inner.read(input) }) else { return .failure(ReadError(.cloudPaused)) }
-        // The upload runs apart from this read, so a read that is cancelled (its time limit) cancels it too.
-        let result = await withTaskCancellationHandler { await upload.task.value } onCancel: { upload.task.cancel() }
-        // The read's own record decides: a reply from a read the pause cancelled is dropped, even
-        // when the pause was lifted again before the reply came back.
-        if await pause.finished(upload.id) || upload.task.isCancelled { return .failure(ReadError(.cloudPaused)) }
-        return result
+        // The upload runs as a task of its own, so the pause can cancel it; a read that is cancelled (its
+        // time limit, or its look given up) cancels it too. The link is in place before the upload starts
+        // and gets the upload on the main actor in the same step as the last check, so a removal on the
+        // main actor lands either before that check (nothing starts) or after the link has the upload (it
+        // is cancelled at once). The upload asks again on the main actor and only then checks that it was
+        // not cancelled, right before the call.
+        let link = UploadLink()
+        return await withTaskCancellationHandler {
+            guard let upload = await pause.startUnlessPaused(allowed: stillWanted, started: { link.set($0) }, { () async -> Result<ItemReply, ReadError> in
+                guard await stillWanted(), !Task.isCancelled else { return Result.failure(ReadError(.cloudPaused)) }
+                return await inner.read(input)
+            }) else {
+                return .failure(ReadError(.cloudPaused))
+            }
+            let result = await upload.task.value
+            // The read's own record decides: a reply from a read the pause cancelled is dropped, even
+            // when the pause was lifted again before the reply came back.
+            if await pause.finished(upload.id) || upload.task.isCancelled { return .failure(ReadError(.cloudPaused)) }
+            return result
+        } onCancel: {
+            link.cancel()
+        }
+    }
+}
+
+/// The upload of one cloud read, cancellable from the read's cancellation handler, also when that
+/// handler runs before the upload has started.
+final class UploadLink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: Task<Result<ItemReply, ReadError>, Never>?
+    private var cancelled = false
+
+    func set(_ task: Task<Result<ItemReply, ReadError>, Never>) {
+        let cancelNow = lock.withLock {
+            self.task = task
+            return cancelled
+        }
+        if cancelNow { task.cancel() }
+    }
+
+    func cancel() {
+        let task = lock.withLock {
+            cancelled = true
+            return self.task
+        }
+        task?.cancel()
     }
 }
 
@@ -256,13 +349,16 @@ final class PauseSwitch {
         let task: Task<T, Never>
     }
 
-    /// Starts the upload unless paused; nil when paused. Checking and starting happen together, so
-    /// a pause cannot slip between them.
-    func startUnlessPaused<T: Sendable>(_ work: @escaping @Sendable () async -> T) -> Upload<T>? {
-        guard !paused else { return nil }
+    /// Starts the upload unless paused or no longer `allowed`; nil then. Checking, starting and handing the
+    /// started upload to `started` (the caller's cancellation link) happen together on the main actor, so
+    /// nothing on the main actor (an item removed, cloud checks taken back) can fall between them.
+    func startUnlessPaused<T: Sendable>(allowed: @MainActor () -> Bool = { true }, started: @MainActor (Task<T, Never>) -> Void = { _ in },
+                                        _ work: @escaping @Sendable () async -> T) -> Upload<T>? {
+        guard !paused, allowed() else { return nil }
         let id = UUID()
         let task = Task.detached { await work() }
         running[id] = { task.cancel() }
+        started(task)
         return Upload(id: id, task: task)
     }
 

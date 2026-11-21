@@ -6,11 +6,12 @@ import guards from "../../tests/vectors/box-guards.json";
 import defaults from "../../tests/vectors/defaults.json";
 import destinations from "../../tests/vectors/destinations.json";
 import { canonicalJson, parseEdition } from "../engine/edition";
-import { labelTagsOf } from "../engine/facts";
-import type { RuleHit } from "../engine/types";
+import { deriveFacts, labelTagsOf } from "../engine/facts";
+import type { BoxItemInput, RuleHit } from "../engine/types";
 import type { BoxResult } from "../engine/verdict";
 import { ITEM_READ_FIELDS, LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
 import { isNoItem } from "../shared/noItem";
+import { mergeReads, needsSecondLook, readDisputes, SECOND_LOOK_DEFAULT } from "../shared/secondLook";
 import * as BYT from "./bridge";
 
 type Reply<T> = { ok: true; value: T } | { ok: false; error: { name: string; message: string } };
@@ -122,6 +123,59 @@ describe("the JSON bridge for native clients", () => {
     expect(cut.read.labelText.endsWith("FLAMMABLE")).toBe(true);
     expect(cut.labelTags).not.toContain("flammable");
     expect(level(cut)).toBe("ok");
+  });
+
+  it("gives the web app's second-look reason for an on-device read, from the edition in force", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const loaded = parseEdition(edition);
+    const reason = (input: unknown) => value<{ reason: string | null }>(BYT.secondLookReasonJson(JSON.stringify(input))).reason;
+    // Every shared vector item, on the device and in the cloud, gives what the web app's own rule gives.
+    let checked = 0;
+    for (const v of box as unknown as BoxVector[]) {
+      for (const raw of v.items) {
+        const it = item(raw);
+        for (const source of ["on_device", "in_cloud"]) {
+          const web = needsSecondLook(deriveFacts(it as unknown as BoxItemInput, loaded), { source }, SECOND_LOOK_DEFAULT);
+          expect(reason({ item: it, source }), `${v.name} ${raw.itemId} ${source}`).toBe(web);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(20);
+    // Named cases, so the comparison above is not vacuous.
+    const powerBank = item({ itemId: "p", read: { category: "power_bank", volts: 3.7, milliampHours: 10000, wattHours: 37, batteryWords: true } });
+    expect(reason({ item: powerBank, source: "on_device" })).toBe("battery_numbers");
+    expect(reason({ item: powerBank, source: "in_cloud" })).toBeNull();
+    const seenPerfume = item({ itemId: "f", read: { category: "perfume_fragrance", evidence: "item_seen", liquid: true } });
+    expect(reason({ item: seenPerfume, source: "on_device" })).not.toBeNull();
+    // A lotion whose label was read (its tags are the engine's for that label) needs no second look.
+    const lotion = { ...item({ itemId: "l", read: { category: "lotion_cream", labelText: "SHEA BODY LOTION", liquid: true } }),
+      labelTags: labelTagsOf("SHEA BODY LOTION", loaded) };
+    expect(reason({ item: lotion, source: "on_device" })).toBeNull();
+    // The policy can turn a reason off, and a malformed policy is refused rather than read as all on.
+    // Battery numbers off: the next reason in the web app's order applies (no label was read, so identity).
+    expect(reason({ item: powerBank, source: "on_device", policy: { ...SECOND_LOOK_DEFAULT, batteryNumbers: false } })).toBe("identity");
+    const allOff = { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false };
+    expect(reason({ item: powerBank, source: "on_device", policy: allOff })).toBeNull();
+    expect(reply(BYT.secondLookReasonJson(JSON.stringify({ item: powerBank, source: "on_device", policy: { batteryNumbers: "no" } }))).ok).toBe(false);
+    expect(reply(BYT.secondLookReasonJson(JSON.stringify({ item: { ...powerBank, quantity: "2" }, source: "on_device" }))).ok).toBe(false);
+  });
+
+  it("merges a second look and lists its disputes as the web app does, and refuses a malformed read", () => {
+    const device = { ...defaults.baseRead, itemName: "Power bank", category: "power_bank", volts: 3.7, milliampHours: 10000,
+      batteryWords: true, retailBox: "sealed", evidence: "label_read" } as ItemRead;
+    const cloud = { ...defaults.baseRead, itemName: "Battery pack", category: "power_bank", volts: 3.7, milliampHours: 20000,
+      wattHours: 74, batteryWords: true, retailBox: "open_or_none", evidence: "item_seen", labelText: "20000mAh 74Wh" } as ItemRead;
+    const out = value<{ merged: ItemRead; disputes: unknown; sameCategory: boolean }>(BYT.mergeSecondLookJson(JSON.stringify({ device, cloud })));
+    expect(out.merged).toEqual(mergeReads(device, cloud));
+    expect(out.disputes).toEqual(readDisputes(device, cloud));
+    expect(Object.keys(out.disputes as object).length).toBeGreaterThan(0);
+    expect(out.sameCategory).toBe(true);
+    const other = value<{ sameCategory: boolean }>(BYT.mergeSecondLookJson(JSON.stringify({ device, cloud: { ...cloud, category: "phone" } })));
+    expect(other.sameCategory).toBe(false);
+    const bad = reply(BYT.mergeSecondLookJson(JSON.stringify({ device, cloud: { ...cloud, volts: -1 } })));
+    expect(bad.ok).toBe(false);
+    expect(reply(BYT.mergeSecondLookJson(JSON.stringify({ device }))).ok).toBe(false);
   });
 
   it("gives the read contract and label tags the engine gives", () => {

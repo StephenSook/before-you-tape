@@ -10,7 +10,9 @@ public enum ReadInputKind: String, Codable, Sendable { case photo, labelWords = 
 public enum RouteReason: String, Codable, Sendable, CaseIterable {
     case onDeviceDefault = "on_device_default", noNetwork = "no_network", consentDeclined = "consent_declined",
          cloudPaused = "cloud_paused", onDeviceUnavailable = "on_device_unavailable", noImageInput = "no_image_input",
-         localeUnsupported = "locale_unsupported", nothingAllowed = "nothing_allowed"
+         localeUnsupported = "locale_unsupported", nothingAllowed = "nothing_allowed",
+         /// A cloud second look of a read already made on this iPhone.
+         secondLook = "second_look"
 }
 
 public struct RouteInput: Codable, Equatable, Sendable {

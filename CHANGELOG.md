@@ -6,6 +6,22 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The native engine bridge gains two functions for a cloud second look, so the iPhone runs the web app's own rule and
+  merge: `secondLookReasonJson({ item, source, policy? })` gives `needsSecondLook` on the facts the edition in force
+  derives (only an on-device read qualifies; no policy means every reason on; a policy that is not exactly five
+  true-or-false switches is refused), and `mergeSecondLookJson({ device, cloud })` gives `mergeReads`, `readDisputes`
+  and whether both reads saw the same category, after checking both reads field by field. The read check is shared
+  with `evaluateBoxJson`'s item check, unchanged. `BRIDGE_VERSION` stays 1 and no existing function changes, so the
+  Android host, which requires version 1, loads the bundle as before. The iPhone's engine bundle is rebuilt (sha256
+  7eec63d00561) and its contract test lists the two new names. Source: the iPhone second look. Verified: new bridge
+  tests compare the reason with the web app's `needsSecondLook(deriveFacts(...))` for every shared vector item, on the
+  device and in the cloud, and check named cases (a power bank, a perfume only seen, a lotion with its label read, a
+  policy turning reasons off, a malformed policy and item refused); the merge equals `mergeReads` and `readDisputes`
+  and a malformed read is refused. They failed before ("is not a function") and pass after; 787 web tests pass;
+  `check_engine_bundle.sh` fresh; the iPhone engine host's 34 tests pass on the new bundle; and Android's
+  `./gradlew :engine:test` (JDK 21, as in CI) builds its bundle from this bridge, byte for byte the iPhone's (sha256
+  7eec63d00561), and passes 24 of 24, the shared vectors and the host's version check included.
+
 - The live read's wait test no longer depends on machine speed: with an 80 ms wait, a busy machine finished the read and the wait before the second click, so it failed while merging #146. One test now checks one read at a time with a 60 s wait, and another that the button comes back after a short one. Source: the test failed during a merge on a loaded machine. Verified: both tests pass three runs in a row; the full suite passes.
 
 - README: the judges paragraph says how to run one live read on /judge, where it runs, and what its time measures (from the press that starts the read to the verdict on screen). Source: /judge live-read plan. Verified: tone, guard, hygiene and the full suite pass.
@@ -699,6 +715,16 @@ Source: plan Task 29. Verified by `src/eval/metrics.test.ts` (8 tests, including
 - `scripts/release-gate.ts` (`npm run release:gate`): a release gate for plan Task 42. It exits 1 while any bundled destination listing has no `personReviewedOn` date, or when the edition has no listings, and names each listing that still needs a person's check. It is run before a release, not on every commit, so ordinary CI stays green until the desk pass is done; today it fails for Canada and the Philippines, as intended. Source: project ruling on review finding I9. Verified by `scripts/release-gate.test.ts` (fails while unchecked, passes once every listing is checked, fails with no listings), which failed before the module existed, and by running the command (exit 1, both listings named).
 
 ### Changed
+
+- `src/shared/secondLook.ts` now holds the second look's pure parts: `needsSecondLook` (with `SecondLookPolicy`,
+  `SecondLookReason` and `SECOND_LOOK_DEFAULT`), `mergeReads` and `readDisputes`, moved word for word from
+  `src/routing/policy.ts` and `src/ai/secondLook.ts`, which re-export them, so nothing that imports them changes.
+  The native engine bundle may only take code from `src/engine`, `src/shared` and `src/embed`, so the iPhone can run
+  the same rule only once it lives here. `needsSecondLook` takes `{ source }` instead of a `ReadOutcome` pick, which
+  is the same field. Source: the iPhone second look. Verified: typecheck and lint clean, every unit test passes
+  unchanged (the existing second-look and policy tests run through the re-exports), and the iPhone engine bundle is
+  byte for byte the same (`check_engine_bundle.sh`: fresh, sha256 350bddbda726), since the bridge does not import it
+  yet.
 
 - `scripts/model-guard.ts`: the model guard allows the browser's system voice (`speechSynthesis`) and still refuses
   speech recognition, with or without its webkit prefix, and its comment says why: recognition reads the user's

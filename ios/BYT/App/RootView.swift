@@ -15,7 +15,12 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack { ReadyCheckView(model: model) }
-            .task { await model.start() }
+            .task {
+                await model.start()
+                #if DEBUG
+                if UITestSupport.active, UITestSupport.secondLook { await UITestSupport.readPhotoForSecondLook(model) }
+                #endif
+            }
             .onChange(of: scenePhase) { _, phase in if phase == .active { model.becameActive() } }
             .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in model.dayChanged() }
     }

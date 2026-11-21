@@ -31,8 +31,12 @@ final class AppModel {
     private var pending: ItemInput?
     /// The exact crop the last photo read used, shown to the sender under the line.
     private(set) var lastCrop: Data?
-    /// The crop waiting for the cloud question, shown in it.
-    var pendingCrop: Data? { if case let .photo(crop)? = pending { crop } else { nil } }
+    /// The crop waiting for the cloud question, shown in it: an offered look's, or a photo's to read.
+    var pendingCrop: Data? {
+        if let id = lookAwaitingConsent { return pendingLooks[id]?.crop }
+        if case let .photo(crop)? = pending { return crop }
+        return nil
+    }
     /// Remote Config as last applied; reads use it at once, with no restart. It starts held (no cloud)
     /// until Remote Config gives a kill switch of its own.
     private(set) var config: RemoteConfigValues
@@ -99,7 +103,10 @@ final class AppModel {
         // The saved box comes back before anything is added.
         box?.load()
         refreshCloudGate()
-        network.onReconnect = { [weak self] in self?.retryEdition() }
+        network.onReconnect = { [weak self] in
+            self?.retryEdition()
+            self?.runLooksWaitingForOnline()
+        }
     }
 
     /// True while uploads may start: the server has not paused the cloud and the sender allowed it.
@@ -108,6 +115,9 @@ final class AppModel {
     /// The upload gate every cloud runner checks at the moment it would send. Closing it (a pause,
     /// or the sender turning cloud checks off) cancels every upload still running.
     private func refreshCloudGate() { pause.paused = !cloudAllowed }
+
+    /// Whether the upload gate is open now.
+    var cloudGateOpen: Bool { !pause.paused }
 
     struct CloudChoice: Equatable {
         let line: String
@@ -124,14 +134,20 @@ final class AppModel {
         }
     }
 
-    /// Takes the cloud choice back: nothing more is sent, and an upload still running is cancelled.
+    /// Takes the cloud choice back: nothing more is sent, and an upload still running is cancelled. The
+    /// gate closes first, before the choice is saved, so no upload can start while the save runs.
     func turnOffCloudChecks() {
+        pause.paused = true
+        forgetLooks { _ in true }
         box?.setConsent(false)
         refreshCloudGate()
     }
 
-    /// Clears the choice, so the cloud question is asked again before the next cloud call.
+    /// Clears the choice, so the cloud question is asked again before the next cloud call. The gate
+    /// closes first, as when cloud checks are turned off, and every look not landed is forgotten.
     func turnOnCloudChecks() {
+        pause.paused = true
+        forgetLooks { _ in true }
         box?.setConsent(nil)
         refreshCloudGate()
     }
@@ -219,13 +235,259 @@ final class AppModel {
         // A photo of no item is dropped, as the web app drops it, by the web app's own check.
         lastWasNoItem = input.kind == .photo && outcome.read.map { (try? engine?.isNoItem($0)) == true } == true
         lastItemId = lastWasNoItem ? nil : box.addRead(outcome, cropFile: nil)
+        // A photo read on this iPhone may get a cloud second look of the same crop (the web app looks again
+        // at photos only, never at typed words).
+        if case let .photo(crop) = input, outcome.source == .onDevice, let id = lastItemId, let deviceRead = outcome.read {
+            planSecondLook(id, deviceRead: deviceRead, crop: crop)
+        }
     }
 
-    /// The sender's answer to the cloud question; a waiting photo is read after it.
+    // MARK: Cloud second look (the web app's Pack page: src/pages/PackPage.tsx)
+
+    /// Why an item was looked at again, the web app's own sentences (src/ai/secondLook.ts).
+    static let secondLookText: [String: String] = [
+        "wh_mismatch": "The watt-hours on the label did not match the volts and capacity, so the cloud read it again.",
+        "battery_numbers": "Battery numbers decide what may be mailed, so the cloud read them again.",
+        "not_sure": "The first read was not sure what this is, so the cloud looked again.",
+        "hazard_no_label": "Items like this need their label read, so the cloud looked again.",
+        "identity": "The first read could not confirm what this is, so the cloud looked again.",
+    ]
+
+    /// A failed second look leaves the device read and its verdict in place, and says why (the web app's
+    /// words; a refusal names no browser).
+    static func secondLookFailure(_ f: ReadFailure) -> String {
+        switch f {
+        case .cloudPaused: "Cloud checks are off right now, so this was not checked again."
+        case .network: "No connection. This check will run when you are back online."
+        case .parseFailed: "The second look did not make sense. Try again."
+        case .timeout: "The cloud step took too long. Try again."
+        case .appCheckRefused, .notSignedIn, .rateLimited: "The cloud step was refused. Try again in a minute."
+        default: "The cloud step did not run. Try again."
+        }
+    }
+
+    private struct PendingLook {
+        var reason: String
+        var deviceRead: JSONValue
+        var crop: Data
+        /// This look's own id: a send checks it is still the item's look, so a look forgotten (and any
+        /// call still on its way) can never send for a later one.
+        var token = UUID()
+    }
+    /// Looks still to land, by item: what to read again and why. Forgotten, crop and all, when the item
+    /// is removed or cloud checks are taken back.
+    @ObservationIgnored private var pendingLooks: [String: PendingLook] = [:]
+    /// Items being looked at again right now, and any look's failure, for the item's card.
+    private var checkingAgain: Set<String> = []
+    private var lookErrors: [String: String] = [:]
+    /// Looks the rules want while the cloud question is unanswered: offered on the card, and asked first.
+    private var offeredLooks: Set<String> = []
+    /// The offered look the cloud question is being asked for, if any.
+    private(set) var lookAwaitingConsent: String?
+    /// Looks that failed for no connection; they run again when the iPhone is back online.
+    @ObservationIgnored private var waitingForOnline: Set<String> = []
+    /// The looks running or waiting, each with its item. Each one drops its own entry when it ends;
+    /// removing the item or taking back cloud checks cancels it.
+    @ObservationIgnored private var lookTasks: [UUID: (itemId: String, task: Task<Void, Never>)] = [:]
+
+    /// Seconds to wait before automatic try `n` (1, 2, 3) of a look that failed for no connection.
+    @ObservationIgnored var lookBackoff: (Int) -> Double = { n in 2 * pow(2, Double(n - 1)) }
+    /// How many times a look that failed for no connection is tried again by itself; then the card asks.
+    static let lookAutoTries = 3
+    /// Automatic tries made so far, by item; reset by a look that worked and by "Try again".
+    @ObservationIgnored private var lookAutoTried: [String: Int] = [:]
+
+    var pendingLookCount: Int { pendingLooks.count }
+    var lookTaskCount: Int { lookTasks.count }
+
+    /// Waits until no look runs or waits.
+    func waitForSecondLooks() async {
+        while let entry = lookTasks.values.first { await entry.task.value }
+    }
+
+    /// Removes an item from the box, and every look of it with it: nothing more is sent for it, and its
+    /// crop is forgotten.
+    func remove(_ itemId: String) {
+        forgetLooks { $0 == itemId }
+        box?.remove(itemId)
+    }
+
+    /// Cancels the matching items' looks and forgets their crops, failures and waits.
+    private func forgetLooks(_ match: (String) -> Bool) {
+        for entry in lookTasks.values where match(entry.itemId) { entry.task.cancel() }
+        pendingLooks = pendingLooks.filter { !match($0.key) }
+        lookErrors = lookErrors.filter { !match($0.key) }
+        waitingForOnline = waitingForOnline.filter { !match($0) }
+        lookAutoTried = lookAutoTried.filter { !match($0.key) }
+        offeredLooks = offeredLooks.filter { !match($0) }
+        if let id = lookAwaitingConsent, match(id) { lookAwaitingConsent = nil }
+    }
+
+    func isCheckingAgain(_ itemId: String) -> Bool { checkingAgain.contains(itemId) }
+    func isLookOffered(_ itemId: String) -> Bool { offeredLooks.contains(itemId) && !checkingAgain.contains(itemId) }
+
+    /// Whether the card offers "Try again": a look failed and no try of it is running or coming by itself
+    /// (a wait before an automatic try, or the wait for the connection).
+    func canRetryLook(_ itemId: String) -> Bool {
+        lookErrors[itemId] != nil && !lookTasks.values.contains { $0.itemId == itemId } && !waitingForOnline.contains(itemId)
+    }
+
+    /// The card's "Check it in the cloud": runs the offered look when cloud checks are allowed, and asks
+    /// the cloud question first when they were never answered.
+    func checkInTheCloud(_ itemId: String) {
+        guard offeredLooks.contains(itemId), let box else { return }
+        // The rules may have stopped asking since the offer (a reason turned off): nothing is asked then.
+        guard lookReason(itemId) != nil else {
+            forgetLooks { $0 == itemId }
+            return
+        }
+        switch box.cloudConsent {
+        case true?:
+            offeredLooks.remove(itemId)
+            startLook(itemId)
+        case nil:
+            lookAwaitingConsent = itemId
+            askingConsent = true
+        case false?:
+            break
+        }
+    }
+    func secondLookError(_ itemId: String) -> String? { lookErrors[itemId] }
+
+    /// The engine decides whether the item gets a look; it runs only if the cloud is allowed now.
+    /// The engine's reason to look at this item again now, under the Remote Config policy in force; nil when
+    /// the rules no longer ask (a reason turned off, or the item changed). A policy or item the engine
+    /// refuses gives no reason, so no cloud call.
+    private func lookReason(_ itemId: String) -> String? {
+        guard let engine, let item = box?.items.first(where: { $0.itemId == itemId }) else { return nil }
+        let policy = try? JSONDecoder().decode(JSONValue.self, from: Data(config.secondLookPolicyJSON.utf8))
+        return try? engine.secondLookReason(item: item.engineInput, source: ReadPath.onDevice.rawValue, policy: policy)
+    }
+
+    private func planSecondLook(_ itemId: String, deviceRead: JSONValue, crop: Data) {
+        guard let reason = lookReason(itemId) else { return }
+        if cloudAllowed, network.online {
+            pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
+            startLook(itemId)
+        } else if box?.cloudConsent == nil, !config.killCloud {
+            // Never asked, or asked with the question's earlier words: the card offers the look and asks
+            // first. Nothing is sent until the sender allows it.
+            pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
+            offeredLooks.insert(itemId)
+        }
+    }
+
+    /// The sender's "Try again" on a look that failed: it starts afresh, with its automatic tries again.
+    func retrySecondLook(_ itemId: String) {
+        lookAutoTried[itemId] = nil
+        startLook(itemId)
+    }
+
+    /// One look per item at a time: a new one cancels any earlier one (running, waiting its turn, or
+    /// waiting to try again) and starts only once that one has ended, so no item ever has two looks
+    /// sending.
+    private func startLook(_ itemId: String, after seconds: Double = 0) {
+        let earlier = lookTasks.values.filter { $0.itemId == itemId }.map(\.task)
+        earlier.forEach { $0.cancel() }
+        let id = UUID()
+        let task = Task { [weak self] in
+            for task in earlier { await task.value }
+            if seconds > 0 { try? await Task.sleep(for: .seconds(seconds)) }
+            if !Task.isCancelled { await self?.runSecondLook(itemId) }
+            self?.lookTasks[id] = nil
+        }
+        lookTasks[id] = (itemId, task)
+    }
+
+    /// A look that failed for no connection: tried again by itself up to `lookAutoTries` times, after a
+    /// wait while the iPhone says it is online (a reconnect may have come and gone while the call failed),
+    /// or when the iPhone is back online. Then the card says to try again.
+    private func lookFailedForNoConnection(_ itemId: String) {
+        let tried = lookAutoTried[itemId, default: 0]
+        guard tried < Self.lookAutoTries else {
+            lookAutoTried[itemId] = nil
+            lookErrors[itemId] = Self.secondLookFailure(.other)
+            return
+        }
+        lookAutoTried[itemId] = tried + 1
+        lookErrors[itemId] = Self.secondLookFailure(.network)
+        if network.online { startLook(itemId, after: lookBackoff(tried + 1)) } else { waitingForOnline.insert(itemId) }
+    }
+
+    private func runLooksWaitingForOnline() {
+        let ids = waitingForOnline
+        waitingForOnline.removeAll()
+        for id in ids { startLook(id) }
+    }
+
+    private func runSecondLook(_ itemId: String) async {
+        guard let look = pendingLooks[itemId], let reader, let box, let engine else { return }
+        // An item removed from the box is never sent to the cloud again.
+        guard box.items.contains(where: { $0.itemId == itemId }) else { pendingLooks[itemId] = nil; return }
+        // A look the rules no longer ask for (Remote Config turned its reason off since) is forgotten, not sent.
+        guard lookReason(itemId) != nil else {
+            pendingLooks[itemId] = nil
+            lookErrors[itemId] = nil
+            offeredLooks.remove(itemId)
+            lookAutoTried[itemId] = nil
+            return
+        }
+        refreshCloudGate()
+        guard cloudAllowed, network.online else {
+            if !network.online { waitingForOnline.insert(itemId) }
+            lookErrors[itemId] = Self.secondLookFailure(network.online ? .cloudPaused : .network)
+            return
+        }
+        checkingAgain.insert(itemId)
+        var live = reader
+        // Read at the moment of each send, also after waiting for another look's lane: the cloud allowed,
+        // and this look not forgotten (its item still in the box, cloud checks not taken back).
+        let token = look.token
+        live.cloudOpen = { [weak self] in
+            guard let self else { return false }
+            return self.cloudAllowed && self.pendingLooks[itemId]?.token == token
+                && self.box?.items.contains(where: { $0.itemId == itemId }) == true
+        }
+        let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
+        let outcome = await live.secondLook(.photo(cropJPEG: look.crop), situation: situation)
+        checkingAgain.remove(itemId)
+        // A look replaced by a newer one (it was cancelled) lands nothing and says nothing.
+        if Task.isCancelled { return }
+        // A look forgotten while it ran lands nothing and says nothing.
+        guard pendingLooks[itemId] != nil, box.items.contains(where: { $0.itemId == itemId }) else {
+            pendingLooks[itemId] = nil
+            return
+        }
+        if let cloud = outcome.read, let merged = try? engine.mergeSecondLook(device: look.deviceRead, cloud: cloud) {
+            let label: String? = if case let .string(s)? = cloud["labelText"] { s } else { nil }
+            box.applySecondLook(itemId, merged: merged.merged, ms: outcome.records.reduce(0) { $0 + $1.latencyMs },
+                                reason: Self.secondLookText[look.reason] ?? look.reason, cloudLabel: outcome.wholeLabel ?? label,
+                                disputes: merged.disputes)
+            pendingLooks[itemId] = nil
+            // A look that worked replaces any earlier failure of it.
+            lookErrors[itemId] = nil
+            lookAutoTried[itemId] = nil
+        } else if let failure = outcome.failure, failure == .network {
+            lookFailedForNoConnection(itemId)
+        } else {
+            lookErrors[itemId] = Self.secondLookFailure(outcome.failure ?? .parseFailed)
+        }
+    }
+
+    /// The sender's answer to the cloud question; a waiting photo is read after it, and an offered look
+    /// it was asked for runs (or, kept on the iPhone, every offered look is forgotten).
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
+        if !allow { forgetLooks { _ in true } }
         box?.setConsent(allow)
         refreshCloudGate()
+        if let id = lookAwaitingConsent {
+            lookAwaitingConsent = nil
+            if allow {
+                offeredLooks.remove(id)
+                startLook(id)
+            }
+        }
         guard let input = pending else { return }
         pending = nil
         await read(input)
