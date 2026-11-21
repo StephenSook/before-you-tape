@@ -105,6 +105,30 @@ public final class RulesEngine: @unchecked Sendable {
         return answer
     }
 
+    /// Whether an item just added from a read gets a cloud second look, by the web app's own rule on the
+    /// edition in force. `source` is the read's path ("on_device" qualifies; any other does not). A nil
+    /// policy means every reason on, the web app's default. Nil when no reason applies.
+    public func secondLookReason(item: JSONValue, source: String, policy: JSONValue? = nil) throws -> String? {
+        var input: [String: JSONValue] = ["item": item, "source": .string(source)]
+        if let policy { input["policy"] = policy }
+        switch try call("secondLookReasonJson", json(.object(input)))["reason"] {
+        case let .string(reason)?: return reason
+        case .null?: return nil
+        default: throw EngineError.badReply("secondLookReasonJson: no reason")
+        }
+    }
+
+    /// A cloud second look of the same photo merged with the on-device read, by the web app's rule: the
+    /// cautious merge, the facts the two reads dispute (label words are the caller's to compare, from each
+    /// read's tags), and whether both reads saw the same category.
+    public func mergeSecondLook(device: JSONValue, cloud: JSONValue) throws -> (merged: JSONValue, disputes: JSONValue, sameCategory: Bool) {
+        let value = try call("mergeSecondLookJson", json(.object(["device": device, "cloud": cloud])))
+        guard let merged = value["merged"], let disputes = value["disputes"], case let .bool(same)? = value["sameCategory"] else {
+            throw EngineError.badReply("mergeSecondLookJson: no merge, disputes or sameCategory")
+        }
+        return (merged, disputes, same)
+    }
+
     // MARK: Plumbing
 
     private func call(_ name: String, _ argument: String? = nil) throws -> JSONValue {

@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios-core): the engine wrapper gives the second-look reason and merge
+- What: `RulesEngine.secondLookReason(item:source:policy:)` returns the web app's reason (or nil) for an
+  item just added, and `mergeSecondLook(device:cloud:)` returns the merged read, the disputed facts
+  and whether both reads saw the same category, through the bridge's new functions.
+- Source: the iPhone second look.
+- Verified: two contract tests on the bundled engine (a power bank on the device gives
+  battery_numbers and in the cloud none; a policy with every reason off gives none; a lotion whose
+  label was read gives none; a malformed policy is an engine error; the merge keeps the read with
+  more watt-hours, any hazard either saw and the weaker evidence, and lists battery, liquid,
+  retailBox and evidence as disputed; a bad read is an engine error). They failed to compile before
+  and pass after; `swift test --package-path ios/BYTCore`: 36 tests pass.
+
 ### docs(ios): screenshot 04 taken again with the answer buttons as they are now
 - What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
   chosen and filled; the README describes it and drops the note to take it again.
