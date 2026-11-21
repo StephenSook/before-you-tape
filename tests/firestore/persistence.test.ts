@@ -243,6 +243,23 @@ describe("firestorePersistence", () => {
     expect(JSON.stringify(after)).not.toMatch(/SECRET|GRANDMA/);
   });
 
+  it("saves a fix to an item an older app saved, with no undefined value in the write", async () => {
+    // Saved before the app kept which label words made its tags: no tagsVersion. The Firestore SDK refuses a write
+    // that holds an undefined value before any rule runs, so a fix of another field must leave the key out.
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b6", meta());
+    await p.putItem("b6", item("old-1", { labelTags: ["label_text", "cosmetic"] }));
+    const store = createBoxStore({ edition: () => ed, persistence: firestorePersistence(db("alice"), "alice", "byt-test"), now: () => 0,
+      today: () => "2026-11-20", newId: () => "n", boxId: "b6" });
+    await store.ready;
+    store.override("old-1", { retailBox: "sealed" });
+    await store.settled();
+    expect(store.getState().unsaved).toEqual([]);
+    const saved = await at("boxes/b6/items/old-1");
+    expect(saved?.overrides).toEqual({ retailBox: "sealed" });
+    expect(Object.prototype.hasOwnProperty.call(saved ?? {}, "tagsVersion")).toBe(false);
+  });
+
   it("deletes the consent an older version saved on a box, and two tabs that both found no box never overwrite it", async () => {
     await admin((d) => setDoc(doc(d, "boxes/b4"), { ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "old", cloudConsent: true }));
     await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b4", meta());

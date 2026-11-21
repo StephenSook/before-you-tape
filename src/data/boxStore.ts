@@ -583,7 +583,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         ...i, overrides: { ...i.overrides, ...patch },
         // A corrected label replaces the read one, so its tags must survive the label text not being saved.
         labelTags: patch.labelText !== undefined ? tagsOf(patch.labelText) : i.labelTags,
-        tagsVersion: patch.labelText !== undefined ? wordsVersion() : i.tagsVersion,
+        // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
+        ...(patch.labelText !== undefined ? { tagsVersion: wordsVersion() } : {}),
       };
       if (!i.disputes) return next;
       // The sender's own correction of a disputed fact settles that dispute.
