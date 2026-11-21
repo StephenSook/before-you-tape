@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
 - The newest-item sheet test gives the sheet 1.5 s before it hides itself, not 60 ms, so a busy machine still finds the sheet before it goes; it waits up to 5 s for the sheet to hide and has a 15 s limit. Source: the test failed while other work loaded the machine. Verified: the test passes alone and in the full suite (796).
 
 - The engine's big-box timing test no longer fails on a busy machine: instead of judging 100 items in under 100 ms, it times 100 and 400 items in turns and takes each size's fastest run, so 400 items must take less than ten times as long as 100. Source: the test failed at 327 ms while other work loaded the machine. Verified: measured 6.2 ms and 24.9 ms (4.0 times); with every item compared against every other added to evaluateBox for a check, it measured 12.9 times and failed; five runs in a row pass.
