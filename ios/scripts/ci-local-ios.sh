@@ -32,7 +32,10 @@ swift test --package-path ios/BYTCore
 
 echo "== iOS: generate the project, app tests on the simulator, unsigned device build"
 xcodegen generate --spec ios/project.yml --quiet
-DD="${TMPDIR:-/tmp}/byt-ci-dd"
+# Not under $TMPDIR: macOS deletes files there that look older than three days, and unpacked
+# package binaries keep their archive dates, so it removed Info.plist files out of the Firebase
+# frameworks while their folders stayed, and the build failed.
+DD="${BYT_CI_DD:-$HOME/Library/Caches/byt-ci-dd}"
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2' \
   -derivedDataPath "$DD" test
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'generic/platform=iOS' -derivedDataPath "$DD" \

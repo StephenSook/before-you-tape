@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### fix(ios): the local CI mirror keeps its build cache out of the temp folder
+- What: `ci-local-ios.sh` built in `$TMPDIR/byt-ci-dd`. macOS deletes files in `$TMPDIR` that
+  look older than three days, and unpacked package binaries keep their archive dates (the
+  Firestore framework's Info.plist was dated Nov 8 the moment it was unpacked on Nov 20), so the
+  files went and the folders stayed. The app build then failed with "There is no Info.plist found
+  at .../FirebaseFirestoreInternal.xcframework/Info.plist". The cache now lives in
+  `~/Library/Caches/byt-ci-dd` (or `$BYT_CI_DD`).
+- Source: the local CI mirror failed on Nov 20 with that error.
+- Verified: the broken cache had the framework folders with no Info.plist; after a clean cache
+  the mirror passed (exit 0), and the unpacked file's dates read Nov 8 on stat. Whether the same
+  deletion caused the test-runner crashes listed on Nov 19 is not known.
+
 ### test(ios): the stale-check test reads its days from the bundled edition
 - What: `AppBoxTests.aStaleRuleCheckIsCaughtOnReturnAndAtMidnight` used fixed days (Dec 8 fresh,
   Dec 9 stale) that matched the edition of Nov 17. The Nov 20 edition moved the suspensions check
