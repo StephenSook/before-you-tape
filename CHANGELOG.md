@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- src/ran/eval.json, written by scripts/ran-eval.ts from eval/runs/models-2026-11-21.public.json: 40 items for 2 countries, all 80 checks read on the device, 13 items with a cloud second look, 0 of 28 hazards called OK, 69 of 80 agreeing with our draft labels, 14 of 80 Check this, median 4.9 s and 90th percentile 7.7 s. A new test fails if the file stops matching the newest public run. Source: review (lead /ran with the controlled measurement). Verified: the test failed with the file absent, passes with it, and failed again when one count was edited by hand.
+
 - scripts/ran-eval.ts writes what /ran says about our own test from the newest public model run in eval/runs: it prints the summary, and with --write puts it in src/ran/eval.json. Source: review (lead /ran with the controlled measurement). Verified: two new newestRun tests (latest public model run, baselines and private runs ignored, none when absent) failed first and pass; a dry run printed 13 of 40 items with a second look, 69 of 80, 0 of 28 and 14 of 80, as in eval/runs/README.md.
 
 - summarizeEval turns a public model run from eval/runs into what /ran says about our own test: where the shipped route read each check, how many items got a cloud second look, hazards called OK, agreement with our draft labels (not accuracy), Check this, and the median and 90th percentile time to a verdict. A run it cannot read is refused, never summarized in part. Not used yet. Source: review (lead /ran with the controlled measurement). Verified: two new tests failed first and pass; full suite passes.
