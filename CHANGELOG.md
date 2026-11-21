@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The /sw.js that only removed a worker (public/sw.js) and its browser test are gone: this release builds src/pwa/sw.ts, and the same worker built with no files to cache is the one that removes itself (tests/e2e/sw-kill.local.spec.ts). The release live before this one keeps that file, so a rollback to it still leaves a browser with no worker. Source: review round 1 on the service worker (the rollback bridge). Verified: no file names the removed ones; the full suite, build and browser checks pass, the first browser step with CI set.
+
 - Docs for the rewritten worker. SECURITY: the worker is src/pwa/sw.ts, it caches the manifest with the shell, matches routes on the path, keeps the version before it, and the kill switch builds it with no files to cache, which waits while it deletes every cache, unregisters, then reloads each tab. LIMITS: Reload in one tab reloads only that tab, tabs look for a new version when shown and hourly, a tab two versions back can fail to load a file the worker no longer keeps, and a visitor who opened the site in the few minutes before a failed deploy check rolled it back keeps that version until they press Reload. Source: review round 1 on the service worker. Verified: tone, hygiene and the full suite pass.
 
 - Hosting sends /manifest.webmanifest with Cache-Control no-cache, so a changed name or icon list reaches an installed app on its next visit instead of up to an hour later. Source: review round 1 on the service worker (item 6; sw.js already had no-cache). Verified: the hosting test failed first and passes; firebase.json has no duplicate keys.
