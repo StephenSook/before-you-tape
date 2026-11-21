@@ -152,4 +152,22 @@ describe("evaluateBox", () => {
       }
     }
   });
+
+  describe("a question no answer can change", () => {
+    const perfume = input({ itemId: "perfume", read: { category: "perfume_fragrance", labelText: "EAU DE PARFUM 100 mL", liquid: true, glassContainer: true } });
+
+    it("is not asked once another rule has taken the item out, whatever the answer", () => {
+      const v = run([perfume], "PH").items.perfume!;
+      expect(v.level).toBe("take_out");
+      expect(v.question).toBeNull();
+      expect(v.hits.some((h) => h.askId !== undefined)).toBe(false);
+      expect(v.hits.map((h) => h.ruleId)).toContain("PH-P-01");
+    });
+
+    it("is still asked where its answer can change the verdict", () => {
+      const v = run([perfume], "CA").items.perfume!;
+      expect(v.question?.id).toBe("label_alcohol");
+    });
+  });
 });
+

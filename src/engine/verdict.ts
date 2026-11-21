@@ -56,7 +56,9 @@ function boxHit(edition: RuleEdition, ruleId: string, level: RuleHit["level"], t
   return hit;
 }
 
-export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: DestinationContext, today: string): BoxResult {
+// settle: drop a question from an item already taken out when no answer to it could change that (an inner
+// evaluation, made with each answer in turn, passes false).
+export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: DestinationContext, today: string, settle = true): BoxResult {
   const sorted = [...items].sort((a, b) => (a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0));
   const layers = layerStatuses(edition, dest, today);
   const notChecked = layers.filter((l) => l.state !== "checked");
@@ -112,7 +114,15 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
     const level: VerdictLevel = top && top.level !== "note" ? top.level : "ok";
     const askId = hits.find((h) => h.askId)?.askId;
     const question = askId ? (edition.questions.find((q) => q.id === askId) ?? null) : null;
-    result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition.service };
+    // An item another rule has taken out is not asked about when every answer would still take it out.
+    if (settle && level === "take_out" && question && question.answers.length > 0 && question.answers.every((a) => {
+      const answered = items.map((i) => (i.itemId === p.itemId ? { ...i, answers: { ...i.answers, [question.id]: a.id } } : i));
+      return evaluateBox(answered, edition, dest, today, false).items[p.itemId]?.level === "take_out";
+    })) {
+      result[p.itemId] = { level, headline: HEADLINE[level], hits: hits.filter((h) => h.askId !== question.id), question: null, layers, service: edition.service };
+    } else {
+      result[p.itemId] = { level, headline: HEADLINE[level], hits, question, layers, service: edition.service };
+    }
     if (level === "ok") counts.ok++;
     else if (level === "check") counts.check++;
     else counts.takeOut++;

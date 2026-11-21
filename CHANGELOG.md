@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item another rule has already taken out is no longer asked a question when every answer to it would still take it out. For example, a perfume to the Philippines is out under the line on liquids, so it is not asked whether its label lists alcohol; to Canada, where the answer can change the verdict, it still is. The engine checks this by judging the item with each answer in turn. Source: UI review. Verified: a new engine test (the Philippines not asked, Canada asked) failed first and passes; the shared vectors, the edition check and the full unit suite pass.
+
 - docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.
 
 - The Android judge build is linked: /judge has an "Android app (APK)" link to the android-judge release, and the README names the APK and its SHA-256 instead of saying it will be linked when it ships. Source: the APK release. Verified: the release page and the APK answer HTTP 200 signed out (the APK is 27,277,603 bytes); a JudgePage test failed first and passes.
