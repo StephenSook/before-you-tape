@@ -3,6 +3,17 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### fix(ios): a question's answers look tappable, and the chosen one is filled
+- What: an item's question (for example "Does the label list alcohol?") showed its answers tinted
+  grey until one was chosen, which read as switched off, though they worked. Every answer now uses
+  the accent tint, outlined; the chosen answer is filled and marked selected for VoiceOver.
+- Source: found by eye on the simulator while making the App Store screenshots.
+- Verified: a test for the open and chosen looks and their tint failed to compile before and
+  passes after; 157 unit tests and the UI test pass; on the iPhone 17 Pro Max simulator the three
+  answers show blue, and after tapping "Can't tell" it is filled and the others stay outlined.
+
 ## 2026-11-20
 
 ### fix(ios): the iPhone session's evidence holds no phone identifiers
