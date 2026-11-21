@@ -466,6 +466,78 @@ describe("createBoxStore", () => {
       expect(grams.s.getState().items[0]?.read.lithiumGrams).toBe(2.5);
     });
 
+    describe("battery numbers stand only when a second look read the same ones", () => {
+      const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000, wattHours: 15.4 };
+      const big: ItemRead = { ...phone, labelText: "3.85V 40000mAh 154Wh", milliampHours: 40000, wattHours: 154 };
+      const ruleIds = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.hits.map((h) => h.ruleId) ?? [];
+
+      it("is OK when both reads gave the same numbers", () => {
+        const { s, id } = look(phone, phone);
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        expect(level(s, id)).toBe("ok");
+      });
+
+      it("holds the numbers when the sender picks one of two readings that disagreed, either side", () => {
+        // The smaller reading would have been OK: it is held for its numbers.
+        const small = look(phone, big);
+        small.s.settleDispute(small.id, "battery", "device");
+        expect(small.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(small.s, small.id)).toBe("check");
+        expect(ruleIds(small.s, small.id)).toContain("USPS-INTL-LI-ONE-READ");
+        // The larger one is over 100 Wh and out either way.
+        const large = look(phone, big);
+        large.s.settleDispute(large.id, "battery", "cloud");
+        expect(large.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(large.s, large.id)).toBe("take_out");
+      });
+
+      it("holds lithium grams the sender picked between two readings", () => {
+        const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
+        const { s, id } = look(coin, { ...coin, lithiumGrams: 1.2 });
+        s.settleDispute(id, "lithiumGrams", "device");
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(s, id)).toBe("check");
+        expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+      });
+
+      it("holds numbers the sender typed over two reads that agreed, one number or all of them", () => {
+        // All three numbers typed lower than both reads: held for them, never OK.
+        const all = look(big, big);
+        expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        all.s.override(all.id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
+        expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(all.s, all.id)).toBe("check");
+        expect(ruleIds(all.s, all.id)).toContain("USPS-INTL-LI-ONE-READ");
+        // One number typed is enough to make them the sender's (here it no longer agrees with the others).
+        for (const patch of [{ wattHours: 15.4 }, { lithiumGrams: 0.1 }]) {
+          const one = look(big, big);
+          one.s.override(one.id, patch);
+          expect(one.s.getState().items[0]?.identityConfirmedBy, JSON.stringify(patch)).toBe("sender");
+          expect(level(one.s, one.id), JSON.stringify(patch)).not.toBe("ok");
+        }
+      });
+
+      it("holds numbers the sender typed while the cloud read ran", () => {
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead(outcome(big, "on_device"), "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.answer(id, "cell_count", "one");
+        s.override(id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
+        s.applySecondLook(id, mergeReads(big, big), 900, "reason", big.labelText, readDisputes(big, big));
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(s, id)).toBe("check");
+        expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+      });
+
+      it("keeps the second look for corrections of anything but the numbers", () => {
+        const { s, id } = look(phone, phone);
+        s.override(id, { itemName: "My phone" });
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        expect(level(s, id)).toBe("ok");
+      });
+    });
+
     it("records a label word only one read saw as a dispute of tags, never of label text", () => {
       const lotion = { ...liquidLotionRead, flammableOnLabel: false };
       const { s } = look({ ...lotion, labelText: "FLAMMABLE BODY LOTION" }, { ...lotion, labelText: "SHEA BUTTER BODY LOTION 8 FL OZ" });

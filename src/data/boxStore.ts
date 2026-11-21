@@ -189,6 +189,12 @@ const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
   : field === "labelTags" ? patch.labelText !== undefined
   : patch[field] !== undefined;
 
+// Battery numbers the sender typed (any of them), or picked between two readings, are theirs and not a second look's:
+// the rules let only a second look that read the same numbers stand behind them (USPS-INTL-LI-ONE-READ).
+const typesNumbers = (patch: Partial<ItemRead>): boolean =>
+  patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined || patch.lithiumGrams !== undefined;
+const numbersByHand = (i: BoxItem): BoxItem => (i.identityConfirmedBy === "second_look" ? { ...i, identityConfirmedBy: "sender" } : i);
+
 // The label words that can change a verdict: every tag except the one that only says a label was read.
 const wordsOf = (tags: readonly string[]) => [...new Set(tags.filter((t) => t !== LABEL_TEXT_TAG))].sort().join(",");
 
@@ -551,7 +557,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
-          identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
+          // The second look confirms what the item is; numbers the sender typed while it ran stay the sender's.
+          identityConfirmedBy: i.identityConfirmedBy ?? (merged.category !== i.read.category ? null : typesNumbers(i.overrides) ? "sender" : "second_look"),
         }, found);
       });
     },
@@ -564,7 +571,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const picked: readonly string[] = field === "battery" ? ["volts", "milliampHours", "wattHours"] : field === "labelTags" ? ["labelText"] : [field];
       const overrides = Object.fromEntries(Object.entries(i.overrides).filter(([k]) => !picked.includes(k))) as Partial<ItemRead>;
       const next: BoxItem = { ...i, overrides, disputes: { ...i.disputes, [field]: { ...d, resolved: true } } as ReadDisputes };
-      if (field === "battery") return { ...next, read: { ...next.read, ...(value as DisputeValues["battery"]) } };
+      if (field === "battery") return numbersByHand({ ...next, read: { ...next.read, ...(value as DisputeValues["battery"]) } });
+      if (field === "lithiumGrams") return numbersByHand({ ...next, read: { ...next.read, lithiumGrams: value as number } });
       if (field === "labelTags") {
         // The label's words come with it; its text too while this device still has it (never after a reload).
         const text = lookLabels.get(itemId)?.[side];
@@ -584,7 +592,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
     override: (itemId, patch) => update(itemId, (i) => {
-      const next: BoxItem = {
+      let next: BoxItem = {
         ...i, overrides: { ...i.overrides, ...patch },
         // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
         // label is no reading: an item held for older label words keeps its tags, and so stays held.
@@ -593,6 +601,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
         ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
       };
+      if (typesNumbers(patch)) next = numbersByHand(next);
       if (!i.disputes) return next;
       // The sender's own correction of a disputed fact settles that dispute.
       const settled: ReadDisputes = { ...i.disputes };
