@@ -97,15 +97,18 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const pickSeq = useRef(0);
   const pressSeq = useRef(0);
   const read = useCallback(async (box: Box, how: ImageHow) => {
-    if (how === "check_now") { ++pressSeq.current; latest.current.onPress?.(); }
+    const press = how === "check_now" ? ++pressSeq.current : null;
+    if (press !== null) latest.current.onPress?.();
+    // A newer Check now press replaces this one: its crop, or its error, is dropped when it finishes.
+    const replaced = () => press !== null && press !== pressSeq.current;
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
       const video = videoRef.current;
       const part = grab ? await grab(box) : video ? await cropToJpeg(video, box, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality) : null;
       if (!part) throw new Error("the camera is not ready");
-      emit(part, how);
+      if (!replaced()) emit(part, how);
     } catch (e) {
-      fail?.(plain(e, false));
+      if (!replaced()) fail?.(plain(e, false));
     }
   }, []);
 

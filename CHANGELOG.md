@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Three more consent edges closed: an earlier-version tab's no still reads as no when this browser's storage is full and the migration cannot be written; a photo waiting for the device check, and an open cloud question, now see each value another tab announced, so an off then on (or on then off) arriving together still drops the photo or closes the question; and when two Check now crops finish out of order, only the newest press counts. Source: third adversarial review of the consent changes. Verified: four new tests failed first and pass; the full suite and home-page browser checks pass.
+
 - Consent cannot be brought back by a tab on the earlier version: its no is recorded under the current key, so its later yes to the earlier question is ignored. Another tab's changes reach this page with each event's own value, so a tab that hears an off and an on together still drops waiting second looks. Each cloud question records the choice when it opened, and an Allow pressed after another tab answered (even before its event arrives) is not taken. A press of Check now or of the sample closes an open question at once, before cropping. Source: second adversarial review of the consent changes. Verified: four new tests failed first and pass; the full suite and home-page browser checks pass.
 
 - The consent tests that build their own pack page pass the deleteCrop that PackPage now requires, so the branch typechecks on top of main. Source: merging main (removed items delete their crops). Verified: typecheck and the full suite pass.

@@ -409,7 +409,8 @@ export function PackPage(p: PackPageProps) {
       const consentAtPress = store.consentNow();
       // Every change is caught as it is announced, so turning cloud checks off and straight back on counts too.
       let changed = false;
-      const offConsent = store.subscribe(() => { if (store.consentNow() !== consentAtPress) changed = true; });
+      // Each announced value counts, not only what storage holds now, so an off and an on together still count.
+      const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== consentAtPress || store.consentNow() !== consentAtPress) changed = true; });
       setNotice(null);
       setBlocked(null);
       setWaiting((w) => w + 1);
@@ -525,7 +526,7 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => {
     if (!ask) return;
     const stop = store.subscribe(() => {
-      if (store.consentNow() === ask.at) return;
+      if (store.getState().cloudConsent === ask.at && store.consentNow() === ask.at) return;
       setAsk(null);
       if (ask.kind === "photo") setNotice(ASK_CHANGED);
     });
