@@ -8,6 +8,8 @@
   { "name": "jewelry_ca", "code": "CA", "tags": ["jewelry_valuables"], "expect": [{ "ruleId": "CA-R-01", "level": "check" }] },
   { "name": "toy_gun_ph", "code": "PH", "tags": ["toy", "toy_gun"], "expect": [{ "ruleId": "PH-P-03", "level": "take_out" }] },
   { "name": "toy_gun_ca", "code": "CA", "tags": ["toy", "toy_gun"], "expect": [{ "ruleId": "CA-P-04", "level": "check" }] },
+  { "name": "replica_explosive_ca", "code": "CA", "tags": ["label_text", "replica_explosive", "toy"], "expect": [{ "ruleId": "CA-P-05", "level": "check" }] },
+  { "name": "replica_explosive_ph", "code": "PH", "tags": ["label_text", "replica_explosive", "toy"], "expect": [{ "ruleId": "PH-P-03", "level": "take_out" }] },
   { "name": "wine_ca", "code": "CA", "tags": ["alcohol", "alcoholic_drink", "liquid"], "expect": [{ "ruleId": "CA-P-01", "level": "take_out" }] },
   { "name": "medicine_ca", "code": "CA", "tags": ["pharmaceutical"], "expect": [{ "ruleId": "CA-R-02", "level": "check" }] },
   { "name": "medicine_ph", "code": "PH", "tags": ["pharmaceutical"], "expect": [{ "ruleId": "PH-P-06", "level": "check" }] },

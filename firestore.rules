@@ -88,7 +88,7 @@ service cloud.firestore {
     // vocab:tags
     // Matched against ',' + tags.join(',') + ',': every tag is one known tag, whole.
     function tagListPattern() {
-      return '^,((alcohol|alcohol_flag|alcohol_free_unsure|alcoholic_drink|battery_label|bullion|ceramic|chocolate|christmas_cracker|cigar|clothing|coffee|cosmetic|dry_ice|easily_liquefiable|edible_oil|electronics|explosive|flammable|food|fragrance|glass_fragile|hardware_tools|hemp|hemp_maybe|jewelry_valuables|knife|label_text|li_ion|li_metal|lighter|liquid|magnet|margarine|matches|meat|mercury|pet_food|pharmaceutical|plant|pork_meat|powder|power_bank_label|pressurized|reprint|sanitizer|tobacco|toy|toy_gun|vaping),)*$';
+      return '^,((alcohol|alcohol_flag|alcohol_free_unsure|alcoholic_drink|battery_label|bullion|ceramic|chocolate|christmas_cracker|cigar|clothing|coffee|cosmetic|dry_ice|easily_liquefiable|edible_oil|electronics|explosive|flammable|food|fragrance|glass_fragile|hardware_tools|hemp|hemp_maybe|jewelry_valuables|knife|label_text|li_ion|li_metal|lighter|liquid|magnet|margarine|matches|meat|mercury|pet_food|pharmaceutical|plant|pork_meat|powder|power_bank_label|pressurized|replica_explosive|reprint|sanitizer|tobacco|toy|toy_gun|vaping),)*$';
     }
 
     // vocab:answers

@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-3fc9181cad1c",
+  "editionId": "byt-3de1cfbd34d5",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -243,6 +243,10 @@
     {
       "pattern": "(?:fireworks?|sparklers?|firecrackers?)",
       "tag": "explosive"
+    },
+    {
+      "pattern": "(?:replica|inert|dummy|deactivated|training|fake|toy|prop) (?:hand |mortar |artillery |practice )?(?:grenades?|ordnance|shells?|rounds?|munitions?|ammunition|ammo|mortars?|bombs?|rockets?|land ?mines?|mines?|warheads?|explosives?|detonators?)",
+      "tag": "replica_explosive"
     },
     {
       "pattern": "(?:safety|strike[- ]anywhere|book) matches",
@@ -879,6 +883,21 @@
         "value": "explosive"
       },
       "outcome": "take_out"
+    },
+    {
+      "id": "USPS-INTL-REPLICA-EXPLOSIVE",
+      "layer": "usps_export",
+      "scope": "item",
+      "section": "IMM 136.2",
+      "url": "https://pe.usps.com/text/imm/immc1_015.htm",
+      "basis": "summarized",
+      "ourWording": "Replica or inert grenades, shells and other military munitions can't go by international mail. A toy that clearly doesn't look real can, so check which this is.",
+      "when": {
+        "fact": "tags",
+        "op": "has",
+        "value": "replica_explosive"
+      },
+      "outcome": "check"
     },
     {
       "id": "USPS-INTL-CRACKER",
@@ -1620,11 +1639,12 @@
           "section": "prohibitions",
           "lineSha256": "c3fe8e9b45376fe534386fa1923d20988dc930f03386ca59333a24af7f477619",
           "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
-          "matches": [],
-          "noMatch": {
-            "decision": "not_a_gift_item",
-            "reason": "Replica grenades and military munitions; not a family gift item. USPS exempts toys that don't look real (IMM 136.2)."
-          }
+          "matches": [
+            {
+              "tag": "replica_explosive",
+              "effect": "check"
+            }
+          ]
         },
         {
           "lineId": "CA-P-06",
@@ -2048,6 +2068,10 @@
             {
               "tag": "knife",
               "effect": "check"
+            },
+            {
+              "tag": "replica_explosive",
+              "effect": "take_out"
             }
           ]
         },

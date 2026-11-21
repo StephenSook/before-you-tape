@@ -70,6 +70,10 @@
         {
           "tag": "knife",
           "effect": "check"
+        },
+        {
+          "tag": "replica_explosive",
+          "effect": "take_out"
         }
       ]
     },

@@ -18,6 +18,7 @@
   { "pattern": "butane", "tag": "flammable" },
   { "pattern": "lighter fluid", "tag": "flammable" },
   { "pattern": "(?:fireworks?|sparklers?|firecrackers?)", "tag": "explosive" },
+  { "pattern": "(?:replica|inert|dummy|deactivated|training|fake|toy|prop) (?:hand |mortar |artillery |practice )?(?:grenades?|ordnance|shells?|rounds?|munitions?|ammunition|ammo|mortars?|bombs?|rockets?|land ?mines?|mines?|warheads?|explosives?|detonators?)", "tag": "replica_explosive" },
   { "pattern": "(?:safety|strike[- ]anywhere|book) matches", "tag": "matches" },
   { "pattern": "match(?:box(?:es)?|books?)", "tag": "matches" },
   { "pattern": "CR[0-9]{4}", "tag": "li_metal" },

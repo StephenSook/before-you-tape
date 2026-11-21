@@ -97,9 +97,13 @@ describe("destination editions", () => {
     const line = (id: string) => ed.destinations.CA?.lines.find((l) => l.lineId === id);
     expect(line("CA-P-04")?.matches).toEqual([{ tag: "toy_gun", effect: "check" }]);
     expect(line("CA-P-04")?.ourWording).toMatch(/doesn't name toy guns/);
-    // IMM 136.2 bars replica grenades and munitions, and exempts toys that don't look real.
-    expect(line("CA-P-05")?.matches).toEqual([]);
-    expect(line("CA-P-05")?.noMatch?.reason).toMatch(/IMM 136\.2/);
+    // IMM 136.2 bars replica grenades and munitions in all international mail, and exempts toys that don't look
+    // real; Canada's line and the Philippines' copies-of-weapons line match the same items.
+    expect(line("CA-P-05")?.matches).toEqual([{ tag: "replica_explosive", effect: "check" }]);
+    expect(ed.destinations.PH?.lines.find((l) => l.lineId === "PH-P-03")?.matches).toContainEqual({ tag: "replica_explosive", effect: "take_out" });
+    const imm = ed.rules.find((r) => r.id === "USPS-INTL-REPLICA-EXPLOSIVE");
+    expect(imm).toMatchObject({ section: "IMM 136.2", outcome: "check", url: "https://pe.usps.com/text/imm/immc1_015.htm" });
+    expect(imm?.ourWording).toMatch(/toy that clearly doesn't look real/);
   });
 
   it("checks every medicine to the Philippines against its narcotics and psychotropic drugs line", () => {

@@ -111,6 +111,16 @@ describe("labelTagsOf", () => {
     expect(labelTagsOf("HEMP SEED OIL LOTION", ed)).not.toContain("hemp");
   });
 
+  it("reads replica and inert munitions (IMM 136.2), not a grenade brand or a toy word alone", () => {
+    for (const label of ["REPLICA GRENADE", "Inert hand grenade, display only", "DUMMY ORDNANCE", "TRAINING ROUNDS 40MM", "FAKE BOMB PROP",
+      "deactivated mortar shell"]) {
+      expect(labelTagsOf(label, ed), label).toContain("replica_explosive");
+    }
+    for (const label of ["GRENADE PROTEIN BAR CARB KILLA", "TOY CAR", "SEA SHELL NECKLACE", "INERT GAS", "BATH BOMB LAVENDER"]) {
+      expect(labelTagsOf(label, ed), label).not.toContain("replica_explosive");
+    }
+  });
+
   it("needs a medicine cue to read medicine, not the word tablet or capsule alone", () => {
     for (const label of ["TABLET COMPUTER", "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "COFFEE CAPSULES", "PARTY LOZENGES CANDY",
       "SODIUM 140 MG PER SERVING"]) {

@@ -62,11 +62,12 @@
       "section": "prohibitions",
       "lineSha256": "c3fe8e9b45376fe534386fa1923d20988dc930f03386ca59333a24af7f477619",
       "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
-      "matches": [],
-      "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Replica grenades and military munitions; not a family gift item. USPS exempts toys that don't look real (IMM 136.2)."
-      }
+      "matches": [
+        {
+          "tag": "replica_explosive",
+          "effect": "check"
+        }
+      ]
     },
     {
       "lineId": "CA-P-06",
