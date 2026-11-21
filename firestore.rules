@@ -305,6 +305,8 @@ service cloud.firestore {
     // expiry (so Firestore's TTL policy removes it with the rest), and never read, changed or deleted by a client.
     // ---------------------------------------------------------------
 
+    // A tombstone holds only an expiry, 30 days after its box's, so TTL never removes it before an item or dispute
+    // the box left behind (those keep the box's expiry).
     match /retiredBoxes/{boxId} {
       function retiring() {
         return get(/databases/$(database)/documents/boxes/$(boxId));
@@ -314,7 +316,7 @@ service cloud.firestore {
         && retiring().data.ownerUid == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/boxes/$(boxId))
         && request.resource.data.keys().hasOnly(['expiresAt'])
-        && request.resource.data.get('expiresAt', null) == retiring().data.get('expiresAt', null);
+        && request.resource.data.get('expiresAt', null) == retiring().data.expiresAt + duration.value(30, 'd');
       allow read, update, delete: if false;
     }
 

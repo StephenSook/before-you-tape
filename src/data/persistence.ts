@@ -134,7 +134,8 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
         },
       );
       const last = writeBatch(db);
-      last.set(doc(db, "retiredBoxes", boxId), withExpiry({}, expiresAt));
+      // The tombstone outlives the box by 30 days, so TTL removes anything the box left behind first.
+      last.set(doc(db, "retiredBoxes", boxId), withExpiry({}, expiresAt && Timestamp.fromMillis(expiresAt.toMillis() + 30 * DAY_MS)));
       last.delete(box);
       await last.commit();
       expiries.delete(boxId);

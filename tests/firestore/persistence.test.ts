@@ -89,7 +89,8 @@ describe("firestorePersistence", () => {
     await p.deleteBox!("b1");
     expect(await at("boxes/b1")).toBeUndefined();
     for (const sub of ["items", "disputes"]) expect((await admin((d) => getDocs(collection(d, `boxes/b1/${sub}`)))).size).toBe(0);
-    expect(await at("retiredBoxes/b1")).toEqual({ expiresAt });
+    // The tombstone outlives the box by 30 days, so TTL removes anything left behind first.
+    expect(await at("retiredBoxes/b1")).toEqual({ expiresAt: Timestamp.fromMillis((expiresAt as Timestamp).toMillis() + 30 * 86_400_000) });
     // The id is retired: no one can start a box there again.
     await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
     // Deleting a box that is already gone does nothing.

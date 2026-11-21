@@ -13,6 +13,8 @@ let nobody: Firestore;
 // carry the same time, so Firestore's TTL policy deletes them together.
 const DAY = 86_400_000;
 const EXPIRES = Timestamp.fromMillis(Date.now() + 37 * DAY);
+// A tombstone outlives its box by 30 days, so TTL never removes it before anything the box left behind.
+const RETIRED = Timestamp.fromMillis(EXPIRES.toMillis() + 30 * DAY);
 const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", expiresAt: EXPIRES });
 // An item as the box store saves it: the read with its label text emptied, never sent.
 const itemDoc = {
@@ -80,7 +82,7 @@ describe("boxes", () => {
 
   // Deleting a box writes a tombstone for its id in the same batch. Without one, a deleted box's id would read as
   // free, and anyone who started it again would become the member of anything it left behind.
-  const retire = async (db: Firestore, id: string, expiresAt: unknown = EXPIRES) => {
+  const retire = async (db: Firestore, id: string, expiresAt: unknown = RETIRED) => {
     const batch = writeBatch(db);
     batch.set(doc(db, `retiredBoxes/${id}`), { expiresAt });
     batch.delete(doc(db, `boxes/${id}`));
@@ -111,20 +113,21 @@ describe("boxes", () => {
     expect((await assertSucceeds(getDoc(doc(alice, "boxes/b4")))).exists()).toBe(true);
   });
 
-  it("keeps a tombstone to the box's own expiry, written only while its box is deleted, and out of every client's reach", async () => {
+  it("keeps a tombstone 30 days past its box's expiry, written only while its box is deleted, and out of every client's reach", async () => {
     await assertSucceeds(setDoc(doc(alice, "boxes/b5"), boxFor("alice")));
-    // Alone, with another expiry, or with anything else in it: refused.
-    await assertFails(setDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES }));
-    await assertFails(retire(alice, "b5", Timestamp.fromMillis(EXPIRES.toMillis() + 1000)));
+    // Alone, with the box's own expiry or any other, or with anything else in it: refused.
+    await assertFails(setDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED }));
+    await assertFails(retire(alice, "b5", EXPIRES));
+    await assertFails(retire(alice, "b5", Timestamp.fromMillis(RETIRED.toMillis() + 1000)));
     const batch = writeBatch(alice);
-    batch.set(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES, note: "x" });
+    batch.set(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED, note: "x" });
     batch.delete(doc(alice, "boxes/b5"));
     await assertFails(batch.commit());
     // For a box that does not exist: refused.
-    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: EXPIRES }));
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: RETIRED }));
     await assertSucceeds(retire(alice, "b5"));
     await assertFails(getDoc(doc(alice, "retiredBoxes/b5")));
-    await assertFails(updateDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: EXPIRES }));
+    await assertFails(updateDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED }));
     await assertFails(deleteDoc(doc(alice, "retiredBoxes/b5")));
   });
 });
