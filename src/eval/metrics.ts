@@ -70,8 +70,11 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const judged = rows.filter(hasVerdict);
   const agree = judged.filter((r) => truthOf(r.itemId, r.destination) === r.shipped.level).length;
   const checks = judged.filter((r) => r.shipped.level === "check").length;
-  const hazards = set.items.filter((i) => i.hazard);
-  const failed = hazards.filter((i) => rows.some((r) => r.itemId === i.itemId && r.shipped.level === "ok" && truthOf(i.itemId, r.destination) !== "ok")).length;
+  const calledOk = (itemId: string) => rows.some((r) => r.itemId === itemId && hasVerdict(r) && r.shipped.level === "ok" && truthOf(itemId, r.destination) !== "ok");
+  // A hazard item is a trial only if the shipped route judged every one of its rows, or if it called it OK somewhere:
+  // an item the route never judged is no evidence of safety.
+  const hazards = set.items.filter((i) => i.hazard && (calledOk(i.itemId) || (rows.some((r) => r.itemId === i.itemId) && rows.every((r) => r.itemId !== i.itemId || hasVerdict(r)))));
+  const failed = hazards.filter((i) => calledOk(i.itemId)).length;
 
   // One read per crop and path: the first row of each item carries them.
   const firstRow = new Map<string, (typeof rows)[number]>();

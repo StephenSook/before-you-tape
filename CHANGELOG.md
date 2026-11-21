@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval's hazard bound counts a hazard item as a trial only when the shipped route judged every one of its rows, or called it "OK to pack" somewhere, so a run that skipped or failed the shipped route no longer reports 0 of 28 with a bound. Source: review. Verified: a new metrics test failed first and passes; eval tests pass.
+
 - The eval run has a deadline for the whole page run, worked out from its reads (each at Pack's 45-second limit) plus five minutes, so a page that never answers (for example a model check that hangs before the first read) still reaches the cleanup that closes Chrome and Vite. Source: review. Verified: a new test failed first and passes; lint and typecheck pass.
 
 - The eval run waits for the whole "DevTools listening" line, up to its end, before it reads Chrome's address, so an address printed in two pieces is never cut short. Source: review. Verified: a new test that prints the line in two pieces failed first and passes.

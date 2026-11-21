@@ -66,6 +66,16 @@ describe("computeEvalMetrics", () => {
     }
   });
 
+  it("counts a hazard item as a trial only when the shipped route judged all of it, unless it called it OK", () => {
+    const hz = (id: string) => item(id, true, { CA: "take_out", PH: "take_out" });
+    const none = (id: string, d: string) => row(id, d, "check", { shipped: { level: "check", source: "not_run", secondLook: false } });
+    const skipped = computeEvalMetrics(set([hz("a")]), run([none("a", "CA"), none("a", "PH")]));
+    expect(skipped.hazardCalledOk).toMatchObject({ k: 0, n: 0 });
+    expect(skipped.hazardCalledOk.upper95).toBeNaN();
+    const half = computeEvalMetrics(set([hz("a"), hz("b")]), run([none("a", "CA"), row("a", "PH", "take_out"), none("b", "CA"), row("b", "PH", "ok")]));
+    expect(half.hazardCalledOk).toMatchObject({ k: 1, n: 1 });
+  });
+
   it("does not count a device misread as caught when the shipped route gave no verdict", () => {
     const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
     const wrong = { read: read({ volts: 3.7, milliampHours: 1000, wattHours: 3.7 }), msRuns: [1], level: "check" as Level };
