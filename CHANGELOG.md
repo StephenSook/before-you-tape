@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The web app writes expiresAt: a new box gets its creation time plus 37 days, and every item and disputes write carries that box's expiresAt (remembered from creating or loading the box, or read once). The items the app holds never carry it, so item revisions and the disputes they pair are unchanged, including after the one-time backfill. tests/contracts/box-docs.json describes the field for phone clients. Source: box expiry plan. Verified: new persistence tests (a new box and its items and disputes; a session that only loaded the box or never read it; a box from before expiry, backfilled, keeps its disputes paired) and the updated contract test failed first and pass; all 42 emulator tests and the full unit suite pass.
+
 - Firestore rules for box expiry: a new box must carry expiresAt 36 to 38 days out (the client writes creation plus 37 days); items and disputes must carry their box's expiresAt exactly on create; none of the three may change, remove or add it after. Boxes from before expiry keep working, and their items omit it. To stay under the 1000-expression limit with a dispute of every fact, the box is read once per create, and a dispute's shape check no longer names device and cloud (a missing one is refused where it is read; a test pins that). Source: box expiry plan. Verified: new emulator rules tests failed first and pass; all rules tests pass.
 
 - Unit tests have a 15 s limit each instead of vitest's 5 s default. UI tests that add a photo take about a second and timed out at 5 to 7 s while other builds loaded this machine (load average 200 to 400); 15 s still ends a test that hangs. Source: repeated load timeouts in local runs. Verified: the full suite passes.
