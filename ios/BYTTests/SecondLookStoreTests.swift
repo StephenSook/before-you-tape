@@ -102,6 +102,26 @@ import Testing
         #expect(s.items[0].tagsEdition == "byt-more-words")
     }
 
+    /// A rule update that makes both labels carry the same words settles their dispute: there is nothing
+    /// left for the sender to choose between.
+    @Test func aRuleUpdateThatMakesTheLabelsAgreeSettlesTheirDispute() throws {
+        let device = Self.with(Self.lotion, ["labelText": .string("FLAMMABLE BODY LOTION")])
+        let cloudText = "SHEA ZQXWORD BODY LOTION"
+        let cloud = Self.with(Self.lotion, ["labelText": .string(cloudText)])
+        let engine = try BoxStoreTests.bundledEngine()
+        let s = try t.store(engine: engine)
+        var outcome = t.outcome(device, .onDevice)
+        outcome.wholeLabel = "FLAMMABLE BODY LOTION"
+        let id = try #require(s.addRead(outcome, cropFile: nil))
+        let m = try engine.mergeSecondLook(device: device, cloud: cloud)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: cloudText, disputes: m.disputes)
+        #expect(dispute(s, "labelTags")?["resolved"] == .bool(false))
+        _ = try engine.setEdition(BoxStoreTests.editionWithLabelWord("zqxword", tag: "flammable", id: "byt-more-words"))
+        s.reevaluate()
+        #expect(dispute(s, "labelTags")?["resolved"] == .bool(true))
+        #expect(level(s, id) == "take_out")
+    }
+
     /// A rule update tags again the labels still in memory: both reads' labels while their words are
     /// merged, and only the picked read's label once the sender picked one. A warning only the cloud
     /// read saw is never dropped by a rule update.

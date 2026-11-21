@@ -569,6 +569,11 @@ final class BoxStore {
                 }
                 if let device = words(items[i].wholeLabel) { d["device"] = device }
                 if let cloud = words(items[i].cloudWholeLabel) { d["cloud"] = cloud }
+                // When the new edition finds the same words on both labels, nothing is left to choose.
+                func strings(_ v: JSONValue?) -> [String] {
+                    if case let .array(a)? = v { a.compactMap { if case let .string(s) = $0 { s } else { nil } } } else { [] }
+                }
+                if Self.wordsOf(strings(d["device"])) == Self.wordsOf(strings(d["cloud"])) { d["resolved"] = .bool(true) }
                 all["labelTags"] = .object(d)
                 items[i].disputes = .object(all)
             }

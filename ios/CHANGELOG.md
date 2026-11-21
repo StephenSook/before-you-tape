@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a rule update that makes both labels' words agree settles their dispute
+- What: when a new edition found the same words on both reads' labels, the label dispute stayed open
+  and held the item at "Check this", asking the sender to choose between identical readings. A rule
+  update that tags both sides again now marks the dispute settled when their words agree.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (a word only the cloud's label had becomes a warning word, so both labels now
+  carry it) failed (dispute still open) and passes; 222 unit tests and both UI tests pass.
+
 ### fix(ios): a look runs only while the rules still ask for it
 - What: the reason for a second look was worked out once, when the photo was read. A look offered,
   waiting, or tried again later still went to the cloud after Remote Config had turned its reason
