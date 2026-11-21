@@ -9,10 +9,15 @@ import java.io.File
 class CopyTest {
     private val web = File(System.getProperty("byt.repoRoot") ?: error("byt.repoRoot is not set by Gradle"), "src/ui/ConsentNotice.tsx").readText()
 
-    /** The web app's consent sentence and choices with the device noun changed, and nothing else. */
+    /**
+     * The web app's consent sentence and choices with the device noun changed, and the web's clause about the cloud's
+     * second look left out: Android runs no second look, so its question must not offer one.
+     */
     @Test fun theConsentSentenceIsTheDesignSentenceForAPhone() {
-        val sentence = Regex("\"(To check items when this laptop[^\"]+)\"").find(web)!!.groupValues[1]
-        assertEquals(sentence.replace("this laptop", "this phone"), Copy.CONSENT)
+        val sentence = Regex("\"(To read items this laptop[^\"]+)\"").find(web)!!.groupValues[1]
+        val secondLook = ", and to check a read again when the rules ask"
+        assertTrue("the web sentence names the second look: $sentence", sentence.contains(secondLook))
+        assertEquals(sentence.replace("this laptop", "this phone").replace(secondLook, ""), Copy.CONSENT)
         assertTrue(web.contains(">Allow<"))
         assertEquals("Allow", Copy.ALLOW)
         assertTrue(web.contains(">Check on this laptop only<"))
@@ -51,7 +56,8 @@ class CopyTest {
     /** Android runs no cloud second look, so nothing on screen may say or imply one. */
     @Test fun noCopyMentionsASecondLook() {
         for (text in Copy.ALL) {
-            assertFalse(text, text.contains("second look", ignoreCase = true) || text.contains("looked again", ignoreCase = true))
+            assertFalse(text, text.contains("second look", ignoreCase = true) || text.contains("looked again", ignoreCase = true) ||
+                text.contains("read again", ignoreCase = true))
         }
     }
 
