@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the review notes say where to delete everything
+- What: the App Store review notes say the app has no account to make (it signs in anonymously),
+  and that Delete everything on this iPhone, on the Ready check screen, deletes the box, the cloud
+  choice and the anonymous sign-in after asking first.
+- Source: App Store guideline 5.1.1(v).
+- Verified: `check_lengths.py` exits 0 (review notes 3214 of 4000).
+
 ### feat(ios): "Delete everything on this iPhone" on the Ready check screen
 - What: one button deletes, in order, the box (its file, its cloud choice record and markers, any
   damaged copy kept aside, its id, and every photo and look held in memory) and then the anonymous
