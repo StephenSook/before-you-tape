@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Removing an item now deletes its saved photo crop and label words from this device (IndexedDB), and so does the item leaving the box from another device; before, the crop stayed after the item was gone. PackPage takes a required deleteCrop, which the route wires to the crop store. Source: privacy review (the privacy page says a removed item's saved copy is deleted). Verified: a new PackPage test (remove here, removal from another device, a typed item with no photo) failed first and passes; the full suite passes (799).
+
 - The engine's big-box timing test has a 30 s limit instead of 5 s: it judges ten boxes of 100 and 400 items, which took 7.2 s on a machine at load average 340. The growth check (400 items under ten times 100) is unchanged. Source: the test hit the 5 s limit during a merge. Verified: the full suite passes.
 
 - The phone grid's two columns can shrink below their widest word, and long words wrap inside a card, so /judge has no sideways scroll at 320 px before the web fonts load. Linux's fallback font overflowed by 24 px. The 320 px browser check now also runs at 280 px, which stands in for a wider fallback font. Source: CI on #134. Verified: the 280 px check failed without the fix (36 px) and passes with it; no overflow at 320, 300 or 280 px.
