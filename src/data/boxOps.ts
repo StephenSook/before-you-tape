@@ -21,6 +21,8 @@ export interface BoxOps {
   deleteItem(boxId: string, itemId: string): Promise<void>;
   // True when the writes land only in this browser (sign-in failed): the store keeps them for the server.
   localOnly?(): boolean;
+  // Deletes the whole box for good: its items and disputes, then the box itself. Only its owner may.
+  deleteBox?(boxId: string): Promise<void>;
 }
 
 // The same JSON text for the same value, whatever order its keys were set in.

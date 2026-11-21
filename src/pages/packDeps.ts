@@ -3,6 +3,7 @@
 // edition Remote Config pins (the bundled one unless a published one verifies). The Pack page uses them, and
 // /judge loads this module only when its live read is pressed.
 import type { AI } from "firebase/ai";
+import { deleteUser, signOut } from "firebase/auth";
 import bundledEdition from "../../rules/edition.json";
 import { afterSignIn } from "../ai/authGate";
 import { createItemModels } from "../ai/firebaseModels";
@@ -11,6 +12,8 @@ import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
+import { deleteCropsExcept } from "../data/crops";
+import { leaveDeletedBox, savedBoxDeleter, whenDeletedElsewhere, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
@@ -25,6 +28,9 @@ export interface PackDeps {
   store: BoxStore;
   lm: unknown;
   followEdition: (onNotice: (notice: string | null) => void) => () => void;
+  // Deletes this browser's saved box everywhere it is kept, then its anonymous sign-in.
+  // from: where a retry starts, the step that stopped.
+  deleteSavedBox: (from?: DeleteStep) => Promise<DeleteResult>;
 }
 
 let built: PackDeps | Error | null = null;
@@ -76,7 +82,22 @@ export function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
-    built = { ai, makeModels, source, store: box, lm, followEdition };
+    // For the whole life of the page, not only while the pack page shows: a tab on another page would otherwise miss
+    // another tab's delete and come back to the old box.
+    const leave = () => { void leaveDeletedBox(box, localStorage, box.getState().boxId, () => window.location.reload()); };
+    whenDeletedElsewhere(window, box.getState().boxId, leave);
+    const deleteThisBox = savedBoxDeleter({
+      store: box,
+      signedIn: signIn,
+      currentUid: () => fb.auth.currentUser?.uid ?? null,
+      deleteFirestoreBox: (uid, id) => firestorePersistence(fb.db, uid, editionId).deleteBox(id),
+      deleteCropsExcept,
+      storage: localStorage,
+      deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
+      signOut: () => signOut(fb.auth),
+      onStale: leave,
+    });
+    built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
   }

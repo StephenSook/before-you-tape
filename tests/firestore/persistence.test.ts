@@ -1,7 +1,7 @@
 // Firestore persistence against the local emulator and the real rules: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
+import { deleteField, disableNetwork, doc, enableNetwork, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem } from "../../src/data/boxStore";
 import type { BoxMeta } from "../../src/data/boxOps";
@@ -78,6 +78,70 @@ describe("firestorePersistence", () => {
     // An update leaves the box's expiry as it was.
     await p.putMeta("b1", meta({ destinationCode: "PH" }));
     expect((await at("boxes/b1"))!.expiresAt).toEqual(expiresAt);
+  });
+
+  it("deletes a box for good: its items and disputes, then the box with a tombstone, so its id never starts again", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { disputes: { liquid: { device: true, cloud: false, resolved: false } } }));
+    await p.putItem("b1", item("i2"));
+    const expiresAt = (await at("boxes/b1"))!.expiresAt;
+    await p.deleteBox!("b1");
+    expect(await at("boxes/b1")).toBeUndefined();
+    for (const sub of ["items", "disputes"]) expect((await admin((d) => getDocs(collection(d, `boxes/b1/${sub}`)))).size).toBe(0);
+    // The tombstone outlives the box by 30 days, so TTL removes anything left behind first.
+    expect(await at("retiredBoxes/b1")).toEqual({ expiresAt: Timestamp.fromMillis((expiresAt as Timestamp).toMillis() + 30 * 86_400_000) });
+    // The id is retired: no one can start a box there again.
+    await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
+    // Deleting a box that is already gone does nothing.
+    await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
+  });
+
+  it("refuses a box with no expiry before touching any of its items, since its tombstone could not be written", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b7", meta());
+    await p.putItem("b7", item("i1"));
+    await admin((d) => updateDoc(doc(d, "boxes/b7"), { expiresAt: deleteField() }));
+    await expect(p.deleteBox("b7")).rejects.toThrow("no expiry");
+    expect(await at("boxes/b7/items/i1")).toBeDefined();
+  });
+
+  it("retires the id of a box not in Firestore yet, so a first save still on its way cannot create it", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.deleteBox("b8");
+    // 67 days out (the box's 37 plus 30), by this clock, which the rules check against the server's.
+    const expiresAt = (await at("retiredBoxes/b8"))!.expiresAt as Timestamp;
+    expect(Math.abs(expiresAt.toMillis() - (Date.now() + 67 * DAY))).toBeLessThan(60_000);
+    await expect(p.putMeta("b8", meta())).rejects.toThrow();
+    // Retired already: deleting it again does nothing.
+    await expect(p.deleteBox("b8")).resolves.toBeUndefined();
+  });
+
+  it("deletes only from what the server holds: offline, it fails at once and deletes nothing", async () => {
+    const alice = db("alice");
+    const p = firestorePersistence(alice, "alice", "byt-test");
+    await p.putMeta("b3", meta());
+    await p.putItem("b3", item("i1"));
+    await p.loadBox("b3");
+    await disableNetwork(alice);
+    const outcome = await Promise.race([
+      p.deleteBox("b3").then(() => "deleted", () => "refused"),
+      new Promise<string>((r) => setTimeout(() => r("still waiting"), 3000)),
+    ]);
+    await enableNetwork(alice);
+    expect(outcome).toBe("refused");
+    expect(await at("boxes/b3")).toBeDefined();
+    expect(await at("boxes/b3/items/i1")).toBeDefined();
+  });
+
+  it("never lets anyone but the owner delete a box, nor any of its items on the way", async () => {
+    await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b2", meta());
+    await firestorePersistence(db("alice"), "alice", "byt-test").putItem("b2", item("i1"));
+    // A second member (only an admin can add one): the delete stops before touching anything.
+    await admin((d) => updateDoc(doc(d, "boxes/b2"), { memberUids: ["alice", "bob"] }));
+    await expect(firestorePersistence(db("bob"), "bob", "byt-test").deleteBox!("b2")).rejects.toThrow();
+    expect(await at("boxes/b2")).toBeDefined();
+    expect(await at("boxes/b2/items/i1")).toBeDefined();
   });
 
   it("keeps a box from before expiry working, and its disputes paired once the backfill gives it an expiry", async () => {

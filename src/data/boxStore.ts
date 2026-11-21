@@ -116,6 +116,11 @@ export interface BoxStore {
   retryLoad(): Promise<void>;
   // Resolves once the box has been read and every write started so far has answered (tests, leaving the page).
   settled(): Promise<void>;
+  // Before the box is deleted: no edit is kept or sent from now on (the page still shows it), and this resolves once
+  // the writes already out have answered, so none of them can land after the delete.
+  close(): Promise<void>;
+  // After a delete that failed with the box still there: keeps and sends again, the edits made while closed too.
+  reopen(): void;
   // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
   // a page last rendered, if another tab changed it.
   consentNow(): boolean | null;
@@ -228,6 +233,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const failed = new Set<string>();
   // Items whose write is on its way: until it settles, the server may or may not have them.
   const inFlight = new Set<string>();
+  // Set by close(): the box is being deleted, so nothing more is kept or sent.
+  let closed = false;
+  // An edit was made while closed, so reopen() has something to keep and send.
+  let editedWhileClosed = false;
   const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
   const storedJson = (i: BoxItem) => stableJson(forStorage(i));
   const keepJournal = () => deps.journal?.write(boxId, journal);
@@ -275,7 +284,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let flushing: Promise<void> | null = null;
   let again = false;
   const flush = (): Promise<void> => {
-    if (loadState !== "ready") return Promise.resolve();
+    if (loadState !== "ready" || closed) return Promise.resolve();
     if (flushing) { again = true; return flushing; }
     flushing = (async () => {
       do {
@@ -297,7 +306,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
             failed.add("meta");
           }
         }
-        if (boxExists) {
+        if (boxExists && !closed) {
           await Promise.all(Object.entries(journal.items).map(async ([id, item]) => {
             inFlight.add(id);
             try {
@@ -330,7 +339,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           }));
         }
         keepJournal();
-      } while (again);
+      } while (again && !closed);
       const before = stableJson(unsaved);
       refreshUnsaved();
       if (stableJson(unsaved) !== before) publish();
@@ -341,6 +350,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   // edit: the change came from the sender (or a read), so it is journaled and sent; a load or a notice is not.
   const commit = (result: BoxResult = evaluate(), edit = true) => {
     state = snapshot(result);
+    if (closed) { if (edit) editedWhileClosed = true; publish(); return; }
     deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
     if (edit) {
       recordEdits();
@@ -587,6 +597,17 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     async settled() {
       await ready;
       while (flushing) await flushing;
+    },
+    async close() {
+      closed = true;
+      while (flushing) await flushing;
+    },
+    // Writes only when an edit was made while closed: the journal is shared by this browser's tabs, so writing this
+    // page's copy without one would overwrite another tab's unsent edits.
+    reopen() {
+      if (!closed) return;
+      closed = false;
+      if (editedWhileClosed) { editedWhileClosed = false; commit(); }
     },
     setConsent(v) {
       deps.consent?.set(v);

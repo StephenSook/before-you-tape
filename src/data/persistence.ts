@@ -5,7 +5,7 @@
 // A box lasts 37 days from its creation: its anonymous owner may be removed after 30, and Firestore's TTL policy
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
-import { collection, deleteField, doc, getDoc, getDocs, runTransaction, Timestamp, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
 import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
@@ -42,7 +42,7 @@ function itemDoc(item: BoxItem): BoxItem {
 const reopened = (d: Disputes): Disputes =>
   Object.fromEntries(Object.entries(d).map(([k, v]) => [k, { ...(v as object), resolved: false }])) as Disputes;
 
-export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string), now: () => number = () => Date.now()): BoxOps {
+export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string), now: () => number = () => Date.now()): BoxOps & Required<Pick<BoxOps, "deleteBox">> {
   const edition = () => (typeof editionId === "function" ? editionId() : editionId);
   // Each box's expiry as last created, read or loaded here: null for a box from before expiry.
   const expiries = new Map<string, Timestamp | null>();
@@ -113,6 +113,45 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       else batch.delete(doc(box, "disputes", item.itemId));
       await batch.commit();
     },
+    // Its items and disputes first, in batches, then the box with its tombstone in one batch, so the id is retired
+    // and no one could start it again to reach anything left behind. The rules let only the owner do this.
+    // Every read here is from the server, never this browser's cache: a cached "no items left" would let the box be
+    // deleted over items another tab saved, and offline the delete fails at once instead of waiting to land later.
+    async deleteBox(boxId: string) {
+      const box = doc(db, "boxes", boxId);
+      let snap: DocumentSnapshot | null = null;
+      await deleteOrRetire(
+        async () => (snap = await getDocFromServer(box)).exists(),
+        async () => {
+          const data = snap!.data()!;
+          // A member who is not the owner may delete items, so the check comes before any of them is touched.
+          if (data.ownerUid !== uid) throw new Error("only the box's owner can delete it");
+          const expiresAt = (data.expiresAt as Timestamp | undefined) ?? null;
+          // Its tombstone takes its time from the box's expiry; without one the last batch would be refused after the
+          // items were gone, so it is refused here, first. Every box has one since the backfill.
+          if (!expiresAt) throw new Error("this box has no expiry, so it cannot be retired");
+          await sweepUntilEmpty(
+            async () => {
+              const [items, disputes] = await Promise.all([getDocsFromServer(collection(box, "items")), getDocsFromServer(collection(box, "disputes"))]);
+              return [...items.docs, ...disputes.docs].map((d) => d.ref);
+            },
+            async (refs) => {
+              const batch = writeBatch(db);
+              for (const ref of refs) batch.delete(ref);
+              await batch.commit();
+            },
+          );
+          const last = writeBatch(db);
+          // The tombstone outlives the box by 30 days, so TTL removes anything the box left behind first.
+          last.set(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(expiresAt.toMillis() + 30 * DAY_MS) });
+          last.delete(box);
+          await last.commit();
+        },
+        // Retired anyway, so a first save still on its way from another tab cannot create the box after this.
+        () => setDoc(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(now() + (BOX_DAYS + 30) * DAY_MS) }),
+      );
+      expiries.delete(boxId);
+    },
     async deleteItem(boxId: string, itemId: string) {
       const box = doc(db, "boxes", boxId);
       const batch = writeBatch(db);
@@ -141,6 +180,30 @@ function paired(item: BoxItem, saved: (Disputes & { itemRev?: string }) | undefi
 // Firestore needs a signed-in user. Until sign-in finishes, operations wait in order; if it fails (offline on a
 // first visit), the box is kept in this browser's storage instead. The store keeps its own journal of what has not
 // reached the server, so a later visit that signs in sends it.
+// Deletes a box that is there, and retires the id of one that is not. A refused retire means the id was retired
+// already, or another tab's first save created the box since the read (a tombstone is refused while its box exists),
+// so the box is read once more and deleted if it is there now.
+export async function deleteOrRetire(exists: () => Promise<boolean>, deleteExisting: () => Promise<void>, retire: () => Promise<void>): Promise<void> {
+  if (await exists()) return deleteExisting();
+  try {
+    await retire();
+  } catch (e) {
+    if ((e as { code?: unknown } | null)?.code !== "permission-denied") throw e;
+    if (await exists()) await deleteExisting();
+  }
+}
+
+// Lists and deletes, in batches of 400, until a list comes back empty, so an item another tab saved while the first
+// batches ran is deleted too. After `rounds` lists that each found more it stops, and the box is not deleted.
+export async function sweepUntilEmpty<T>(list: () => Promise<T[]>, remove: (batch: T[]) => Promise<void>, rounds = 5): Promise<void> {
+  for (let r = 0; r < rounds; r++) {
+    const found = await list();
+    if (found.length === 0) return;
+    for (let i = 0; i < found.length; i += 400) await remove(found.slice(i, i + 400));
+  }
+  throw new Error("the box kept getting new items while it was being deleted");
+}
+
 export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: string) => BoxOps, fallback: BoxOps): BoxOps {
   let local = false;
   const target = signIn.then(make, () => { local = true; return fallback; });

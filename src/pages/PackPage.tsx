@@ -8,6 +8,7 @@ import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
+import type { DeleteResult, DeleteStep } from "../data/deleteSavedBox";
 import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
@@ -20,6 +21,7 @@ import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
 import { CloudChip } from "../ui/CloudChip";
 import { ConsentNotice } from "../ui/ConsentNotice";
+import { DeleteBoxPanel } from "../ui/DeleteBoxPanel";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
 import { localDay } from "../shared/localDay";
@@ -76,6 +78,12 @@ export interface PackPageProps {
   today?: string;
   // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
   newestSheetMs?: number;
+  // Deletes the saved box everywhere it is kept; with none, the page offers no delete.
+  onDeleteBox?: (from?: DeleteStep) => Promise<DeleteResult>;
+  // After a delete: the route starts the page again on a new, empty box.
+  afterDelete?: (signIn: "deleted" | "signed_out") => void;
+  // Shown once after a delete started the page again: how the anonymous sign-in went.
+  deletedNotice?: "deleted" | "signed_out" | null;
   // Reloads the page, for a page older than what the server now accepts (the browser's own reload unless a test sets it).
   onReload?: () => void;
   // How long the cloud settings may be missing before the page says so.
@@ -600,6 +608,14 @@ export function PackPage(p: PackPageProps) {
       {waiting > 0 && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
+      {p.deletedNotice && (
+        <p data-testid="box-deleted" className="banner" role="status">
+          Your saved box is deleted.{" "}
+          {p.deletedNotice === "signed_out"
+            ? "Your anonymous sign-in could not be deleted right away; Firebase may delete it automatically any time after it is 30 days old."
+            : "So is your anonymous sign-in."}
+        </p>
+      )}
       {ask && <ConsentNotice key={ask.id} onChoice={answerAsk} />}
       <div className="pack">
         <div>
@@ -642,6 +658,9 @@ export function PackPage(p: PackPageProps) {
                 newest={item.itemId === state.items.at(-1)?.itemId} />
             ) : null;
           })}
+          {p.onDeleteBox && state.loadState === "ready" && (
+            <DeleteBoxPanel onDelete={p.onDeleteBox} onDone={(signIn) => p.afterDelete?.(signIn)} />
+          )}
         </div>
       </div>
       {/* On a phone the newest verdict stays in view in this sheet; the full card is in the list above. */}
