@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): record the airplane-mode check on a real iPhone
+- What: `docs/evidence/ios/2026-11-20-device/`: the result (pass: 22 of 22 reads on the phone, 0 in
+  the cloud), the phone's model and iOS version, the commit, one status-bar strip per minute of the
+  recording (airplane on, no Wi-Fi or cellular), a table of every read (category, evidence, route,
+  read time, verdict, first rule) and `summary.json` with the same rows, and what it does not show
+  (no power bank or boxed battery device was read; 15 of 22 reads said item_seen). The raw box file
+  and the recording stay off the repository, named by SHA-256.
+- Source: the device session.
+- Verified: the box was copied off the phone over USB; every route is `phone_on_device` and the
+  box's counters say 22 on the device, 0 in the cloud; the recording shows the airplane icon in all
+  eleven minutes, the first read at 1:26 and the last at 10:44, and only iOS's camera prompt; a
+  script checked that the README table equals `summary.json` row for row.
+
 ### chore(ios): a tool gives each item's verdict in a box pulled off a phone
 - What: `ios/scripts/box_verdicts.swift` runs an engine bundle in JavaScriptCore, as the app does,
   over a pulled box file, and prints each item's category, evidence, verdict and first rule.
