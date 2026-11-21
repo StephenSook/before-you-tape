@@ -67,16 +67,20 @@ describe("destination editions", () => {
   it("keeps the terms of the USPS line that change its meaning", () => {
     const wording = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.ourWording ?? "";
     const terms: [string, string, RegExp][] = [
-      ["CA", "CA-P-09", /more than 5 percent of their ad space/], // not "mainly"
-      ["CA", "CA-P-11", /specific items.*goods or services/],
-      ["CA", "CA-P-12", /identical form in every edition/], // and aimed mainly at Canada, not Canada-only
+      ["CA", "CA-P-09", /^No issue of a publication with more than 5 percent of the ad space/], // any publication, not "mainly"
+      ["CA", "CA-P-11", /specific items, or terms for selling or providing goods or services/],
+      ["CA", "CA-P-12", /identical form in every edition distributed in its home country/], // free editions too
       ["CA", "CA-P-13", /Britain or any other British country/],
       ["CA", "CA-P-21", /prints in publications/],
       ["PH", "PH-R-01", /two 500 g bottles of powdered coffee.*FDA Philippines/],
       ["PH", "PH-O-01", /^A commercial invoice .* needs the Philippine Consulate's stamp/], // USPS: "are subject to"
     ];
     for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
-    expect(wording("CA", "CA-P-12")).not.toMatch(/Canada-only/);
+    // USPS says any publication, and an ad aimed mainly at Canada, in the wording and in the reasons alike.
+    for (const id of ["CA-P-09", "CA-P-10", "CA-P-11", "CA-P-12"]) {
+      const l = ed.destinations.CA?.lines.find((x) => x.lineId === id);
+      expect(`${l?.ourWording} ${l?.noMatch?.reason}`, id).not.toMatch(/magazine|Canada-only/i);
+    }
   });
 
   it("says when the app is stricter than the lighter rules, and why", () => {

@@ -109,11 +109,11 @@
       "lineId": "CA-P-09",
       "section": "prohibitions",
       "lineSha256": "197a9cacb1c9a5745d27574cb2b40c8e42a7204b66c79564f741bd42ab0da850",
-      "ourWording": "No magazine issues with more than 5 percent of their ad space aimed mainly at Canada, in the ways the listing describes.",
+      "ourWording": "No issue of a publication with more than 5 percent of the ad space aimed mainly at Canada, in the ways the listing describes.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Commercial magazine issues aimed at Canadian advertising; not a family gift."
+        "reason": "Commercial publications aimed at the Canadian ad market; not a family gift item."
       }
     },
     {
@@ -123,30 +123,30 @@
       "ourWording": "That includes ads that say where in Canada to buy something.",
       "matches": [],
       "noMatch": {
-        "decision": "exception_to_line",
-        "reason": "Part of CA-P-09, which covers commercial magazine issues."
+        "decision": "not_a_gift_item",
+        "reason": "Part of CA-P-09, which covers commercial publications."
       }
     },
     {
       "lineId": "CA-P-11",
       "section": "prohibitions",
       "lineSha256": "88a573bd1bc4df834c24f5e11389a900083853e83108c485824a07ad3af0b6db",
-      "ourWording": "It also includes ads that name specific items, or terms for selling goods or services, in Canada.",
+      "ourWording": "It also includes ads that name specific items, or terms for selling or providing goods or services, in Canada.",
       "matches": [],
       "noMatch": {
-        "decision": "exception_to_line",
-        "reason": "Part of CA-P-09, which covers commercial magazine issues."
+        "decision": "not_a_gift_item",
+        "reason": "Part of CA-P-09, which covers commercial publications."
       }
     },
     {
       "lineId": "CA-P-12",
       "section": "prohibitions",
       "lineSha256": "6d57d55ba1d09026fd2ab65135b397020c779f99a8979bf7618d8a3163266f1a",
-      "ourWording": "No issue with an ad aimed mainly at Canada unless that ad appears in identical form in every edition sold in its home country.",
+      "ourWording": "No issue with an ad aimed mainly at Canada unless that ad appears in identical form in every edition distributed in its home country.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Commercial magazine issues with Canada-only ads; not a family gift."
+        "reason": "Commercial publications with ads aimed mainly at Canada; not a family gift item."
       }
     },
     {
