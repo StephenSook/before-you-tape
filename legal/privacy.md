@@ -19,7 +19,8 @@ Last updated: [date of publishing].
    first. Only after you tap Allow, the part of the photo inside the frame and the words on its
    label go to Google's Gemini through Firebase AI Logic, to read the item. Google handles them
    under the [Gemini API terms](https://ai.google.dev/gemini-api/terms). You can turn cloud checks
-   off at any time; after that nothing more is sent.
+   off at any time; after that nothing more is sent. Firebase records how many cloud checks run and
+   how long they take, for up to six weeks, without the photo or the words.
 2. **An anonymous sign-in.** The app signs in to Firebase Authentication with no name, email or
    phone number. This gives it a random user ID. Firebase uses it so that only you, and phones you
    add, can read and change your saved box, and so that cloud checks are allowed.
