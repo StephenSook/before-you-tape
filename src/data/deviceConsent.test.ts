@@ -35,6 +35,22 @@ describe("deviceConsent", () => {
     expect(deviceConsent(localStorage).get()).toBe(false);
   });
 
+  it("still says no when an earlier-version tab took consent back and this browser's storage is full", () => {
+    const stored = new Map<string, string>();
+    let full = false;
+    const s = {
+      getItem: (k: string) => stored.get(k) ?? null,
+      setItem: (k: string, v: string) => { if (full) throw new Error("full"); stored.set(k, v); },
+      removeItem: (k: string) => { stored.delete(k); },
+    } as unknown as Storage;
+    const c = deviceConsent(s);
+    c.set(true);
+    full = true;
+    stored.set("byt.cloudConsent", "false");
+    expect(c.get()).toBe(false);
+    expect(c.get()).toBe(false);
+  });
+
   it("tells listeners each change another tab made, in order, even when only the last is still stored", () => {
     const c = deviceConsent(localStorage);
     const heard = vi.fn();

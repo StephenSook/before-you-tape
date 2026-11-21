@@ -409,7 +409,8 @@ export function PackPage(p: PackPageProps) {
       const consentAtPress = store.consentNow();
       // Every change is caught as it is announced, so turning cloud checks off and straight back on counts too.
       let changed = false;
-      const offConsent = store.subscribe(() => { if (store.consentNow() !== consentAtPress) changed = true; });
+      // Each announced value counts, not only what storage holds now, so an off and an on together still count.
+      const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== consentAtPress || store.consentNow() !== consentAtPress) changed = true; });
       setNotice(null);
       setBlocked(null);
       setWaiting((w) => w + 1);
@@ -453,9 +454,10 @@ export function PackPage(p: PackPageProps) {
       }
     }
     if (route === "blocked") {
-      // A sender who has not been asked yet is asked now, when only the cloud could read this photo.
+      // A sender who has not been asked yet is asked now, when only the cloud could read this photo. Settings that
+      // have not loaded yet do not stop the question: after Allow, the photo waits for them like any other.
       const askNow = press !== null && store.consentNow() === null
-        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true }) !== "blocked";
+        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true, killCloud: inputs().killCloud && !live.current.pauseUnknown }) !== "blocked";
       if (presses.current === owner) {
         setNotice(null);
         if (askNow) { setBlocked(null); openAsk({ kind: "photo", part, how }); }
@@ -525,7 +527,7 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => {
     if (!ask) return;
     const stop = store.subscribe(() => {
-      if (store.consentNow() === ask.at) return;
+      if (store.getState().cloudConsent === ask.at && store.consentNow() === ask.at) return;
       setAsk(null);
       if (ask.kind === "photo") setNotice(ASK_CHANGED);
     });

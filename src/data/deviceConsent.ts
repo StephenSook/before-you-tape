@@ -22,8 +22,12 @@ export function deviceConsent(storage: Storage): DeviceConsent {
   // An earlier-version tab took consent back: the no is recorded under this key too, so a later yes from that
   // tab, to the earlier question, never brings consent back.
   const takeBack = () => {
-    storage.setItem(KEY, "false");
-    storage.removeItem(EARLIER_KEY);
+    memory = false;
+    // Storage that cannot be written still holds the earlier no, which is read again next time.
+    try {
+      storage.setItem(KEY, "false");
+      storage.removeItem(EARLIER_KEY);
+    } catch { /* still no */ }
     return false;
   };
   const get = () => {

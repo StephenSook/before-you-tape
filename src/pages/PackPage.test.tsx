@@ -199,6 +199,20 @@ describe("PackPage", () => {
     localStorage.clear();
   });
 
+  it("closes a cloud question when another tab turns cloud checks on and off again, though storage only shows the last", async () => {
+    localStorage.clear();
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    setup({ store }, false);
+    await userEvent.click(screen.getByTestId("cloud-chip"));
+    await screen.findByRole("button", { name: "Allow" });
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
+      window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
+    });
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    localStorage.clear();
+  });
+
   it("drops an older photo's cloud question when a newer photo is added, so Allow can only send the newest", async () => {
     const store = newStore();
     const models = spyModels();
@@ -220,6 +234,23 @@ describe("PackPage", () => {
     await userEvent.keyboard("{Enter}");
     expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: on");
     expect(screen.getByTestId("cloud-chip")).toHaveFocus();
+  });
+
+  it("asks for cloud checks when a photo comes before the cloud settings, rather than calling the cloud paused", async () => {
+    // Remote Config has not answered yet, so cloud checks count as paused until it does.
+    const { models } = setup({ config: { killCloud: true, pauseUnknown: true } }, null);
+    await addPhoto();
+    expect(await screen.findByRole("button", { name: "Allow" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("does not ask while cloud checks are paused on purpose, and says so", async () => {
+    const { models } = setup({ config: { killCloud: true } }, null);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cloud checks are paused");
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
   it("keeps a photo on this laptop when the sender says so at the ask, and says why it cannot be read", async () => {
@@ -444,6 +475,25 @@ describe("PackPage", () => {
       expect(models.cloud.generate).not.toHaveBeenCalled();
       expect(models.hybrid.generate).not.toHaveBeenCalled();
       expect(models.device.generate).not.toHaveBeenCalled();
+    });
+
+    it("drops the press when another tab turns cloud checks off and on again while it waits, though storage only shows the last", async () => {
+      localStorage.clear();
+      const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+      store.setConsent(true);
+      const models = spyModels();
+      const view = render(page(store, models, "checking"));
+      await trySample();
+      await screen.findByTestId("getting-ready");
+      // The other tab's off and on arrive together, after both were written.
+      act(() => {
+        window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
+        window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
+      });
+      view.rerender(page(store, models, "no_api"));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this laptop was getting ready.");
+      expect(models.cloud.generate).not.toHaveBeenCalled();
+      localStorage.clear();
     });
 
     it("decides with the connection as it is after the wait, not as it was at the press", async () => {
