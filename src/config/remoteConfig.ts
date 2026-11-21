@@ -3,6 +3,7 @@
 import type { FirebaseApp } from "firebase/app";
 import { activate, fetchAndActivate, getRemoteConfig, getValue, onConfigUpdate } from "firebase/remote-config";
 import { CONFIG_DEFAULTS } from "./defaults";
+import { holidayDates } from "./holidayDates";
 import { isAllowedCloudModel } from "./models";
 import type { SecondLookPolicy } from "../routing/policy";
 
@@ -17,6 +18,7 @@ export const RC_KEYS = {
   secondLook: "second_look_policy_json",
   rulesEditionId: "rules_edition_id",
   rulesEditionSha256: "rules_edition_sha256",
+  holidayDates: "holiday_dates_json",
 } as const;
 
 export const RC_DEFAULTS: Record<string, string | boolean> = {
@@ -27,6 +29,7 @@ export const RC_DEFAULTS: Record<string, string | boolean> = {
   [RC_KEYS.secondLook]: JSON.stringify(CONFIG_DEFAULTS.secondLook),
   [RC_KEYS.rulesEditionId]: CONFIG_DEFAULTS.rulesEditionId,
   [RC_KEYS.rulesEditionSha256]: CONFIG_DEFAULTS.rulesEditionSha256,
+  [RC_KEYS.holidayDates]: JSON.stringify(CONFIG_DEFAULTS.holidayDates),
 };
 
 type Read = (key: string) => { asString(): string; asBoolean(): boolean };
@@ -67,6 +70,7 @@ export function readConfig(get: Read): AppConfig {
     killCloud: get(RC_KEYS.killCloud).asBoolean(),
     secondLook: policy(get(RC_KEYS.secondLook).asString()),
     ...editionPin(get(RC_KEYS.rulesEditionId).asString(), get(RC_KEYS.rulesEditionSha256).asString()),
+    holidayDates: holidayDates(get(RC_KEYS.holidayDates).asString(), CONFIG_DEFAULTS.holidayDates),
   };
 }
 

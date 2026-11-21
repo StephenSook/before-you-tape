@@ -30,7 +30,7 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 }
 
 let n = 0;
-type PageOver = { settingsWaitMs?: number; settingsNoticeMs?: number; online?: boolean };
+type PageOver = { settingsWaitMs?: number; settingsNoticeMs?: number; online?: boolean; today?: string };
 function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
@@ -57,6 +57,13 @@ describe("LivePack", () => {
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
   beforeEach(() => { vi.stubGlobal("createImageBitmap", vi.fn(async () => { const c = document.createElement("canvas"); c.width = 64; c.height = 64; return c; })); });
   afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("shows the holiday mailing clock as soon as Remote Config gives its dates, with no reload", () => {
+    const { push } = setup({ holidayDates: [] }, "no_api", { today: "2026-11-21" });
+    expect(screen.queryByTestId("deadline-clock")).toBeNull();
+    act(() => push({ holidayDates: [{ service: "Priority Mail International", sendBy: "2026-12-09", deliverBy: "2026-12-25", sourceUrl: "https://www.usps.com/holiday/holiday-shipping-dates.htm", checkedOn: "2026-11-21" }] }));
+    expect(screen.getByTestId("deadline-clock")).toHaveTextContent("18 days left.");
+  });
 
   it("reads in the cloud with the model Remote Config names", async () => {
     const { models, makeModels } = setup({ cloudModelItem: "gemini-3.8-flash" });
