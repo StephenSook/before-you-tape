@@ -68,7 +68,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .sample-photo .chip { position: absolute; top: var(--space-2); left: var(--space-2); }
 /* On a phone the cards sit two across, so the page is half as long and each photo matches its 480 px file. */
 @media (max-width: 700px) {
-  .sample-grid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .sample-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .sample-card { overflow-wrap: anywhere; }
   .sample-card .sample-photo .chip { font-size: 0.8125rem; padding: 2px 6px; gap: var(--space-1); }
   .sample-card .sample-photo .chip svg { width: 12px; height: 12px; }
 }

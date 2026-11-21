@@ -36,11 +36,13 @@ test("the heading uses the self-hosted display font, loaded from this site", asy
 
 // WCAG reflow: at 320 CSS px nothing scrolls sideways, even before the web fonts arrive. A native select sizes
 // itself to its longest option, and the fallback font a phone or a Linux browser draws it in is wider.
-test("the page fits a 320 px screen even before the web fonts load", async ({ page }) => {
+// 280 px stands in for a fallback font wider than this machine's: a Mac's fits where a Linux browser's did not.
+for (const width of [320, 280]) test(`the page fits a ${width} px screen even before the web fonts load`, async ({ page }) => {
   await page.route(/\.woff2$/, (r) => r.abort());
-  await page.setViewportSize({ width: 320, height: 800 });
+  await page.setViewportSize({ width, height: 800 });
   await page.goto("/judge");
   await expect(page.getByTestId("destination-picker")).toBeVisible();
+  await expect(page.getByTestId("sample-card")).toHaveCount(9);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow, "no sideways page scroll").toBeLessThanOrEqual(0);
 });

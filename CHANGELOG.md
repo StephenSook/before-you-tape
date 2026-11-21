@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The phone grid's two columns can shrink below their widest word, and long words wrap inside a card, so /judge has no sideways scroll at 320 px before the web fonts load. Linux's fallback font overflowed by 24 px. The 320 px browser check now also runs at 280 px, which stands in for a wider fallback font. Source: CI on #134. Verified: the 280 px check failed without the fix (36 px) and passes with it; no overflow at 320, 300 or 280 px.
+
 - On a phone, the /judge sample cards sit two across, so the page is 4,832 px long instead of 7,127 px and each photo matches its 480 px file; the verdict chip on each photo is 13 px text and covers at most 28% of a photo. Cards after the first no longer sit 12 px lower than their neighbour in the grid, on a phone or a laptop. Source: the UI review (two columns on phones, with the chip at most a third of each photo and its text at least 12 px). Verified: a new browser check at 390 px (two across, chip at most a third of every photo, text at least 12 px) failed first and passes; the accessibility, contrast and start checks pass.
 
 - An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
