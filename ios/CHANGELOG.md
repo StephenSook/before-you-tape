@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios-core): cancelling a timed model call cancels the call itself
+- What: `Timeout.run` ran the call in a task of its own, so cancelling the caller (a look whose item
+  was removed, say) left the call running and its upload going. The caller's cancellation now
+  cancels the call, also when it comes before the call has started.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: a new engine-host test (cancel the caller of a 30-second call limited to 3 seconds)
+  failed (the call never saw the cancellation; the limit returned nil after 3 seconds) and passes;
+  37 engine-host tests pass.
+
 ### fix(ios): the cloud choice is written to its own file at once, not to UserDefaults
 - What: the separate record of the cloud choice was kept in UserDefaults, which writes to disk later,
   so an app stopped right after "off" (with the box save failed) could lose it and come back allowed.
