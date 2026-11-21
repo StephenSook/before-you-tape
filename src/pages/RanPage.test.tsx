@@ -49,11 +49,11 @@ describe("RanPage", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Saved boxes, our own checks included" })).toBeInTheDocument();
     expect(screen.queryByText(/Visitors' saved boxes/)).toBeNull();
     expect(screen.getByTestId("measured")).toHaveTextContent(
-      "27 items read in the cloud and fewer than 5 on the device, in 269 saved boxes, our own test runs included, so these show where reads ran, not how many people used the app. The records don't say why a read went to the cloud. Measured November 21, 2026.");
+      "27 items read in the cloud (counting reads whose route the SDK did not report) and fewer than 5 on the device, in 269 saved boxes, our own test runs included, so these show where reads ran, not how many people used the app. The records don't say why a read went to the cloud. Measured November 21, 2026.");
     const detail = screen.getByText("How this was measured").closest("details")!;
     expect(detail).not.toHaveAttribute("open");
     for (const line of [
-      "Read in the cloud: 27, median 0.9 s, 90th percentile 2.3 s",
+      "Read in the cloud, or by a route the SDK did not report: 27, median 0.9 s, 90th percentile 2.3 s",
       "Read on the device: fewer than 5",
       "Second looks in the cloud: fewer than 5",
       "Cloud fallbacks: fewer than 5",

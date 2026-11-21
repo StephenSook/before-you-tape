@@ -44,14 +44,15 @@ function Visitors({ m }: { m: Measured }) {
   return (
     <>
       <p data-testid="measured">
-        {count(m.reads.inCloud)} items read in the cloud and {count(m.reads.onDevice)} on the device, in {count(m.boxes)} saved
+        {count(m.reads.inCloud)} items read in the cloud (counting reads whose route the SDK did not report) and{" "}
+        {count(m.reads.onDevice)} on the device, in {count(m.boxes)} saved
         boxes, our own test runs included, so these show where reads ran, not how many people used the app. The records
         don't say why a read went to the cloud. Measured {longDate(m.measuredAt.slice(0, 10))}.
       </p>
       <details>
         <summary>How this was measured</summary>
         <ul>
-          <li>Read in the cloud: {timed(m.reads.inCloud)}</li>
+          <li>Read in the cloud, or by a route the SDK did not report: {timed(m.reads.inCloud)}</li>
           <li>Read on the device: {timed(m.reads.onDevice)}</li>
           <li>Second looks in the cloud: {timed(m.secondLooks)}</li>
           <li>Cloud fallbacks: {count(m.fallbacks)}</li>
