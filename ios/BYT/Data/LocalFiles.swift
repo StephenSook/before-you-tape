@@ -109,6 +109,9 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         for name in names where name.hasPrefix(boxId + ".") {
             try FileManager.default.removeItem(at: folder.appendingPathComponent(name))
         }
+        // Done only when a fresh listing shows no file of the box left.
+        let left = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasPrefix(boxId + ".") }
+        guard left.isEmpty else { throw SaveError("\(left.count) file(s) of the box are still there.") }
         held.remove(boxId)
     }
 

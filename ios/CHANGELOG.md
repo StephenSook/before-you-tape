@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): deleting a box is done only when a fresh listing shows none of its files
+- What: after removing a box's files, the delete lists the folder again and fails the box step if any
+  file of the box is still there.
+- Source: review (Codex, on the delete PR).
+- Verified: the file tests pass (13). No test makes a removal report success while the file stays,
+  so this check has no failing test of its own.
+
 ### fix(ios): deleting a box fails when the folder cannot be listed
 - What: deleting a box treated any failure to list the boxes folder (no permission, the iPhone
   locked), and an id that is not a box id, as "nothing to delete", so "Delete everything" could say
