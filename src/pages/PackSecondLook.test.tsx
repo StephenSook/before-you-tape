@@ -26,9 +26,9 @@ const answers = (read: ItemRead, source: "on_device" | "in_cloud"): Spy => ({ ge
 const failing = (msg: string): Spy => ({ generate: vi.fn(async () => { throw new Error(msg); }) });
 
 let n = 0;
-function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean; online?: boolean; secondLook?: SecondLookPolicy } = {}) {
+function setup(o: { device?: ItemRead; cloud?: Spy; killCloud?: boolean; consent?: boolean | null; online?: boolean; secondLook?: SecondLookPolicy } = {}) {
   const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `sl-${n++}` });
-  store.setConsent(o.consent ?? true);
+  if (o.consent !== null) store.setConsent(o.consent ?? true);
   const read = o.device ?? phoneDevice;
   const models = { device: answers(read, "on_device"), hybrid: answers(read, "on_device"), cloud: o.cloud ?? answers(phoneCloud, "in_cloud"), fallback: answers(phoneCloud, "in_cloud") };
   const props = (online: boolean): PackPageProps => ({
@@ -51,6 +51,27 @@ describe("Pack page second look", () => {
   beforeAll(() => { vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined); });
   beforeEach(() => { vi.stubGlobal("createImageBitmap", vi.fn(async () => { const c = document.createElement("canvas"); c.width = 64; c.height = 64; return c; })); });
   afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("offers a cloud look on the card to a sender not asked yet, asks first, then looks", async () => {
+    const { store, models } = setup({ consent: null });
+    await upload();
+    const card = await screen.findByTestId("item-card");
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(within(card).getByRole("button", { name: "Check it in the cloud" }));
+    expect(screen.getByRole("button", { name: "Allow" })).toHaveFocus();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(store.getState().cloudConsent).toBe(true);
+    await waitFor(() => expect(models.cloud.generate).toHaveBeenCalledTimes(1));
+  });
+
+  it("offers no cloud look to a sender who chose this laptop only", async () => {
+    const { models } = setup({ consent: false });
+    await upload();
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).queryByRole("button", { name: "Check it in the cloud" })).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
 
   it("settles a second look still waiting on the cloud when the sender takes back consent, and says it was not checked", async () => {
     // A cloud call that never answers, as one waiting on sign-in or on the SDK's tokens can.

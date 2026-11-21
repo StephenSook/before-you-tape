@@ -150,9 +150,9 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
-  // The cloud question, asked when a photo first needs the cloud (with that photo, read once the sender
-  // answers) or when the sender turns cloud checks on.
-  const [ask, setAsk] = useState<{ part: ImagePart; how: ImageHow } | "chip" | null>(null);
+  // The cloud question, asked when a photo or an offered second look first needs the cloud (and run once the
+  // sender answers), or when the sender turns cloud checks on.
+  const [ask, setAsk] = useState<{ part: ImagePart; how: ImageHow } | { look: string } | "chip" | null>(null);
   // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
   const [removed, setRemoved] = useState("");
   const focusAfterRemove = useRef<string | null>(null);
@@ -456,6 +456,10 @@ export function PackPage(p: PackPageProps) {
         looks.current.set(itemId, { reason, read: outcome.read, part });
         if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
         else void secondLook(itemId);
+      } else if (reason && store.consentNow() === null && cloudAllowed({ ...liveInputs(), cloudConsent: true })) {
+        // A sender not asked yet is offered the look on the card, and asked when they take it.
+        looks.current.set(itemId, { reason, read: outcome.read, part });
+        setOffered((o) => ({ ...o, [itemId]: true }));
       }
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
@@ -473,8 +477,13 @@ export function PackPage(p: PackPageProps) {
     const pending = ask;
     setAsk(null);
     store.setConsent(allow);
-    if (pending && pending !== "chip") void onImage(pending.part, pending.how);
+    if (pending === null || pending === "chip") return;
+    if ("part" in pending) { void onImage(pending.part, pending.how); return; }
+    if (allow) void secondLook(pending.look);
+    else setOffered((o) => ({ ...o, [pending.look]: false }));
   };
+  // An offered cloud look asks first when the sender has not been asked yet.
+  const takeLook = (itemId: string) => { if (store.consentNow() === null) setAsk({ look: itemId }); else void secondLook(itemId); };
 
   const newestItem = state.items.at(-1);
   // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
@@ -571,7 +580,7 @@ export function PackPage(p: PackPageProps) {
                 onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
-                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}
+                onCloudLook={offered[item.itemId] ? takeLook : undefined}
                 newest={item.itemId === state.items.at(-1)?.itemId} />
             ) : null;
           })}
