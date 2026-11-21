@@ -541,5 +541,41 @@ describe("createBoxStore", () => {
     expect(s.getState().result.items[id]).toBeDefined();
     expect(s.getState().sources).toMatchObject({ onDevice: 0, inCloud: 0 });
   });
+
+  describe("a page left open across a change to what the server accepts", () => {
+    const refused = () => Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+
+    it("says the page is out of date when the server refuses a save to a box this visit could open", async () => {
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValue(refused());
+      const s = store({ persistence: p });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(s.getState().outOfDate).toBe(true);
+    });
+
+    it("does not call a page out of date when a save fails for another reason, such as no connection", async () => {
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValue(new Error("offline"));
+      const s = store({ persistence: p });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+
+    it("leaves a box this visit could not open to its own notice, since a reload would not fix it", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValue({ status: "failed", error: "not a member" });
+      p.putMeta.mockRejectedValue(refused());
+      const s = store({ persistence: p });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(s.getState().loadState).toBe("failed");
+      expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+  });
 });
 

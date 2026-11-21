@@ -8,6 +8,7 @@ import type { GateState, ImagePart, ItemModels } from "../ai/port";
 import type { VerdictLevel } from "../engine/types";
 import type { ItemRead } from "../shared/itemRead";
 import { ConsentNotice } from "../ui/ConsentNotice";
+import { inCountry } from "../ui/countryName";
 import { VerdictChip } from "../ui/VerdictChip";
 
 export interface LiveReadDeps {
@@ -19,6 +20,8 @@ export interface LiveReadDeps {
   // The tracked sample photo, cropped whole. Rejects with SampleMismatch when its bytes are not the record's.
   sample(): Promise<ImagePart>;
 }
+
+const seconds = (ms: number) => (ms / 1000).toFixed(1);
 
 export class SampleMismatch extends Error {
   constructor() { super("the sample photo's bytes do not match its record"); }
@@ -42,19 +45,23 @@ type View =
   | { kind: "idle" }
   | { kind: "busy" }
   | { kind: "asking"; deps: LiveReadDeps }
-  | { kind: "done"; read: ItemRead; inCloud: boolean; ms: number }
+  // The time from the press that started the read, and its parts: starting (loading the app's parts and checking
+  // where to read), the photo (fetched, checked and cropped) and the model's run.
+  | { kind: "done"; read: ItemRead; inCloud: boolean; ms: number; steps: { start: number; photo: number; model: number } }
   | { kind: "failed"; text: string };
 
 export interface LiveReadPanelProps {
   load: () => Promise<LiveReadDeps>;
   // The verdict for the read, judged for the country picked now, so a country change re-judges it.
   judge: (read: ItemRead) => VerdictLevel;
+  // The country picked now, named with the verdict.
+  country: string;
   now?: () => number;
   // One read at a time, then this long before the next, so the button cannot run reads back to back.
   cooldownMs?: number;
 }
 
-export function LiveReadPanel({ load, judge, now = () => performance.now(), cooldownMs = 10_000 }: LiveReadPanelProps) {
+export function LiveReadPanel({ load, judge, country, now = () => performance.now(), cooldownMs = 10_000 }: LiveReadPanelProps) {
   const [view, setView] = useState<View>({ kind: "idle" });
   const [cooling, setCooling] = useState(false);
   const running = useRef(false);
@@ -72,10 +79,14 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
 
   const read = async (d: LiveReadDeps, inCloudRoute: boolean, start: number) => {
     try {
+      const begun = now();
       const part = await d.sample();
+      const photoDone = now();
       const route = inCloudRoute ? "cloud_only" : "device_only";
       const out = await readItem(d.models(), part, route, () => performance.now(), () => !inCloudRoute || d.consent.get() === true);
-      finish({ kind: "done", read: out.read, inCloud: out.source === "in_cloud", ms: now() - start });
+      const end = now();
+      finish({ kind: "done", read: out.read, inCloud: out.source === "in_cloud", ms: end - start,
+        steps: { start: begun - start, photo: photoDone - begun, model: end - photoDone } });
     } catch (e) {
       finish({ kind: "failed", text: failText(e) });
     }
@@ -117,9 +128,14 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
       {view.kind === "failed" && <p role="alert">{view.text}</p>}
       {view.kind === "done" && (
         <div data-testid="live-read-result">
-          <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this laptop"}, {(view.ms / 1000).toFixed(1)} s</p>
+          <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this laptop"}, {seconds(view.ms)} s</p>
+          <p data-testid="live-read-verdict"><VerdictChip level={judge(view.read)} /> for {inCountry(country)}</p>
           <p data-testid="live-read-name">The model read: {view.read.itemName}</p>
-          <VerdictChip level={judge(view.read)} />
+          <details>
+            <summary>Details</summary>
+            <p>Start: {seconds(view.steps.start)} s. Photo: {seconds(view.steps.photo)} s. Model: {seconds(view.steps.model)} s.</p>
+            {view.steps.model > view.ms / 2 && <p>Most of this time was the model's run.</p>}
+          </details>
         </div>
       )}
     </section>

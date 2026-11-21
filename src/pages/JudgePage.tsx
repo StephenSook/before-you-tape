@@ -139,7 +139,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         );
       })}
       </div>
-      <LiveReadPanel load={liveRead} judge={judgeLive} />
+      <LiveReadPanel load={liveRead} judge={judgeLive} country={country} />
       {recorded && (
         <details data-testid="recorded-reads" className="recorded-reads">
           <summary>Recorded on-device reads</summary>
