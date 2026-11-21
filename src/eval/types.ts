@@ -20,8 +20,10 @@ export interface EvalItem {
 
 export interface EvalSet { setId: string; manifestSha256: string; protocolSha256: string; destinations: string[]; items: EvalItem[] }
 
-export interface PathResult { read: ItemRead; msRuns: number[]; level: Level }
-export interface PublicPathResult { numbersExact: boolean | null; msRuns: number[]; level: Level }
+// noItem: the read named no item, so the Pack page would add no card; its level means nothing, but its numbers and
+// its time still count.
+export interface PathResult { read: ItemRead; msRuns: number[]; level: Level; noItem?: true }
+export interface PublicPathResult { numbersExact: boolean | null; msRuns: number[]; level: Level; noItem?: true }
 
 export interface EvalRow {
   itemId: string;

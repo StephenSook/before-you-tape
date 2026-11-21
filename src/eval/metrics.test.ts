@@ -84,6 +84,14 @@ describe("computeEvalMetrics", () => {
     expect(m.misreadsCaught).toEqual({ k: 0, n: 1 });
   });
 
+  it("counts a read of no item against exact numbers, since the model gave its numbers", () => {
+    const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const empty = { read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [5], level: "check" as Level, noItem: true as const };
+    const m = computeEvalMetrics(set([pb]), run(["CA", "PH"].map((d) => row("pb", d, "check", { device: empty }))));
+    expect(m.numbersExact.device).toEqual({ k: 0, n: 1 });
+    expect(m.latency.device.n).toBe(1);
+  });
+
   it("uses the median of warm runs per crop and pairs the two paths", () => {
     const set2 = set([item("a", false, { CA: "ok" }), item("b", false, { CA: "ok" })]);
     const runMs = (ms: Record<string, { device: number[]; cloud: number[] }>) =>

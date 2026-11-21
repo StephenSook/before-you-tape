@@ -115,10 +115,8 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
     const path = async (name: "device" | "cloud", route: "device_only" | "cloud_only") => {
       try {
         const first = await read(route);
-        if (isNoItem(first.read)) {
-          failures.push({ itemId: item.itemId, path: name, error: "no item found" });
-          return null;
-        }
+        const noItem = isNoItem(first.read);
+        if (noItem) failures.push({ itemId: item.itemId, path: name, error: "no item found" });
         const ms = [first.ms];
         for (let k = 1; k < repeat; k++) {
           try {
@@ -127,8 +125,10 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
             failures.push({ itemId: item.itemId, path: name, error: `timing run ${k + 1}: ${message(e)}` });
           }
         }
-        const levels = await levelsOf(i.edition, i.date, i.set.destinations, first);
-        return { read: first.read, msRuns: ms.map((v) => Math.round(v)), levels };
+        // A read of no item gets no card on the Pack page, so it has no level of its own.
+        const levels = noItem ? Object.fromEntries(i.set.destinations.map((d) => [d, "check" as Level]))
+          : await levelsOf(i.edition, i.date, i.set.destinations, first);
+        return { read: first.read, msRuns: ms.map((v) => Math.round(v)), levels, ...(noItem ? { noItem: true as const } : {}) };
       } catch (e) {
         failures.push({ itemId: item.itemId, path: name, error: message(e) });
         return null;
@@ -166,7 +166,8 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
     }
 
     for (const destination of i.set.destinations) {
-      const pathResult = (p: typeof device): PathResult | null => (p ? { read: p.read, msRuns: p.msRuns, level: p.levels[destination]! } : null);
+      const pathResult = (p: typeof device): PathResult | null =>
+        (p ? { read: p.read, msRuns: p.msRuns, level: p.levels[destination]!, ...(p.noItem ? { noItem: true as const } : {}) } : null);
       rows.push({
         itemId: item.itemId, destination, device: pathResult(device), cloud: pathResult(cloud),
         shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook }

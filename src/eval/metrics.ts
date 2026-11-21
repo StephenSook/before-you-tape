@@ -146,6 +146,6 @@ export function computeEvalReport(set: EvalSet, run: AnyRun) {
 export function redactRun(run: EvalRun, set: EvalSet): PublicEvalRun {
   const items = new Map(set.items.map((i) => [i.itemId, i]));
   const pub = (itemId: string, p: PathResult | null): PublicPathResult | null =>
-    p ? { numbersExact: exactOf(items.get(itemId), p), msRuns: [...p.msRuns], level: p.level } : null;
+    p ? { numbersExact: exactOf(items.get(itemId), p), msRuns: [...p.msRuns], level: p.level, ...(p.noItem ? { noItem: true as const } : {}) } : null;
   return { ...run, rows: run.rows.map((r) => ({ ...r, device: pub(r.itemId, r.device), cloud: pub(r.itemId, r.cloud) })) };
 }

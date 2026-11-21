@@ -106,9 +106,11 @@ describe("evalRows", () => {
   it("gives no verdict for a read of no item, as the Pack page adds no card for it", async () => {
     const nothing: ItemRead = { ...base, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
     const models = { device: answers(nothing, "on_device"), hybrid: answers(nothing, "on_device"), cloud: answers(nothing, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
-    expect(out.rows[0]!.device).toBeNull();
-    expect(out.rows[0]!.cloud).toBeNull();
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, repeat: 2 });
+    // The read is kept, marked, and timed every run, so its numbers and its time still count.
+    expect(out.rows[0]!.device).toMatchObject({ noItem: true, level: "check" });
+    expect(out.rows[0]!.device!.msRuns).toHaveLength(2);
+    expect(out.rows[0]!.cloud).toMatchObject({ noItem: true });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "no_item", secondLook: false });
     expect(out.failures.map((f) => `${f.path}:${f.error}`)).toEqual(["device:no item found", "cloud:no item found"]);
   });

@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A device or cloud read that names no item is kept in the eval run, marked `noItem`, and timed on every run, so its numbers still count against exact numbers and its time against latency. Before, the path was dropped, which could raise the exact-number rate. It still gets no level, as the Pack page adds no card for it. Source: review. Verified: the runner test failed first and passes; a metrics test holds that such a read counts as not exact; eval tests, lint and typecheck pass.
+
 - The eval's hazard bound counts a hazard item as a trial only when the shipped route judged every one of its rows, or called it "OK to pack" somewhere, so a run that skipped or failed the shipped route no longer reports 0 of 28 with a bound. Source: review. Verified: a new metrics test failed first and passes; eval tests pass.
 
 - The eval run has a deadline for the whole page run, worked out from its reads (each at Pack's 45-second limit) plus five minutes, so a page that never answers (for example a model check that hangs before the first read) still reaches the cleanup that closes Chrome and Vite. Source: review. Verified: a new test failed first and passes; lint and typecheck pass.
