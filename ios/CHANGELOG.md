@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a cloud choice taken back holds after a relaunch even when its box save failed
+- What: the cloud choice was kept only in the box file. When turning cloud checks off failed to
+  save, the next launch read the last good box and its "allowed", so a photo read on the iPhone
+  could go for a second look without the question. The choice is now also recorded apart from the
+  box file (UserDefaults, written before the box is saved), and a relaunch takes the stricter of
+  the two (off, then unasked, then allowed). An "allowed" whose box save failed is asked again; a
+  box saved before the record existed keeps its own choice. The App Privacy note on UserDefaults
+  names the cloud choice.
+- Source: review (Codex, on the second-look PR).
+- Verified: five new box tests (off and cleared choices hold through a failed save, an allowed
+  choice whose save failed is asked again, saved choices come back, a box with no record keeps its
+  file's choice): the first two failed before and pass after; a new file test reads the record
+  back in a later launch; 196 unit tests pass.
+
 ### fix(ios): turning cloud checks off closes the upload gate before the choice is saved
 - What: "Turn off cloud checks" (and "Turn on cloud checks", which clears the choice) saved the box
   first and closed the upload gate after the save returned, so an upload already allowed could

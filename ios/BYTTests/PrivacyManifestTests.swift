@@ -3,7 +3,7 @@ import Testing
 @testable import BYT
 
 /// Apple refuses an upload whose code uses a "required reason" API without declaring it in the
-/// app's own privacy manifest. The app's code reads UserDefaults (the box id) and file metadata (the
+/// app's own privacy manifest. The app's code reads UserDefaults (the box id and the cloud choice) and file metadata (the
 /// saved box's size). Its own data collection, the crop and the label words sent for a cloud check
 /// after the sender taps Allow, is declared there too; Firebase's own bundles declare theirs.
 @Suite struct PrivacyManifestTests {

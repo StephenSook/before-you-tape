@@ -44,7 +44,7 @@ performance data (no Firebase Performance), and other data. Nothing in the box l
    Functionality), and send the category name, never the read name, as the web and Android apps
    do.
 4. **The app's own privacy manifest.** `ios/BYT/PrivacyInfo.xcprivacy` (PR #127) declares the
-   app's use of UserDefaults (reason CA92.1, the box ID) and file metadata (reason C617.1, the saved
+   app's use of UserDefaults (reason CA92.1, the box ID and the cloud choice) and file metadata (reason C617.1, the saved
    box's size), and the three data types the app's own use sends: the two of a cloud check and the
    Device ID (note 5); a test reads it from the app bundle. The answers on this page are the same
    as that file.

@@ -106,6 +106,16 @@ protocol BoxPersistence {
     /// Throws when the box could not be saved; the error's description is shown to the sender.
     func save(_ snapshot: BoxSnapshot) throws
     func load(boxId: String) -> BoxSnapshot?
+    /// The sender's cloud choice, kept apart from the box file ("allowed", "declined" or "unasked"),
+    /// so a choice whose box save failed still holds after a relaunch.
+    func recordConsent(_ choice: String, boxId: String)
+    func recordedConsent(boxId: String) -> String?
+}
+
+extension BoxPersistence {
+    /// A box kept only in memory has no separate record: its choice goes with it.
+    func recordConsent(_ choice: String, boxId: String) {}
+    func recordedConsent(boxId: String) -> String? { nil }
 }
 
 // The engine's box result (src/engine/verdict.ts), as the screens read it.
@@ -206,16 +216,30 @@ final class BoxStore {
 
     /// Merges a saved box under any items already added, then derives the verdicts afresh.
     func load() {
-        guard let saved = persistence.load(boxId: boxId) else { return }
+        let saved = persistence.load(boxId: boxId)
+        if cloudConsent == nil { cloudConsent = Self.consent(file: saved?.cloudConsent, record: persistence.recordedConsent(boxId: boxId)) }
+        guard let saved else { return }
         savedBoxUnread = false
         // An item id appears once: a damaged file with duplicate ids would make the engine refuse the box.
         var known = Set(items.map(\.itemId))
         let restored = saved.items.filter { known.insert($0.itemId).inserted }
         items = restored + items
         destinationCode = saved.destinationCode
-        if cloudConsent == nil { cloudConsent = saved.cloudConsent }
         sources = saved.sources
         commit()
+    }
+
+    /// How a cloud choice is kept in the separate record.
+    static func consentRecord(_ choice: Bool?) -> String { choice == true ? "allowed" : choice == false ? "declined" : "unasked" }
+
+    /// The cloud choice after a relaunch: the stricter of the box file's and the separate record's (off,
+    /// then unasked, then allowed), so a choice taken back whose box save failed never comes back. A box
+    /// saved before the record existed keeps its own choice.
+    static func consent(file: Bool?, record: String?) -> Bool? {
+        guard let record else { return file }
+        let recorded: Bool? = record == consentRecord(true) ? true : record == consentRecord(false) ? false : nil
+        func rank(_ choice: Bool?) -> Int { choice == false ? 0 : choice == nil ? 1 : 2 }
+        return rank(recorded) <= rank(file) ? recorded : file
     }
 
     @discardableResult
@@ -419,7 +443,9 @@ final class BoxStore {
         commit(result)
     }
 
+    /// The choice is recorded apart from the box file first, so it holds even when the box save fails.
     func setConsent(_ value: Bool?) {
+        persistence.recordConsent(Self.consentRecord(value), boxId: boxId)
         cloudConsent = value
         commit(result)
     }

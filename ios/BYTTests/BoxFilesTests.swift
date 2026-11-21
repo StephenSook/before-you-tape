@@ -16,6 +16,14 @@ import Testing
         #expect(files.load(boxId: "other") == nil)
     }
 
+    /// The cloud choice is kept apart from the box file, per box, and read back by a later launch.
+    @Test func theCloudChoiceIsKeptApartFromTheBoxFile() throws {
+        let defaults = try #require(UserDefaults(suiteName: "consent-\(UUID().uuidString)"))
+        BoxFiles(folder: folder(), defaults: defaults).recordConsent("declined", boxId: "b1")
+        let later = BoxFiles(folder: folder(), defaults: defaults)
+        #expect(later.recordedConsent(boxId: "b1") == "declined" && later.recordedConsent(boxId: "b2") == nil)
+    }
+
     /// The simulator does not report file protection, so the written options are pinned here and
     /// the protection itself is read back on the iPhone.
     @Test func theFileIsWrittenWithCompleteProtection() {

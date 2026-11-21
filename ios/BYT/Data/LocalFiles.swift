@@ -34,7 +34,19 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     /// Atomic, and readable only while the iPhone is unlocked.
     static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
 
-    init(folder: URL = BoxFiles.defaultFolder) { self.folder = folder }
+    /// Where the cloud choice is also kept, apart from the box file.
+    private let defaults: UserDefaults
+
+    init(folder: URL = BoxFiles.defaultFolder, defaults: UserDefaults = .standard) {
+        self.folder = folder
+        self.defaults = defaults
+    }
+
+    static func consentKey(_ boxId: String) -> String { "cloudConsent." + boxId }
+
+    /// UserDefaults, which takes the write even when the box file cannot be written.
+    func recordConsent(_ choice: String, boxId: String) { defaults.set(choice, forKey: Self.consentKey(boxId)) }
+    func recordedConsent(boxId: String) -> String? { defaults.string(forKey: Self.consentKey(boxId)) }
 
     /// Box ids are letters, digits, "-" and "_" only, so an id can never name a file elsewhere.
     func url(boxId: String) -> URL? {
