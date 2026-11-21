@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearLocalBox, deleteSavedBox, rememberDeleted, takeDeletedNotice, type DeleteSavedBoxDeps } from "./deleteSavedBox";
+import { clearLocalBox, deleteSavedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
 
 const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const order: string[] = [];
@@ -87,5 +87,45 @@ describe("the notice after a delete", () => {
   it("ignores anything else stored under its key", () => {
     sessionStorage.setItem("byt.deleted", "something");
     expect(takeDeletedNotice(sessionStorage)).toBeNull();
+  });
+});
+
+describe("savedBoxDeleter", () => {
+  beforeEach(() => localStorage.clear());
+  const parts = (over: Partial<DeleterParts> = {}) => {
+    const p: DeleterParts = {
+      store: { getState: () => ({ boxId: "b1", items: [{ cropKey: "c1" }, { cropKey: null }] }), close: vi.fn(async () => {}) },
+      signedIn: Promise.resolve(),
+      currentUid: () => "alice",
+      deleteFirestoreBox: vi.fn(async () => {}),
+      deleteCropsExcept: vi.fn(async () => 0),
+      storage: localStorage,
+      deleteSignIn: vi.fn(async () => {}),
+      signOut: vi.fn(async () => {}),
+      ...over,
+    };
+    return p;
+  };
+
+  it("deletes the box in Firestore under whoever is signed in now, even on a page that fell back to this browser", async () => {
+    // A page whose own sign-in failed: another tab signed in since, under the same account, and saved the box.
+    const p = parts({ signedIn: Promise.reject(new Error("offline")) });
+    expect(await savedBoxDeleter(p)()).toEqual({ ok: true, signIn: "deleted" });
+    expect(p.store.close).toHaveBeenCalled();
+    expect(p.deleteFirestoreBox).toHaveBeenCalledWith("alice", "b1");
+  });
+
+  it("has nothing in Firestore to delete when no one is signed in", async () => {
+    const p = parts({ currentUid: () => null });
+    await savedBoxDeleter(p)();
+    expect(p.deleteFirestoreBox).not.toHaveBeenCalled();
+  });
+
+  it("deletes only the crops this box's items use", async () => {
+    const p = parts();
+    await savedBoxDeleter(p)();
+    const keep = vi.mocked(p.deleteCropsExcept).mock.calls[0]![0];
+    expect(keep("c1")).toBe(false);
+    expect(keep("another-box-crop")).toBe(true);
   });
 });

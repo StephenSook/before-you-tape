@@ -42,7 +42,7 @@ function itemDoc(item: BoxItem): BoxItem {
 const reopened = (d: Disputes): Disputes =>
   Object.fromEntries(Object.entries(d).map(([k, v]) => [k, { ...(v as object), resolved: false }])) as Disputes;
 
-export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string), now: () => number = () => Date.now()): BoxOps {
+export function firestorePersistence(db: Firestore, uid: string, editionId: string | (() => string), now: () => number = () => Date.now()): BoxOps & Required<Pick<BoxOps, "deleteBox">> {
   const edition = () => (typeof editionId === "function" ? editionId() : editionId);
   // Each box's expiry as last created, read or loaded here: null for a box from before expiry.
   const expiries = new Map<string, Timestamp | null>();
@@ -188,7 +188,5 @@ export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: stri
     putMeta: (boxId, meta) => target.then((p) => p.putMeta(boxId, meta)),
     putItem: (boxId, item) => target.then((p) => p.putItem(boxId, item)),
     deleteItem: (boxId, itemId) => target.then((p) => p.deleteItem(boxId, itemId)),
-    // A box kept only in this browser has nothing in Firestore to delete.
-    deleteBox: (boxId) => target.then((p) => p.deleteBox?.(boxId)),
   };
 }

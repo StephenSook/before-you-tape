@@ -30,13 +30,6 @@ describe("persistenceAfterSignIn", () => {
     expect(cloud.deleteItem).toHaveBeenCalledWith("b1", "i1");
   });
 
-  it("passes a whole-box delete to Firestore after sign-in, and does nothing when the box was only kept in this browser", async () => {
-    const cloud = { ...fake(), deleteBox: vi.fn<(boxId: string) => Promise<void>>(async () => {}) };
-    await persistenceAfterSignIn(Promise.resolve("alice"), () => cloud, fake()).deleteBox!("b1");
-    expect(cloud.deleteBox).toHaveBeenCalledWith("b1");
-    await expect(persistenceAfterSignIn(Promise.reject(new Error("offline")), vi.fn(), fake()).deleteBox!("b1")).resolves.toBeUndefined();
-  });
-
   it("keeps the box in this browser when sign-in fails", async () => {
     const local = fake();
     const make = vi.fn();

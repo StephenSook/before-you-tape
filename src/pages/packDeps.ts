@@ -13,7 +13,7 @@ import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { deleteCropsExcept } from "../data/crops";
-import { clearLocalBox, deleteSavedBox, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
+import { savedBoxDeleter, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
@@ -82,14 +82,16 @@ export function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
-    const deleteThisBox = (from?: DeleteStep) => deleteSavedBox(box.getState().boxId, {
-      stopSaving: () => box.close(),
-      deleteBox: async (id) => { await persistence.deleteBox?.(id); },
-      deleteCrops: () => deleteCropsExcept(() => false),
-      clearLocal: (id) => clearLocalBox(localStorage, id),
+    const deleteThisBox = savedBoxDeleter({
+      store: box,
+      signedIn: signIn,
+      currentUid: () => fb.auth.currentUser?.uid ?? null,
+      deleteFirestoreBox: (uid, id) => firestorePersistence(fb.db, uid, editionId).deleteBox(id),
+      deleteCropsExcept,
+      storage: localStorage,
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
-    }, from);
+    });
     built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));

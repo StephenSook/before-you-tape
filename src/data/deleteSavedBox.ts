@@ -48,6 +48,42 @@ export function clearLocalBox(storage: Storage, boxId: string): void {
   if (storage.getItem("byt.currentBox") === boxId) storage.removeItem("byt.currentBox");
 }
 
+// The live page's parts for a delete.
+export interface DeleterParts {
+  store: { getState(): { boxId: string; items: ReadonlyArray<{ cropKey: string | null }> }; close(): Promise<void> };
+  // Settles once this page's own sign-in has finished, whether it worked or not.
+  signedIn: Promise<unknown>;
+  // Whoever is signed in now: another tab may have signed in after this page's own sign-in failed.
+  currentUid: () => string | null;
+  deleteFirestoreBox: (uid: string, boxId: string) => Promise<void>;
+  deleteCropsExcept: (keep: (key: string) => boolean) => Promise<unknown>;
+  storage: Storage;
+  deleteSignIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+// The box in Firestore is deleted under whoever is signed in when the delete runs, not through this page's own
+// saving, which may have fallen back to this browser. Only the crops this box's items use are deleted; any other
+// crop is removed when the next box opens (cropSweep).
+export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise<DeleteResult> {
+  return (from) => {
+    const { boxId, items } = p.store.getState();
+    const crops = new Set(items.flatMap((i) => (i.cropKey ? [i.cropKey] : [])));
+    return deleteSavedBox(boxId, {
+      stopSaving: () => p.store.close(),
+      deleteBox: async (id) => {
+        await p.signedIn.catch(() => {});
+        const uid = p.currentUid();
+        if (uid) await p.deleteFirestoreBox(uid, id);
+      },
+      deleteCrops: () => p.deleteCropsExcept((key) => !crops.has(key)),
+      clearLocal: (id) => clearLocalBox(p.storage, id),
+      deleteSignIn: p.deleteSignIn,
+      signOut: p.signOut,
+    }, from);
+  };
+}
+
 // A delete ends by reloading the page onto a new, empty box; this keeps how the sign-in went for that page to say once.
 const DELETED_KEY = "byt.deleted";
 

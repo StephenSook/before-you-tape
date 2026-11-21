@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Delete my saved box deletes the box in Firestore under whoever is signed in when it runs (savedBoxDeleter), not through the page's own saving: a page whose sign-in failed kept the box only in this browser and skipped Firestore, while another tab, signed in since under the same account, had saved it there, and the sign-in was then deleted with the box left behind. It deletes only the crops this box's items use; any other crop is removed when the next box opens. The sign-in wrapper's unused whole-box delete is gone. Source: review. Verified: three new savedBoxDeleter tests failed first and pass; typecheck, build, all 46 emulator tests and the full suite pass.
+
 - Try deleting again starts at the step that stopped (the panel passes it to deleteSavedBox), so a retry after a failed sign-in step does not delete this device's crops or box pointer again, which another tab may already be using for a new box. Source: review. Verified: the PackPage retry test (the second call names the sign-in step) failed first and passes; full suite passes.
 
 - Delete my saved box first closes the page's box store, so a save still on its way lands before the delete and nothing is kept or sent after it. A failed sign-out after a sign-in that needs a recent login now counts as the sign-in step failing, not as signed out. deleteSavedBox can start at a given step, and clearLocalBox removes the current-box pointer only while it names the deleted box. Source: review. Verified: new tests failed first and pass; full suite passes.
