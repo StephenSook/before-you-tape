@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import bundled from "../rules/edition.json";
 import { chooseEdition } from "../src/data/editionSource";
 import { canonicalJson, parseEdition, sha256Hex } from "../src/engine/edition";
-import { editionDocument, firestoreFields } from "./publish-edition";
+import { editionDocument, firestoreFields, publishEdition } from "./publish-edition";
 
 describe("editionDocument", () => {
   it("names the document by the edition id and holds its canonical JSON and SHA-256", async () => {
@@ -28,5 +28,45 @@ describe("editionDocument", () => {
     expect(firestoreFields({ id: "byt-x", json: "{}", sha256: "a".repeat(64) })).toEqual({
       editionId: { stringValue: "byt-x" }, json: { stringValue: "{}" }, sha256: { stringValue: "a".repeat(64) },
     });
+  });
+});
+
+describe("publishEdition", () => {
+  const id = (bundled as { editionId: string }).editionId;
+  const recorder = () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const lines: string[] = [];
+    const fetchFake = (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    return { calls, lines, fetchFake, log: (l: string) => { lines.push(l); } };
+  };
+
+  it("in a dry run writes nothing, needs no token, and prints the pin", async () => {
+    const r = recorder();
+    await publishEdition({ args: ["--dry-run"], token: undefined, raw: bundled, fetch: r.fetchFake, log: r.log });
+    expect(r.calls).toHaveLength(0);
+    const d = await editionDocument(bundled);
+    expect(r.lines).toContain(`rules_edition_id     ${id}`);
+    expect(r.lines).toContain(`rules_edition_sha256 ${d.sha256}`);
+    expect(r.lines.join("\n")).toMatch(/not written \(--dry-run\)/);
+  });
+
+  it("writes the document once, at ruleEditions/{id}, with the operator's token", async () => {
+    const r = recorder();
+    await publishEdition({ args: [], token: "t0ken", raw: bundled, fetch: r.fetchFake, log: r.log });
+    expect(r.calls).toHaveLength(1);
+    expect(r.calls[0]?.url).toBe(`https://firestore.googleapis.com/v1/projects/before-you-tape-2026/databases/(default)/documents/ruleEditions/${id}`);
+    expect(r.calls[0]?.init?.method).toBe("PATCH");
+    expect((r.calls[0]?.init?.headers as Record<string, string>).Authorization).toBe("Bearer t0ken");
+    expect(JSON.parse(String(r.calls[0]?.init?.body))).toEqual({ fields: firestoreFields(await editionDocument(bundled)) });
+    expect(r.lines).toContain(`published ruleEditions/${id}`);
+  });
+
+  it("refuses a real write with no token", async () => {
+    const r = recorder();
+    await expect(publishEdition({ args: [], token: "", raw: bundled, fetch: r.fetchFake, log: r.log })).rejects.toThrow(/ACCESS_TOKEN/);
+    expect(r.calls).toHaveLength(0);
   });
 });

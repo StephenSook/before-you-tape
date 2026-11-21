@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- scripts/publish-edition.ts takes --dry-run: it prints the ruleEditions document's id, size and SHA-256 and the Remote Config pin, and writes nothing, so it needs no token. The write itself is unchanged. Source: review (the edition pin is published with a dry run first). Verified: three new tests (a dry run makes no request and prints the pin; a write makes one PATCH to ruleEditions/{id} with the operator's token and the canonical fields; a write with no token is refused) failed first and pass; a dry run on revision 5 printed byt-1e330a4fdf37, 42,824 bytes, SHA-256 b63c55af...3038bc, the hash an independent canonical JSON in Python also gives; the full suite passes.
+
 - CA-P-12's reason now reads: A photo can't show whether an ad appears in every edition distributed in the publication's home country. It said every edition of a publication's home country. Source: review of the revision 5 desk pass sheet. Verified: a test pinning the reason failed first and passes; the full suite passes.
 
 - Four more lines take USPS's exact scope: CA-P-06 says vaping liquid with a nicotine level of 66 mg/g or more, by weight (it said a high level; the app takes out all vaping either way); CA-O-02 says postcards are excepted from the full-address rule; CA-R-02 says drugs and medicines; PH-P-05 adds lottery circulars. Wording only. Source: the person's desk pass review and a second-model check of it. Verified: the wording test failed first and passes; the lines share no six words in a row with their USPS paragraphs; the full suite passes.
