@@ -168,6 +168,37 @@ describe("evaluateBox", () => {
       const v = run([perfume], "CA").items.perfume!;
       expect(v.question?.id).toBe("label_alcohol");
     });
+
+    it("is still asked when its answer would change another item in the box", () => {
+      // Three phones with multi-cell batteries are over the box's limit; a "Used" answer would take one out of the
+      // lithium count and change the other two.
+      const phones = ["a", "b", "c"].map((id) => input({ itemId: id, read: { category: "phone", batteryWords: true, labelText: "7.7V 5000mAh 38.5Wh",
+        volts: 7.7, milliampHours: 5000, wattHours: 38.5 }, answers: { cell_count: "more_than_one" } }));
+      const r = run(phones, "CA");
+      for (const id of ["a", "b", "c"]) {
+        expect(r.items[id]!.level, id).toBe("take_out");
+        expect(r.items[id]!.question?.id, id).toBe("device_condition");
+      }
+    });
+
+    it("never leaves a Take it out without the hit that decides it", () => {
+      const e = structuredClone(ed);
+      const rule = e.rules.find((x) => x.id === "USPS-INTL-LI-METAL-CLASS")!;
+      rule.outcome = "take_out";
+      const watch = input({ itemId: "watch", quantity: 5, read: { category: "smartwatch", batteryWords: true, labelText: "LITHIUM METAL 1.5 g", lithiumGrams: 1.5,
+        retailBox: "sealed" }, answers: { device_condition: "new_sealed" } });
+      const v = run([watch], "CA", "2026-11-20", e).items.watch!;
+      if (v.level === "take_out") expect(v.hits.some((h) => h.level === "take_out")).toBe(true);
+    });
+
+    it("stays quick for a big box of items with no battery", () => {
+      const many = Array.from({ length: 100 }, (_, n) => ({ ...perfume, itemId: `perfume-${n}` }));
+      run(many, "PH");
+      const t0 = performance.now();
+      const r = run(many, "PH");
+      expect(performance.now() - t0).toBeLessThan(100);
+      expect(r.items["perfume-7"]!.question).toBeNull();
+    });
   });
 });
 

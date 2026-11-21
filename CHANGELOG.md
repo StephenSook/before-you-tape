@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The settled-question check is stricter and cheaper. A question is dropped only when a take-out hit that does not hang on it exists, and when, with every answer, the item stays out and every other item in the box keeps its verdict (a "Used" answer can change the lithium count of the other phones). An item with no battery is judged alone, so a box of 100 perfumes stays quick. Source: review. Verified: three new engine tests (three phones keep their question, a take-out always keeps its deciding hit, 100 perfumes under 100 ms) failed first and pass; the full unit suite passes.
+
 - The iPhone's engine file (`ios/BYTCore/Sources/BYTCore/Resources/byt-engine.js` and its SHA-256) is rebuilt from this engine, with the settled-question change. Source: the engine change. Verified: `ios/scripts/check_engine_bundle.sh` reports it fresh (54,035 bytes, sha256 f15cc85132c7).
 
 - An item another rule has already taken out is no longer asked a question when every answer to it would still take it out. For example, a perfume to the Philippines is out under the line on liquids, so it is not asked whether its label lists alcohol; to Canada, where the answer can change the verdict, it still is. The engine checks this by judging the item with each answer in turn. Source: UI review. Verified: a new engine test (the Philippines not asked, Canada asked) failed first and passes; the shared vectors, the edition check and the full unit suite pass.
