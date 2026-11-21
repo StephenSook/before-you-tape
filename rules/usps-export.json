@@ -84,10 +84,10 @@
     "id": "USPS-INTL-MATCHES-LIGHTERS",
     "layer": "usps_export",
     "scope": "item",
-    "section": "Pub 52 623 (Class 4); Packaging Instruction 3C",
+    "section": "Pub 52 623 (Classes 3 and 4); Packaging Instruction 3C",
     "url": "https://pe.usps.com/text/pub52/pub52c6_006.htm",
     "basis": "summarized",
-    "ourWording": "Matches and lighters can't go by international mail.",
+    "ourWording": "Matches and lighters with fuel can't go by international mail. A photo can't show that a lighter is empty, so the app takes every lighter out.",
     "when": { "any": [{ "fact": "tags", "op": "has", "value": "lighter" }, { "fact": "tags", "op": "has", "value": "matches" }] },
     "outcome": "take_out"
   },

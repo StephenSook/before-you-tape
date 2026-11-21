@@ -79,12 +79,18 @@ describe("destination editions", () => {
     expect(wording("CA", "CA-P-12")).not.toMatch(/Canada-only/);
   });
 
-  it("says when the app is stricter than the Canada lighter line, and why", () => {
+  it("says when the app is stricter than the lighter rules, and why", () => {
+    // Canada lets a new lighter with no fuel through, and Pub 52 623 bars matches and lighters with fuel (Packaging
+    // Instruction 3C sits under Class 3), not empty ones. A photo can't show that a lighter is empty, so the app
+    // takes every lighter out and says that is its own choice.
     const l = ed.destinations.CA?.lines.find((x) => x.lineId === "CA-P-02");
-    // Canada lets a new lighter with no fuel through; USPS-INTL-MATCHES-LIGHTERS takes every lighter out.
-    expect(l?.ourWording).toMatch(/Canada allows an empty new lighter, but USPS takes no lighters by international mail/);
+    expect(l?.ourWording).toMatch(/Canada allows an empty new lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out/);
+    expect(l?.ourWording).not.toMatch(/USPS takes no lighters/);
     expect(l?.matches).toEqual([{ tag: "lighter", effect: "take_out" }]);
-    expect(ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS")?.outcome).toBe("take_out");
+    const usps = ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS");
+    expect(usps?.outcome).toBe("take_out");
+    expect(usps?.ourWording).toMatch(/^Matches and lighters with fuel can't go by international mail\. A photo can't show/);
+    expect(usps?.section).toBe("Pub 52 623 (Classes 3 and 4); Packaging Instruction 3C");
   });
 
   it("checks a toy gun to Canada under the firearms line, not the replica munitions line", () => {
