@@ -32,6 +32,24 @@ import Testing
         #expect(BoxFiles(folder: dir).recordedConsent(boxId: "../b3") == nil)
     }
 
+    /// A choice taken back whose record cannot be written (a full disk, say) never leaves the old "allowed"
+    /// to come back: an empty marker (no space for content needed) and the old record's removal stand in
+    /// for it, and the choice reads as taken back.
+    @Test func aTakenBackChoiceThatCannotBeWrittenStillHolds() throws {
+        let dir = folder()
+        let files = BoxFiles(folder: dir)
+        #expect(files.recordConsent(BoxStore.consentRecord(true), boxId: "b1"))
+        files.writeConsent = { _, _ in throw CocoaError(.fileWriteOutOfSpace) }
+        #expect(!files.recordConsent(BoxStore.consentRecord(false), boxId: "b1"))
+        #expect(BoxFiles(folder: dir).recordedConsent(boxId: "b1") == BoxStore.consentRecord(false))
+        #expect(!files.recordConsent(BoxStore.consentRecord(nil), boxId: "b2"))
+        #expect(BoxFiles(folder: dir).recordedConsent(boxId: "b2") == BoxStore.consentRecord(nil))
+        // A later choice that is written replaces the marker.
+        files.writeConsent = { try $0.write(to: $1, options: BoxFiles.writeOptions) }
+        #expect(files.recordConsent(BoxStore.consentRecord(true), boxId: "b1"))
+        #expect(BoxFiles(folder: dir).recordedConsent(boxId: "b1") == BoxStore.consentRecord(true))
+    }
+
     /// A choice file that is there but cannot be read is not "no record": it reads as unasked, so the
     /// stricter of the two records still holds and nothing is allowed from the box file alone.
     @Test func aChoiceFileThatCannotBeReadCountsAsUnasked() throws {

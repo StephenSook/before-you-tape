@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a choice taken back whose record cannot be written still holds after a relaunch
+- What: when turning cloud checks off failed to write both the choice file and the box (a full disk,
+  say), both still held the old "allowed", and a relaunch opened the cloud gate again. Now a choice
+  taken back (off, or asked again) whose file cannot be written leaves an empty marker,
+  `<id>.consent-declined` or `<id>.consent-unasked`, which needs no space for content, and removes
+  the old choice file; the marker reads as that choice and wins over any "allowed". A later choice
+  that is written removes the markers. The in-app warning stays.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new file test (an "allowed" on disk, then off and unasked writes that fail; then a
+  good write) passes; written with the fix, so its first failure against the old code was a compile
+  error (the test sets the new write hook), not a behaviour check; 217 unit tests pass.
+
 ### fix(ios): a cloud upload asks again inside itself whether it is still wanted
 - What: the cloud runner checked "still wanted" with the pause and then started the upload as a task
   of its own, and only afterwards linked the read's cancellation to it. An item removed in that gap

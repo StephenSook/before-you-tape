@@ -41,24 +41,49 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         url(boxId: boxId).map { $0.deletingPathExtension().appendingPathExtension("consent") }
     }
 
+    /// How the choice file is written; a test can make it fail.
+    var writeConsent: (Data, URL) throws -> Void = { try $0.write(to: $1, options: BoxFiles.writeOptions) }
+
+    /// An empty file that stands for a choice taken back (off, or asked again) whose record could not be
+    /// written: `<id>.consent-declined` or `<id>.consent-unasked`. Empty, so it needs no space for content.
+    func consentMarkerURL(boxId: String, _ choice: Bool?) -> URL? {
+        guard choice != true else { return nil }
+        return url(boxId: boxId).map { $0.deletingPathExtension().appendingPathExtension(choice == false ? "consent-declined" : "consent-unasked") }
+    }
+
     /// Written at once and atomically, apart from the box file, so the choice is on disk when this
-    /// returns even when the box cannot be saved. A write that fails is said in `problem`.
+    /// returns even when the box cannot be saved. When a choice taken back cannot be written, an empty
+    /// marker stands in for it and the old record is removed, so an old "allowed" never comes back. A
+    /// write that fails is said in `problem`.
     @discardableResult
     func recordConsent(_ choice: String, boxId: String) -> Bool {
         guard let url = consentURL(boxId: boxId) else { return false }
+        let markers = [false, nil].compactMap { consentMarkerURL(boxId: boxId, $0) }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try Data(choice.utf8).write(to: url, options: Self.writeOptions)
+            try writeConsent(Data(choice.utf8), url)
+            for marker in markers { try? FileManager.default.removeItem(at: marker) }
             return true
         } catch {
             problem = "The cloud choice is not saved: \(error.localizedDescription)"
+            if choice != BoxStore.consentRecord(true),
+               let marker = consentMarkerURL(boxId: boxId, choice == BoxStore.consentRecord(false) ? false : nil) {
+                FileManager.default.createFile(atPath: marker.path, contents: nil)
+                try? FileManager.default.removeItem(at: url)
+            }
             return false
         }
     }
 
-    /// nil only when there is no record; a record that is there but cannot be read (the iPhone locked, a
-    /// read error) reads as unasked, so the stricter record still holds and nothing is allowed by default.
+    /// nil only when there is no record. A marker of a choice taken back wins (off before asked again).
+    /// A record that is there but cannot be read (the iPhone locked, a read error) reads as unasked, so the
+    /// stricter record still holds and nothing is allowed by default.
     func recordedConsent(boxId: String) -> String? {
+        for choice in [false, nil] as [Bool?] {
+            if let marker = consentMarkerURL(boxId: boxId, choice), FileManager.default.fileExists(atPath: marker.path) {
+                return BoxStore.consentRecord(choice)
+            }
+        }
         guard let url = consentURL(boxId: boxId), FileManager.default.fileExists(atPath: url.path) else { return nil }
         guard let data = try? Data(contentsOf: url) else { return BoxStore.consentRecord(nil) }
         return String(decoding: data, as: UTF8.self)
