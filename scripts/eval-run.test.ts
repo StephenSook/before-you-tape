@@ -83,7 +83,10 @@ describe("eval-run", () => {
     expect(() => preflight({ ...ok, argv: ["--date", "2026-11-21", "--paths", "device,device,cloud"] })).toThrow(/once/);
     expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "pw:protocol" } })).toThrow(/DEBUG/);
     expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "pw:*" } })).toThrow(/DEBUG/);
-    expect(preflight({ ...ok, env: { ...ok.env, DEBUG: "vite:*" } }).project).toBe("lab-project");
+    expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "*" } })).toThrow(/DEBUG/);
+    expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "vite:*,pw*" } })).toThrow(/DEBUG/);
+    expect(() => preflight({ ...ok, env: { ...ok.env, DEBUG: "vite:*" } })).toThrow(/DEBUG/);
+    expect(preflight({ ...ok, env: { ...ok.env, DEBUG: "" } }).project).toBe("lab-project");
   });
 
   it("names a run the eval run only when it covers every path and every item", () => {

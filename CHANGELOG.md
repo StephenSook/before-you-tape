@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval run starts only with `DEBUG` unset: a wildcard such as `DEBUG=*` also turns on Playwright's protocol log, which would record the script carrying the App Check debug token. Before, only `pw` patterns were refused. Source: review. Verified: the preflight test (now with `*` and a mixed list) failed first and passes.
+
 - The eval run now:
   - Starts Vite with an environment built from `.env.eval.local` alone. Shell `VITE_` values are dropped, and every `VITE_` key of the live `.env.local` is set empty, so Vite cannot mix live settings into the eval page.
   - Refuses duplicate `--paths` and a Playwright `DEBUG` log, which would record the debug token.

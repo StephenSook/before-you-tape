@@ -149,8 +149,9 @@ export function preflight(i: { argv: string[]; env: Record<string, string | unde
   const paths = (arg("--paths") ?? ALL_PATHS.join(",")).split(",").map((p) => p.trim()) as EvalPath[];
   if (paths.length === 0 || paths.some((p) => !ALL_PATHS.includes(p))) throw new Error(`--paths must name some of ${ALL_PATHS.join(", ")}`);
   if (new Set(paths).size !== paths.length) throw new Error("--paths must name each path once");
-  // Playwright's protocol log would record the script that carries the debug token.
-  if (/(^|,)\s*-?pw(:|$|\*)/.test(i.env.DEBUG ?? "")) throw new Error("unset DEBUG: a Playwright debug log would record the App Check debug token");
+  // Any DEBUG value can turn on Playwright's protocol log (a wildcard matches it too), which would record the script
+  // that carries the debug token; so the run starts only with DEBUG unset.
+  if ((i.env.DEBUG ?? "").trim() !== "") throw new Error("unset DEBUG: a debug log could record the App Check debug token");
   const live = i.file(".env.local");
   const project = evalEnv(i.file(".env.eval.local"), live === null ? {} : parseEnvFile(live));
   const profile = resolve(requireEnv(i.env, "BYT_NANO_PROFILE"));
