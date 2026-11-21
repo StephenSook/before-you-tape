@@ -1,5 +1,6 @@
-// A photo the sender added is never read whole: they place a box over the item, see the exact part that
-// will be checked, and only "Check this part" sends it. Everything outside the box stays on this device.
+// A photo the sender added is never read whole: they place a box over the item (the photo outside it is dimmed),
+// and only "Check this part" sends the part inside it. Everything outside the box stays on this device. The
+// button carries the SHA-256 of the exact part it will send, so a test can match it to the request.
 // The box moves by dragging or with the arrow keys, and changes size from its corner or with Shift and
 // the arrow keys.
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
@@ -22,6 +23,8 @@ const STEP = 0.02;
 const MIN = 0.1;
 const DISPLAY_MAX = 1024;
 const round = (v: number) => Math.round(v * 100) / 100;
+const textSha256 = async (text: string) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 // Keeps the box at least MIN wide and tall, and inside the photo.
 export function clampBox(b: Box): Box {
@@ -34,7 +37,7 @@ export function PhotoCrop({ source, initialBox, cropPart, onSend, onCancel, onEr
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState<Box>(() => clampBox(initialBox));
-  const [preview, setPreview] = useState<{ box: Box; part: ImagePart } | null>(null);
+  const [preview, setPreview] = useState<{ box: Box; part: ImagePart; sha256: string } | null>(null);
   const drag = useRef<{ mode: "move" | "size"; x: number; y: number; start: Box } | null>(null);
 
   // Draw the photo once, scaled down for the screen; the crop always comes from the full source.
@@ -55,7 +58,10 @@ export function PhotoCrop({ source, initialBox, cropPart, onSend, onCancel, onEr
   useEffect(() => {
     let current = true;
     const t = setTimeout(() => {
-      latest.current.cropPart(source, box).then((part) => { if (current) setPreview({ box, part }); })
+      latest.current.cropPart(source, box).then(async (part) => {
+        const sha256 = await textSha256(part.base64);
+        if (current) setPreview({ box, part, sha256 });
+      })
         .catch((e: unknown) => { if (current) latest.current.onError?.(e); });
     }, 120);
     return () => { current = false; clearTimeout(t); };
@@ -87,24 +93,18 @@ export function PhotoCrop({ source, initialBox, cropPart, onSend, onCancel, onEr
 
   const ready = preview !== null && preview.box === box;
   return (
-    <div data-testid="photo-crop">
-      <p className="stage-line">Move the box over the item. Only the part inside it is checked.</p>
-      <div ref={frameRef} style={{ position: "relative", touchAction: "none" }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-        <canvas ref={canvasRef} role="img" aria-label="The photo you added" style={{ display: "block", width: "100%", height: "auto" }} />
+    <div data-testid="photo-crop" className="photo-crop">
+      <div ref={frameRef} className="crop-frame" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        <canvas ref={canvasRef} role="img" aria-label="The photo you added" className="crop-photo" />
         <div role="group" tabIndex={0} aria-label="Crop box. Arrow keys move it; Shift and arrow keys change its size." data-testid="crop-box"
           className="crop-box" onKeyDown={onKey} onPointerDown={(e) => beginDrag("move", e)}
           style={{ position: "absolute", left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.w * 100}%`, height: `${box.h * 100}%` }}>
           <div className="crop-handle" aria-hidden="true" onPointerDown={(e) => beginDrag("size", e)} />
         </div>
       </div>
-      {preview && (
-        <figure className="crop-preview">
-          <img src={`data:${preview.part.mimeType};base64,${preview.part.base64}`} alt="The part that will be checked" />
-          <figcaption>The part that will be checked</figcaption>
-        </figure>
-      )}
-      <p>
-        <button type="button" data-testid="send-crop" disabled={!ready} onClick={() => { if (ready) onSend(preview.part); }}>Check this part</button>{" "}
+      <p className="crop-actions">
+        <button type="button" data-testid="send-crop" disabled={!ready} {...(ready ? { "data-part-sha256": preview.sha256 } : {})}
+          onClick={() => { if (ready) onSend(preview.part); }}>Check this part</button>{" "}
         <button type="button" onClick={onCancel}>Cancel</button>
       </p>
     </div>
