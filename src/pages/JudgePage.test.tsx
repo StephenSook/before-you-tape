@@ -18,7 +18,12 @@ describe("JudgePage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
-    expect(within(card("Body lotion")).getByRole("img")).toHaveAttribute("src", "/eval/items/own-18.jpg");
+    // A small WebP copy, with its size, so the page loads fast and does not shift as photos arrive.
+    const img = within(card("Body lotion")).getByRole("img");
+    expect(img).toHaveAttribute("src", "/eval/thumbs/own-18-480.webp");
+    expect(img).toHaveAttribute("srcset", "/eval/thumbs/own-18-240.webp 240w, /eval/thumbs/own-18-480.webp 480w");
+    expect(img).toHaveAttribute("sizes", "(max-width: 700px) 50vw, 240px");
+    expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
     expect(within(card("Body lotion")).getByText("Photo by the project owner")).toBeInTheDocument();
     expect(within(card("Power bank")).getByText(/^Photo: .*CC BY-SA 4\.0/)).toBeInTheDocument();
     expect(verdict("Body lotion")).toHaveTextContent("Take it out");
@@ -105,6 +110,40 @@ describe("JudgePage", () => {
   it("marks Canada in the country buttons with the suspension the post office has announced", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
+  it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    const grid = screen.getByTestId("sample-grid");
+    expect(within(grid).getAllByTestId("sample-card")).toHaveLength(9);
+    const c = card("Body lotion");
+    // The chip sits on the photo's corner: both in one photo box.
+    const photo = within(c).getByRole("img").parentElement!;
+    expect(photo).toHaveClass("sample-photo");
+    expect(within(photo).getByTestId("verdict-chip")).toBeInTheDocument();
+    const more = within(c).getByText("Label and photo credit").closest("details")!;
+    expect(more).not.toHaveAttribute("open");
+    expect(within(more).getByText(/^Label:/)).toBeInTheDocument();
+    expect(within(more).getByText("Photo by the project owner")).toBeInTheDocument();
+  });
+
+  it("shows matched pairs below the country picker, judged for the country picked", async () => {
+    const read = { itemName: "Phone", category: "phone" as const, labelText: "LI-ION 3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
+      wattHours: 15.4, lithiumGrams: 0, batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
+      glassContainer: false, powder: false, retailBox: "sealed" as const, evidence: "label_read" as const };
+    const side = (label: string, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
+      credit: "Photo by the project owner", read, answers: { device_condition: answer } });
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Same phone", left: side("New", "new_sealed"), right: side("Used", "used") }]} />);
+    const pair = screen.getByTestId("matched-pair");
+    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
+    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+  });
+
+  it("shows no matched pairs section when none is given", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[]} />);
+    expect(screen.queryByTestId("matched-pair")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Same item, one thing different" })).toBeNull();
   });
 });
 

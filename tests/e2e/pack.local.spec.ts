@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { expect, test } from "./fixtures";
 
 // Local only: the AI Logic endpoint is stubbed, so this checks our page, not the model. The photo is a
@@ -30,11 +31,11 @@ test("upload, verdict, country flip", async ({ page }) => {
   // The photo is never sent whole: the request carries exactly the part the crop step showed.
   const send = page.getByRole("button", { name: "Check this part" });
   await expect(send).toBeEnabled();
-  const shown = (await page.getByRole("img", { name: "The part that will be checked" }).getAttribute("src"))?.split(",")[1];
+  const shownSha = await send.getAttribute("data-part-sha256");
   await send.click();
   // A new box starts in the Philippines, where liquid lotion is out; Canada takes it.
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("Take it out");
-  expect(sentImages).toEqual([shown]);
+  expect(sentImages.map((b) => createHash("sha256").update(b).digest("hex"))).toEqual([shownSha]);
   await page.getByTestId("destination-picker").getByRole("radio", { name: /^Canada/ }).click();
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("OK to pack");
   await expect(page.getByTestId("recheck-line")).toContainText("0 model calls");

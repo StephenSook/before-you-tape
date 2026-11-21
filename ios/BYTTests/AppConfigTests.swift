@@ -16,8 +16,9 @@ import Testing
             models.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
         }, parse: { ParsedRead(read: $0) })
-        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader,
-                         appVersion: appVersion, fetchEdition: fetchEdition)
+        // A model that cannot read photos, so a photo needs the cloud.
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                         reader: reader, appVersion: appVersion, fetchEdition: fetchEdition)
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
         return m
@@ -75,6 +76,12 @@ import Testing
             let c = lock.withLock { () -> CheckedContinuation<Void, Never>? in open = true; defer { waiter = nil }; return waiter }
             c?.resume()
         }
+        /// Returns once something waits at the gate, or after `seconds`. A fixed number of yields was
+        /// not enough on a busy Mac; the caller's own check still decides.
+        func untilWaiting(seconds: Double = 5) async {
+            let end = ContinuousClock.now + .seconds(seconds)
+            while !isWaiting, ContinuousClock.now < end { try? await Task.sleep(for: .milliseconds(1)) }
+        }
     }
 
     /// A request that finishes late (here its fetch fails) never replaces the edition a newer pin installed.
@@ -86,7 +93,7 @@ import Testing
             return current.text
         })
         let late = Task { await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-late", "rules_edition_sha256": current.sha])) }
-        for _ in 0..<1000 where !gate.isWaiting { await Task.yield() }
+        await gate.untilWaiting()
         #expect(gate.isWaiting)
         await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-current", "rules_edition_sha256": current.sha]))
         #expect(m.box?.result?.editionId == "byt-current")
@@ -109,7 +116,7 @@ import Testing
         await m.applyConfig(pinA)
         #expect(m.box?.result?.editionId == "byt-a")
         let slow = Task { await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-b", "rules_edition_sha256": b.sha])) }
-        for _ in 0..<1000 where !gate.isWaiting { await Task.yield() }
+        await gate.untilWaiting()
         #expect(gate.isWaiting)
         await m.applyConfig(pinA)
         gate.release()
@@ -197,7 +204,8 @@ import Testing
             names.names.append(name)
             return FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: lotion, tokens: nil))])
         }, parse: { ParsedRead(read: $0) })
-        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader)
+        let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                         reader: reader)
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
         #expect(m.config.killCloud && m.config.pauseUnknown)

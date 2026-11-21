@@ -262,6 +262,30 @@ describe("PackPage", () => {
     localStorage.clear();
   });
 
+  it("clears a read's failure alert once a typed item goes in the box", async () => {
+    const failing = { generate: vi.fn(async () => { throw new Error("the model failed"); }) };
+    setup({ models: { device: failing, hybrid: failing, cloud: failing } });
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByTestId("newest-sheet");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("opens the back camera on a phone, and the front one on a laptop", async () => {
+    const openCamera = vi.fn(okCamera);
+    setup({ openCamera, phone: true });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(openCamera).toHaveBeenCalledWith("environment"));
+    cleanup();
+    const laptop = vi.fn(okCamera);
+    setup({ openCamera: laptop });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(laptop).toHaveBeenCalledWith("user"));
+  });
+
   it("shows the sample photo's recorded read, labelled, with no model call and no cloud answer needed", async () => {
     const { models, store } = setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 } }, null);
     await tryRecordedSample();
@@ -493,6 +517,24 @@ describe("PackPage", () => {
   it("marks Canada in the country buttons with the suspension the post office has announced", () => {
     setup({ today: "2026-11-21" });
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
+  it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {
+    setup({ newestSheetMs: 60 });
+    const add = async (name: string) => {
+      await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+      await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+      await userEvent.type(screen.getByLabelText("Name (optional)"), name);
+      await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    };
+    await add("Wool scarf");
+    const sheet = await screen.findByTestId("newest-sheet");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(screen.queryByTestId("newest-sheet")).toBeNull();
+    // A newer item shows its own sheet, which then goes by itself.
+    await add("Cotton socks");
+    expect(within(await screen.findByTestId("newest-sheet")).getByText("Cotton socks")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId("newest-sheet")).toBeNull());
   });
 
   it("shows no alert before the sender has done anything", async () => {
