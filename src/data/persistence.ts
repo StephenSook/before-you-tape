@@ -5,7 +5,7 @@
 // A box lasts 37 days from its creation: its anonymous owner may be removed after 30, and Firestore's TTL policy
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
-import { collection, deleteField, doc, getDoc, getDocs, runTransaction, Timestamp, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, Timestamp, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
 import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
@@ -115,16 +115,18 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     },
     // Its items and disputes first, in batches, then the box with its tombstone in one batch, so the id is retired
     // and no one could start it again to reach anything left behind. The rules let only the owner do this.
+    // Every read here is from the server, never this browser's cache: a cached "no items left" would let the box be
+    // deleted over items another tab saved, and offline the delete fails at once instead of waiting to land later.
     async deleteBox(boxId: string) {
       const box = doc(db, "boxes", boxId);
-      const snap = await getDoc(box);
+      const snap = await getDocFromServer(box);
       if (!snap.exists()) return;
       // A member who is not the owner may delete items, so the check comes before any of them is touched.
       if (snap.data().ownerUid !== uid) throw new Error("only the box's owner can delete it");
       const expiresAt = (snap.data().expiresAt as Timestamp | undefined) ?? null;
       await sweepUntilEmpty(
         async () => {
-          const [items, disputes] = await Promise.all([getDocs(collection(box, "items")), getDocs(collection(box, "disputes"))]);
+          const [items, disputes] = await Promise.all([getDocsFromServer(collection(box, "items")), getDocsFromServer(collection(box, "disputes"))]);
           return [...items.docs, ...disputes.docs].map((d) => d.ref);
         },
         async (refs) => {

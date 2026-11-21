@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- deleteBox reads the box, its items and its disputes from the server only (getDocFromServer, getDocsFromServer), never from this browser's cache: a cached empty list could end the sweep early and delete the box over items another tab had saved, and offline the delete now fails at once instead of waiting to land later. Source: review. Verified: a new emulator test (offline after a load, the delete is refused within 3 s and the box and item stay) failed first (it was still waiting) and passes; all 47 emulator tests pass.
+
 - A tab whose box another tab deletes (the delete takes away byt.currentBox for that box, or this browser's storage is cleared) closes its box store, so it keeps and sends nothing more of the old box, and reloads onto a new one (whenDeletedElsewhere). Source: review. Verified: two new tests (only that change counts, once; a storage clear counts; stopping the watch ends it) failed first and pass; typecheck, build, the full suite and the home-page browser checks pass.
 
 - Delete my saved box deletes the box in Firestore under whoever is signed in when it runs (savedBoxDeleter), not through the page's own saving: a page whose sign-in failed kept the box only in this browser and skipped Firestore, while another tab, signed in since under the same account, had saved it there, and the sign-in was then deleted with the box left behind. It deletes only the crops this box's items use; any other crop is removed when the next box opens. The sign-in wrapper's unused whole-box delete is gone. Source: review. Verified: three new savedBoxDeleter tests failed first and pass; typecheck, build, all 46 emulator tests and the full suite pass.

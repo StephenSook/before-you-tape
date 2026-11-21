@@ -1,7 +1,7 @@
 // Firestore persistence against the local emulator and the real rules: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
+import { disableNetwork, doc, enableNetwork, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem } from "../../src/data/boxStore";
 import type { BoxMeta } from "../../src/data/boxOps";
@@ -95,6 +95,23 @@ describe("firestorePersistence", () => {
     await expect(firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta())).rejects.toThrow();
     // Deleting a box that is already gone does nothing.
     await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
+  });
+
+  it("deletes only from what the server holds: offline, it fails at once and deletes nothing", async () => {
+    const alice = db("alice");
+    const p = firestorePersistence(alice, "alice", "byt-test");
+    await p.putMeta("b3", meta());
+    await p.putItem("b3", item("i1"));
+    await p.loadBox("b3");
+    await disableNetwork(alice);
+    const outcome = await Promise.race([
+      p.deleteBox("b3").then(() => "deleted", () => "refused"),
+      new Promise<string>((r) => setTimeout(() => r("still waiting"), 3000)),
+    ]);
+    await enableNetwork(alice);
+    expect(outcome).toBe("refused");
+    expect(await at("boxes/b3")).toBeDefined();
+    expect(await at("boxes/b3/items/i1")).toBeDefined();
   });
 
   it("never lets anyone but the owner delete a box, nor any of its items on the way", async () => {
