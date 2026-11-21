@@ -45,7 +45,7 @@ WHAT IT CHECKS
 
 PRIVATE BY DEFAULT
 - Photos are read on your iPhone when Apple Intelligence is on.
-- If your iPhone cannot read a photo, the app asks first. Only after you tap Allow, the cropped photo and the words on its label go to Google's Gemini through Firebase AI Logic. You can turn this off at any time.
+- If your iPhone cannot read a photo, the app asks first. Only after you tap Allow, the cropped photo and the words on its label go to Google's Gemini through Firebase AI Logic. Once you have allowed cloud checks, a photo your iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a battery's numbers again. You can turn this off at any time.
 - Your box stays on your iPhone.
 
 WHEN IT SAYS CHECK THIS

@@ -16,7 +16,7 @@ Tracking Transparency prompt is not needed.
 | Apple data type | Collected | Linked to the user | Used for tracking | Purpose | Where it comes from |
 |---|---|---|---|---|---|
 | Identifiers > User ID | Yes | Yes | No | App Functionality | Firebase Authentication signs in anonymously at start (`ios/BYT/Data/SignIn.swift`). The Auth manifest declares it the same way. |
-| User Content > Photos or Videos | Yes, only after the sender taps Allow | Yes (see note 1) | No | App Functionality | The label crop, sent to Gemini through Firebase AI Logic for a cloud check (`CloudRunner`, `ios/BYT/AI/ModelSessionFactory.swift`). |
+| User Content > Photos or Videos | Yes, only after the sender taps Allow | Yes (see note 1) | No | App Functionality | The label crop, sent to Gemini through Firebase AI Logic for a cloud check (`CloudRunner`, `ios/BYT/AI/ModelSessionFactory.swift`), including a second look of a crop the iPhone already read (`AppModel.runSecondLook`), which also runs only after Allow. |
 | User Content > Other User Content | Yes, only after the sender taps Allow | Yes (see note 1) | No | App Functionality | The label's words, sent with the crop, or typed words sent for a cloud check. |
 | Diagnostics > Other Diagnostic Data | Yes | No | No | Analytics | Declared by the bundled manifests of FirebaseAuth, Firestore (with its networking libraries), Installations and Remote Config (Firebase's own SDK health data). |
 

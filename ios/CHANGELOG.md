@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the README, limits and App Store notes say when a second look runs
+- What: the iPhone README and docs/LIMITS.md no longer say the iPhone runs no second look; they say
+  a photo read on the iPhone gets one only when the rules ask and cloud checks are allowed at that
+  moment, label words get none, and a look waiting for a connection runs only while the app stays
+  open. The App Store review notes, the description and the App Privacy evidence say that once
+  cloud checks are allowed, a photo the iPhone already read can be checked again in the cloud, in
+  the words the public privacy page uses for the same fact.
+- Source: the iPhone second look; the privacy page review.
+- Verified: `python3 ios/app-store/check_lengths.py` exits 0 (description 1551 of 4000, review
+  notes 2492 of 4000); no dashes or curly quotes in the changed files.
+
 ### feat(ios): the item card shows a second look and lets the sender settle what the reads dispute
 - What: the card says "Checking again in the cloud." while a look runs, then the web app's reason
   sentence; a failed look shows why, with "Try again". When the two reads disagree, the card lists
