@@ -6,6 +6,14 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The crop step is smaller and clearer:
+  - The photo is at most min(60vh, 560px) tall, with its shape kept.
+  - Outside the box it is dimmed, since that part stays on the device.
+  - Check this part and Cancel stay pinned in view.
+  - The second copy of the cropped part and the explainer line are gone.
+  - The send button carries the SHA-256 of the exact part it sends, and the browser test now matches that to the request.
+  Source: UI review (Check this part sat at y 2003). Verified: the PhotoCrop tests failed first and pass; CameraStage, PackPage and the full unit suite pass.
+
 - Check now keeps its own count, so a press drops only a pending sample, never a photo the sender added that is still decoding. Source: review. Verified: a new CameraStage test (a failed Check now while the photo decodes) failed first and passes; CameraStage and PackPage tests pass.
 
 - A pending sample is dropped once the sender presses Check now, a sample that a newer photo or press replaced shows no error over it, and the decoded sample is closed even when it cannot be encoded. One crop-step test waits up to 5 s for its preview, which can take over a second when the whole suite runs. Source: review. Verified: three new CameraStage tests failed first and pass; CameraStage and PackPage tests pass twice in a row.

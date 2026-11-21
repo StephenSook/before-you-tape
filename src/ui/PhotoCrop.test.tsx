@@ -10,30 +10,36 @@ const photo = () => { const c = document.createElement("canvas"); c.width = 400;
 const cropPart = vi.fn(async (_s: unknown, box: Box): Promise<ImagePart> => ({ mimeType: "image/jpeg", base64: btoa(JSON.stringify(box)) }));
 const boxOf = (p: ImagePart) => JSON.parse(atob(p.base64)) as Box;
 const start: Box = { x: 0.25, y: 0.15, w: 0.5, h: 0.7 };
+// The SHA-256 of a part's base64 text, as the send button carries it.
+const shaOf = async (box: Box) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(btoa(JSON.stringify(box)))))]
+  .map((b) => b.toString(16).padStart(2, "0")).join("");
+const send = () => screen.getByRole("button", { name: "Check this part" });
 
 describe("PhotoCrop", () => {
-  it("shows the photo, the box and the exact part that will be checked, and sends that part only on the press", async () => {
+  it("shows the photo and the box, names the exact part the press will send, and sends it only on the press", async () => {
     const onSend = vi.fn();
     render(<PhotoCrop source={photo()} initialBox={start} cropPart={cropPart} onSend={onSend} onCancel={() => {}} />);
     expect(screen.getByRole("img", { name: "The photo you added" })).toBeInTheDocument();
-    expect(screen.getByText("Move the box over the item. Only the part inside it is checked.")).toBeInTheDocument();
-    const preview = await screen.findByRole("img", { name: "The part that will be checked" });
-    expect(preview.getAttribute("src")).toBe(`data:image/jpeg;base64,${btoa(JSON.stringify(start))}`);
+    // The dimmed photo around the box shows what stays on the device; no second copy of the part is drawn.
+    expect(screen.queryByRole("img", { name: "The part that will be checked" })).toBeNull();
+    expect(screen.queryByText(/Only the part inside it is checked/)).toBeNull();
+    await waitFor(() => expect(send()).toBeEnabled());
+    expect(send()).toHaveAttribute("data-part-sha256", await shaOf(start));
     expect(onSend).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onSend).toHaveBeenCalledTimes(1);
     expect(boxOf(onSend.mock.calls[0]![0] as ImagePart)).toEqual(start);
   });
 
-  it("moves the box with the arrow keys and resizes it with Shift, and the preview and the sent part follow", async () => {
+  it("moves the box with the arrow keys and resizes it with Shift, and the part the press sends follows", async () => {
     const onSend = vi.fn();
     render(<PhotoCrop source={photo()} initialBox={start} cropPart={cropPart} onSend={onSend} onCancel={() => {}} />);
     const box = screen.getByRole("group", { name: /Crop box/ });
     box.focus();
     await userEvent.keyboard("{ArrowRight}{ArrowRight}{Shift>}{ArrowUp}{/Shift}");
     const moved = { x: 0.29, y: 0.15, w: 0.5, h: 0.68 };
-    await waitFor(() => expect(screen.getByRole("img", { name: "The part that will be checked" }).getAttribute("src"))
-      .toBe(`data:image/jpeg;base64,${btoa(JSON.stringify(moved))}`));
+    const movedSha = await shaOf(moved);
+    await waitFor(() => expect(send()).toHaveAttribute("data-part-sha256", movedSha));
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(boxOf(onSend.mock.calls[0]![0] as ImagePart)).toEqual(moved);
   });
@@ -55,7 +61,7 @@ describe("PhotoCrop", () => {
     const onSend = vi.fn();
     const onCancel = vi.fn();
     render(<PhotoCrop source={photo()} initialBox={start} cropPart={cropPart} onSend={onSend} onCancel={onCancel} />);
-    await screen.findByRole("img", { name: "The part that will be checked" });
+    await waitFor(() => expect(send()).toBeEnabled());
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalled();
     expect(onSend).not.toHaveBeenCalled();
