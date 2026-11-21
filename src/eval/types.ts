@@ -31,6 +31,11 @@ export interface EvalRow {
   shipped: { level: Level; source: string; secondLook: boolean };
 }
 
+// Shipped sources that mean the Pack page shows no verdict at all (it adds no card): the read failed, was not run,
+// found no item, or ran past the page's time limit. Such a row is never agreement and never "Check this".
+export const NO_VERDICT_SOURCES: readonly string[] = ["failed", "not_run", "no_item", "too_slow"];
+export const hasVerdict = (r: Pick<EvalRow, "shipped">): boolean => !NO_VERDICT_SOURCES.includes(r.shipped.source);
+
 export interface EvalRun { runId: string; setId: string; date: string; machine: string; chromeVersion: string; modelShown: string; editionId: string; rows: EvalRow[] }
 
 export type PublicEvalRow = Omit<EvalRow, "device" | "cloud"> & { device: PublicPathResult | null; cloud: PublicPathResult | null };

@@ -55,6 +55,25 @@ describe("computeEvalMetrics", () => {
     expect(m.hazardCalledOk).toMatchObject({ k: 0, n: 1 });
   });
 
+  it("gives a row with no verdict (failed, not run, no item, too slow) no agreement and no check, and counts it", () => {
+    const s2 = set([item("lotion", false, { CA: "check", PH: "check" })]);
+    const none = (source: string, d: string) => row("lotion", d, "check", { shipped: { level: "check", source, secondLook: false } });
+    for (const source of ["failed", "not_run", "no_item", "too_slow"]) {
+      const m = computeEvalMetrics(s2, run([none(source, "CA"), row("lotion", "PH", "check")]));
+      expect(m.truthAgreement, source).toEqual({ k: 1, n: 2 });
+      expect(m.checkRate, source).toEqual({ k: 1, n: 2 });
+      expect(m.noVerdict, source).toEqual({ k: 1, n: 2 });
+    }
+  });
+
+  it("does not count a device misread as caught when the shipped route gave no verdict", () => {
+    const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const wrong = { read: read({ volts: 3.7, milliampHours: 1000, wattHours: 3.7 }), msRuns: [1], level: "check" as Level };
+    const failedShip = { level: "check" as Level, source: "failed", secondLook: false };
+    const m = computeEvalMetrics(set([pb]), run(["CA", "PH"].map((d) => row("pb", d, "check", { device: wrong, shipped: failedShip }))));
+    expect(m.misreadsCaught).toEqual({ k: 0, n: 1 });
+  });
+
   it("uses the median of warm runs per crop and pairs the two paths", () => {
     const set2 = set([item("a", false, { CA: "ok" }), item("b", false, { CA: "ok" })]);
     const runMs = (ms: Record<string, { device: number[]; cloud: number[] }>) =>

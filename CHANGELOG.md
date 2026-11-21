@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Eval metrics give a row with no verdict (its shipped read failed, was not run, found no item, or ran past the time limit) no agreement and no "Check this", and count such rows as `noVerdict`; a device misread counts as caught only when every shipped row of its item has a verdict and none is "OK to pack". Before, a failed read scored as "Check this", so an all-failed run looked like the always-check baseline. The Pack page adds no card in those cases. Source: review. Verified: two new metrics tests failed first and pass; eval and script tests and typecheck pass.
+
 - The eval run's private record notes each App Check and AI Logic response by host, path, status and error message, never the query, the body or a token, so a failed cloud read says why. Source: a wiring check whose one cloud call failed with only "FirebaseError". Verified: a new test (an error response, a token exchange, and that no key or token is kept) failed first and passes; lint and typecheck pass.
 
 - The eval run can be limited to some of its paths (`--paths cloud`, for one): the others are marked as not run, never guessed, and such a partial run gets its own run id and no public copy, so a wiring check can never be taken for the eval. Source: a wiring check before the freeze. Verified: new runner and preflight tests failed first and pass; lint, typecheck and guard pass.

@@ -2,7 +2,7 @@
 // the hazard bound counts items, and an item fails if any destination shows OK where its label does not.
 // Latency takes the median of the warm runs per crop, then p50 and p90 across crops, and the paired median
 // difference between the two paths with a bootstrap interval resampled by item (fixed seed).
-import type { EvalItem, EvalRun, EvalSet, PathResult, PublicEvalRun, PublicPathResult } from "./types";
+import { hasVerdict, type EvalItem, type EvalRun, type EvalSet, type PathResult, type PublicEvalRun, type PublicPathResult } from "./types";
 
 type AnyPath = PathResult | PublicPathResult;
 type AnyRun = EvalRun | PublicEvalRun;
@@ -65,8 +65,10 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const rows = run.rows;
   const truthOf = (itemId: string, d: string) => items.get(itemId)?.truth[d]?.expected;
 
-  const agree = rows.filter((r) => truthOf(r.itemId, r.destination) === r.shipped.level).length;
-  const checks = rows.filter((r) => r.shipped.level === "check").length;
+  // A row with no verdict is never agreement and never a check; it is counted on its own.
+  const judged = rows.filter(hasVerdict);
+  const agree = judged.filter((r) => truthOf(r.itemId, r.destination) === r.shipped.level).length;
+  const checks = judged.filter((r) => r.shipped.level === "check").length;
   const hazards = set.items.filter((i) => i.hazard);
   const failed = hazards.filter((i) => rows.some((r) => r.itemId === i.itemId && r.shipped.level === "ok" && truthOf(i.itemId, r.destination) !== "ok")).length;
 
@@ -91,7 +93,7 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
     }
     if (r.device && exactOf(item, r.device) === false) {
       misreads++;
-      if (rows.every((x) => x.itemId !== itemId || x.shipped.level !== "ok")) caught++;
+      if (rows.every((x) => x.itemId !== itemId || (hasVerdict(x) && x.shipped.level !== "ok"))) caught++;
     }
     const d = r.device?.msRuns.length ? median(r.device.msRuns) : null;
     const c = r.cloud?.msRuns.length ? median(r.cloud.msRuns) : null;
@@ -111,6 +113,7 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
     truthAgreement: { k: agree, n: rows.length },
     hazardCalledOk: { k: failed, n: hazards.length, upper95: hazards.length ? clopperPearsonUpper(failed, hazards.length, 0.05) : NaN },
     checkRate: { k: checks, n: rows.length },
+    noVerdict: { k: rows.length - judged.length, n: rows.length },
     numbersExact: { k: exactK, n: exactN },
     misreadsCaught: { k: caught, n: misreads },
     latency: {
