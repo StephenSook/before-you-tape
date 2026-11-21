@@ -1,0 +1,53 @@
+package app.beforeyoutape.android.ui
+
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import app.beforeyoutape.android.ai.Source
+import app.beforeyoutape.android.box.BoxController
+import app.beforeyoutape.android.box.BoxEngine
+import app.beforeyoutape.android.box.BoxLogic
+import app.beforeyoutape.android.engine.EngineAssets
+import app.beforeyoutape.engine.EngineHost
+import app.beforeyoutape.engine.EvidenceWire
+import app.beforeyoutape.engine.ItemCategoryWire
+import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.RetailBoxWire
+import org.junit.After
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class ItemCardTest {
+    @get:Rule val rule = createComposeRule()
+    private lateinit var host: EngineHost
+    private lateinit var box: BoxController
+
+    // A phone whose condition is not answered yet, so the engine asks "Is it new?".
+    private val phone = ItemReadWire("Phone", ItemCategoryWire.phone, "3.85V 4000mAh 15.4Wh", 3.85, 4000.0, 15.4, 0.0,
+        true, false, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+
+    @Before fun setUp() {
+        host = EngineAssets.load(InstrumentationRegistry.getInstrumentation().targetContext)
+        box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-20" })
+        box.addRead(phone, host.labelTags(phone.labelText), Source.IN_CLOUD, 900, "a")
+    }
+
+    @After fun tearDown() = host.close()
+
+    /** The card asks its question once: the reason line that restates it is not shown beside it. */
+    @Test fun aQuestionIsAskedOnce() {
+        val item = box.state.items.single()
+        val verdict = box.state.result!!.items.getValue("a")
+        val question = checkNotNull(verdict.question) { "the engine asked nothing for this phone" }
+        val restating = verdict.hits.first().text
+        assertTrue("premise: the first reason restates the question ($restating)", restating.startsWith(question.text))
+        rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }) }
+        rule.onNodeWithText(question.text).assertExists()
+        rule.onNodeWithText(restating).assertDoesNotExist()
+    }
+}
