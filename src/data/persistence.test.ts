@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
 import type { BoxItem } from "./boxStore";
-import { persistenceAfterSignIn } from "./persistence";
+import { persistenceAfterSignIn, sweepUntilEmpty } from "./persistence";
 
 const fake = () => ({
   loadBox: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => ({ status: "found", box: { destinationCode: "PH" } })),
@@ -45,5 +45,19 @@ describe("persistenceAfterSignIn", () => {
     expect(await p.loadBox("b1")).toEqual({ status: "found", box: { destinationCode: "PH" } });
     expect(make).not.toHaveBeenCalled();
     expect(local.putMeta).toHaveBeenCalledWith("b1", meta);
+  });
+});
+
+describe("sweepUntilEmpty", () => {
+  it("deletes in batches of 400 and lists again until a list comes back empty", async () => {
+    const lists = [Array.from({ length: 450 }, (_, i) => i), [999], []];
+    const removed: number[] = [];
+    await sweepUntilEmpty(async () => lists.shift() ?? [], async (refs) => { removed.push(refs.length); });
+    expect(removed).toEqual([400, 50, 1]);
+    expect(lists).toEqual([]);
+  });
+
+  it("gives up, without deleting the box, when every list finds more", async () => {
+    await expect(sweepUntilEmpty(async () => [1], async () => {}, 3)).rejects.toThrow("kept getting new items");
   });
 });

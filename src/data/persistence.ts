@@ -122,13 +122,17 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       // A member who is not the owner may delete items, so the check comes before any of them is touched.
       if (snap.data().ownerUid !== uid) throw new Error("only the box's owner can delete it");
       const expiresAt = (snap.data().expiresAt as Timestamp | undefined) ?? null;
-      const [items, disputes] = await Promise.all([getDocs(collection(box, "items")), getDocs(collection(box, "disputes"))]);
-      const refs = [...items.docs, ...disputes.docs].map((d) => d.ref);
-      for (let i = 0; i < refs.length; i += 400) {
-        const batch = writeBatch(db);
-        for (const ref of refs.slice(i, i + 400)) batch.delete(ref);
-        await batch.commit();
-      }
+      await sweepUntilEmpty(
+        async () => {
+          const [items, disputes] = await Promise.all([getDocs(collection(box, "items")), getDocs(collection(box, "disputes"))]);
+          return [...items.docs, ...disputes.docs].map((d) => d.ref);
+        },
+        async (refs) => {
+          const batch = writeBatch(db);
+          for (const ref of refs) batch.delete(ref);
+          await batch.commit();
+        },
+      );
       const last = writeBatch(db);
       last.set(doc(db, "retiredBoxes", boxId), withExpiry({}, expiresAt));
       last.delete(box);
@@ -163,6 +167,17 @@ function paired(item: BoxItem, saved: (Disputes & { itemRev?: string }) | undefi
 // Firestore needs a signed-in user. Until sign-in finishes, operations wait in order; if it fails (offline on a
 // first visit), the box is kept in this browser's storage instead. The store keeps its own journal of what has not
 // reached the server, so a later visit that signs in sends it.
+// Lists and deletes, in batches of 400, until a list comes back empty, so an item another tab saved while the first
+// batches ran is deleted too. After `rounds` lists that each found more it stops, and the box is not deleted.
+export async function sweepUntilEmpty<T>(list: () => Promise<T[]>, remove: (batch: T[]) => Promise<void>, rounds = 5): Promise<void> {
+  for (let r = 0; r < rounds; r++) {
+    const found = await list();
+    if (found.length === 0) return;
+    for (let i = 0; i < found.length; i += 400) await remove(found.slice(i, i + 400));
+  }
+  throw new Error("the box kept getting new items while it was being deleted");
+}
+
 export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: string) => BoxOps, fallback: BoxOps): BoxOps {
   let local = false;
   const target = signIn.then(make, () => { local = true; return fallback; });

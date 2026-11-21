@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- deleteBox lists and deletes the box's items and disputes again until a list comes back empty (sweepUntilEmpty), so an item another tab saved while the first batches ran is deleted too; after five lists that each found more it stops without deleting the box. An item saved in the instant before the final batch is left with the box's expiry and removed by TTL. Source: review. Verified: two new unit tests failed first and pass; all 46 emulator tests pass.
+
 - deleteBox checks that the caller owns the box before it deletes any item or dispute. Members may delete items, so a member pressing Delete could otherwise empty a shared box before the box delete was refused. Today only an admin can add a member. Source: review. Verified: the emulator test (a second member is refused and every item stays) failed first and passes; all 46 emulator tests pass.
 
 - The live page wires Delete my saved box: the box in Firestore with its tombstone, every crop on this device, this browser's box keys, then the anonymous sign-in (signed out if it needs a recent login), and then a reload onto a new, empty box that says once how it went (sessionStorage byt.deleted). Source: Delete my saved box plan. Verified: new notice tests failed first and pass; typecheck, the full suite and the home-page browser checks pass.
