@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+import { appRoutes, pwaOptions, type Rewrite } from "./scripts/pwa-options";
 import { versionInfo } from "./scripts/version-info";
+
+// The routes the hosting serves the app on, read from firebase.json so the worker and the hosting cannot disagree.
+const hosting = (JSON.parse(readFileSync(new URL("./firebase.json", import.meta.url), "utf8")) as { hosting: { rewrites: Rewrite[] } }).hosting;
 
 // Writes dist/version.json so the live site can prove which commit it serves. `dirty` is true when the
 // tree had uncommitted or untracked changes at build time, so the commit alone would not describe it.
@@ -31,7 +36,7 @@ function versionFile(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), versionFile()],
+  plugins: [react(), versionFile(), VitePWA(pwaOptions({ kill: false, routes: appRoutes(hosting.rewrites) }))],
   build: {
     rollupOptions: {
       input: {
