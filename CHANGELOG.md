@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.
+
+- `scripts/eval-thumbs.py` writes a 240 px and a 480 px wide WebP copy of each of the 40 published eval photos into `public/eval/thumbs/` (80 files, 1.2 MB, against 11 MB for the photos), with no Exif or XMP block, and `src/judge/thumbs.json` records each one's size and SHA-256. `src/judge/thumbs.ts` gives a page the small copy, its size and a srcset. The published photos and the manifest do not change. Source: UI review (/judge showed 2.8 MB of photos at 160 px). Verified: a new test (every photo, both widths, the same shape, the hashes, no Exif or XMP) failed first and passes.
+
 - On a phone the page links stay on one row that scrolls sideways, and a link inside a sentence gets a tap area at least 24 px tall (3 px of inline padding above and below, which leaves the lines where they are). Source: UI review (links were 17 to 19 px tall). Verified: lint and the build pass; the layout is to be checked live at 390 px once deployed.
 
 - On a phone the newest-item sheet has a Close button and goes by itself after 8 seconds, so it no longer sits over the stage's buttons (such as "Try a sample photo"); a newer item shows it again. While it shows, the footer ends below it. Source: UI review (at 390 px the sheet covered the sample button). Verified: a new PackPage test (close, then a newer item's sheet goes by itself) failed first and passes; the full unit suite passes.

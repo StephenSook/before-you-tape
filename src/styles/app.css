@@ -60,7 +60,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card img { width: 96px; height: auto; border-radius: 8px; border: var(--outline); }
 .judge, .about, .rules, .ran { max-width: 760px; margin: 0 auto; padding: var(--space-5); }
 .about .credits { font-size: 14px; }
-.sample-card img { width: 160px; }
+.sample-card img { width: 160px; height: auto; }
 .pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .pair-side { margin: 0; min-width: 0; }
 .pair-side img { width: 100%; height: auto; border-radius: var(--radius-card); }
