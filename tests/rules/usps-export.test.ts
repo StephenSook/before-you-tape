@@ -28,8 +28,10 @@ const noWhPhone = device("phone", { whStatus: "none", wh: null });
 const openedPhone = device("phone", { whStatus: "printed_matches", wh: 15.4, countAs: "cell" }, "new_opened");
 const coinCellToy = f({ category: "battery_toy", tags: ["toy", "li_metal"], condition: "new_sealed",
   battery: { presence: "installed", chemistry: "li_metal" } });
-const sealedLaptopFacts = device("laptop", { whStatus: "printed_matches", wh: 50.6, countAs: "battery" });
-const okPhone = device("phone", { whStatus: "printed_matches", wh: 15.4, countAs: "cell" });
+// Battery numbers a cloud second look read the same way: one model read alone never makes a battery OK.
+const seenTwice = (x: ItemFacts): ItemFacts => ({ ...x, identity: "second_look" });
+const sealedLaptopFacts = seenTwice(device("laptop", { whStatus: "printed_matches", wh: 50.6, countAs: "battery" }));
+const okPhone = seenTwice(device("phone", { whStatus: "printed_matches", wh: 15.4, countAs: "cell" }));
 
 const hit = (x: ItemFacts) => evaluateItemRules(x, ed.rules).map((h) => `${h.ruleId}:${h.level}`);
 
@@ -95,8 +97,28 @@ describe("USPS export rule data", () => {
     // A used laptop matches the box rules' own conditions (installed lithium), so this list is not empty
     // and a box, note or destination rule leaking into the item rules would show up here.
     const usedLaptop = device("laptop", { whStatus: "printed_matches", wh: 50.6, countAs: "battery" }, "used");
-    expect(hit(usedLaptop)).toEqual(["USPS-INTL-LI-USED-DEVICE:take_out"]);
+    expect(hit(usedLaptop)).toEqual(["USPS-INTL-LI-USED-DEVICE:take_out", "USPS-INTL-LI-ONE-READ:check"]);
     expect(hit(sealedLaptopFacts)).toEqual([]);
+  });
+
+  it("holds a lithium battery whose numbers come from one read, until a second look or the sender stands behind them", () => {
+    const ONE = "USPS-INTL-LI-ONE-READ:check";
+    const phone = device("phone", { whStatus: "printed_matches", wh: 15.4, countAs: "cell" });
+    expect(hit(phone)).toEqual([ONE]);
+    expect(hit({ ...phone, identity: "unconfirmed" })).toContain(ONE);
+    expect(hit(device("laptop", { whStatus: "printed_only", whPrinted: 12, wh: 12, countAs: "unknown" }))).toEqual([ONE]);
+    expect(hit({ ...phone, identity: "second_look" })).toEqual([]);
+    expect(hit({ ...phone, identity: "sender" })).toEqual([]);
+    // A lithium metal reading is a number from the read too.
+    const coin = f({ category: "battery_toy", tags: ["toy", "li_metal"], condition: "new_sealed",
+      battery: { presence: "installed", chemistry: "li_metal", lithiumGrams: 0.1 } });
+    expect(hit(coin)).toEqual([ONE]);
+    expect(hit({ ...coin, identity: "sender" })).toEqual([]);
+    // Numbers that disagree, or are missing, already have their own check; the sender's "not lithium" is their word.
+    expect(hit(mismatchPhone)).not.toContain(ONE);
+    expect(hit(noWhPhone)).not.toContain(ONE);
+    expect(hit({ ...phone, battery: { ...phone.battery, chemistry: "not_lithium" } })).toEqual([]);
+    expect(hit(powerBank)).not.toContain(ONE);
   });
 
   it("gives every rule a section, an https url and wording", () => {

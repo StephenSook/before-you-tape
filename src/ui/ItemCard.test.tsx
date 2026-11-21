@@ -309,7 +309,7 @@ describe("ItemCard", () => {
   it("does not say the question twice: a reason that only restates it is left out, a reason that adds to it is kept", () => {
     // A phone with no condition answer: its first reason is "Is it new? Answer to finish this check."
     const phone = item("q", { ...base, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
-      wattHours: 15.4, batteryWords: true, retailBox: "sealed" }, { answers: { cell_count: "one" } });
+      wattHours: 15.4, batteryWords: true, retailBox: "sealed" }, { answers: { cell_count: "one" }, identityConfirmedBy: "second_look" });
     const v = verdictFor(phone);
     expect(v.question?.text).toBe("Is it new?");
     expect(v.hits[0]?.text).toBe("Is it new? Answer to finish this check.");

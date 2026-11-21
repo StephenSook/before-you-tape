@@ -443,7 +443,10 @@ describe("createBoxStore", () => {
     it("holds a power bank read as a phone at Check this, where the cloud's category alone said OK", () => {
       const phone = { ...powerBank, itemName: "Phone", category: "phone" as const };
       const control = look(powerBank, phone, false);
-      expect(level(control.s, control.id)).toBe("ok");
+      // Without the dispute, the cloud's category alone does not hold it: what still holds it is the one-read
+      // battery check, as the reads did not agree on what it is.
+      expect(control.s.getState().result.items[control.id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-DISPUTE");
+      expect(control.s.getState().result.items[control.id]?.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
       const { s, id } = look(powerBank, phone);
       expect(level(s, id)).toBe("check");
       expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).toContain("DATA-DISPUTE");

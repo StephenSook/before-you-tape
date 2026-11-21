@@ -15,7 +15,7 @@
   {"name": "r3_alcohol_then_free_on_the_next_line_asks_the_sender", "source": "Grok round 3, revised for Codex round 4", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "lotion", "read": {"category": "lotion_cream", "labelText": "ALCOHOL\nFREE LOTION 8 FL OZ"}}], "expect": {"lotion": "check"}, "notRules": {"lotion": ["USPS-INTL-FLAMMABLE-LIQUID"]}, "expectQuestion": {"lotion": "label_alcohol_free"}},
   {"name": "r3_alcohol_free_hyphen_wrapped_lotion_passes", "source": "Grok round 3", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "lotion", "read": {"category": "lotion_cream", "labelText": "ALCOHOL-\nFREE LOTION 8 FL OZ"}}], "expect": {"lotion": "ok"}, "notRules": {"lotion": ["USPS-INTL-FLAMMABLE-LIQUID"]}},
   {"name": "r2_m9_device_out_of_its_box_overrides_a_saved_sealed_answer", "source": "Codex round 2 M9", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "phone", "read": {"category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "open_or_none"}, "answers": {"device_condition": "new_sealed", "cell_count": "one"}}], "expect": {"phone": "check"}, "expectRules": {"phone": ["USPS-INTL-LI-NEW-OPENED"]}},
-  {"name": "r2_m9_fixing_the_box_reading_clears_it", "source": "Codex round 2 M9 control", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "phone", "read": {"category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "open_or_none"}, "overrides": {"retailBox": "sealed"}, "answers": {"device_condition": "new_sealed", "cell_count": "one"}}], "expect": {"phone": "ok"}},
+  {"name": "r2_m9_fixing_the_box_reading_clears_it", "source": "Codex round 2 M9 control", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "phone", "identityConfirmedBy": "second_look", "read": {"category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "open_or_none"}, "overrides": {"retailBox": "sealed"}, "answers": {"device_condition": "new_sealed", "cell_count": "one"}}], "expect": {"phone": "ok"}},
   {"name": "r2_m5_an_unlicensed_reprint_is_checked_for_canada", "source": "Codex round 2 M5", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "book", "read": {"category": "book_paper", "labelText": "UNLICENSED REPRINT OF A CANADIAN COPYRIGHTED WORK"}}], "expect": {"book": "check"}, "expectRules": {"book": ["CA-P-20"]}},
   {"name": "r2_m5_a_reprint_edition_word_alone_passes", "source": "Codex round 2 M5 control", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "book", "read": {"category": "book_paper", "labelText": "PAPERBACK REPRINT EDITION 2024"}}], "expect": {"book": "ok"}},
   {"name": "r2_m7_dosage_plus_tablet_form_is_medicine", "source": "Codex round 2 M7", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "pills", "read": {"category": "food_packaged", "labelText": "METFORMIN TABLETS 500 MG"}}], "expect": {"pills": "check"}, "expectRules": {"pills": ["CA-R-02"]}},
@@ -24,7 +24,7 @@
   {"name": "r2_m4_free_from_on_the_next_line_does_not_erase_margarine", "source": "Codex round 2 M4", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "spread", "read": {"category": "food_packaged", "labelText": "MARGARINE\nFREE FROM PALM OIL"}}], "expect": {"spread": "take_out"}, "expectRules": {"spread": ["CA-P-08"]}},
   {"name": "r2_m4_free_from_on_the_same_line_does_not_erase_margarine", "source": "Codex round 2 M4", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "spread", "read": {"category": "food_packaged", "labelText": "MARGARINE FREE FROM PALM OIL"}}], "expect": {"spread": "take_out"}, "expectRules": {"spread": ["CA-P-08"]}},
   {"name": "r2_h3_power_bank_label_misread_as_phone_is_taken_out", "source": "Codex round 2 H3", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "pb", "read": {"category": "phone", "labelText": "USB POWER BANK 3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true}, "answers": {"battery_installed": "installed", "device_condition": "new_sealed", "cell_count": "one"}}], "expect": {"pb": "take_out"}, "expectRules": {"pb": ["USPS-INTL-LI-LOOSE"]}},
-  {"name": "r2_h3_camera_with_a_built_in_battery_pack_passes", "source": "Codex round 2 H3", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "cam", "read": {"category": "other_electronics", "labelText": "BUILT-IN RECHARGEABLE LI-ION BATTERY PACK 7.2V 2000mAh 14.4Wh", "volts": 7.2, "milliampHours": 2000, "wattHours": 14.4, "batteryWords": true, "retailBox": "sealed"}, "answers": {"battery_installed": "installed", "device_condition": "new_sealed"}}], "expect": {"cam": "ok"}, "notRules": {"cam": ["USPS-INTL-LI-LOOSE"]}},
+  {"name": "r2_h3_camera_with_a_built_in_battery_pack_passes", "source": "Codex round 2 H3", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "cam", "identityConfirmedBy": "second_look", "read": {"category": "other_electronics", "labelText": "BUILT-IN RECHARGEABLE LI-ION BATTERY PACK 7.2V 2000mAh 14.4Wh", "volts": 7.2, "milliampHours": 2000, "wattHours": 14.4, "batteryWords": true, "retailBox": "sealed"}, "answers": {"battery_installed": "installed", "device_condition": "new_sealed"}}], "expect": {"cam": "ok"}, "notRules": {"cam": ["USPS-INTL-LI-LOOSE"]}},
   {"name": "r2_h2_saved_no_battery_cannot_cancel_printed_lithium_grams", "source": "Codex round 2 H2", "code": "CA", "today": "2026-11-20", "items": [{"itemId": "cam", "read": {"category": "other_electronics", "labelText": "LITHIUM METAL 1.2 G", "lithiumGrams": 1.2, "batteryWords": true}, "answers": {"battery_installed": "none", "device_condition": "used", "cell_count": "one"}}], "expect": {"cam": "take_out"}},
   {
     "name": "a_not_lithium_answer_cannot_beat_a_lithium_label", "source": "found while fixing the loose non-lithium rule", "code": "CA", "today": "2026-11-20",
@@ -88,10 +88,10 @@
     "name": "an_aa_toy_does_not_change_four_phones", "source": "Fable I6", "code": "CA", "today": "2026-11-20",
     "items": [
       { "itemId": "toy", "read": { "category": "battery_toy", "labelText": "1.5V AA TOY", "volts": 1.5, "batteryWords": true } },
-      { "itemId": "p1", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
-      { "itemId": "p2", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
-      { "itemId": "p3", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
-      { "itemId": "p4", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } }
+      { "itemId": "p1", "identityConfirmedBy": "second_look", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p2", "identityConfirmedBy": "second_look", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p3", "identityConfirmedBy": "second_look", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } },
+      { "itemId": "p4", "identityConfirmedBy": "second_look", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true }, "answers": { "device_condition": "new_sealed", "cell_count": "one" } }
     ],
     "expect": { "p1": "ok", "p2": "ok", "p3": "ok", "p4": "ok", "toy": "check" }
   },
@@ -140,7 +140,7 @@
   },
   {
     "name": "tablet_computer_is_not_medicine", "source": "Codex M8 / Fable I5", "code": "CA", "today": "2026-11-20",
-    "items": [{ "itemId": "tab", "read": { "category": "tablet", "labelText": "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "volts": 3.85,
+    "items": [{ "itemId": "tab", "identityConfirmedBy": "second_look", "read": { "category": "tablet", "labelText": "TABLET 10.1 INCH 3.85V 7000mAh 26.95Wh", "volts": 3.85,
       "milliampHours": 7000, "wattHours": 26.95, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
     "expect": { "tab": "ok" }, "notRules": { "tab": ["CA-R-02"] }
   },
@@ -212,7 +212,7 @@
   },
   {
     "name": "lithium_metal_cell_with_known_small_grams_passes", "source": "Codex M6 control", "code": "CA", "today": "2026-11-20",
-    "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "LITHIUM METAL 0.5 G", "lithiumGrams": 0.5, "batteryWords": true },
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look", "read": { "category": "battery_toy", "labelText": "LITHIUM METAL 0.5 G", "lithiumGrams": 0.5, "batteryWords": true },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": { "toy": "ok" }, "notRules": { "toy": ["USPS-INTL-LI-METAL-UNKNOWN"] }
   },
@@ -241,7 +241,7 @@
   },
   {
     "name": "battery_pack_sticker_on_a_laptop_stays_installed", "source": "Fable C2b control", "code": "CA", "today": "2026-11-20",
-    "items": [{ "itemId": "laptop", "read": { "category": "laptop", "labelText": "RECHARGEABLE LI-ION BATTERY PACK 11.55V 4380mAh 50.6Wh",
+    "items": [{ "itemId": "laptop", "identityConfirmedBy": "second_look", "read": { "category": "laptop", "labelText": "RECHARGEABLE LI-ION BATTERY PACK 11.55V 4380mAh 50.6Wh",
       "volts": 11.55, "milliampHours": 4380, "wattHours": 50.6, "batteryWords": true }, "answers": { "device_condition": "new_sealed" } }],
     "expect": { "laptop": "ok" }, "notRules": { "laptop": ["USPS-INTL-LI-LOOSE"] }
   },
