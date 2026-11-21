@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the App Privacy answers, with where each one comes from
+- What: `ios/app-store/app-privacy.md`: tracking (no), and each Apple data type the iPhone app
+  collects (User ID; the photo crop and label words only after Allow; Firebase's own diagnostic
+  data), with its source in the code or in the manifests bundled in the built app, plus the two
+  extra rows if Firebase Performance stays.
+- Source: App Store preparation.
+- Verified: the data types were read from every `PrivacyInfo.xcprivacy` inside a built BYT.app
+  (User ID linked for App Functionality from FirebaseAuth; Other Diagnostic Data, not linked, from
+  five Firebase bundles; no tracking anywhere) and from Firebase's App Store disclosure page.
+
 ### chore(ios): a script measures the App Store fields against Apple's limits
 - What: `ios/app-store/check_lengths.py` measures the name, subtitle, promotional text,
   description, keywords, what's new and review notes, and fails on a field that is too long or
