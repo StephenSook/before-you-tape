@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import template from "../remoteconfig.template.json";
 import pkg from "../package.json";
 import { spawn } from "node:child_process";
-import { devtoolsUrl, evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote, runIdOf, viteEnv, waitForLine } from "./eval-run";
+import { DEVTOOLS_LINE, devtoolsUrl, evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote, runIdOf, viteEnv, waitForLine } from "./eval-run";
 
 describe("eval-run", () => {
   it("runs only against an eval project, never the live one, and never with no project named", () => {
@@ -103,5 +103,10 @@ describe("eval-run", () => {
   it("stops waiting when the program cannot start", async () => {
     const child = spawn("/nonexistent/byt-chrome", [], { stdio: ["ignore", "pipe", "pipe"] });
     await expect(waitForLine(child, /never/, 5_000)).rejects.toThrow(/ENOENT|could not start/);
+  });
+
+  it("waits for the whole DevTools line, even when Chrome prints it in two pieces", async () => {
+    const child = spawn("sh", ["-c", "printf 'DevTools listening on ws://127.0.0.1:9/devtools/browser/a'; sleep 0.3; printf 'bc-123\\n'"], { stdio: ["ignore", "pipe", "pipe"] });
+    expect(devtoolsUrl(await waitForLine(child, DEVTOOLS_LINE, 5_000))).toBe("ws://127.0.0.1:9/devtools/browser/abc-123");
   });
 });

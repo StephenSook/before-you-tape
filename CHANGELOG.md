@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval run waits for the whole "DevTools listening" line, up to its end, before it reads Chrome's address, so an address printed in two pieces is never cut short. Source: review. Verified: a new test that prints the line in two pieces failed first and passes.
+
 - The eval run starts only with `DEBUG` unset: a wildcard such as `DEBUG=*` also turns on Playwright's protocol log, which would record the script carrying the App Check debug token. Before, only `pw` patterns were refused. Source: review. Verified: the preflight test (now with `*` and a mixed list) failed first and passes.
 
 - The eval run now:

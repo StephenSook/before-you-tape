@@ -83,6 +83,9 @@ export function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): P
   });
 }
 
+// The whole line, up to its end, so an address printed in two pieces is never read half way.
+export const DEVTOOLS_LINE = /DevTools listening on ws:\/\/\S+\r?\n/;
+
 // The DevTools address the started Chrome announces, so the run attaches to that Chrome and no other.
 export function devtoolsUrl(output: string): string {
   const m = /DevTools listening on (ws:\/\/\S+)/.exec(output);
@@ -185,7 +188,7 @@ async function main(): Promise<void> {
     await waitForLine(vite, /Local:/, 60_000);
     const chromePath = process.env.CHROME_PATH?.trim() || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
     chrome = spawn(chromePath, [`--user-data-dir=${profile}`, `--remote-debugging-port=${DEBUG_PORT}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: ["ignore", "pipe", "pipe"] });
-    const announced = devtoolsUrl(await waitForLine(chrome, /DevTools listening on ws:\/\/\S+/, 30_000));
+    const announced = devtoolsUrl(await waitForLine(chrome, DEVTOOLS_LINE, 30_000));
     const browser = await chromium.connectOverCDP(announced);
     const chromeVersion = browser.version();
     const context = browser.contexts()[0] ?? (await browser.newContext());
