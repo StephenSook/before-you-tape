@@ -520,7 +520,8 @@ describe("PackPage", () => {
   });
 
   it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {
-    setup({ newestSheetMs: 60 });
+    // Long enough that a busy machine still finds the sheet before it goes, short enough to wait for.
+    setup({ newestSheetMs: 1500 });
     const add = async (name: string) => {
       await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
       await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
@@ -534,8 +535,8 @@ describe("PackPage", () => {
     // A newer item shows its own sheet, which then goes by itself.
     await add("Cotton socks");
     expect(within(await screen.findByTestId("newest-sheet")).getByText("Cotton socks")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByTestId("newest-sheet")).toBeNull());
-  });
+    await waitFor(() => expect(screen.queryByTestId("newest-sheet")).toBeNull(), { timeout: 5000 });
+  }, 15_000);
 
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);

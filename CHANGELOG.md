@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The newest-item sheet test gives the sheet 1.5 s before it hides itself, not 60 ms, so a busy machine still finds the sheet before it goes; it waits up to 5 s for the sheet to hide and has a 15 s limit. Source: the test failed while other work loaded the machine. Verified: the test passes alone and in the full suite (796).
+
+- The engine's big-box timing test no longer fails on a busy machine: instead of judging 100 items in under 100 ms, it times 100 and 400 items in turns and takes each size's fastest run, so 400 items must take less than ten times as long as 100. Source: the test failed at 327 ms while other work loaded the machine. Verified: measured 6.2 ms and 24.9 ms (4.0 times); with every item compared against every other added to evaluateBox for a check, it measured 12.9 times and failed; five runs in a row pass.
+
 - The country buttons carry the post office's announced suspensions, from the same rules the verdicts use: Canada shows "USPS stops Nov 29" until that day, then "USPS suspended". Source: UI review. Verified: new badge and page tests failed first and pass; the full unit suite passes.
 
 - The country picker is one 44 px button per country (a radio group: one tab stop, the arrow keys move between countries), in place of a 23 px dropdown. A line under it says who read the chosen country's rules, with a link to the rules page. While the saved box is still being read no country is marked, and the page asks where the box is going, so nothing switches without the sender seeing it. A country can carry a badge. Source: UI review. Verified: the new DestinationPicker tests failed first and pass; the page and browser tests now press the country buttons; the full unit suite passes.
