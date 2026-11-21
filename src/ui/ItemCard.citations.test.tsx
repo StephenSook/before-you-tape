@@ -96,7 +96,8 @@ describe("the rule links on a card", () => {
     for (const code of Object.keys(data.destinations)) {
       expect([...(seen.get("imm_line") ?? [])].some((k) => k.startsWith(`${code}|`)), code).toBe(true);
     }
-  });
+    // It renders every card of every test box and country, so a busy machine needs more than 5 s.
+  }, 30_000);
 
   it("never accept another country's lines, or a page the section is not on", () => {
     const [first, second] = Object.keys(data.destinations);

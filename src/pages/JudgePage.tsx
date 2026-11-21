@@ -21,6 +21,7 @@ import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
 import { MatchedPairs } from "../ui/MatchedPairs";
+import { restatesQuestion } from "../ui/questionReason";
 import { QuestionRow } from "../ui/QuestionRow";
 import { VerdictChip } from "../ui/VerdictChip";
 
@@ -111,7 +112,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
               <VerdictChip level={verdict.level} />
             </div>
             <p className="item-name">{item.read.itemName}</p>
-            {verdict.hits.filter((h) => h.level !== "note").map((h) => (
+            {verdict.hits.filter((h) => h.level !== "note" && !restatesQuestion(h.text, verdict.question)).map((h) => (
               <p key={h.ruleId}>{h.text} <a href={h.url} target="_blank" rel="noreferrer">{h.section}</a></p>
             ))}
             {verdict.question && (
