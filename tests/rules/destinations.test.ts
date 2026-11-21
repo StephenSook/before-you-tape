@@ -64,6 +64,21 @@ describe("destination editions", () => {
     }
   });
 
+  it("keeps the terms of the USPS line that change its meaning", () => {
+    const wording = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.ourWording ?? "";
+    const terms: [string, string, RegExp][] = [
+      ["CA", "CA-P-09", /more than 5 percent of their ad space/], // not "mainly"
+      ["CA", "CA-P-11", /specific items.*goods or services/],
+      ["CA", "CA-P-12", /identical form in every edition/], // and aimed mainly at Canada, not Canada-only
+      ["CA", "CA-P-13", /Britain or any other British country/],
+      ["CA", "CA-P-21", /prints in publications/],
+      ["PH", "PH-R-01", /two 500 g bottles of powdered coffee.*FDA Philippines/],
+      ["PH", "PH-O-01", /^A commercial invoice .* needs the Philippine Consulate's stamp/], // USPS: "are subject to"
+    ];
+    for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
+    expect(wording("CA", "CA-P-12")).not.toMatch(/Canada-only/);
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");

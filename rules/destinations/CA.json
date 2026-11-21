@@ -108,7 +108,7 @@
       "lineId": "CA-P-09",
       "section": "prohibitions",
       "lineSha256": "197a9cacb1c9a5745d27574cb2b40c8e42a7204b66c79564f741bd42ab0da850",
-      "ourWording": "No magazine issues whose ads mainly target Canada in the ways the listing describes.",
+      "ourWording": "No magazine issues with more than 5 percent of their ad space aimed mainly at Canada, in the ways the listing describes.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
@@ -130,7 +130,7 @@
       "lineId": "CA-P-11",
       "section": "prohibitions",
       "lineSha256": "88a573bd1bc4df834c24f5e11389a900083853e83108c485824a07ad3af0b6db",
-      "ourWording": "It also includes ads that give sale terms for Canada.",
+      "ourWording": "It also includes ads that name specific items, or terms for selling goods or services, in Canada.",
       "matches": [],
       "noMatch": {
         "decision": "exception_to_line",
@@ -141,7 +141,7 @@
       "lineId": "CA-P-12",
       "section": "prohibitions",
       "lineSha256": "6d57d55ba1d09026fd2ab65135b397020c779f99a8979bf7618d8a3163266f1a",
-      "ourWording": "No issue with a Canada-only ad that is missing from the home edition.",
+      "ourWording": "No issue with an ad aimed mainly at Canada unless that ad appears in identical form in every edition sold in its home country.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
@@ -152,7 +152,7 @@
       "lineId": "CA-P-13",
       "section": "prohibitions",
       "lineSha256": "af64a66f15ca0a46e3d01a6905a1e22116eeced690abcb958e85e0953335ac08",
-      "ourWording": "No goods marked to look as if they were made in Canada or Britain when they were not.",
+      "ourWording": "No goods marked to look as if they were made in Canada, Britain or any other British country when they were not.",
       "matches": [],
       "noMatch": {
         "decision": "cannot_judge_from_photo",
@@ -241,7 +241,7 @@
       "lineId": "CA-P-21",
       "section": "prohibitions",
       "lineSha256": "762c46def84c82d973ac0487b803d9a20d25c45b048b77f8980318c951426f18",
-      "ourWording": "No copies of Canadian stamps, except black and white prints that are crossed out.",
+      "ourWording": "No copies of Canadian stamps, except black and white prints in publications with a line drawn across each one.",
       "matches": [],
       "noMatch": {
         "decision": "cannot_judge_from_photo",
