@@ -1,6 +1,6 @@
 // The measured numbers on /ran: our own controlled test first (src/ran/eval.json), then the totals from visitors'
 // saved boxes (src/ran/measured.json). Each is one line with its detail behind a disclosure, and each shows no number
-// at all from a file it cannot read; the visitor totals also show none once they are stale (src/ran/measured.ts).
+// at all from a file it cannot read; the saved-box totals also show none once they are stale (src/ran/measured.ts).
 import { longDate } from "../engine/destination";
 import { readEval, type EvalSummary } from "./evalSummary";
 import { readMeasured } from "./measured";
@@ -45,7 +45,8 @@ function Visitors({ m }: { m: Measured }) {
     <>
       <p data-testid="measured">
         {count(m.reads.inCloud)} items read in the cloud and {count(m.reads.onDevice)} on the device, in {count(m.boxes)} saved
-        boxes. The records don't say why a read went to the cloud. Measured {longDate(m.measuredAt.slice(0, 10))}.
+        boxes, our own test runs included, so these show where reads ran, not how many people used the app. The records
+        don't say why a read went to the cloud. Measured {longDate(m.measuredAt.slice(0, 10))}.
       </p>
       <details>
         <summary>How this was measured</summary>
@@ -66,7 +67,7 @@ function Visitors({ m }: { m: Measured }) {
   );
 }
 
-// evalFile and file: the eval summary and the visitor totals to show; today: this device's date.
+// evalFile and file: the eval summary and the saved-box totals to show; today: this device's date.
 export function MeasuredSection({ evalFile, file, today }: { evalFile: unknown; file: unknown; today: string }) {
   const e = readEval(evalFile);
   const r = readMeasured(file, today);
@@ -75,7 +76,7 @@ export function MeasuredSection({ evalFile, file, today }: { evalFile: unknown; 
       <h2 id="measured-heading">Measured</h2>
       <h3>Our test</h3>
       {e.ok ? <OurTest e={e.data} /> : <p data-testid="eval-measured">Our test numbers are not shown: the file could not be read.</p>}
-      <h3>Visitors' saved boxes</h3>
+      <h3>Saved boxes, our own checks included</h3>
       {r.ok ? <Visitors m={r.data} /> : (
         <p data-testid="measured">
           Measured numbers are not shown: {r.reason === "stale" ? "they are more than 14 days old." : "the file could not be read."}
