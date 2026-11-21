@@ -97,6 +97,24 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
         return folder.appendingPathComponent(boxId + ".json")
     }
 
+    /// Deletes every file of the box: `<id>.json`, `<id>.consent`, its markers and any damaged copy kept
+    /// aside, which all start with `<id>.` (a box id has no dot, so no other box's file does). Throws when
+    /// a file could not be deleted, when the folder could not be listed (no permission, the iPhone locked),
+    /// or for an id that is not a box id, so a delete never reports done while files may remain. A missing
+    /// folder, or a box with no files, is not an error: there is nothing to delete.
+    func deleteBox(boxId: String) throws {
+        guard url(boxId: boxId) != nil else { throw SaveError("The box id is not a safe file name, so nothing was deleted.") }
+        guard FileManager.default.fileExists(atPath: folder.path) else { return }
+        let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        for name in names where name.hasPrefix(boxId + ".") {
+            try FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+        }
+        // Done only when a fresh listing shows no file of the box left.
+        let left = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasPrefix(boxId + ".") }
+        guard left.isEmpty else { throw SaveError("\(left.count) file(s) of the box are still there.") }
+        held.remove(boxId)
+    }
+
     /// Writes the box, or throws why not, so the change on screen is never silently unsaved.
     func save(_ snapshot: BoxSnapshot) throws {
         func fail(_ message: String) -> SaveError {

@@ -69,6 +69,16 @@ final class AppModel {
 
     /// Reads Apple's model status now; asked again before each read and when the app comes back.
     @ObservationIgnored private let onDeviceStatus: @MainActor () -> OnDeviceStatus
+    /// Where this iPhone keeps which box is its own.
+    @ObservationIgnored private let defaults: UserDefaults
+    /// Where the box is kept, also for deleting it when the rules could not load and there is no box.
+    @ObservationIgnored private let persistence: BoxPersistence
+    /// Counts "Delete everything": a read begun before one lands nothing and sends nothing.
+    @ObservationIgnored private var boxEpoch = 0
+    /// Counts changes of the cloud choice: a read begun before one sends nothing to the cloud.
+    @ObservationIgnored private var consentEpoch = 0
+    /// The anonymous user "Delete everything" set out to delete; a retry deletes only this one.
+    @ObservationIgnored private var deletingUid: String?
 
     init(signIn: SignIn = .firebase(), onDeviceStatus: @escaping @MainActor () -> OnDeviceStatus = { ModelSessionFactory.onDeviceStatus() },
          persistence: BoxPersistence = BoxFiles(), reader: ItemReader? = nil, defaults: UserDefaults = .standard,
@@ -81,6 +91,8 @@ final class AppModel {
         self.fetchEdition = fetchEdition
         self.signIn = signIn
         self.onDeviceStatus = onDeviceStatus
+        self.defaults = defaults
+        self.persistence = persistence
         self.onDevice = onDeviceStatus()
         // The engine counts only once it has loaded the shipped edition; a refusal is said, not swallowed.
         let engine: RulesEngine? = {
@@ -138,6 +150,7 @@ final class AppModel {
     /// gate closes first, before the choice is saved, so no upload can start while the save runs.
     func turnOffCloudChecks() {
         pause.paused = true
+        consentEpoch += 1
         forgetLooks { _ in true }
         box?.setConsent(false)
         refreshCloudGate()
@@ -147,6 +160,7 @@ final class AppModel {
     /// closes first, as when cloud checks are turned off, and every look not landed is forgotten.
     func turnOnCloudChecks() {
         pause.paused = true
+        consentEpoch += 1
         forgetLooks { _ in true }
         box?.setConsent(nil)
         refreshCloudGate()
@@ -225,10 +239,17 @@ final class AppModel {
             askingConsent = true
             return
         }
-        // The pause and the sender's choice are read again, live, before every cloud call of this read.
+        // The pause and the sender's choice are read again, live, before every cloud call of this read; and the
+        // read sends nothing once the box it began for was deleted or the cloud choice changed since.
+        let boxAtStart = boxEpoch, choiceAtStart = consentEpoch
         var live = reader
-        live.cloudOpen = { [weak self] in self?.cloudAllowed ?? false }
+        live.cloudOpen = { [weak self] in
+            guard let self else { return false }
+            return self.cloudAllowed && self.boxEpoch == boxAtStart && self.consentEpoch == choiceAtStart
+        }
         let outcome = await live.read(input, situation: situation)
+        // A read that ends after "Delete everything" lands nothing: no item, no crop, nothing saved.
+        guard boxEpoch == boxAtStart else { return }
         if case let .photo(crop) = input { lastCrop = crop } else { lastCrop = nil }
         lastKind = input.kind
         lastRead = outcome
@@ -474,10 +495,61 @@ final class AppModel {
         }
     }
 
+    // MARK: Delete everything on this iPhone
+
+    /// "Delete everything on this iPhone", in order: the box (its file, its cloud choice, its id and
+    /// every photo held in memory), then the anonymous sign-in. The first step that fails stops the rest
+    /// and is named; `from` lets a retry start there, so a step already done is not run again.
+    func deleteEverything(from: DeleteStep = .box) async -> DeleteResult {
+        if from == .box {
+            // Nothing more goes to the cloud for this box: the gate closes, every read still running is cut off
+            // from it (it lands nothing and sends nothing), and every look is forgotten first.
+            pause.paused = true
+            boxEpoch += 1
+            consentEpoch += 1
+            forgetLooks { _ in true }
+            let newId = UUID().uuidString
+            do {
+                if let box {
+                    try box.deleteEverything(newBoxId: newId)
+                } else {
+                    // The rules could not load, so there is no box on screen; the saved box is deleted by the id
+                    // this iPhone keeps.
+                    try persistence.deleteBox(boxId: Self.currentBoxId(defaults))
+                }
+            } catch {
+                refreshCloudGate()
+                return .stopped(at: .box)
+            }
+            defaults.set(newId, forKey: Self.boxIdKey)
+            pending = nil
+            askingConsent = false
+            lastCrop = nil
+            lastRead = nil
+            lastItemId = nil
+            lastWasNoItem = false
+            refreshCloudGate()
+        }
+        // A sign-in still in progress is waited for, so none lands after this step reports done. The user
+        // current then is recorded on the first try, and a retry deletes only that one.
+        await signIn.settle()
+        if from == .box { deletingUid = signIn.currentUid() }
+        let outcome: SignInOutcome
+        switch await signIn.delete(deletingUid) {
+        case .deleted: outcome = .deleted
+        case .signedOut: outcome = .signedOut
+        case .none: outcome = .none
+        case .failed: return .stopped(at: .signIn)
+        }
+        signedIn = false
+        return .done(signIn: outcome)
+    }
+
     /// The sender's answer to the cloud question; a waiting photo is read after it, and an offered look
     /// it was asked for runs (or, kept on the iPhone, every offered look is forgotten).
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
+        consentEpoch += 1
         if !allow { forgetLooks { _ in true } }
         box?.setConsent(allow)
         refreshCloudGate()

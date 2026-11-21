@@ -7,9 +7,16 @@ import Testing
 final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
     var saved: [BoxSnapshot] = []
     var stored: BoxSnapshot?
+    var deleted: [String] = []
+    var failDeletes = false
     init(stored: BoxSnapshot? = nil) { self.stored = stored }
-    func save(_ snapshot: BoxSnapshot) { saved.append(snapshot) }
+    func save(_ snapshot: BoxSnapshot) { saved.append(snapshot); stored = snapshot }
     func load(boxId: String) -> BoxSnapshot? { stored }
+    func deleteBox(boxId: String) throws {
+        if failDeletes { throw CocoaError(.fileWriteNoPermission) }
+        deleted.append(boxId)
+        stored = nil
+    }
 }
 
 /// The web app's box store tests (src/data/boxStore.test.ts), same reads, same edition.
