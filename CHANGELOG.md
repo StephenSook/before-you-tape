@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Firestore rules for box expiry: a new box must carry expiresAt 36 to 38 days out (the client writes creation plus 37 days); items and disputes must carry their box's expiresAt exactly on create; none of the three may change, remove or add it after. Boxes from before expiry keep working, and their items omit it. To stay under the 1000-expression limit with a dispute of every fact, the box is read once per create, and a dispute's shape check no longer names device and cloud (a missing one is refused where it is read; a test pins that). Source: box expiry plan. Verified: new emulator rules tests failed first and pass; all rules tests pass.
+
 - Unit tests have a 15 s limit each instead of vitest's 5 s default. UI tests that add a photo take about a second and timed out at 5 to 7 s while other builds loaded this machine (load average 200 to 400); 15 s still ends a test that hangs. Source: repeated load timeouts in local runs. Verified: the full suite passes.
 
 - Picking a disputed reading now replaces an earlier hand correction of the same facts: a battery pick clears corrected volts, capacity and watt-hours, a label pick clears a corrected label text, and any other pick clears that fact's correction; corrections of other facts stay. Before, a hand-corrected 2,500 mAh stayed on top of a picked reading's volts and watt-hours. Same rule as the iPhone app. Source: iPhone review (web parity). Verified: a new boxStore test failed first and passes; the full suite passes.
