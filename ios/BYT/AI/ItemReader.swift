@@ -52,13 +52,6 @@ protocol ItemModelRunner: Sendable {
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError>
 }
 
-/// Which reads Apple's on-device model takes in this build. Set from the measured iPhone result,
-/// not from Remote Config. Until a photo read on the iPhone is measured, photos go to the cloud
-/// and label words stay on the iPhone.
-enum ClaimTier {
-    static let photoOnDevice = false
-}
-
 struct ReadSituation: Equatable, Sendable {
     var status: OnDeviceStatus
     var online: Bool
@@ -112,10 +105,11 @@ struct ItemReader: Sendable {
         return outcome
     }
 
-    /// The router's input for one read in this situation.
+    /// The router's input for one read in this situation. A photo goes to Apple's model when that
+    /// model reports image understanding (iOS 27); otherwise it goes to the cloud, only when allowed.
     static func routeInput(_ kind: ReadInputKind, _ s: ReadSituation) -> RouteInput {
         RouteInput(kind: kind, onDeviceAvailable: s.status.unavailable == nil,
-                   imageInput: ClaimTier.photoOnDevice && s.status.vision, localeSupported: s.status.localeSupported,
+                   imageInput: s.status.vision, localeSupported: s.status.localeSupported,
                    online: s.online, cloudConsent: s.cloudConsent, killCloud: s.config.killCloud)
     }
 
