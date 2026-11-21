@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-18df94225733",
+  "editionId": "byt-d91a59b25cbf",
   "revision": 4,
   "service": "Priority Mail International",
   "sources": [
@@ -2091,7 +2091,7 @@
             },
             {
               "tag": "replica_explosive",
-              "effect": "take_out"
+              "effect": "check"
             }
           ]
         },

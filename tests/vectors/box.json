@@ -182,10 +182,10 @@
     "expect": { "grenade": "check" }, "expectRules": { "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
   },
   {
-    "name": "replica_grenade_ph", "source": "IMM 136.2 and Philippines PH-P-03 (copies of weapons): the same toy, to the Philippines",
+    "name": "replica_grenade_ph", "source": "IMM 136.2 and Philippines PH-P-03 (copies of weapons): the same toy, to the Philippines, checked since a label cannot show it looks real",
     "code": "PH", "today": "2026-11-20",
     "items": [{ "itemId": "grenade", "read": { "category": "toy", "labelText": "REPLICA GRENADE" } }],
-    "expect": { "grenade": "take_out" }, "expectRules": { "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"] }
+    "expect": { "grenade": "check" }, "expectRules": { "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"] }
   },
   {
     "name": "plain_toy_ca", "source": "IMM 136.2 exempts toys that don't look real: a toy with no munitions words is not held",
