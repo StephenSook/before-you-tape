@@ -286,7 +286,7 @@
   },
   {
     "name": "battery_185_wh_read_ten_times_low_throughout_is_check", "code": "CA", "today": "2026-11-20",
-    "source": "Volts, mAh and Wh that agree with each other but are all ten times too low",
+    "source": "mAh and Wh that agree with the volts, but are both ten times too low",
     "items": [{ "itemId": "station", "read": { "category": "other_electronics", "labelText": "LI-ION 5000mAh 3.7V 18.5Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "station": "check" }, "expectRules": { "station": ["USPS-INTL-LI-ONE-READ"] }
@@ -303,5 +303,12 @@
     "items": [{ "itemId": "toy", "read": { "category": "battery_toy", "labelText": "CR2032 3V LITHIUM 0.1g", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "toy": "check" }, "expectRules": { "toy": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "not_lithium_answer_keeps_one_read_numbers_held", "code": "CA", "today": "2026-11-20",
+    "source": "A saved not-lithium answer does not clear a rating read once: printed Wh keep the battery in the lithium checks",
+    "items": [{ "itemId": "gadget", "read": { "category": "other_electronics", "labelText": "18.5Wh", "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "battery_installed": "not_lithium", "device_condition": "new_sealed" } }],
+    "expect": { "gadget": "check" }, "expectRules": { "gadget": ["USPS-INTL-LI-ONE-READ"] }
   }
 ]

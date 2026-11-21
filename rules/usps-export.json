@@ -336,7 +336,6 @@
     "when": {
       "all": [
         { "fact": "battery.presence", "op": "eq", "value": "installed" },
-        { "not": { "fact": "battery.chemistry", "op": "eq", "value": "not_lithium" } },
         { "fact": "identity", "op": "in", "value": ["label", "unconfirmed"] },
         {
           "any": [

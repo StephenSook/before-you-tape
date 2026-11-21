@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-08bb60c0af4d",
+  "editionId": "byt-3533e063dd31",
   "revision": 6,
   "service": "Priority Mail International",
   "sources": [
@@ -1267,13 +1267,6 @@
             "fact": "battery.presence",
             "op": "eq",
             "value": "installed"
-          },
-          {
-            "not": {
-              "fact": "battery.chemistry",
-              "op": "eq",
-              "value": "not_lithium"
-            }
           },
           {
             "fact": "identity",

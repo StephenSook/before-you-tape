@@ -114,10 +114,11 @@ describe("USPS export rule data", () => {
       battery: { presence: "installed", chemistry: "li_metal", lithiumGrams: 0.1 } });
     expect(hit(coin)).toEqual([ONE]);
     expect(hit({ ...coin, identity: "sender" })).toEqual([]);
-    // Numbers that disagree, or are missing, already have their own check; the sender's "not lithium" is their word.
+    // Numbers that disagree, or are missing, already have their own check.
     expect(hit(mismatchPhone)).not.toContain(ONE);
     expect(hit(noWhPhone)).not.toContain(ONE);
-    expect(hit({ ...phone, battery: { ...phone.battery, chemistry: "not_lithium" } })).toEqual([]);
+    // A saved "not lithium" answer does not clear a printed rating read once: printed Wh keep it in the lithium checks.
+    expect(hit({ ...phone, battery: { ...phone.battery, chemistry: "not_lithium" } })).toEqual([ONE]);
     expect(hit(powerBank)).not.toContain(ONE);
   });
 
