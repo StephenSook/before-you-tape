@@ -20,6 +20,10 @@ import Testing
         let cloudRunner = FakeItemRunner("cloud", journal: j, results: cloud)
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: device, tokens: nil))]),
                                 makeCloud: { _ in cloudRunner }, parse: { ParsedRead(read: $0) })
+        return model(reader, consent: consent, online: online)
+    }
+
+    func model(_ reader: ItemReader, consent: Bool? = true, online: Bool = true) -> AppModel {
         let m = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsAndPhotos },
                          persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
         m.network.pathChanged(satisfied: online)
@@ -27,7 +31,87 @@ import Testing
         return m
     }
 
-    func settle(_ m: AppModel) async { for task in m.secondLookTasks { await task.value } }
+    func settle(_ m: AppModel) async { await m.waitForSecondLooks() }
+
+    static func ok(_ read: JSONValue) -> Result<ItemReply, ReadError> { .success(ItemReply(read: read, tokens: nil)) }
+
+    /// A cloud reader whose calls wait until the test lets them go, so a look can be held mid-call.
+    final class HeldCloud: ItemModelRunner, @unchecked Sendable {
+        let journal: FakeItemRunner.Journal
+        let reply: JSONValue
+        private let lock = NSLock()
+        private var waiting: [CheckedContinuation<Void, Never>] = []
+        private var open = false
+        init(_ journal: FakeItemRunner.Journal, reply: JSONValue) {
+            self.journal = journal
+            self.reply = reply
+        }
+
+        func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+            journal.add("cloud start")
+            await withCheckedContinuation { c in
+                lock.lock()
+                if open { lock.unlock(); c.resume() } else { waiting.append(c); lock.unlock() }
+            }
+            journal.add("cloud end")
+            return .success(ItemReply(read: reply, tokens: nil))
+        }
+
+        func letGo() {
+            lock.lock()
+            open = true
+            let all = waiting
+            waiting = []
+            lock.unlock()
+            all.forEach { $0.resume() }
+        }
+    }
+
+    /// Removing an item whose look waits behind another look sends nothing for it, and forgets its crop.
+    @Test func removingAnItemSendsNothingForItsWaitingLook() async throws {
+        let j = FakeItemRunner.Journal()
+        let cloud = HeldCloud(j, reply: Self.powerBank)
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [Self.ok(Self.powerBank), Self.ok(Self.powerBank)]),
+                                makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
+        let m = model(reader)
+        await m.readPhoto(jpeg)
+        while !j.events.contains("cloud start") { await Task.yield() }
+        await m.readPhoto(jpeg)
+        let second = try #require(m.box?.items.last?.itemId)
+        // The second look has started and waits for the first one's lane.
+        while !m.isCheckingAgain(second) { await Task.yield() }
+        m.remove(second)
+        cloud.letGo()
+        await settle(m)
+        #expect(j.events.filter { $0 == "cloud start" }.count == 1)
+        #expect(m.box?.items.count == 1 && m.box?.sources.secondLooks == 1)
+        #expect(m.pendingLookCount == 0 && m.secondLookError(second) == nil)
+    }
+
+    /// Turning cloud checks off forgets every look not landed, and its crop, so none is sent later.
+    @Test func turningCloudChecksOffForgetsLooksNotLanded() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [.failure(ReadError(.parseFailed)), Self.ok(Self.powerBank)])
+        await m.readPhoto(jpeg)
+        await settle(m)
+        let id = try #require(m.box?.items.first?.itemId)
+        #expect(m.pendingLookCount == 1 && m.secondLookError(id) != nil)
+        m.turnOffCloudChecks()
+        #expect(m.pendingLookCount == 0 && m.secondLookError(id) == nil)
+        await m.answerConsent(true)
+        m.retrySecondLook(id)
+        await settle(m)
+        #expect(j.events.filter { $0 == "cloud start" }.count == 1 && m.box?.items.first?.secondLook == nil)
+    }
+
+    /// A look that ended keeps no task behind.
+    @Test func finishedLooksLeaveNoTaskBehind() async {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [Self.ok(Self.powerBank)])
+        await m.readPhoto(jpeg)
+        await settle(m)
+        #expect(m.box?.items.first?.secondLook != nil && m.lookTaskCount == 0 && m.pendingLookCount == 0)
+    }
 
     @Test func aPhotoReadOnThisIPhoneWithAReasonIsLookedAtAgainInTheCloud() async throws {
         let j = FakeItemRunner.Journal()
@@ -101,6 +185,8 @@ import Testing
     }
 
     /// Cloud checks turned off before the look ran: nothing is sent, and the card says so.
+    /// Turned off after a look failed, it is forgotten: "Try again" sends nothing and no failure line
+    /// stays. A pause from the server still says why on the card.
     @Test func cloudChecksTurnedOffStopTheLook() async throws {
         let j = FakeItemRunner.Journal()
         let m = model(j, cloud: [.failure(ReadError(.server)), .failure(ReadError(.server))])
@@ -110,8 +196,9 @@ import Testing
         m.turnOffCloudChecks()
         m.retrySecondLook(id)
         await settle(m)
-        #expect(m.secondLookError(id) == "Cloud checks are off right now, so this was not checked again.")
+        #expect(m.secondLookError(id) == nil && m.pendingLookCount == 0)
         #expect(j.events.filter { $0 == "cloud start" }.count == 2)
+        #expect(AppModel.secondLookFailure(.cloudPaused) == "Cloud checks are off right now, so this was not checked again.")
     }
 
     /// The reasons the card gives are the web app's own sentences (src/ai/secondLook.ts SECOND_LOOK_TEXT).

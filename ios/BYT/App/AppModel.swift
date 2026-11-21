@@ -134,14 +134,16 @@ final class AppModel {
     /// gate closes first, before the choice is saved, so no upload can start while the save runs.
     func turnOffCloudChecks() {
         pause.paused = true
+        forgetLooks { _ in true }
         box?.setConsent(false)
         refreshCloudGate()
     }
 
     /// Clears the choice, so the cloud question is asked again before the next cloud call. The gate
-    /// closes first, as when cloud checks are turned off.
+    /// closes first, as when cloud checks are turned off, and every look not landed is forgotten.
     func turnOnCloudChecks() {
         pause.paused = true
+        forgetLooks { _ in true }
         box?.setConsent(nil)
         refreshCloudGate()
     }
@@ -265,7 +267,8 @@ final class AppModel {
         var deviceRead: JSONValue
         var crop: Data
     }
-    /// Looks still to land, by item: what to read again and why.
+    /// Looks still to land, by item: what to read again and why. Forgotten, crop and all, when the item
+    /// is removed or cloud checks are taken back.
     @ObservationIgnored private var pendingLooks: [String: PendingLook] = [:]
     /// Items being looked at again right now, and any look's failure, for the item's card.
     private var checkingAgain: Set<String> = []
@@ -274,8 +277,33 @@ final class AppModel {
     @ObservationIgnored private var lookAgain: Set<String> = []
     /// Looks that failed for no connection; they run again when the iPhone is back online.
     @ObservationIgnored private var waitingForOnline: Set<String> = []
-    /// The looks started, so a test can wait for them.
-    @ObservationIgnored private(set) var secondLookTasks: [Task<Void, Never>] = []
+    /// The looks running or waiting, each with its item. Each one drops its own entry when it ends;
+    /// removing the item or taking back cloud checks cancels it.
+    @ObservationIgnored private var lookTasks: [UUID: (itemId: String, task: Task<Void, Never>)] = [:]
+
+    var pendingLookCount: Int { pendingLooks.count }
+    var lookTaskCount: Int { lookTasks.count }
+
+    /// Waits until no look runs or waits.
+    func waitForSecondLooks() async {
+        while let entry = lookTasks.values.first { await entry.task.value }
+    }
+
+    /// Removes an item from the box, and every look of it with it: nothing more is sent for it, and its
+    /// crop is forgotten.
+    func remove(_ itemId: String) {
+        forgetLooks { $0 == itemId }
+        box?.remove(itemId)
+    }
+
+    /// Cancels the matching items' looks and forgets their crops, failures and waits.
+    private func forgetLooks(_ match: (String) -> Bool) {
+        for entry in lookTasks.values where match(entry.itemId) { entry.task.cancel() }
+        pendingLooks = pendingLooks.filter { !match($0.key) }
+        lookErrors = lookErrors.filter { !match($0.key) }
+        waitingForOnline = waitingForOnline.filter { !match($0) }
+        lookAgain = lookAgain.filter { !match($0) }
+    }
 
     func isCheckingAgain(_ itemId: String) -> Bool { checkingAgain.contains(itemId) }
     func secondLookError(_ itemId: String) -> String? { lookErrors[itemId] }
@@ -295,7 +323,12 @@ final class AppModel {
     func retrySecondLook(_ itemId: String) { startLook(itemId) }
 
     private func startLook(_ itemId: String) {
-        secondLookTasks.append(Task { await runSecondLook(itemId) })
+        let id = UUID()
+        let task = Task { [weak self] in
+            await self?.runSecondLook(itemId)
+            self?.lookTasks[id] = nil
+        }
+        lookTasks[id] = (itemId, task)
     }
 
     private func runLooksWaitingForOnline() {
@@ -317,26 +350,32 @@ final class AppModel {
         }
         checkingAgain.insert(itemId)
         var live = reader
-        live.cloudOpen = { [weak self] in self?.cloudAllowed ?? false }
+        // Read at the moment of each send, also after waiting for another look's lane: the cloud allowed,
+        // and this look not forgotten (its item still in the box, cloud checks not taken back).
+        live.cloudOpen = { [weak self] in
+            guard let self else { return false }
+            return self.cloudAllowed && self.pendingLooks[itemId] != nil && self.box?.items.contains(where: { $0.itemId == itemId }) == true
+        }
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
         let outcome = await live.secondLook(.photo(cropJPEG: look.crop), situation: situation)
         checkingAgain.remove(itemId)
-        if box.items.contains(where: { $0.itemId == itemId }) {
-            if let cloud = outcome.read, let merged = try? engine.mergeSecondLook(device: look.deviceRead, cloud: cloud) {
-                let label: String? = if case let .string(s)? = cloud["labelText"] { s } else { nil }
-                box.applySecondLook(itemId, merged: merged.merged, ms: outcome.records.reduce(0) { $0 + $1.latencyMs },
-                                    reason: Self.secondLookText[look.reason] ?? look.reason, cloudLabel: outcome.wholeLabel ?? label,
-                                    disputes: merged.disputes)
-                pendingLooks[itemId] = nil
-                // A look that worked replaces any earlier failure of it.
-                lookErrors[itemId] = nil
-            } else {
-                let failure = outcome.failure ?? .parseFailed
-                if failure == .network { waitingForOnline.insert(itemId) }
-                lookErrors[itemId] = Self.secondLookFailure(failure)
-            }
-        } else {
+        // A look forgotten while it ran lands nothing and says nothing.
+        guard pendingLooks[itemId] != nil, box.items.contains(where: { $0.itemId == itemId }) else {
             pendingLooks[itemId] = nil
+            return
+        }
+        if let cloud = outcome.read, let merged = try? engine.mergeSecondLook(device: look.deviceRead, cloud: cloud) {
+            let label: String? = if case let .string(s)? = cloud["labelText"] { s } else { nil }
+            box.applySecondLook(itemId, merged: merged.merged, ms: outcome.records.reduce(0) { $0 + $1.latencyMs },
+                                reason: Self.secondLookText[look.reason] ?? look.reason, cloudLabel: outcome.wholeLabel ?? label,
+                                disputes: merged.disputes)
+            pendingLooks[itemId] = nil
+            // A look that worked replaces any earlier failure of it.
+            lookErrors[itemId] = nil
+        } else {
+            let failure = outcome.failure ?? .parseFailed
+            if failure == .network { waitingForOnline.insert(itemId) }
+            lookErrors[itemId] = Self.secondLookFailure(failure)
         }
         if lookAgain.remove(itemId) != nil, pendingLooks[itemId] != nil { await runSecondLook(itemId) }
     }

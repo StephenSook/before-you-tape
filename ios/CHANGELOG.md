@@ -5,6 +5,21 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): removing an item or taking back cloud checks cancels and forgets its second looks
+- What: the box screen removed items straight from the box, so the app never heard of it. A look
+  waiting for another look's lane still went to the cloud after its item was removed (the item
+  was checked only before the wait), and a failed look kept its crop in memory after the item was
+  removed or cloud checks were turned off. Every finished look also kept its task. Now removal goes
+  through the app model, which cancels the item's looks and forgets their crops, failures and
+  waits. Turning cloud checks off (or clearing the choice) does the same for every look. The gate
+  each cloud call reads at the moment of sending also asks whether the look is still wanted, and a
+  look forgotten while it ran lands nothing. Each look's task drops itself when it ends.
+- Source: review (Codex and Gemini, on the second-look PR).
+- Verified: three new tests (a removed item's look held behind another sends nothing; turning
+  cloud checks off forgets a failed look's crop and "Try again" then sends nothing; a finished
+  look leaves no task) failed before and pass after, the first with a cloud reader held mid-call so
+  the order is fixed; the older turned-off test now expects the forgotten look; 203 unit tests pass.
+
 ### fix(ios): a slow second look no longer holds up a new photo read on the iPhone
 - What: the second look took the reader's one gate for the whole cloud call (up to 45 seconds a
   try, with a retry and a fallback), so a new photo waited behind it. Second looks now have a gate

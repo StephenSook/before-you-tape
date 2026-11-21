@@ -25,10 +25,11 @@ struct BoxView: View {
                                      checkingAgain: model.isCheckingAgain(row.item.itemId), lookError: model.secondLookError(row.item.itemId),
                                      onRetryLook: { model.retrySecondLook(row.item.itemId) })
                     } else {
-                        UncheckedItemRow(item: row.item, box: box)
+                        UncheckedItemRow(item: row.item, box: box, remove: model.remove)
                     }
                 }
-                .onDelete { rows in rows.map { box.items[$0].itemId }.forEach(box.remove) }
+                // Through the model, so a removed item's second look is cancelled and its crop forgotten.
+                .onDelete { rows in rows.map { box.items[$0].itemId }.forEach(model.remove) }
             } else {
                 Text(model.rulesProblem ?? AppModel.rulesFailed)
             }
@@ -60,6 +61,8 @@ extension BoxView {
 private struct UncheckedItemRow: View {
     let item: BoxItem
     let box: BoxStore
+    /// The model's removal, which also cancels the item's second look.
+    let remove: (String) -> Void
     @State private var fixing = false
 
     var body: some View {
@@ -68,7 +71,7 @@ private struct UncheckedItemRow: View {
             Text("This item could not be checked. Fix it or remove it.")
             HStack {
                 Button("Fix this reading") { fixing = true }.buttonStyle(.bordered)
-                Button("Remove", role: .destructive) { box.remove(item.itemId) }.buttonStyle(.bordered)
+                Button("Remove", role: .destructive) { remove(item.itemId) }.buttonStyle(.bordered)
             }
         }
         .padding(.vertical, 6)
