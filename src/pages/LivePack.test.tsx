@@ -30,7 +30,7 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 }
 
 let n = 0;
-type PageOver = { settingsWaitMs?: number; online?: boolean };
+type PageOver = { settingsWaitMs?: number; settingsNoticeMs?: number; online?: boolean };
 function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
@@ -97,7 +97,7 @@ describe("LivePack", () => {
   });
 
   it("says cloud checks wait for their settings while the pause is not known yet, and reads nothing in the cloud", async () => {
-    const { models, push } = setup({}, "no_api", { settingsWaitMs: 50 });
+    const { models, push } = setup({}, "no_api", { settingsWaitMs: 50, settingsNoticeMs: 0 });
     act(() => push({ killCloud: true, pauseUnknown: true }));
     expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load.");
     // This laptop has no model of its own, so the banner does not say checks on it still work.
@@ -176,8 +176,31 @@ describe("LivePack", () => {
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
+  it("says the cloud settings are missing only once they have been missing a while, so the page does not jump on every load", async () => {
+    const { push } = setup({}, "no_api", { settingsNoticeMs: 80 });
+    // Settings that land before the limit never show the notice.
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    expect(screen.queryByTestId("paused-banner")).toBeNull();
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 150)); });
+    expect(screen.queryByTestId("paused-banner")).toBeNull();
+    // Settings still missing after the limit: the notice and its button show, and go once the settings land.
+    act(() => push({ killCloud: true, pauseUnknown: true }));
+    expect(screen.queryByTestId("paused-banner")).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load."));
+    expect(within(screen.getByTestId("paused-banner")).getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    expect(screen.queryByTestId("paused-banner")).toBeNull();
+  });
+
+  it("says at once when cloud checks are paused on purpose", () => {
+    const { push } = setup({}, "no_api", { settingsNoticeMs: 60_000 });
+    act(() => push({ killCloud: true }));
+    expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused.");
+  });
+
   it("offers to load the cloud settings again while they are not known, and asks Remote Config again", async () => {
-    const { push, retry } = setup();
+    const { push, retry } = setup({}, "no_api", { settingsNoticeMs: 0 });
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
     act(() => push({ killCloud: true, pauseUnknown: true }));
     await userEvent.click(within(screen.getByTestId("paused-banner")).getByRole("button", { name: "Try again" }));

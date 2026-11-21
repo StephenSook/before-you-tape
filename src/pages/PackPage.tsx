@@ -18,6 +18,7 @@ import { READ_TIMEOUT_MS } from "../shared/readLimit";
 import { chooseImageRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
+import { CloudChip } from "../ui/CloudChip";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
@@ -75,15 +76,23 @@ export interface PackPageProps {
   today?: string;
   // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
   newestSheetMs?: number;
+  // How long the cloud settings may be missing before the page says so.
+  settingsNoticeMs?: number;
 }
 
 // Remote Config usually answers within a second or two of the page opening.
 const SETTINGS_WAIT_MS = 10_000;
+// So the notice that they are missing waits this long: shown on every load, it moved the whole stage down.
+const SETTINGS_NOTICE_MS = 8_000;
 // A cloud read takes about 2 s and an on-device one under 10 s; anything far past that is not coming back.
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
 const GATE_SLOW = "This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.";
 const CHOICE_CHANGED = "Your cloud choice changed while this laptop was getting ready. Add the photo again.";
+const ASK_CHANGED = "Your cloud choice changed in another tab. Add the photo again.";
+type AskFor = { kind: "chip" } | { kind: "photo"; part: ImagePart; how: ImageHow } | { kind: "look"; itemId: string };
+// at: the choice when the question opened; an answer given after it changed elsewhere is not taken.
+type Ask = AskFor & { id: number; at: boolean | null };
 const TOO_SLOW = "The check took too long. Try again or type the item.";
 const SECOND_LOOK_TOO_SLOW = "The cloud step took too long. Try again.";
 
@@ -101,7 +110,7 @@ function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; onli
   if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
   if (i.killCloud && pauseUnknown) return "Cloud checks are waiting for their settings, and this laptop can't read photos on its own. Type the item, or try again in a moment.";
   if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
-  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Allow cloud checks above, or type the item.";
+  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Turn on cloud checks, or type the item.";
   return BLOCKED;
 }
 const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
@@ -147,6 +156,12 @@ export function PackPage(p: PackPageProps) {
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
   const [typing, setTyping] = useState(false);
+  // The cloud question, asked when a photo or an offered second look first needs the cloud (and run once the
+  // sender answers), or when the sender turns cloud checks on.
+  // One question at a time: a newer photo, a removed item or a choice made in another tab closes it.
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const askIds = useRef(0);
+  const openAsk = (a: AskFor) => setAsk({ ...a, id: ++askIds.current, at: store.consentNow() });
   // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
   const [removed, setRemoved] = useState("");
   const focusAfterRemove = useRef<string | null>(null);
@@ -172,6 +187,8 @@ export function PackPage(p: PackPageProps) {
     // A look already running is stopped: no retry and no fallback model, and what it brings back is dropped.
     lookWork.current.get(itemId)?.();
     setCrops((c) => { const { [itemId]: _gone, ...rest } = c; void _gone; return rest; });
+    // Its cloud question goes too: there is no look left to ask about.
+    setAsk((a) => (a?.kind === "look" && a.itemId === itemId ? null : a));
     // Emptied first, so the same words for a second removal are read out again. A newer removal replaces a
     // notice still waiting, and leaving the page clears it.
     const text = `Removed ${removedItem.overrides.itemName ?? removedItem.read.itemName}.`;
@@ -213,6 +230,15 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => { live.current = latest(); });
   // How many photos are waiting for the settings; "Getting ready" shows while any is.
   const [waiting, setWaiting] = useState(0);
+  // Whether the cloud settings have been missing for longer than they usually take to arrive.
+  const [settingsLate, setSettingsLate] = useState(false);
+  const settingsNoticeMs = p.settingsNoticeMs ?? SETTINGS_NOTICE_MS;
+  useEffect(() => {
+    setSettingsLate(config.pauseUnknown === true && settingsNoticeMs <= 0);
+    if (!config.pauseUnknown || settingsNoticeMs <= 0) return;
+    const t = setTimeout(() => setSettingsLate(true), settingsNoticeMs);
+    return () => clearTimeout(t);
+  }, [config.pauseUnknown, settingsNoticeMs]);
   // Each press gets a number, so a read that ran out of time does not cover the notice of a newer one.
   const presses = useRef(0);
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
@@ -251,7 +277,15 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => {
     const work = inflight.current;
     const withdraw = () => { for (const ac of work) ac.abort(); work.clear(); };
-    const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== true) withdraw(); });
+    // Taking consent back also drops looks waiting to go back online, so turning cloud checks on again later
+    // never sends one by itself.
+    const offConsent = store.subscribe(() => {
+      if (store.getState().cloudConsent === true) return;
+      withdraw();
+      const waiting = [...waitingForOnline.current];
+      waitingForOnline.current.clear();
+      for (const id of waiting) store.setError(id, SECOND_LOOK_FAILURE.blocked);
+    });
     const offPause = liveConfig?.subscribe((c) => { if (c.killCloud) withdraw(); });
     return () => { offConsent(); offPause?.(); withdraw(); };
   }, [store, liveConfig]);
@@ -357,6 +391,8 @@ export function PackPage(p: PackPageProps) {
     if (gone.current) return;
     // Only a sender's press counts here: a frame the camera read by itself must not hide a press's notice.
     const press = how === "steady" ? null : ++presses.current;
+    // A newer press closes any open cloud question, so Allow can only send the newest photo.
+    if (press !== null) setAsk(null);
     // The press this read answers to: its own, or for a camera frame the newest one when it started. Its
     // notice shows only while no newer press has come since.
     const owner = press ?? presses.current;
@@ -373,7 +409,8 @@ export function PackPage(p: PackPageProps) {
       const consentAtPress = store.consentNow();
       // Every change is caught as it is announced, so turning cloud checks off and straight back on counts too.
       let changed = false;
-      const offConsent = store.subscribe(() => { if (store.consentNow() !== consentAtPress) changed = true; });
+      // Each announced value counts, not only what storage holds now, so an off and an on together still count.
+      const offConsent = store.subscribe(() => { if (store.getState().cloudConsent !== consentAtPress || store.consentNow() !== consentAtPress) changed = true; });
       setNotice(null);
       setBlocked(null);
       setWaiting((w) => w + 1);
@@ -417,7 +454,15 @@ export function PackPage(p: PackPageProps) {
       }
     }
     if (route === "blocked") {
-      if (presses.current === owner) { setNotice(null); setBlocked({ text: blockedText(inputs(), live.current.pauseUnknown), when: situationOf(inputs()) }); }
+      // A sender who has not been asked yet is asked now, when only the cloud could read this photo. Settings that
+      // have not loaded yet do not stop the question: after Allow, the photo waits for them like any other.
+      const askNow = press !== null && store.consentNow() === null
+        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true, killCloud: inputs().killCloud && !live.current.pauseUnknown }) !== "blocked";
+      if (presses.current === owner) {
+        setNotice(null);
+        if (askNow) { setBlocked(null); openAsk({ kind: "photo", part, how }); }
+        else setBlocked({ text: blockedText(inputs(), live.current.pauseUnknown), when: situationOf(inputs()) });
+      }
       return;
     }
     // A frame the camera read by itself leaves the notices of the sender's presses in place.
@@ -442,6 +487,10 @@ export function PackPage(p: PackPageProps) {
         looks.current.set(itemId, { reason, read: outcome.read, part });
         if (how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
         else void secondLook(itemId);
+      } else if (reason && store.consentNow() === null && cloudAllowed({ ...liveInputs(), cloudConsent: true })) {
+        // A sender not asked yet is offered the look on the card, and asked when they take it.
+        looks.current.set(itemId, { reason, read: outcome.read, part });
+        setOffered((o) => ({ ...o, [itemId]: true }));
       }
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
@@ -453,6 +502,38 @@ export function PackPage(p: PackPageProps) {
       work.end();
     }
   };
+
+  // The answer to the cloud question; a photo that asked goes on to its check (or says why it cannot).
+  const answerAsk = (allow: boolean) => {
+    const pending = ask;
+    askWatch.current?.();
+    setAsk(null);
+    // Another tab answered first (its storage event may not have arrived): this answer is not taken.
+    if (pending && store.consentNow() !== pending.at) {
+      if (pending.kind === "photo") setNotice(ASK_CHANGED);
+      return;
+    }
+    store.setConsent(allow);
+    // The question's buttons go, so focus returns to the chip that shows the answer.
+    document.getElementById("cloud-chip")?.focus();
+    if (!pending) return;
+    if (pending.kind === "photo") void onImage(pending.part, pending.how);
+    else if (pending.kind === "look" && allow) void secondLook(pending.itemId);
+  };
+  // An offered cloud look asks first when the sender has not been asked yet.
+  const takeLook = (itemId: string) => { if (store.consentNow() === null) openAsk({ kind: "look", itemId }); else void secondLook(itemId); };
+  // A choice made elsewhere (another tab) while the question is open closes it; a photo it held is dropped.
+  const askWatch = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!ask) return;
+    const stop = store.subscribe(() => {
+      if (store.getState().cloudConsent === ask.at && store.consentNow() === ask.at) return;
+      setAsk(null);
+      if (ask.kind === "photo") setNotice(ASK_CHANGED);
+    });
+    askWatch.current = stop;
+    return () => { stop(); if (askWatch.current === stop) askWatch.current = null; };
+  }, [ask, store]);
 
   const newestItem = state.items.at(-1);
   // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
@@ -490,21 +571,11 @@ export function PackPage(p: PackPageProps) {
         )}
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} cloudOn={state.cloudConsent === true && !config.killCloud} />
+        {/* The sender can take the cloud choice back at any time; turning it on again asks first. */}
+        <CloudChip consent={state.cloudConsent === true} paused={config.killCloud && !config.pauseUnknown}
+          onToggle={() => { if (state.cloudConsent === true) store.setConsent(false); else openAsk({ kind: "chip" }); }} />
       </div>
-      {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
-      {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
-      {state.cloudConsent !== null && (
-        <p data-testid="cloud-choice">
-          {state.cloudConsent ? "Cloud checks are on." : gate === "checking" ? "Cloud checks are off."
-            : gate === "available"
-            ? "Cloud checks are off. Photos and label text stay on this laptop."
-            : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
-          <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
-            {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
-          </button>
-        </p>
-      )}
-      {config.killCloud && (
+      {config.killCloud && (!config.pauseUnknown || settingsLate) && (
         <p data-testid="paused-banner" className="banner" role="status">
           {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}
           {gate === "available" ? " Checks on this laptop still work." : ""}
@@ -521,10 +592,11 @@ export function PackPage(p: PackPageProps) {
       {waiting > 0 && <p data-testid="getting-ready" className="banner" role="status">{GETTING_READY}</p>}
       {notice && <p className="banner" role="alert">{notice}</p>}
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
+      {ask && <ConsentNotice key={ask.id} onChoice={answerAsk} />}
       <div className="pack">
         <div>
           <CameraStage openCamera={p.openCamera} onImage={(part, how) => void onImage(part, how)} autoRead={gate === "available"} phoneReady={p.phoneReady} {...(p.phone ? { phone: true } : {})} onError={setNotice}
-            onTypeIt={() => setTyping(true)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
+            onTypeIt={() => setTyping(true)} onPress={() => setAsk(null)} sample={SAMPLE_PHOTO} {...(p.loadSample ? { loadSample: p.loadSample } : {})}
             {...(p.sampleRead ? { onSampleSend } : {})} />
           <p><button type="button" aria-expanded={typing} onClick={() => setTyping((t) => !t)}>Type an item</button></p>
           {/* A typed item is the sender's own word, never a model read, so it makes no model call. */}
@@ -558,7 +630,7 @@ export function PackPage(p: PackPageProps) {
                 onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}
-                onCloudLook={offered[item.itemId] ? (id) => void secondLook(id) : undefined}
+                onCloudLook={offered[item.itemId] && state.cloudConsent !== false ? takeLook : undefined}
                 newest={item.itemId === state.items.at(-1)?.itemId} />
             ) : null;
           })}

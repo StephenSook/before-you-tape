@@ -25,8 +25,9 @@ export function AboutPage() {
         <li>The rules run in your browser.</li>
         <li>A photo is read on this device when it has a built-in model.</li>
         <li>
-          If it does not, and only if you allow it, the part of the photo inside the box you place and the words on its
-          label go to Google's Gemini through Firebase AI Logic. You can turn this off again at any time.
+          If it does not, or when the rules ask for a read to be checked again, and only if you allow it, the part of
+          the photo inside the box you place goes to Google's Gemini through Firebase AI Logic. You can turn this off
+          again at any time.
         </li>
         <li>{BOX_LIST_SAVED}</li>
       </ul>

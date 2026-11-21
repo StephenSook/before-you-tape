@@ -103,6 +103,33 @@ describe("CameraStage", () => {
     await waitFor(() => expect(onImage).toHaveBeenCalledTimes(2));
   });
 
+  it("says a Check now press happened at once, before the frame is cropped, even when the crop then fails", async () => {
+    const onPress = vi.fn();
+    let fail: (e: Error) => void = () => {};
+    const capture = vi.fn(() => new Promise<never>((_, no) => { fail = no; }));
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={() => {}} onPress={onPress} capture={capture} />);
+    await start();
+    await userEvent.click(screen.getByTestId("check-now"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await act(async () => { fail(new CropError("empty crop box")); await Promise.resolve(); });
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps only the newest Check now when two crops finish out of order", async () => {
+    const onImage = vi.fn();
+    const older: ImagePart = { mimeType: "image/jpeg", base64: "/9j/OLDER" };
+    const newer: ImagePart = { mimeType: "image/jpeg", base64: "/9j/NEWER" };
+    const finish: Array<(p: ImagePart) => void> = [];
+    const capture = vi.fn(() => new Promise<ImagePart>((done) => { finish.push(done); }));
+    render(<CameraStage openCamera={okCamera} onImage={onImage} capture={capture} />);
+    await start();
+    await userEvent.click(screen.getByTestId("check-now"));
+    await userEvent.click(screen.getByTestId("check-now"));
+    await act(async () => { finish[1]!(newer); await Promise.resolve(); });
+    await act(async () => { finish[0]!(older); await Promise.resolve(); });
+    expect(onImage.mock.calls).toEqual([[newer, "check_now"]]);
+  });
+
   it("says in plain words why Check now read nothing, never the raw error", async () => {
     const onError = vi.fn();
     const capture = vi.fn(async () => { throw new CropError("empty crop box"); });
