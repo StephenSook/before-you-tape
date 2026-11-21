@@ -22,8 +22,8 @@ describe("appRoutes", () => {
 describe("pwaOptions", () => {
   const o = pwaOptions({ kill: false, routes });
 
-  it("caches only the app's own shell: the page, its built code (with the bundled rules) and fonts", () => {
-    expect(o.workbox?.globPatterns).toEqual(["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg"]);
+  it("caches only the app's own shell: the page, its built code (with the bundled rules), fonts and icons", () => {
+    expect(o.workbox?.globPatterns).toEqual(["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"]);
     expect(o.workbox?.globIgnores).toEqual(["assets/extBridge-*"]);
   });
 
@@ -49,5 +49,25 @@ describe("pwaOptions", () => {
 
   it("builds a worker that removes itself when the kill switch is on", () => {
     expect(pwaOptions({ kill: true, routes }).selfDestroying).toBe(true);
+  });
+
+  // The app can be installed: a name, the page's own description, its colors and icons drawn from the favicon.
+  it("describes the app for installing, with icons that exist", () => {
+    const description = /<meta name="description" content="([^"]+)"/.exec(readFileSync("index.html", "utf8"))![1];
+    expect(o.manifest).toEqual({
+      name: "Before You Tape", short_name: "Before You Tape", description, start_url: "/", scope: "/", display: "standalone",
+      background_color: "#fff3e6", theme_color: "#fff3e6",
+      icons: [
+        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      ],
+    });
+    const manifest = o.manifest as { icons: { src: string; sizes: string }[] };
+    for (const icon of manifest.icons) {
+      const png = readFileSync(`public${icon.src}`);
+      const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+      expect(`${w}x${h}`, icon.src).toBe(icon.sizes);
+    }
   });
 });

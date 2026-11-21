@@ -70,3 +70,23 @@ test.describe("with no service worker", () => {
     await expect(page.reload()).rejects.toThrow(/ERR_INTERNET_DISCONNECTED/);
   });
 });
+
+// The app can be installed: the page names a manifest that Chromium parses with no errors, for a standalone app,
+// and the server serves each of its icons as a PNG. (Headless Chromium reports no installability errors even for a
+// page with no manifest, so that call proves nothing here and is not used.)
+test("the page names a web app manifest Chromium parses, with icons the server serves", async ({ page, request }) => {
+  await page.goto("/");
+  const cdp = await page.context().newCDPSession(page);
+  const { url, errors, data } = await cdp.send("Page.getAppManifest") as { url: string; errors: unknown[]; data?: string };
+  expect(url).toBe("http://localhost:4173/manifest.webmanifest");
+  expect(errors).toEqual([]);
+  const manifest = JSON.parse(data ?? "") as { display: string; start_url: string; icons: { src: string }[] };
+  expect(manifest.display).toBe("standalone");
+  expect(manifest.start_url).toBe("/");
+  expect(manifest.icons.length).toBe(3);
+  for (const icon of manifest.icons) {
+    const r = await request.get(icon.src);
+    expect(r.status(), icon.src).toBe(200);
+    expect(r.headers()["content-type"], icon.src).toBe("image/png");
+  }
+});

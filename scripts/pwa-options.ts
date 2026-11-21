@@ -3,6 +3,8 @@
 // network. It caches nothing at run time: model, database, sign-in and App Check calls go to Google's hosts and are
 // never answered from a cache. A new version waits until the visitor asks for it, so an open page is never reloaded
 // under them. With the kill switch on, the build ships a worker that unregisters itself and deletes its caches.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { VitePWAOptions } from "vite-plugin-pwa";
 
 export interface Rewrite { regex?: string; source?: string; destination: string }
@@ -16,14 +18,31 @@ export function appRoutes(rewrites: readonly Rewrite[]): RegExp[] {
   });
 }
 
+// The page's own description (index.html), so the installed app and the page describe it the same way. Read from
+// the package root, where npm runs the build and the tests.
+function pageDescription(): string {
+  const m = /<meta name="description" content="([^"]+)"/.exec(readFileSync(join(process.cwd(), "index.html"), "utf8"));
+  if (!m) throw new Error("index.html has no description for the web app manifest");
+  return m[1]!;
+}
+
 export function pwaOptions(o: { kill: boolean; routes: RegExp[] }): Partial<VitePWAOptions> {
   return {
     registerType: "prompt",
     injectRegister: false,
     selfDestroying: o.kill,
-    manifest: false,
+    // Icons drawn from public/favicon.svg (rsvg-convert at 192 and 512; the maskable one on the page color, inset).
+    manifest: {
+      name: "Before You Tape", short_name: "Before You Tape", description: pageDescription(), start_url: "/", scope: "/",
+      display: "standalone", background_color: "#fff3e6", theme_color: "#fff3e6",
+      icons: [
+        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      ],
+    },
     workbox: {
-      globPatterns: ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg"],
+      globPatterns: ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"],
       globIgnores: ["assets/extBridge-*"],
       runtimeCaching: [],
       navigateFallback: "index.html",
