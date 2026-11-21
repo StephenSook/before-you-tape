@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the mirror's simulator shutdown is quiet when it is already shut down
+- What: after "ci-local-ios: all checks passed", the exit trap printed "Unable to shutdown device in
+  current state: Shutdown" when xcodebuild had already shut the simulator down. The shutdown's
+  error output is now dropped; it stays best effort.
+- Source: the full mirror run of the second-look branch with this script (exit 0, then that line).
+- Verified: `bash -n` passes; the trap calls the same command with stderr dropped.
+
 ### fix(ios): the local CI mirror shuts down only the simulator it booted
 - What: `ios/scripts/ci-local-ios.sh` ended with `xcrun simctl shutdown all`, which stopped every
   simulator on the Mac, including other test runs in progress (they fail with "Test crashed with

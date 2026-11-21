@@ -55,7 +55,10 @@ for d in json.load(sys.stdin)["devices"].get("com.apple.CoreSimulator.SimRuntime
         break
 ')"
 own_sim_down() {
-  if [ -n "$sim_udid" ] && [ "$sim_before" != "Booted" ]; then xcrun simctl shutdown "$sim_udid" || true; fi
+  if [ -n "$sim_udid" ] && [ "$sim_before" != "Booted" ]; then
+    # Quiet: xcodebuild may have shut it down already, and that is not a failure.
+    xcrun simctl shutdown "$sim_udid" 2>/dev/null || true
+  fi
 }
 trap own_sim_down EXIT
 xcodebuild -quiet -project ios/BYT.xcodeproj -scheme BYT -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2' \
