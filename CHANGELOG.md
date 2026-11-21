@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The "Cloud checks start once their settings load" notice and its Try again button show only after the cloud settings have been missing for 8 s, instead of on every load, where they flashed and moved the stage down. A deliberate pause still shows at once. Source: the UI review (notice stack). Verified: new LivePack tests (settings landing before the limit never show the notice; settings still missing after it show the notice and its button, which go once the settings land; a deliberate pause shows at once) failed first where expected and pass; the full suite passes (799).
+
 - An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
 - The newest-item sheet test gives the sheet 1.5 s before it hides itself, not 60 ms, so a busy machine still finds the sheet before it goes; it waits up to 5 s for the sheet to hide and has a 15 s limit. Source: the test failed while other work loaded the machine. Verified: the test passes alone and in the full suite (796).
 

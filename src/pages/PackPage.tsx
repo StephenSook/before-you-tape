@@ -73,10 +73,14 @@ export interface PackPageProps {
   today?: string;
   // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
   newestSheetMs?: number;
+  // How long the cloud settings may be missing before the page says so.
+  settingsNoticeMs?: number;
 }
 
 // Remote Config usually answers within a second or two of the page opening.
 const SETTINGS_WAIT_MS = 10_000;
+// So the notice that they are missing waits this long: shown on every load, it moved the whole stage down.
+const SETTINGS_NOTICE_MS = 8_000;
 // A cloud read takes about 2 s and an on-device one under 10 s; anything far past that is not coming back.
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
@@ -203,6 +207,15 @@ export function PackPage(p: PackPageProps) {
   useEffect(() => { live.current = latest(); });
   // How many photos are waiting for the settings; "Getting ready" shows while any is.
   const [waiting, setWaiting] = useState(0);
+  // Whether the cloud settings have been missing for longer than they usually take to arrive.
+  const [settingsLate, setSettingsLate] = useState(false);
+  const settingsNoticeMs = p.settingsNoticeMs ?? SETTINGS_NOTICE_MS;
+  useEffect(() => {
+    setSettingsLate(config.pauseUnknown === true && settingsNoticeMs <= 0);
+    if (!config.pauseUnknown || settingsNoticeMs <= 0) return;
+    const t = setTimeout(() => setSettingsLate(true), settingsNoticeMs);
+    return () => clearTimeout(t);
+  }, [config.pauseUnknown, settingsNoticeMs]);
   // Each press gets a number, so a read that ran out of time does not cover the notice of a newer one.
   const presses = useRef(0);
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
@@ -494,7 +507,7 @@ export function PackPage(p: PackPageProps) {
           </button>
         </p>
       )}
-      {config.killCloud && (
+      {config.killCloud && (!config.pauseUnknown || settingsLate) && (
         <p data-testid="paused-banner" className="banner" role="status">
           {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}
           {gate === "available" ? " Checks on this laptop still work." : ""}
