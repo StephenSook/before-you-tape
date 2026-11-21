@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.
+
 - `scripts/eval-thumbs.py` writes a 240 px and a 480 px wide WebP copy of each of the 40 published eval photos into `public/eval/thumbs/` (80 files, 1.2 MB, against 11 MB for the photos), with no Exif or XMP block, and `src/judge/thumbs.json` records each one's size and SHA-256. `src/judge/thumbs.ts` gives a page the small copy, its size and a srcset. The published photos and the manifest do not change. Source: UI review (/judge showed 2.8 MB of photos at 160 px). Verified: a new test (every photo, both widths, the same shape, the hashes, no Exif or XMP) failed first and passes.
 
 - `npm run fresh` (`scripts/fresh-through-judging.ts`): fails when a rule layer would read stale before the last judging day (2026-12-16). A stale layer turns every "OK to pack" into "Check this". Until the re-read window opens on 2026-11-27 it only warns, naming each layer and the day it turns stale (today: the CA and PH suspensions layers, last read 2026-11-20, stale from 2026-12-12); from then on it fails until the USPS alerts are read again and the edition is rebuilt. It runs in CI and in a daily job of the scheduled probe workflow, so it turns red even with no push. Source: review (the judging window). Verified: new tests (the stale day, warn before and fail from the window, the bundled edition) failed first and pass; the script warns and exits 0 today; both workflow files parse.

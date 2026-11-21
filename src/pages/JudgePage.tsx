@@ -12,6 +12,7 @@ import type { RuleEdition } from "../engine/types";
 import manifest from "../../eval/set/manifest.json";
 import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
+import { thumbOf } from "../judge/thumbs";
 import type { ItemCategory } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
@@ -30,6 +31,13 @@ export interface JudgePageProps {
 }
 
 const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
+
+// A card's photo: its small WebP copy at its own size, so the page loads fast and nothing shifts as photos arrive.
+function CardPhoto({ itemId, photo, alt }: { itemId: string; photo: string; alt: string }) {
+  const t = thumbOf(itemId);
+  if (!t) return <img src={photo} alt={alt} loading="lazy" />;
+  return <img src={t.src} srcSet={t.srcSet} sizes="160px" width={t.width} height={t.height} alt={alt} loading="lazy" decoding="async" />;
+}
 
 function sampleStore(edition: RuleEdition, today: string, now: () => number): BoxStore {
   const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now, today: () => today,
@@ -90,7 +98,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         if (!sample || !verdict) return null;
         return (
           <article key={item.itemId} data-testid="sample-card" className="card sample-card">
-            <img src={sample.photo} alt={sample.alt} loading="lazy" />
+            <CardPhoto itemId={item.itemId} photo={sample.photo} alt={sample.alt} />
             <p className="item-name">{item.read.itemName}</p>
             {item.read.labelText && <p className="label-words">Label: {item.read.labelText}</p>}
             <VerdictChip level={verdict.level} />

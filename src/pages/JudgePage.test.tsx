@@ -18,7 +18,12 @@ describe("JudgePage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
-    expect(within(card("Body lotion")).getByRole("img")).toHaveAttribute("src", "/eval/items/own-18.jpg");
+    // A small WebP copy, with its size, so the page loads fast and does not shift as photos arrive.
+    const img = within(card("Body lotion")).getByRole("img");
+    expect(img).toHaveAttribute("src", "/eval/thumbs/own-18-480.webp");
+    expect(img).toHaveAttribute("srcset", "/eval/thumbs/own-18-240.webp 240w, /eval/thumbs/own-18-480.webp 480w");
+    expect(img).toHaveAttribute("sizes", "160px");
+    expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
     expect(within(card("Body lotion")).getByText("Photo by the project owner")).toBeInTheDocument();
     expect(within(card("Power bank")).getByText(/^Photo: .*CC BY-SA 4\.0/)).toBeInTheDocument();
     expect(verdict("Body lotion")).toHaveTextContent("Take it out");
