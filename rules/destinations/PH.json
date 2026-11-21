@@ -92,11 +92,11 @@
       "lineId": "PH-P-05",
       "section": "prohibitions",
       "lineSha256": "d68dfca7e4c4d3112e583379fb9242b068bc5c87c5ae29d657932b88128620ca",
-      "ourWording": "No lottery tickets or lottery advertising.",
+      "ourWording": "No lottery tickets, circulars or advertising.",
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Lottery tickets and lottery advertising; not a gift category this app reads."
+        "reason": "Lottery tickets, circulars and advertising; not a gift category this app reads."
       }
     },
     {

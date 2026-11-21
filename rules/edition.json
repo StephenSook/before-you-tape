@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-0325ed3c44e1",
+  "editionId": "byt-b4866e8a4a67",
   "revision": 5,
   "service": "Priority Mail International",
   "sources": [
@@ -1678,7 +1678,7 @@
           "lineId": "CA-P-06",
           "section": "prohibitions",
           "lineSha256": "28cf4302174a295dc788e10fade5ed4d107807f91613895c7fd6f4825930c101",
-          "ourWording": "No vaping liquid with a high nicotine level.",
+          "ourWording": "No vaping liquid with a nicotine level of 66 mg/g or more, by weight.",
           "matches": [
             {
               "tag": "vaping",
@@ -1892,7 +1892,7 @@
           "lineId": "CA-R-02",
           "section": "restrictions",
           "lineSha256": "c510b5b2d19612a94c6120a2b7ca2f35af6a089af26adb33e46981cdd0736beb",
-          "ourWording": "Medicines must meet Canadian law.",
+          "ourWording": "Drugs and medicines must meet Canadian law.",
           "matches": [
             {
               "tag": "pharmaceutical",
@@ -1998,7 +1998,7 @@
           "lineId": "CA-O-02",
           "section": "observations",
           "lineSha256": "b3c0bb045f57712b694bd1d8a2a9a071d54a7252b5bcd0f34cc8f007547ef924",
-          "ourWording": "Canada turns away items without a full sender and recipient address in Latin letters and Arabic numerals.",
+          "ourWording": "Canada turns away items, postcards excepted, without a full sender and recipient address in Latin letters and Arabic numerals.",
           "matches": [],
           "noMatch": {
             "decision": "observation",
@@ -2118,11 +2118,11 @@
           "lineId": "PH-P-05",
           "section": "prohibitions",
           "lineSha256": "d68dfca7e4c4d3112e583379fb9242b068bc5c87c5ae29d657932b88128620ca",
-          "ourWording": "No lottery tickets or lottery advertising.",
+          "ourWording": "No lottery tickets, circulars or advertising.",
           "matches": [],
           "noMatch": {
             "decision": "not_a_gift_item",
-            "reason": "Lottery tickets and lottery advertising; not a gift category this app reads."
+            "reason": "Lottery tickets, circulars and advertising; not a gift category this app reads."
           }
         },
         {

@@ -84,6 +84,11 @@ describe("destination editions", () => {
       ["PH", "PH-R-02", /Bureau of Plant Industry of the Philippines.*can be destroyed/],
       ["CA", "CA-P-22", /motor vehicles or boats/], // not only cars
       ["CA", "CA-R-09", /^Veterinary biological products, such as serums and vaccines,.*Veterinary Director General/],
+      // Cheap wording fixes from the same review.
+      ["CA", "CA-P-06", /66 mg\/g or more, by weight/],
+      ["CA", "CA-O-02", /postcards excepted/],
+      ["CA", "CA-R-02", /^Drugs and medicines must meet Canadian law\.$/],
+      ["PH", "PH-P-05", /^No lottery tickets, circulars or advertising\.$/],
     ];
     for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
     // USPS says any publication, and an ad aimed mainly at Canada, in the wording and in the reasons alike.
