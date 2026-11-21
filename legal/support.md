@@ -2,7 +2,7 @@
 
 Before You Tape checks the items you plan to mail abroad with USPS, before you tape the box. Point
 the camera at an item's label. The app reads it and shows one of three verdicts: OK to pack, Check
-this, or Take it out. A model only reads the label; the rules decide, and each verdict shows the
+this, or Take it out. A model only reads the label. The rules decide, and each verdict shows the
 rule behind it and the date that rule was checked.
 
 ## What it does
@@ -10,7 +10,8 @@ rule behind it and the date that rule was checked.
 - Reads a label photo on your device when it has a built-in model, with no network needed.
 - Checks the whole box for the country you pick, from the rule edition it carries.
 - Asks you a question when the label alone cannot decide, and uses your answer.
-- Sends a photo to the cloud only if you allow it. See [Privacy](/privacy/).
+- Sends a photo, or typed label words on iPhone, to the cloud only if you allow it. See
+  [Privacy](/privacy/).
 
 ## What it does not do
 
@@ -28,9 +29,10 @@ it depends on is out of date. Open the item to see why and answer its question.
 **Why does it ask about the cloud?** Your device could not read that item by itself. Nothing goes
 to the cloud unless you tap Allow, and you can turn cloud checks off again.
 
-**My iPhone does not read photos.** Photos are read on the iPhone when Apple Intelligence is on and
-its model has downloaded (Settings > Apple Intelligence & Siri). Without it, you can allow cloud
-checks, or add the item by hand with Type it in Your box.
+**My iPhone does not read photos.** Photos are read on the iPhone on iOS 27 when Apple
+Intelligence is on, its model has downloaded, and the iPhone's language is one it supports
+(Settings > Apple Intelligence & Siri). Without it, you can allow cloud checks, or add the item by
+hand with Type it in Your box.
 
 **How do I delete my data?** See [Privacy](/privacy/).
 
