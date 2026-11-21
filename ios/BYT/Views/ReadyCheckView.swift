@@ -15,6 +15,7 @@ struct ReadyCheckView: View {
                 NavigationLink("Your box") { BoxView(model: model) }
                 NavigationLink("Check an item") { CheckItemView(model: model) }
             }
+            Section { DeleteEverythingView(model: model) }
         }
         .navigationTitle("Ready check")
     }

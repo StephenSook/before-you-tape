@@ -5,6 +5,83 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): a known limit for a sign-in deleted on the server but left in the keychain
+- What: docs/LIMITS.md says that when Firebase has deleted the anonymous sign-in on its servers and
+  the iPhone then cannot remove it from its keychain, a copy can stay on the iPhone, and it no longer
+  works.
+- Source: review (Codex, on the delete PR), accepted as a known limit.
+- Verified: tone passes; no dashes or curly quotes in docs/LIMITS.md.
+
+### fix(ios): deleting the sign-in waits for one in progress and deletes only the user it began with
+- What: "Delete everything" could run while the app's anonymous sign-in was still in progress: it saw no
+  user, reported success, and the sign-in then landed; and a retry after two sign-ins could delete the
+  newer user and leave the first. Now the sign-in step waits for any sign-in in progress, records the
+  user current then, and deletes only that user, also on a retry; if another user is signed in by
+  then, that one is signed out instead. Anonymous sign-ins now share one in-flight request, so two
+  callers never make two accounts.
+- Source: review (Codex, on the delete PR).
+- Verified: a new test (a sign-in held in progress: nothing is deleted until it ends; the retry asks
+  for the first user, not the one signed in since) failed to compile before and passes after; 233
+  unit tests pass. The shared in-flight sign-in has no unit test (it calls Firebase).
+
+### fix(ios): "Delete everything" deletes the saved box even when the rules could not load
+- What: when the rules engine could not load there is no box on screen, and the box step skipped the
+  saved files while reporting success. It now deletes the saved box by the box id this iPhone keeps.
+- Source: review (Codex, on the delete PR).
+- Verified: a new test (rules not loaded, a saved box on disk) failed (nothing deleted) and passes;
+  232 unit tests pass.
+
+### fix(ios): a read begun before "Delete everything" or a change of cloud choice lands and sends nothing
+- What: a slow photo read on the iPhone that ended after "Delete everything" put its item and crop
+  into the new box; a photo waiting for the cloud behind it uploaded under the new box's cloud choice.
+  Every read now records the box and the cloud choice it began under (each counted): it sends to the
+  cloud only while both are unchanged, and it lands nothing when the box was deleted meanwhile.
+  "Delete everything", turning cloud checks off or on, and answering the cloud question each count
+  as a change.
+- Source: review (Codex, on the delete PR).
+- Verified: two new tests (a read held past the delete lands nothing and saves nothing under the new
+  box; a cloud photo queued behind it never uploads, even after cloud checks are allowed for the new
+  box) failed and pass; 231 unit tests pass.
+
+### fix(ios): deleting a box is done only when a fresh listing shows none of its files
+- What: after removing a box's files, the delete lists the folder again and fails the box step if any
+  file of the box is still there.
+- Source: review (Codex, on the delete PR).
+- Verified: the file tests pass (13). No test makes a removal report success while the file stays,
+  so this check has no failing test of its own.
+
+### fix(ios): deleting a box fails when the folder cannot be listed
+- What: deleting a box treated any failure to list the boxes folder (no permission, the iPhone
+  locked), and an id that is not a box id, as "nothing to delete", so "Delete everything" could say
+  done while files remained. Only a missing folder now means nothing to delete; any other listing
+  error, and a bad id, fails the box step, which then says what is left.
+- Source: automated security review of the delete commit.
+- Verified: a new file test (a folder made unreadable, and an unsafe id) failed (no error) and
+  passes; 229 unit tests pass.
+
+### docs(ios): the review notes say where to delete everything
+- What: the App Store review notes say the app has no account to make (it signs in anonymously),
+  and that Delete everything on this iPhone, on the Ready check screen, deletes the box, the cloud
+  choice and the anonymous sign-in after asking first.
+- Source: App Store guideline 5.1.1(v).
+- Verified: `check_lengths.py` exits 0 (review notes 3214 of 4000).
+
+### feat(ios): "Delete everything on this iPhone" on the Ready check screen
+- What: one button deletes, in order, the box (its file, its cloud choice record and markers, any
+  damaged copy kept aside, its id, and every photo and look held in memory) and then the anonymous
+  Firebase sign-in. A sign-in too old to delete without signing in again is signed out instead, as on
+  the web. It asks first ("This deletes your box and every item in it, your cloud choice and this
+  iPhone's anonymous sign-in. It cannot be undone."), closes the cloud gate before anything else,
+  says it is done only after every step is done (with the web app's lines about the sign-in), and
+  when a step stops it names what is left, with "Try deleting again" starting at that step. An empty
+  box starts under a new id. The iPhone keeps no photos on disk, so there is no photo step.
+- Source: web parity and App Store guideline 5.1.1(v).
+- Verified: six new tests (a file test: every file of the box goes, another box's stay; app tests:
+  everything in order with a new box; a sign-in signed out instead; a box that cannot be deleted
+  stops before the sign-in; a failed sign-in step retried from there; the words, checked against the
+  web's) failed to compile before and pass after; 228 unit tests and both UI tests pass; a simulator
+  still shows the confirm step, and "Keep" returns to the button.
+
 ### docs(ios): an ADR and the review notes record App Store availability and why
 - What: `docs/adr/0001-ios-app-store-availability.md` records that the iPhone app is offered in
   every country and region except France (only exempt encryption is declared, and a bundled

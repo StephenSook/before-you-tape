@@ -121,9 +121,14 @@ protocol BoxPersistence {
     /// so a choice whose box save failed still holds after a relaunch. False when it was not written.
     @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool
     func recordedConsent(boxId: String) -> String?
+    /// Deletes everything kept of the box (the box, its cloud choice and anything kept beside them);
+    /// throws when some of it is still there.
+    func deleteBox(boxId: String) throws
 }
 
 extension BoxPersistence {
+    /// A box kept only in memory has nothing on disk to delete.
+    func deleteBox(boxId: String) throws {}
     /// A box kept only in memory has no separate record: its choice goes with it.
     @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool { true }
     func recordedConsent(boxId: String) -> String? { nil }
@@ -196,7 +201,8 @@ final class BoxStore {
     /// Why the cloud choice may not hold after the app is closed: its own record was not written.
     static let consentNotSaved = "Your cloud choice is not saved on this iPhone. Set it again before you close the app."
 
-    let boxId: String
+    /// This box's id; a new one after "Delete everything on this iPhone".
+    private(set) var boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
     private(set) var items: [BoxItem] = []
     private(set) var result: BoxResult?
@@ -491,6 +497,24 @@ final class BoxStore {
         commit(result)
         // Said even when the box saved, so the sender knows the choice may not hold after a relaunch.
         if !recorded { saveProblem = Self.consentNotSaved }
+    }
+
+    /// "Delete everything on this iPhone": deletes every file of this box (the box, its cloud choice,
+    /// anything kept beside them), then starts an empty box under `newBoxId`, with no cloud choice and
+    /// nothing saved until the sender adds something. When the files could not all be deleted, it
+    /// throws and the box on screen stays as it is.
+    func deleteEverything(newBoxId: String) throws {
+        try persistence.deleteBox(boxId: boxId)
+        boxId = newBoxId
+        items = []
+        cloudConsent = nil
+        sources = BoxSources()
+        destinationCode = Self.defaultDestination
+        lastRecheckMs = nil
+        lookLabels = [:]
+        saveProblem = nil
+        savedBoxUnread = false
+        result = evaluate()
     }
 
     // MARK: Plumbing

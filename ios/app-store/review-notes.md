@@ -25,6 +25,8 @@ After either answer, the Check an item screen shows the choice and a button to c
 
 Camera: used only to photograph the label you choose to check. Only the part of the photo inside the white frame is read or sent.
 
+Deleting data: the app has no account to make; it signs in anonymously. On the Ready check screen, Delete everything on this iPhone deletes the box, the cloud choice and the anonymous sign-in, after asking first.
+
 Countries in this rule edition: Canada and the Philippines.
 
 Availability: every country and region except France and China mainland. The app declares only exempt encryption (ITSAppUsesNonExemptEncryption is false): HTTPS, plus a standard TLS library bundled by the Firebase SDK, which is exempt from export documentation everywhere but France. China mainland is left out because cloud checks use generative AI, which there needs filings this app does not have.
