@@ -46,3 +46,14 @@ it("never changes the three verdict words", () => {
     expect(buyLine(level)).not.toMatch(/approved|safe to mail/i);
   }
 });
+
+it("applies the shared engine's scheduled suspension on its start date", () => {
+  const edition = {
+    ...ed,
+    suspensions: { ...ed.suspensions, upcoming: [{ code: "CA", from: today }] },
+  };
+  const item = toBoxItem(typedRead(scarf), { confirmed: true, answers: {}, quantity: 1 });
+  const verdict = checkOne(item, edition, "CA", today);
+  expect(verdict.level).toBe("check");
+  expect(verdict.hits.some((hit) => hit.ruleId === "DEST-SUSPENDED")).toBe(true);
+});

@@ -55,3 +55,16 @@
 - npm exit codes: edition:check 1, lint 0, typecheck 0, test 0, build 0, tone 1, guard 1, ext:build 0, ext:check 0.
 
 - 2026-11-18 17:06 EST: all nine checks re-run bare outside the sandbox on this tree: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0. The earlier 1s for edition:check, tone and guard were a sandbox socket error in the tsx launcher, not failures. Source: review.
+
+### Main merge (2026-11-20 21:06:50 EST)
+
+- Source: Task 6 prerequisite. Merged main's engine, shared contract and Firebase AI Logic files. Kept main's hosting headers and added the extension's rule-file headers to that same list. The hosting test caught the duplicate key after Git's automatic merge (red 1, green 0).
+- npm exit codes: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0.
+
+### Task 6 - Read product text on the laptop (2026-11-20 21:14:49 EST)
+
+- Source: Task 6. Added a text-only Firebase AI Logic port behind the shared device guard. The panel uses an inert Firebase config and the existing download routine. It grounds model numbers, lets the sender edit the item and confirm its type, and sends the result through the shared engine.
+- Main now takes the local date in the fourth argument to resolveDestination. The panel passes it so an announced suspension applies on its start date. The web app's default availability options and photo bindings retain their behavior.
+- Focused tests: red 1, green 0 (57 passed). The scheduled-suspension regression reproduced separately with exit 1. S-EXT-1 and S-EXT-3: NOT RUN. The quality protocol SHA-256 follows.
+- S-EXT-3 protocol SHA-256: 90cda7196cde68d1c7812de7315268bcf2d26ca2699588f57194bdc35cd04bc8.
+- npm exit codes: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0.

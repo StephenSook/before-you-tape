@@ -1,17 +1,15 @@
+import { localDay } from "../../../src/shared/localDay";
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { TabInfo } from "../tabInfo";
 import { bundledEdition, type LoadedEdition } from "../edition";
 import { Details } from "./Details";
 import { CloudConsent, Notice, PrivacyLink } from "./Notice";
+import { ProductText, type DeviceProductReader, type ProductReading } from "./ProductText";
 import { canRead, initial, reduce } from "./state";
-
-function today(): string {
-  const now = new Date();
-  return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
-}
 
 export interface PanelProps {
   agreed: boolean;
+  device?: DeviceProductReader;
   cloudConsent: boolean | null;
   saveAgreement(): Promise<void>;
   saveCloudConsent(allowed: boolean): Promise<void>;
@@ -20,12 +18,13 @@ export interface PanelProps {
   fetchEdition(signal: AbortSignal): Promise<LoadedEdition>;
 }
 
-export function Panel({ agreed, cloudConsent, saveAgreement, saveCloudConsent, clearStorage, loadTab, fetchEdition }: PanelProps) {
+export function Panel({ agreed, device, cloudConsent, saveAgreement, saveCloudConsent, clearStorage, loadTab, fetchEdition }: PanelProps) {
   const [state, dispatch] = useReducer(reduce, reduce(initial(), { type: "opened", agreed, cloudConsent }));
   const mayRead = canRead(state);
   const [tab, setTab] = useState<TabInfo | null>(null);
   const [usedTab, setUsedTab] = useState<TabInfo | null>(null);
   const [itemName, setItemName] = useState("");
+  const [draft, setDraft] = useState<(ProductReading & { revision: number }) | undefined>();
   const [loaded, setLoaded] = useState<LoadedEdition>({ edition: bundledEdition, from: "bundled", notice: null });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -77,6 +76,7 @@ export function Panel({ agreed, cloudConsent, saveAgreement, saveCloudConsent, c
     setTab(null);
     setUsedTab(null);
     setItemName("");
+    setDraft(undefined);
     setLoaded({ edition: bundledEdition, from: "bundled", notice: null });
     dispatch({ type: "clear" });
   }, "Could not clear the data. Try again.");
@@ -91,12 +91,16 @@ export function Panel({ agreed, cloudConsent, saveAgreement, saveCloudConsent, c
           {tab && (
             <aside>
               <p>From the tab you clicked: {tab.title || tab.url}</p>
-              <button type="button" onClick={() => { setUsedTab(tab); setItemName(tab.title); }}>Use it</button>
+              <button type="button" onClick={() => { setUsedTab(tab); setDraft(undefined); setItemName(tab.title); }}>Use it</button>
             </aside>
           )}
           {usedTab && <p>{usedTab.url}</p>}
           {loaded.notice && <p role="status">{loaded.notice}</p>}
-          <Details key={usedTab?.atMs} edition={loaded.edition} today={today()} itemName={itemName} onItemName={setItemName} />
+          <ProductText device={device} onRead={(result) => {
+            setItemName(result.read.itemName);
+            setDraft((previous) => ({ ...result, revision: (previous?.revision ?? 0) + 1 }));
+          }} />
+          <Details draft={draft} key={usedTab?.atMs} edition={loaded.edition} today={localDay()} itemName={itemName} onItemName={setItemName} />
           <p>
             Cloud checks are off in this panel.{" "}
             <a href="https://before-you-tape-2026.web.app/" target="_blank" rel="noreferrer">Open the full app</a>

@@ -29,7 +29,7 @@ export function toBoxItem(read: ItemRead, options: { confirmed: boolean; answers
 }
 
 export function checkOne(item: BoxItemInput, edition: RuleEdition, destCode: string, today: string): ItemVerdict {
-  const result = evaluateBox([item], edition, resolveDestination(edition, destCode), today).items[item.itemId];
+  const result = evaluateBox([item], edition, resolveDestination(edition, destCode, undefined, today), today).items[item.itemId];
   if (!result) throw new Error("The rules engine did not return an item verdict.");
   return result;
 }

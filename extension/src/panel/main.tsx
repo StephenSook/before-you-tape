@@ -1,3 +1,10 @@
+import { prepareDeviceModel } from "../../../src/ai/deviceModel";
+import { createProductDevicePort, PRODUCT_CREATE_OPTIONS } from "../../../src/ai/firebaseModels";
+import { checkGate, hasLanguageModelApi } from "../../../src/ai/gate";
+import { ReadFailure } from "../../../src/ai/itemRead";
+import { readProductText } from "../../../src/ai/productText";
+import { initPanelFirebase } from "../firebaseLite";
+import type { DeviceProductReader } from "./ProductText";
 import { createRoot } from "react-dom/client";
 import { extensionChrome, tabStorageKey, type TabInfo } from "../tabInfo";
 import { bundledEdition, fetchCurrentEdition, loadEdition } from "../edition";
@@ -6,6 +13,17 @@ import "./panel.css";
 
 const { storage, windows } = extensionChrome();
 const root = createRoot(document.getElementById("root")!);
+
+const languageModel = () => (globalThis as { LanguageModel?: unknown }).LanguageModel;
+const device: DeviceProductReader = {
+  check: () => checkGate(languageModel(), PRODUCT_CREATE_OPTIONS),
+  prepare: (onProgress) => prepareDeviceModel(initPanelFirebase().ai, onProgress),
+  read: (text) => {
+    const lm = languageModel();
+    if (!hasLanguageModelApi(lm)) throw new ReadFailure("device_failed", "this browser has no on-device model API");
+    return readProductText(createProductDevicePort(initPanelFirebase().ai, lm), text, "on_device", () => performance.now());
+  },
+};
 
 const loadTab: PanelProps["loadTab"] = (onTab) => {
   let active = true;
@@ -47,6 +65,7 @@ void storage.local.get(["agreed", "cloudConsent"]).catch((): Record<string, unkn
   root.render(
     <Panel
       agreed={agreed === true}
+      device={device}
       cloudConsent={typeof cloudConsent === "boolean" ? cloudConsent : null}
       saveAgreement={() => storage.local.set({ agreed: true })}
       saveCloudConsent={(allowed) => storage.local.set({ cloudConsent: allowed })}

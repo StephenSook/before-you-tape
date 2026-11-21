@@ -1,15 +1,22 @@
 import type { ItemVerdict, VerdictLevel } from "../../../src/engine/types";
-import { buyLine } from "../check";
+import { buyLine, type Route } from "../check";
 
 const icons: Record<VerdictLevel, string> = { ok: "\u2713", check: "?", take_out: "\u00d7" };
 
+const routes: Record<Route, { glyph: string; text: string }> = {
+  typed: { glyph: "T", text: "Typed by you" },
+  on_device: { glyph: "D", text: "Read on this laptop" },
+  in_cloud: { glyph: "C", text: "Read in the cloud" },
+};
+
 interface VerdictProps {
+  route?: Route;
   verdict: ItemVerdict;
   editionId: string;
   onAnswer(questionId: string, answerId: string): void;
 }
 
-export function Verdict({ verdict, editionId, onAnswer }: VerdictProps) {
+export function Verdict({ verdict, editionId, onAnswer, route = "typed" }: VerdictProps) {
   const { level, headline, hits, question, service } = verdict;
   return (
     <section className={`verdict verdict--${level}`} aria-labelledby="verdict-title">
@@ -31,7 +38,7 @@ export function Verdict({ verdict, editionId, onAnswer }: VerdictProps) {
       )}
       <div className="verdict-meta">
         <div>{service}</div>
-        <div><span aria-hidden="true">T</span> Typed by you</div>
+        <div><span aria-hidden="true">{routes[route].glyph}</span> {routes[route].text}</div>
         <div>Rules edition {editionId}</div>
       </div>
     </section>

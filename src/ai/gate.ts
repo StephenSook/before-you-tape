@@ -16,11 +16,11 @@ export function hasLanguageModelApi(lm: unknown): boolean {
   return typeof (lm as { availability?: unknown } | null | undefined)?.availability === "function";
 }
 
-export async function checkGate(lm: unknown): Promise<GateState> {
+export async function checkGate(lm: unknown, options: LanguageModelCreateOptions = DEVICE_CREATE_OPTIONS): Promise<GateState> {
   if (!hasLanguageModelApi(lm)) return "no_api";
   const api = lm as { availability(options: LanguageModelCreateOptions): Promise<unknown> };
   try {
-    const state = await api.availability(DEVICE_CREATE_OPTIONS);
+    const state = await api.availability(options);
     return typeof state === "string" && STATES.has(state) ? (state as GateState) : "unavailable";
   } catch {
     return "unavailable";

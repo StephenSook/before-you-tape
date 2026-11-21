@@ -1,12 +1,13 @@
 // Firebase AI Logic bindings: the only file that calls getGenerativeModel (the model guard enforces it).
 // Three item-read models (spec 5.3): ONLY_ON_DEVICE behind the device guard, PREFER_ON_DEVICE, and
-// ONLY_IN_CLOUD, plus an optional cloud-only fallback model.
-import { getGenerativeModel, InferenceMode, type AI, type GenerativeModel, type ModelParams, type Part } from "firebase/ai";
+// ONLY_IN_CLOUD, plus an optional cloud-only fallback model, and the extension's on-device product read.
+import { getGenerativeModel, InferenceMode, type AI, type GenerativeModel, type LanguageModelCreateOptions, type ModelParams, type Part } from "firebase/ai";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
 import { checkGate, DEVICE_CREATE_OPTIONS, hasLanguageModelApi } from "./gate";
 import { guardDevicePort, ReadFailure } from "./itemRead";
 import type { ItemModels, ModelPort } from "./port";
+import { PRODUCT_TEXT_SYSTEM } from "./productText";
 import { ITEM_READ_SYSTEM } from "./prompts";
 
 // Sends the prompt, plus the photo when there is one, and reports where the SDK says it ran. A reply
@@ -71,6 +72,22 @@ export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallba
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
   return withFallback({ device: guardDevicePort(portFor(device, true), deviceNow), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) });
+}
+
+export const PRODUCT_CREATE_OPTIONS: LanguageModelCreateOptions = {
+  expectedInputs: [{ type: "text", languages: ["en"] }],
+  expectedOutputs: [{ type: "text", languages: ["en"] }],
+  initialPrompts: [{ role: "system", content: [{ type: "text", value: PRODUCT_TEXT_SYSTEM }] }],
+};
+
+export function createProductDevicePort(ai: AI, lm: unknown): ModelPort {
+  if (!hasLanguageModelApi(lm)) return NO_DEVICE;
+  const model = getGenerativeModel(ai, {
+    mode: InferenceMode.ONLY_ON_DEVICE,
+    onDeviceParams: { createOptions: PRODUCT_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } },
+  }, ON_DEVICE_ONLY_REQUESTS);
+  return guardDevicePort(portFor(model, false), () =>
+    checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel, PRODUCT_CREATE_OPTIONS));
 }
 
 // The model handle prepareDeviceModel uses to start the on-device download.
