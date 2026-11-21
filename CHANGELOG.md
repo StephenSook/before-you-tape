@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- `docs/why-not-the-usps-page.md`: what the USPS pages give (the Philippines country listing, the international restrictions page and the price calculator, as checked live on 2026-11-21) and what the app adds on top (reads the item from a photo, decides what it counts as, counts lithium cells and batteries across the box, checks battery numbers, links each verdict to its rule, at the packing table), with what it does not do. Source: a question from a long-time post office clerk. Verified: each USPS quote against the live page; each app claim against the named source file.
+
 - A second recorded on-device run of the same three eval/set photos, now with the machine: Mac17,9, Apple M5 Pro, 48 GB memory, macOS 27.0, Chrome 157.0.8103.80, commit 11269f7 on a clean tree. 3 of 3 read on the device in the right category (own-01 power bank 17,587 ms as the first read with the model's start, own-18 lotion or cream 3,997 ms, own-25 perfume 3,864 ms), 0 requests to the AI Logic host. /judge now shows this record, and docs/TEST-MATRIX.md's web on-device row names it and the machine; the model's name stays "Not recorded". Source: review of the recorded reads. Verified: the record passes the /judge filter; the matrix and route tests pass.
 
 - The on-device check now records the machine from sysctl (model identifier, chip and memory), leaving out any value it cannot read, and /judge names it when a record holds all of it. The first read's time is marked "first read, includes the model's start", so it never reads as a typical read time. Source: review of the recorded reads. Verified: new harness, picker and /judge tests failed first and pass; lint, typecheck, tone and guard pass.
