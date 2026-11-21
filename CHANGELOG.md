@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Removing an item now deletes its saved photo crop and label words from this device (IndexedDB), and so does the item leaving the box from another device; before, the crop stayed after the item was gone. PackPage takes a required deleteCrop, which the route wires to the crop store. Source: privacy review (the privacy page says a removed item's saved copy is deleted). Verified: a new PackPage test (remove here, removal from another device, a typed item with no photo) failed first and passes; the full suite passes (799).
+
 - The card citations test, which renders every card of every test box and country, has a 30 s limit instead of 5 s, so a busy machine does not fail it. Source: it timed out at 5 to 7 s while other work loaded the machine (load average over 300). Verified: the full suite passes at load average 324.
 
 - A /judge sample card no longer says its question twice: a reason that starts with the card's own question (such as "Is it new? Answer to finish this check." above "Is it new?") is left out, as on the pack page's cards and on Android. Both cards now use one helper, restatesQuestion. Source: a 390 px still of /judge. Verified: a new JudgePage test failed first and passes; the pack card tests still pass; the /judge browser checks pass.
