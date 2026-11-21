@@ -6,6 +6,9 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- When the camera cannot focus, the line names "Use your phone" only when that button is shown (the phone handoff exists); otherwise it says "Add a photo, or type the numbers." Source: review. Verified: the CameraStage test failed first and passes.
+
+- On a phone the Pack page opens the back camera, and the photo picker opens the camera: `src/shared/phoneDevice.ts` reads the browser's mobile flag, or else a phone in the user agent, and PackRoute passes it down. Before, nothing set it, so phones opened the front camera. Source: review. Verified: new phone-detection and PackPage tests failed first and pass.
 - The first matched pair on /judge: the same lotion (the published own-18 photo, with the label we typed in the sample box), sent to Canada (OK to pack) and to the Philippines (Take it out), to show that the rules depend on the destination. A side can now be fixed to a country, whatever the page has picked. Source: review. Verified: new MatchedPairs tests (the listed pair, both verdicts, the photo's real size) failed first and pass; the full unit suite passes.
 
 - Matched pairs on /judge (`src/judge/matchedPairs.ts`, `src/ui/MatchedPairs.tsx`): two of the same kind of item that differ in one thing, such as a phone new in its sealed box and the same phone used. They sit side by side below the country picker. The app's own rules judge each side for the country picked, and each side names the rule that decides it. No pair is listed until the project owner's own photos are in the repo, so the section shows nothing yet. Source: review (a judge sees both answers at once). Verified: new MatchedPairs and JudgePage tests (empty shows nothing; new sealed is OK to pack and used is Take it out, for both countries) failed first and pass; the full unit suite passes.
