@@ -5,7 +5,7 @@
 // A box lasts 37 days from its creation: its anonymous owner may be removed after 30, and Firestore's TTL policy
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
-import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, Timestamp, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type Firestore, type QuerySnapshot } from "firebase/firestore";
 import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
@@ -120,7 +120,16 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     async deleteBox(boxId: string) {
       const box = doc(db, "boxes", boxId);
       const snap = await getDocFromServer(box);
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        // Retired anyway, so a first save still on its way from another tab cannot create the box after this. A
+        // refusal means it was retired already (a tombstone is never changed).
+        try {
+          await setDoc(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(now() + (BOX_DAYS + 30) * DAY_MS) });
+        } catch (e) {
+          if ((e as { code?: unknown } | null)?.code !== "permission-denied") throw e;
+        }
+        return;
+      }
       // A member who is not the owner may delete items, so the check comes before any of them is touched.
       if (snap.data().ownerUid !== uid) throw new Error("only the box's owner can delete it");
       const expiresAt = (snap.data().expiresAt as Timestamp | undefined) ?? null;

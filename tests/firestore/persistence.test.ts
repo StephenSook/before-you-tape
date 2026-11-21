@@ -97,6 +97,17 @@ describe("firestorePersistence", () => {
     await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
   });
 
+  it("retires the id of a box not in Firestore yet, so a first save still on its way cannot create it", async () => {
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.deleteBox("b8");
+    // 67 days out (the box's 37 plus 30), by this clock, which the rules check against the server's.
+    const expiresAt = (await at("retiredBoxes/b8"))!.expiresAt as Timestamp;
+    expect(Math.abs(expiresAt.toMillis() - (Date.now() + 67 * DAY))).toBeLessThan(60_000);
+    await expect(p.putMeta("b8", meta())).rejects.toThrow();
+    // Retired already: deleting it again does nothing.
+    await expect(p.deleteBox("b8")).resolves.toBeUndefined();
+  });
+
   it("deletes only from what the server holds: offline, it fails at once and deletes nothing", async () => {
     const alice = db("alice");
     const p = firestorePersistence(alice, "alice", "byt-test");

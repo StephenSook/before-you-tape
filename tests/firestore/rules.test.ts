@@ -123,8 +123,14 @@ describe("boxes", () => {
     batch.set(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED, note: "x" });
     batch.delete(doc(alice, "boxes/b5"));
     await assertFails(batch.commit());
-    // For a box that does not exist: refused.
-    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: RETIRED }));
+    // For an id with no box (a first save may still be on its way): only with an expiry 67 days out, the box's 37
+    // plus 30, and never by a signed-out visitor.
+    const UNUSED = Timestamp.fromMillis(Date.now() + 67 * DAY);
+    await assertFails(setDoc(doc(nobody, "retiredBoxes/never"), { expiresAt: UNUSED }));
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: EXPIRES }));
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: UNUSED, note: "x" }));
+    await assertSucceeds(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: UNUSED }));
+    await assertFails(setDoc(doc(alice, "boxes/never"), boxFor("alice")));
     await assertSucceeds(retire(alice, "b5"));
     await assertFails(getDoc(doc(alice, "retiredBoxes/b5")));
     await assertFails(updateDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED }));
