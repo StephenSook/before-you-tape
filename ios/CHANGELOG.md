@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### docs(ios): record three on-device photo reads on the simulator
+- What: `docs/evidence/ios/2026-11-20-simulator-live-read.md`: a lotion, a perfume and a power
+  bank read offline on the simulator's Apple model (the Mac's), with route, time, tokens and the
+  screen line for each.
+- Source: the opt-in live test below.
+- Verified: the lines are copied from the run's output.
+
 ### test(ios): an opt-in live test reads real label photos on the machine's own model
 - What: `LiveModelTests` crops three label photos as the app does and reads them through a real
   `AppModel`, offline, on the machine's own Apple model, and prints each read's route, time,
