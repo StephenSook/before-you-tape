@@ -148,6 +148,38 @@ import Testing
         #expect(m.secondLookError(id) == "The cloud step did not run. Try again.")
     }
 
+    /// The cloud question was never answered (or was answered for its earlier words): a photo the rules
+    /// want looked at again is offered, not sent; the offer asks first, and "Allow" runs the look.
+    @Test func anUnaskedSenderIsOfferedTheLookAndAskedFirst() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [Self.ok(Self.powerBank)], consent: nil)
+        await m.readPhoto(jpeg)
+        await settle(m)
+        let id = try #require(m.box?.items.first?.itemId)
+        #expect(m.isLookOffered(id) && !j.events.contains("cloud start") && !m.askingConsent)
+        m.checkInTheCloud(id)
+        #expect(m.askingConsent && m.pendingCrop == jpeg && !j.events.contains("cloud start"))
+        await m.answerConsent(true)
+        await settle(m)
+        #expect(m.box?.items.first?.secondLook != nil && !m.isLookOffered(id) && !m.askingConsent)
+    }
+
+    /// Keeping everything on the iPhone forgets the offered look and its crop; a sender who turned cloud
+    /// checks off is not offered one.
+    @Test func aDeclinedOfferForgetsTheLook() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [Self.ok(Self.powerBank)], consent: nil)
+        await m.readPhoto(jpeg)
+        let id = try #require(m.box?.items.first?.itemId)
+        m.checkInTheCloud(id)
+        await m.answerConsent(false)
+        await settle(m)
+        #expect(!m.isLookOffered(id) && m.pendingLookCount == 0 && !j.events.contains("cloud start"))
+        let off = model(FakeItemRunner.Journal(), cloud: [Self.ok(Self.powerBank)], consent: false)
+        await off.readPhoto(jpeg)
+        #expect(off.box?.items.first.map { off.isLookOffered($0.itemId) } == false && off.pendingLookCount == 0)
+    }
+
     /// Sign-in that does not answer until the test lets it.
     @MainActor final class HeldSignIn {
         private(set) var started = false

@@ -22,7 +22,7 @@ import Testing
     /// The card's own sentences for a second look and a dispute are the web app's.
     @Test func theCardsSentencesAreTheWebAppsWords() throws {
         let web = try web()
-        for text in [DisputeWords.checkingAgain, DisputeWords.disagree, DisputeWords.keepBoth, DisputeWords.tryAgain] {
+        for text in [DisputeWords.checkingAgain, DisputeWords.disagree, DisputeWords.keepBoth, DisputeWords.tryAgain, DisputeWords.offerLook] {
             #expect(web.contains(text), "\(text)")
         }
         #expect(DisputeWords.choice(.device, "Power bank") == "First read: Power bank")

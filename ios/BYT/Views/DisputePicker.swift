@@ -17,6 +17,8 @@ enum DisputeWords {
     static let disagree = "The two reads disagree. Pick what the item shows."
     static let keepBoth = "Keep both for now"
     static let tryAgain = "Try again"
+    /// The card's offer of a cloud second look the sender has not allowed yet; it asks first.
+    static let offerLook = "Check it in the cloud"
 
     static func sideName(_ side: DisputeSide) -> String { side == .device ? "first read" : "second look" }
     static func choice(_ side: DisputeSide, _ reading: String) -> String { (side == .device ? "First read: " : "Second look: ") + reading }

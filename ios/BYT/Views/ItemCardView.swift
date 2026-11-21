@@ -11,6 +11,8 @@ struct ItemCardView: View {
     var checkingAgain = false
     var lookError: String?
     var onRetryLook: (() -> Void)?
+    /// Set while a second look is offered because cloud checks were never allowed; it asks first.
+    var onOfferLook: (() -> Void)?
     @State private var fixing = false
 
     private var name: String {
@@ -32,6 +34,9 @@ struct ItemCardView: View {
             if let lookError {
                 Text(lookError).accessibilityIdentifier("second-look-error")
                 if let onRetryLook { Button(DisputeWords.tryAgain, action: onRetryLook).buttonStyle(.bordered) }
+            }
+            if !checkingAgain, let onOfferLook {
+                Button(DisputeWords.offerLook, action: onOfferLook).buttonStyle(.bordered).accessibilityIdentifier("cloud-look")
             }
             DisputePicker(item: item) { field, side in box.settleDispute(item.itemId, field: field, side: side) }
             if let q = verdict.question {

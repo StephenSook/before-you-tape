@@ -31,8 +31,12 @@ final class AppModel {
     private var pending: ItemInput?
     /// The exact crop the last photo read used, shown to the sender under the line.
     private(set) var lastCrop: Data?
-    /// The crop waiting for the cloud question, shown in it.
-    var pendingCrop: Data? { if case let .photo(crop)? = pending { crop } else { nil } }
+    /// The crop waiting for the cloud question, shown in it: an offered look's, or a photo's to read.
+    var pendingCrop: Data? {
+        if let id = lookAwaitingConsent { return pendingLooks[id]?.crop }
+        if case let .photo(crop)? = pending { return crop }
+        return nil
+    }
     /// Remote Config as last applied; reads use it at once, with no restart. It starts held (no cloud)
     /// until Remote Config gives a kill switch of its own.
     private(set) var config: RemoteConfigValues
@@ -276,6 +280,10 @@ final class AppModel {
     /// Items being looked at again right now, and any look's failure, for the item's card.
     private var checkingAgain: Set<String> = []
     private var lookErrors: [String: String] = [:]
+    /// Looks the rules want while the cloud question is unanswered: offered on the card, and asked first.
+    private var offeredLooks: Set<String> = []
+    /// The offered look the cloud question is being asked for, if any.
+    private(set) var lookAwaitingConsent: String?
     /// Looks that failed for no connection; they run again when the iPhone is back online.
     @ObservationIgnored private var waitingForOnline: Set<String> = []
     /// The looks running or waiting, each with its item. Each one drops its own entry when it ends;
@@ -311,9 +319,28 @@ final class AppModel {
         lookErrors = lookErrors.filter { !match($0.key) }
         waitingForOnline = waitingForOnline.filter { !match($0) }
         lookAutoTried = lookAutoTried.filter { !match($0.key) }
+        offeredLooks = offeredLooks.filter { !match($0) }
+        if let id = lookAwaitingConsent, match(id) { lookAwaitingConsent = nil }
     }
 
     func isCheckingAgain(_ itemId: String) -> Bool { checkingAgain.contains(itemId) }
+    func isLookOffered(_ itemId: String) -> Bool { offeredLooks.contains(itemId) && !checkingAgain.contains(itemId) }
+
+    /// The card's "Check it in the cloud": runs the offered look when cloud checks are allowed, and asks
+    /// the cloud question first when they were never answered.
+    func checkInTheCloud(_ itemId: String) {
+        guard offeredLooks.contains(itemId), let box else { return }
+        switch box.cloudConsent {
+        case true?:
+            offeredLooks.remove(itemId)
+            startLook(itemId)
+        case nil:
+            lookAwaitingConsent = itemId
+            askingConsent = true
+        case false?:
+            break
+        }
+    }
     func secondLookError(_ itemId: String) -> String? { lookErrors[itemId] }
 
     /// The engine decides whether the item gets a look; it runs only if the cloud is allowed now.
@@ -321,10 +348,16 @@ final class AppModel {
         guard let engine, let item = box?.items.first(where: { $0.itemId == itemId }) else { return }
         let policy = try? JSONDecoder().decode(JSONValue.self, from: Data(config.secondLookPolicyJSON.utf8))
         // A policy or item the engine refuses gives no reason, so no cloud call.
-        guard let reason = try? engine.secondLookReason(item: item.engineInput, source: ReadPath.onDevice.rawValue, policy: policy),
-              cloudAllowed, network.online else { return }
-        pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
-        startLook(itemId)
+        guard let reason = try? engine.secondLookReason(item: item.engineInput, source: ReadPath.onDevice.rawValue, policy: policy) else { return }
+        if cloudAllowed, network.online {
+            pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
+            startLook(itemId)
+        } else if box?.cloudConsent == nil, !config.killCloud {
+            // Never asked, or asked with the question's earlier words: the card offers the look and asks
+            // first. Nothing is sent until the sender allows it.
+            pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
+            offeredLooks.insert(itemId)
+        }
     }
 
     /// The sender's "Try again" on a look that failed: it starts afresh, with its automatic tries again.
@@ -416,11 +449,20 @@ final class AppModel {
         }
     }
 
-    /// The sender's answer to the cloud question; a waiting photo is read after it.
+    /// The sender's answer to the cloud question; a waiting photo is read after it, and an offered look
+    /// it was asked for runs (or, kept on the iPhone, every offered look is forgotten).
     func answerConsent(_ allow: Bool) async {
         askingConsent = false
+        if !allow { forgetLooks { _ in true } }
         box?.setConsent(allow)
         refreshCloudGate()
+        if let id = lookAwaitingConsent {
+            lookAwaitingConsent = nil
+            if allow {
+                offeredLooks.remove(id)
+                startLook(id)
+            }
+        }
         guard let input = pending else { return }
         pending = nil
         await read(input)

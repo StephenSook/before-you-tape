@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): a card offers "Check it in the cloud" when the cloud question was never answered
+- What: an "allowed" given to the cloud question's earlier words now counts as unasked, and an iPhone
+  that reads everything on the device never asks the question, so its second looks would silently
+  stop. When the rules want a look and the question is unanswered (and the server has not paused
+  the cloud), the card now offers "Check it in the cloud" (the web app's words). It asks the
+  question first, with the crop that would be sent; "Allow" runs the look, and "Keep everything on
+  this iPhone" forgets every offered look. Nothing is offered after "off". docs/LIMITS.md says so.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: two new tests (an unasked sender is offered the look, the offer asks first and "Allow"
+  lands it; declining forgets it, and a sender who turned cloud checks off is offered nothing)
+  failed to compile before and pass after; the card words test checks the offer against the web;
+  215 unit tests and both UI tests pass.
+
 ### fix(ios): one second look per item at a time, so retries never pass the cap
 - What: "Try again" started a new look beside a retry still waiting to run, and a look asked for
   while one ran was queued to run right after it, even when that one failed for no connection and had

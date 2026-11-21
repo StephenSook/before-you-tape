@@ -21,9 +21,11 @@ struct BoxView: View {
                 }
                 ForEach(Self.rows(items: box.items, result: box.result)) { row in
                     if let verdict = row.verdict {
+                        let id = row.item.itemId
                         ItemCardView(item: row.item, verdict: verdict, box: box,
-                                     checkingAgain: model.isCheckingAgain(row.item.itemId), lookError: model.secondLookError(row.item.itemId),
-                                     onRetryLook: { model.retrySecondLook(row.item.itemId) })
+                                     checkingAgain: model.isCheckingAgain(id), lookError: model.secondLookError(id),
+                                     onRetryLook: { model.retrySecondLook(id) },
+                                     onOfferLook: model.isLookOffered(id) ? { model.checkInTheCloud(id) } : nil)
                     } else {
                         UncheckedItemRow(item: row.item, box: box, remove: model.remove)
                     }
@@ -40,6 +42,10 @@ struct BoxView: View {
             Button("Type it") { typing = true }.disabled(model.box == nil)
         }
         .sheet(isPresented: $typing) { if let box = model.box { TypedEntryView(box: box) } }
+        // The cloud question asked by a card's "Check it in the cloud", with the crop that would be sent.
+        .sheet(isPresented: Binding(get: { model.askingConsent && model.lookAwaitingConsent != nil }, set: { _ in })) {
+            ConsentSheet(crop: model.pendingCrop) { allow in Task { await model.answerConsent(allow) } }
+        }
     }
 }
 

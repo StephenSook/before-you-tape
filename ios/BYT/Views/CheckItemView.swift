@@ -42,7 +42,8 @@ struct CheckItemView: View {
             .padding()
         }
         .navigationTitle("Check an item")
-        .sheet(isPresented: Binding(get: { model.askingConsent }, set: { _ in })) {
+        // A question asked for an offered look on the box screen is shown there, not here.
+        .sheet(isPresented: Binding(get: { model.askingConsent && model.lookAwaitingConsent == nil }, set: { _ in })) {
             ConsentSheet(crop: model.pendingCrop) { allow in Task { await model.answerConsent(allow) } }
         }
     }
