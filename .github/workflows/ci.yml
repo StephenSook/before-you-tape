@@ -36,6 +36,9 @@ jobs:
       - name: Rule edition is up to date
         run: npm run edition:check
 
+      - name: Rules stay fresh through judging
+        run: npm run fresh
+
       - name: Lint
         run: npm run lint
 
