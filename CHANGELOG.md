@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Eval metrics report exact numbers per path (device and cloud apart, not pooled), and `computeEvalReport` gives every metric twice, over all items and over the items that prompted no rule change after labelling, as the protocol asks; the eval run publishes both. Source: review. Verified: an updated metrics test and a new report test failed first and pass; eval and script tests and typecheck pass.
+
 - The eval run reads once on the device and once in the cloud before the first item and reports that cold call apart (`coldMs`), so the timed runs are warm, and it times each crop and path three times by default (`--repeat 3`), as the protocol's latency section asks. Source: review. Verified: a new runner test (cold reads counted, reported apart, judged nothing) and the preflight test failed first and pass; lint and typecheck pass.
 
 - The eval runner treats reads as the Pack page does: a read of no item gets no verdict (Pack shows a notice and adds no card), and every read and second look has Pack's 45-second limit, now one shared constant (`src/shared/readLimit.ts`). A first read past it gets no verdict (`too_slow`), a second look past it keeps the first verdict, a slow timing run is noted, and a call that never answers no longer stalls the run. Source: review. Verified: three new runner tests failed first and pass; the full unit suite, lint and typecheck pass.

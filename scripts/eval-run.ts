@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
 import { isCalendarDate } from "../src/engine/edition";
 import { buildEvalSet, type SetLabels, type SetManifest } from "../src/eval/loadSet";
-import { computeEvalMetrics, redactRun } from "../src/eval/metrics";
+import { computeEvalReport, redactRun } from "../src/eval/metrics";
 import { ALL_PATHS, type EvalPath } from "../src/eval/runner";
 import type { EvalRow, EvalRun, EvalSet } from "../src/eval/types";
 import { evalPhotos, machineOf, osName, requireEnv } from "./device-e2e";
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
       chromeVersion, modelShown: `device: Chrome built-in model (gate ${result.gate}); cloud: ${models.cloud}, fallback ${models.fallback}`,
       editionId: edition.editionId, rows: result.rows as EvalRow[],
     };
-    const metrics = computeEvalMetrics(set, run);
+    const metrics = computeEvalReport(set, run);
     mkdirSync(join("eval", "runs", "private"), { recursive: true });
     writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, coldMs: result.cold, failures: result.failures, cloudRequests, responses, project }, null, 2) + "\n");
     if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), coldMs: result.cold, metrics }, null, 2) + "\n");

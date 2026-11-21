@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ItemRead } from "../shared/itemRead";
-import { clopperPearsonUpper, computeEvalMetrics, percentile, redactRun } from "./metrics";
+import { clopperPearsonUpper, computeEvalMetrics, computeEvalReport, percentile, redactRun } from "./metrics";
 import type { EvalItem, EvalRow, EvalRun, EvalSet, Level } from "./types";
 
 const provenance = { sourcePage: "https://example.org/p", author: "A", license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "resized" };
@@ -92,8 +92,19 @@ describe("computeEvalMetrics", () => {
     const wrong = read({ volts: 3.7, milliampHours: 5000, wattHours: 185 });
     const r = run([row("pb", "CA", "take_out", { device: { read: wrong, msRuns: [1], level: "check" }, cloud: { read: exact, msRuns: [1], level: "take_out" }, shipped: { level: "take_out", source: "in_cloud", secondLook: true } })]);
     const m = computeEvalMetrics(set([pb]), r);
-    expect(m.numbersExact).toEqual({ k: 1, n: 2 });
+    expect(m.numbersExact).toEqual({ device: { k: 0, n: 1 }, cloud: { k: 1, n: 1 } });
     expect(m.misreadsCaught).toEqual({ k: 1, n: 1 });
+  });
+});
+
+describe("computeEvalReport", () => {
+  it("gives every metric for all items and for the items that prompted no rule change", () => {
+    const s = set([item("i20", false, { CA: "check" }), item("own-18", false, { CA: "ok" })]);
+    const rep = computeEvalReport(s, run([row("i20", "CA", "check"), row("own-18", "CA", "take_out")]));
+    expect(rep.allItems.truthAgreement).toEqual({ k: 1, n: 2 });
+    expect(rep.withoutRuleChangeItems.truthAgreement).toEqual({ k: 0, n: 1 });
+    expect(rep.withoutRuleChangeItems.items).toBe(1);
+    expect(rep.allItems.items).toBe(2);
   });
 });
 

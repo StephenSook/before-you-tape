@@ -2,6 +2,7 @@
 // the hazard bound counts items, and an item fails if any destination shows OK where its label does not.
 // Latency takes the median of the warm runs per crop, then p50 and p90 across crops, and the paired median
 // difference between the two paths with a bootstrap interval resampled by item (fixed seed).
+import { untouchedItems } from "./ruleChanges";
 import { hasVerdict, type EvalItem, type EvalRun, type EvalSet, type PathResult, type PublicEvalRun, type PublicPathResult } from "./types";
 
 type AnyPath = PathResult | PublicPathResult;
@@ -75,8 +76,8 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   // One read per crop and path: the first row of each item carries them.
   const firstRow = new Map<string, (typeof rows)[number]>();
   for (const r of rows) if (!firstRow.has(r.itemId)) firstRow.set(r.itemId, r);
-  let exactK = 0;
-  let exactN = 0;
+  // Exact numbers, per path (eval/PROTOCOL.md, "Exact numbers").
+  const exact = { device: { k: 0, n: 0 }, cloud: { k: 0, n: 0 } };
   let misreads = 0;
   let caught = 0;
   const deviceMs: number[] = [];
@@ -84,12 +85,13 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
   const diffs: number[] = [];
   for (const [itemId, r] of firstRow) {
     const item = items.get(itemId);
-    for (const path of [r.device, r.cloud]) {
+    for (const name of ["device", "cloud"] as const) {
+      const path = r[name];
       if (!path) continue;
       const e = exactOf(item, path);
       if (e === null) continue;
-      exactN++;
-      if (e) exactK++;
+      exact[name].n++;
+      if (e) exact[name].k++;
     }
     if (r.device && exactOf(item, r.device) === false) {
       misreads++;
@@ -114,7 +116,7 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
     hazardCalledOk: { k: failed, n: hazards.length, upper95: hazards.length ? clopperPearsonUpper(failed, hazards.length, 0.05) : NaN },
     checkRate: { k: checks, n: rows.length },
     noVerdict: { k: rows.length - judged.length, n: rows.length },
-    numbersExact: { k: exactK, n: exactN },
+    numbersExact: exact,
     misreadsCaught: { k: caught, n: misreads },
     latency: {
       device: { p50: percentile(deviceMs, 50), p90: percentile(deviceMs, 90), n: deviceMs.length },
@@ -122,6 +124,18 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
       pairedMedianDiffMs: diffs.length ? median(diffs) : NaN,
       diffCi95: (boots.length ? [percentile(boots, 2.5), percentile(boots, 97.5)] : [NaN, NaN]) as [number, number],
     },
+  };
+}
+
+// Every metric twice, as every eval report gives it: over all items, and over the items that prompted no rule change
+// after labelling (src/eval/ruleChanges.ts).
+export function computeEvalReport(set: EvalSet, run: AnyRun) {
+  const part = untouchedItems(set);
+  const kept = new Set(part.items.map((i) => i.itemId));
+  const runPart = { ...run, rows: run.rows.filter((r) => kept.has(r.itemId)) } as AnyRun;
+  return {
+    allItems: { items: set.items.length, ...computeEvalMetrics(set, run) },
+    withoutRuleChangeItems: { items: part.items.length, ...computeEvalMetrics(part, runPart) },
   };
 }
 
