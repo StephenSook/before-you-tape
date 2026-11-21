@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The README now says what Try a sample photo does: it shows a recorded read of one of our test photos, made earlier by a laptop's own model and labelled Sample, recorded read on the card, so no model runs; Run one live read on the Judges page reads the same photo live. It said the sample went through the same read and the same cloud choice, which reads as a live read. Source: review of the judge-facing claims. Verified against the code: CameraStage sends a sample photo to its recorded read instead of a model, SourceGlyph labels it Sample, recorded read, and JudgePage renders LiveReadPanel with its Run one live read button; the full suite passes.
+
 - The Judges page's Android link and the README now point at the android-judge-2 release, the APK that passed the release gate on a Samsung A16 (before-you-tape-android-59c5914.apk, SHA-256 8b9f332d...3cade9), which GitHub lists as Latest. They pointed at the first android-judge release (76acd04). Source: review of the judge-facing claims. Verified: the Judges page test, pointed at android-judge-2, failed first and passes; the APK name and SHA-256 are read from the release's own assets (gh release view android-judge-2); the full suite passes.
 
 - TEST-MATRIX row 16 (QuickJS against V8 on Android) records the Samsung A16 run of 2026-11-21: the android-judge-2 release APK of 59c5914, shared vectors pass (box 30, guards 64, destinations 21), and 427 inputs give equal answers against WebView V8 157.0.8103.50, with both planted-failure controls reported. It said the A16 was not run yet. Source: review. Verified against docs/evidence/android/G-A5.md on main (A16 row, the release APK and its SHA-256, the Controls section).
