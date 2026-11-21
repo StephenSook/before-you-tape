@@ -78,7 +78,8 @@ class HomeScreenTest {
 
     @Test fun withNoDestinationTheCameraWaitsAndADestinationCanBeChosen() {
         val a = show(base.copy(box = BoxLogic.empty("")))
-        rule.onNodeWithText(Copy.CHOOSE_DESTINATION_FIRST).assertExists()
+        // The destination button is the one thing to do; no sentence repeats it.
+        rule.onNodeWithText("Choose where the box is going first.").assertDoesNotExist()
         rule.onNodeWithText("CAMERA STUB").assertDoesNotExist()
         rule.onNodeWithText(Copy.WHERE_TO).performClick()
         rule.onNodeWithText("Philippines").performClick()
