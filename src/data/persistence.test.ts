@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
 import type { BoxItem } from "./boxStore";
-import { persistenceAfterSignIn, sweepUntilEmpty } from "./persistence";
+import { deleteOrRetire, persistenceAfterSignIn, sweepUntilEmpty } from "./persistence";
 
 const fake = () => ({
   loadBox: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => ({ status: "found", box: { destinationCode: "PH" } })),
@@ -52,5 +52,35 @@ describe("sweepUntilEmpty", () => {
 
   it("gives up, without deleting the box, when every list finds more", async () => {
     await expect(sweepUntilEmpty(async () => [1], async () => {}, 3)).rejects.toThrow("kept getting new items");
+  });
+});
+
+describe("deleteOrRetire", () => {
+  const denied = Object.assign(new Error("denied"), { code: "permission-denied" });
+
+  it("deletes a box that is there, and retires the id of one that is not", async () => {
+    const del = vi.fn(async () => {});
+    const retire = vi.fn(async () => {});
+    await deleteOrRetire(async () => true, del, retire);
+    expect([del.mock.calls.length, retire.mock.calls.length]).toEqual([1, 0]);
+    await deleteOrRetire(async () => false, del, retire);
+    expect([del.mock.calls.length, retire.mock.calls.length]).toEqual([1, 1]);
+  });
+
+  it("deletes the box another tab's first save created after the read, when the retire is refused for it", async () => {
+    const reads = [false, true];
+    const del = vi.fn(async () => {});
+    await deleteOrRetire(async () => reads.shift()!, del, async () => { throw denied; });
+    expect(del).toHaveBeenCalledTimes(1);
+  });
+
+  it("is done when the retire is refused because the id was retired already", async () => {
+    const del = vi.fn(async () => {});
+    await deleteOrRetire(async () => false, del, async () => { throw denied; });
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it("fails on any other refusal", async () => {
+    await expect(deleteOrRetire(async () => false, vi.fn(), async () => { throw new Error("offline"); })).rejects.toThrow("offline");
   });
 });
