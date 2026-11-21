@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
 import { SAMPLE_READ } from "../data/sampleRead";
 import type { LiveReadDeps } from "../judge/LiveReadPanel";
+import type { ItemRead } from "../shared/itemRead";
 import { JudgePage } from "./JudgePage";
 
 const index = [
@@ -133,14 +134,17 @@ describe("JudgePage", () => {
     const read = { itemName: "Phone", category: "phone" as const, labelText: "LI-ION 3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
       wattHours: 15.4, lithiumGrams: 0, batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
       glassContainer: false, powder: false, retailBox: "sealed" as const, evidence: "label_read" as const };
-    const side = (label: string, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
-      credit: "Photo by the project owner", read, answers: { device_condition: answer } });
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Same phone", left: side("New", "new_sealed"), right: side("Used", "used") }]} />);
-    // The new phone's typed numbers wait for a second look (USPS-INTL-LI-ONE-READ); the used one is out either way.
+    const lotion = { ...read, itemName: "Body lotion", category: "lotion_cream" as const, labelText: "SHEA BODY LOTION 8 FL OZ", volts: 0,
+      milliampHours: 0, wattHours: 0, batteryWords: false, liquid: true };
+    const side = (label: string, r: ItemRead, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
+      credit: "Photo by the project owner", read: r, answers: { device_condition: answer } });
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Lotion and a used phone", left: side("Lotion", lotion, "new_sealed"), right: side("Used phone", read, "used") }]} />);
+    // The lotion follows the country picked: out to the Philippines, which takes no liquids, OK to Canada. The used
+    // phone is out to both.
     const pair = screen.getByTestId("matched-pair");
-    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["Check this", "Take it out"]);
+    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["Take it out", "Take it out"]);
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
-    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["Check this", "Take it out"]);
+    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
   });
 
   it("shows no matched pairs section when none is given", () => {
