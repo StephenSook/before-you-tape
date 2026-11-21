@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the App Store listing text, availability and age rating
+- What: `ios/app-store/listing.md`: name, subtitle, categories, URLs, promotional text,
+  description, keywords (no trademarked names), age rating answers, and availability in every
+  country except France and China mainland, with the reason for each.
+- Source: App Store preparation.
+- Verified: every claim is from the app (three verdicts, on-device reads, the consent sentence,
+  Canada and the Philippines in the edition); measured by the script above. Nothing is created in
+  App Store Connect.
+
 ### docs(ios): the device checklist names the 5 items and starts from the newest main
 - What: the checklist now names the 5 items to bring (a lotion or cream; a perfume or another
   alcohol-based spray; a power bank; a boxed device with a battery; one clearly harmless item). A
