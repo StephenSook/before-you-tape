@@ -29,14 +29,14 @@ const judge = () => "take_out" as const;
 describe("LiveReadPanel", () => {
   it("loads nothing until the judge presses the button", () => {
     const { load } = deps();
-    render(<LiveReadPanel load={load} judge={judge} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     expect(screen.getByRole("button", { name: "Run one live read" })).toBeInTheDocument();
     expect(load).not.toHaveBeenCalled();
   });
 
   it("reads the sample on this laptop when it can, and says where and how long from the press", async () => {
     const { load, m } = deps({ gate: "available" });
-    render(<LiveReadPanel load={load} judge={judge} now={clock()} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={clock()} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this laptop, 1.5 s");
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
@@ -47,7 +47,7 @@ describe("LiveReadPanel", () => {
 
   it("reads in the cloud when this laptop cannot and cloud checks are on", async () => {
     const { load, m } = deps({ consent: true });
-    render(<LiveReadPanel load={load} judge={judge} now={clock()} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={clock()} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read in the cloud, 1.5 s");
     expect(m.cloud.generate).toHaveBeenCalledTimes(1);
@@ -55,7 +55,7 @@ describe("LiveReadPanel", () => {
 
   it("asks first when the cloud is needed and the judge has not allowed it, and reads nothing until Allow", async () => {
     const { load, m, consent } = deps({ consent: null });
-    render(<LiveReadPanel load={load} judge={judge} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByRole("button", { name: "Allow" })).toHaveFocus();
     expect(m.cloud.generate).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe("LiveReadPanel", () => {
 
   it("reads nothing when the judge keeps it on this laptop and the laptop cannot read", async () => {
     const { load, m, consent } = deps({ consent: null });
-    render(<LiveReadPanel load={load} judge={judge} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     await userEvent.click(await screen.findByRole("button", { name: "Check on this laptop only" }));
     expect(consent()).toBe(false);
@@ -76,7 +76,7 @@ describe("LiveReadPanel", () => {
 
   it("reads nothing in the cloud while cloud checks are paused", async () => {
     const { load, m } = deps({ consent: true, paused: true });
-    render(<LiveReadPanel load={load} judge={judge} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cloud checks are paused right now");
     expect(m.cloud.generate).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe("LiveReadPanel", () => {
 
   it("never reads a sample photo whose bytes do not match its record", async () => {
     const { load, m } = deps({ gate: "available", sample: async () => { throw new SampleMismatch(); } });
-    render(<LiveReadPanel load={load} judge={judge} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The sample photo did not match its record, so it was not read.");
     expect(m.device.generate).not.toHaveBeenCalled();
@@ -93,7 +93,7 @@ describe("LiveReadPanel", () => {
   // The wait is long here, so a busy machine cannot let it pass between the two clicks.
   it("runs one read at a time, and waits before it can run again", async () => {
     const { load, m } = deps({ gate: "available" });
-    render(<LiveReadPanel load={load} judge={judge} cooldownMs={60_000} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" cooldownMs={60_000} />);
     const button = screen.getByRole("button", { name: "Run one live read" });
     await userEvent.click(button);
     await userEvent.click(button);
@@ -104,12 +104,19 @@ describe("LiveReadPanel", () => {
 
   it("runs again once the wait is over", async () => {
     const { load, m } = deps({ gate: "available" });
-    render(<LiveReadPanel load={load} judge={judge} cooldownMs={50} />);
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" cooldownMs={50} />);
     const button = screen.getByRole("button", { name: "Run one live read" });
     await userEvent.click(button);
     await screen.findByTestId("live-read-where");
     await waitFor(() => expect(button).toBeEnabled(), { timeout: 5000 });
     await act(async () => { await userEvent.click(button); });
     await waitFor(() => expect(m.device.generate).toHaveBeenCalledTimes(2));
+  });
+
+  it("names the country it judged with the verdict", async () => {
+    const { load } = deps({ gate: "available" });
+    render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
+    await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
+    expect(await screen.findByTestId("live-read-verdict")).toHaveTextContent("Take it out for the Philippines");
   });
 });

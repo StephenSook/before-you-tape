@@ -8,6 +8,7 @@ import type { GateState, ImagePart, ItemModels } from "../ai/port";
 import type { VerdictLevel } from "../engine/types";
 import type { ItemRead } from "../shared/itemRead";
 import { ConsentNotice } from "../ui/ConsentNotice";
+import { inCountry } from "../ui/countryName";
 import { VerdictChip } from "../ui/VerdictChip";
 
 export interface LiveReadDeps {
@@ -49,12 +50,14 @@ export interface LiveReadPanelProps {
   load: () => Promise<LiveReadDeps>;
   // The verdict for the read, judged for the country picked now, so a country change re-judges it.
   judge: (read: ItemRead) => VerdictLevel;
+  // The country picked now, named with the verdict.
+  country: string;
   now?: () => number;
   // One read at a time, then this long before the next, so the button cannot run reads back to back.
   cooldownMs?: number;
 }
 
-export function LiveReadPanel({ load, judge, now = () => performance.now(), cooldownMs = 10_000 }: LiveReadPanelProps) {
+export function LiveReadPanel({ load, judge, country, now = () => performance.now(), cooldownMs = 10_000 }: LiveReadPanelProps) {
   const [view, setView] = useState<View>({ kind: "idle" });
   const [cooling, setCooling] = useState(false);
   const running = useRef(false);
@@ -118,8 +121,8 @@ export function LiveReadPanel({ load, judge, now = () => performance.now(), cool
       {view.kind === "done" && (
         <div data-testid="live-read-result">
           <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this laptop"}, {(view.ms / 1000).toFixed(1)} s</p>
+          <p data-testid="live-read-verdict"><VerdictChip level={judge(view.read)} /> for {inCountry(country)}</p>
           <p data-testid="live-read-name">The model read: {view.read.itemName}</p>
-          <VerdictChip level={judge(view.read)} />
         </div>
       )}
     </section>

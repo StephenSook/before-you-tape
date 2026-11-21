@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The /judge live read names the country it judged, beside the verdict: "Take it out for the Philippines" (a new inCountry helper puts "the" before names that take it). Source: live-read review (the chip did not say which country). Verified: new LiveReadPanel and inCountry tests failed first and pass; the full suite passes.
+
 - The native engine bridge gains two functions for a cloud second look, so the iPhone runs the web app's own rule and
   merge: `secondLookReasonJson({ item, source, policy? })` gives `needsSecondLook` on the facts the edition in force
   derives (only an on-device read qualifies; no policy means every reason on; a policy that is not exactly five
