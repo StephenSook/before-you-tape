@@ -136,7 +136,7 @@
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Radioactive material; USPS already bars it from international mail."
+        "reason": "Radioactive material; not a family gift item."
       }
     },
     {
@@ -171,7 +171,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An invoice and duty note; shown to the sender as a customs note."
+        "reason": "An invoice and duty note; shown on the Rules page."
       }
     }
   ],

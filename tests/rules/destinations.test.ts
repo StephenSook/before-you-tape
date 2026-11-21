@@ -53,6 +53,17 @@ describe("destination editions", () => {
     }
   });
 
+  it("gives only reasons that hold: an observation says where it shows, and none claims a USPS ban it lacks", () => {
+    for (const d of Object.values(ed.destinations)) {
+      for (const l of d.lines) {
+        const reason = l.noMatch?.reason ?? "";
+        // IMM 135.5 accepts some radioactive material, and no screen reads customsNotes.
+        expect(reason, l.lineId).not.toMatch(/customs note|already bars/i);
+        if (l.section === "observations") expect(reason, l.lineId).toMatch(/; shown on the Rules page\.$/);
+      }
+    }
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");

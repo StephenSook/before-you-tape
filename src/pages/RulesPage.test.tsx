@@ -31,6 +31,16 @@ describe("RulesPage", () => {
     expect(within(ph).getByRole("link", { name: "Philippines listing" })).toHaveAttribute("href", "https://pe.usps.com/text/imm/ps_006.htm");
   });
 
+  it("shows every observation line in full, as each one's reason says", () => {
+    render(<RulesPage edition={ed} index={index} />);
+    for (const d of Object.values(ed.destinations)) {
+      const region = screen.getByRole("region", { name: d.name });
+      const notes = d.lines.filter((l) => l.section === "observations");
+      expect(notes.length, d.code).toBeGreaterThan(0);
+      for (const l of notes) expect(within(region).getByText(l.ourWording), l.lineId).toBeInTheDocument();
+    }
+  });
+
   it("names the countries where mail service is suspended, with the date the list was checked", () => {
     render(<RulesPage edition={ed} index={index} />);
     const s = screen.getByRole("region", { name: "Suspended mail service" });

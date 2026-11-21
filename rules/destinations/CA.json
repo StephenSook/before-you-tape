@@ -222,7 +222,7 @@
       "matches": [],
       "noMatch": {
         "decision": "not_a_gift_item",
-        "reason": "Radioactive material; USPS already bars it from international mail."
+        "reason": "Radioactive material; not a family gift item."
       }
     },
     {
@@ -385,7 +385,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "A duty and tax note; shown to the sender as a customs note."
+        "reason": "A duty and tax note; shown on the Rules page."
       }
     },
     {
@@ -396,7 +396,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An address rule; shown to the sender as a customs note."
+        "reason": "An address rule; shown on the Rules page."
       }
     },
     {
@@ -407,7 +407,7 @@
       "matches": [],
       "noMatch": {
         "decision": "observation",
-        "reason": "An address rule; shown to the sender as a customs note."
+        "reason": "An address rule; shown on the Rules page."
       }
     }
   ],
