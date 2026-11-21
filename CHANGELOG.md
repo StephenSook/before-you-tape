@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- When the camera cannot focus, the line names "Use your phone" only when that button is shown (the phone handoff exists); otherwise it says "Add a photo, or type the numbers." Source: review. Verified: the CameraStage test failed first and passes.
+
 - On a phone the Pack page opens the back camera, and the photo picker opens the camera: `src/shared/phoneDevice.ts` reads the browser's mobile flag, or else a phone in the user agent, and PackRoute passes it down. Before, nothing set it, so phones opened the front camera. Source: review. Verified: new phone-detection and PackPage tests failed first and pass.
 
 - The sample's recorded read clears an earlier blocked alert when it gives its verdict, and a late failure to keep the sample's photo on the device says nothing once a newer check has been pressed. Source: review. Verified: two new PackPage tests failed first and pass.

@@ -71,9 +71,10 @@ describe("CameraStage", () => {
     for (const id of ["use-phone", "add-photo", "type-it"]) expect(screen.getByTestId(id)).toBeInTheDocument();
   });
 
-  it("leaves out the phone until the phone handoff exists", () => {
+  it("leaves out the phone until the phone handoff exists, in the words too", () => {
     render(<CameraStage openCamera={okCamera} onImage={() => {}} forcedEvent={{ type: "cannot_focus" }} />);
     expect(screen.queryByTestId("use-phone")).toBeNull();
+    expect(screen.getByText("This camera can't focus that close. Add a photo, or type the numbers.")).toBeInTheDocument();
     expect(screen.getByTestId("type-it")).toBeInTheDocument();
   });
 
