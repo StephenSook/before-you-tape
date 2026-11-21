@@ -31,8 +31,10 @@ var BYT = (() => {
     isNoItemJson: () => isNoItemJson,
     itemReadContract: () => itemReadContract,
     labelTagsJson: () => labelTagsJson,
+    mergeSecondLookJson: () => mergeSecondLookJson,
     parseItemReadJson: () => parseItemReadJson,
     parseItemReadTaggedJson: () => parseItemReadTaggedJson,
+    secondLookReasonJson: () => secondLookReasonJson,
     setEdition: () => setEdition
   });
 
@@ -1049,6 +1051,49 @@ var BYT = (() => {
     return r.category === "other" && r.evidence === "not_sure" && r.labelText.trim() === "" && !signal && (name === "" || NO_NAME.test(name));
   }
 
+  // src/shared/secondLook.ts
+  var SECOND_LOOK_DEFAULT = { whMismatch: true, batteryNumbers: true, notSure: true, hazardNoLabel: true, identity: true };
+  var HAZARD_TAGS = ["flammable", "pressurized", "alcohol", "lighter", "vaping", "fragrance"];
+  function needsSecondLook(facts, outcome, policy) {
+    if (outcome.source !== "on_device") return null;
+    const b = facts.battery;
+    if (policy.whMismatch && b.whStatus === "printed_mismatch") return "wh_mismatch";
+    if (policy.batteryNumbers && b.presence !== "none") return "battery_numbers";
+    if (policy.notSure && facts.evidence === "not_sure") return "not_sure";
+    if (policy.hazardNoLabel && facts.identity !== "label" && facts.tags.some((t) => HAZARD_TAGS.includes(t))) return "hazard_no_label";
+    if (policy.identity && facts.identity === "unconfirmed") return "identity";
+    return null;
+  }
+  var HAZARD_FLAGS = ["batteryWords", "liquid", "pressurized", "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder"];
+  var WH_FIELDS = ["volts", "milliampHours", "wattHours"];
+  var whOf = (r) => r.wattHours > 0 ? r.wattHours : r.volts * r.milliampHours / 1e3;
+  var batteryOf = (r) => ({ volts: r.volts, milliampHours: r.milliampHours, wattHours: r.wattHours });
+  var EVIDENCE_RANK = { not_sure: 0, item_seen: 1, label_read: 2 };
+  function mergeReads(device, cloud) {
+    const merged = {
+      ...cloud,
+      // The longer label is the one shown; the store keeps both labels' tags, so a word only the shorter had
+      // still counts.
+      labelText: device.labelText.length > cloud.labelText.length ? device.labelText : cloud.labelText,
+      ...batteryOf(whOf(device) > whOf(cloud) ? device : cloud),
+      lithiumGrams: Math.max(device.lithiumGrams, cloud.lithiumGrams),
+      retailBox: device.retailBox === cloud.retailBox ? cloud.retailBox : device.retailBox === "open_or_none" || cloud.retailBox === "open_or_none" ? "open_or_none" : "cannot_tell",
+      evidence: EVIDENCE_RANK[device.evidence] < EVIDENCE_RANK[cloud.evidence] ? device.evidence : cloud.evidence
+    };
+    for (const flag of HAZARD_FLAGS) merged[flag] = device[flag] || cloud[flag];
+    return merged;
+  }
+  function readDisputes(device, cloud) {
+    const d = {};
+    if (device.category !== cloud.category) d.category = { device: device.category, cloud: cloud.category, resolved: false };
+    if (device.retailBox !== cloud.retailBox) d.retailBox = { device: device.retailBox, cloud: cloud.retailBox, resolved: false };
+    if (WH_FIELDS.some((f) => device[f] !== cloud[f])) d.battery = { device: batteryOf(device), cloud: batteryOf(cloud), resolved: false };
+    if (device.lithiumGrams !== cloud.lithiumGrams) d.lithiumGrams = { device: device.lithiumGrams, cloud: cloud.lithiumGrams, resolved: false };
+    for (const flag of HAZARD_FLAGS) if (device[flag] !== cloud[flag]) d[flag] = { device: device[flag], cloud: cloud[flag], resolved: false };
+    if (device.evidence !== cloud.evidence) d.evidence = { device: device.evidence, cloud: cloud.evidence, resolved: false };
+    return d;
+  }
+
   // src/embed/bridge.ts
   function clonePlainData(value) {
     if (value === null || typeof value !== "object") {
@@ -1114,6 +1159,21 @@ var BYT = (() => {
   }
   var FIELDS = new Map(ITEM_READ_FIELDS.map((f) => [f.name, f]));
   var IDENTITY_SOURCES = /* @__PURE__ */ new Set(["sender", "second_look"]);
+  function checkRead(raw, where) {
+    const read = plain(raw, where);
+    for (const f of ITEM_READ_FIELDS) checkField2(f, read[f.name], where);
+    if (Array.from(read.labelText).length > LABEL_TEXT_MAX) {
+      throw new BadInputError(`${where}.labelText is longer than ${LABEL_TEXT_MAX} characters`);
+    }
+    return read;
+  }
+  var POLICY_KEYS = ["whMismatch", "batteryNumbers", "notSure", "hazardNoLabel", "identity"];
+  function checkPolicy(raw) {
+    const o = plain(raw, "policy");
+    for (const k of Object.keys(o)) if (!POLICY_KEYS.includes(k)) throw new BadInputError(`policy.${k} is not a second-look reason`);
+    for (const k of POLICY_KEYS) if (typeof o[k] !== "boolean") throw new BadInputError(`policy.${k} must be true or false`);
+    return o;
+  }
   function checkItems(raw) {
     if (!Array.isArray(raw)) throw new BadInputError("items must be an array");
     const ids = /* @__PURE__ */ new Set();
@@ -1123,11 +1183,7 @@ var BYT = (() => {
       if (typeof id !== "string" || id === "" || id in Object.prototype) throw new BadInputError(`items[${i}].itemId is not a usable id`);
       if (ids.has(id)) throw new BadInputError(`item id ${id} appears twice`);
       ids.add(id);
-      const read = plain(o.read, `${id}.read`);
-      for (const f of ITEM_READ_FIELDS) checkField2(f, read[f.name], `${id}.read`);
-      if (Array.from(read.labelText).length > LABEL_TEXT_MAX) {
-        throw new BadInputError(`${id}.read.labelText is longer than ${LABEL_TEXT_MAX} characters`);
-      }
+      checkRead(o.read, `${id}.read`);
       for (const [k, v] of Object.entries(plain(o.overrides, `${id}.overrides`))) {
         const f = FIELDS.get(k);
         if (!f) throw new BadInputError(`${id}.overrides.${k} is not an item-read field`);
@@ -1214,6 +1270,22 @@ var BYT = (() => {
   }
   function isNoItemJson(readJson) {
     return reply(() => isNoItem(parseItemRead(readJson)));
+  }
+  function secondLookReasonJson(inputJson) {
+    return reply(() => {
+      const input = object(inputJson);
+      const [item] = checkItems([input.item]);
+      const policy = input.policy === void 0 ? SECOND_LOOK_DEFAULT : checkPolicy(input.policy);
+      return { reason: needsSecondLook(deriveFacts(item, current()), { source: str2(input, "source") }, policy) };
+    });
+  }
+  function mergeSecondLookJson(inputJson) {
+    return reply(() => {
+      const input = object(inputJson);
+      const device = checkRead(input.device, "device");
+      const cloud = checkRead(input.cloud, "cloud");
+      return { merged: mergeReads(device, cloud), disputes: readDisputes(device, cloud), sameCategory: device.category === cloud.category };
+    });
   }
   function itemReadContract() {
     return reply(() => ({ fields: ITEM_READ_FIELDS, schema: itemReadJsonSchema(), labelTextMax: LABEL_TEXT_MAX }));

@@ -14,8 +14,8 @@ import Testing
         let engine = try RulesEngine()
         #expect(engine.bridgeVersion == 1)
         #expect(engine.functionNames == ["canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
-                                         "isNoItemJson", "itemReadContract", "labelTagsJson", "parseItemReadJson",
-                                         "parseItemReadTaggedJson", "setEdition"])
+                                         "isNoItemJson", "itemReadContract", "labelTagsJson", "mergeSecondLookJson", "parseItemReadJson",
+                                         "parseItemReadTaggedJson", "secondLookReasonJson", "setEdition"])
     }
 
     /// A read of no item (a camera pointed at a room) is found by the web app's own check, and a

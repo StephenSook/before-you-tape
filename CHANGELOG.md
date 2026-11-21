@@ -6,6 +6,22 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The native engine bridge gains two functions for a cloud second look, so the iPhone runs the web app's own rule and
+  merge: `secondLookReasonJson({ item, source, policy? })` gives `needsSecondLook` on the facts the edition in force
+  derives (only an on-device read qualifies; no policy means every reason on; a policy that is not exactly five
+  true-or-false switches is refused), and `mergeSecondLookJson({ device, cloud })` gives `mergeReads`, `readDisputes`
+  and whether both reads saw the same category, after checking both reads field by field. The read check is shared
+  with `evaluateBoxJson`'s item check, unchanged. `BRIDGE_VERSION` stays 1 and no existing function changes, so the
+  Android host, which requires version 1, loads the bundle as before. The iPhone's engine bundle is rebuilt (sha256
+  7eec63d00561) and its contract test lists the two new names. Source: the iPhone second look. Verified: new bridge
+  tests compare the reason with the web app's `needsSecondLook(deriveFacts(...))` for every shared vector item, on the
+  device and in the cloud, and check named cases (a power bank, a perfume only seen, a lotion with its label read, a
+  policy turning reasons off, a malformed policy and item refused); the merge equals `mergeReads` and `readDisputes`
+  and a malformed read is refused. They failed before ("is not a function") and pass after; 787 web tests pass;
+  `check_engine_bundle.sh` fresh; the iPhone engine host's 34 tests pass on the new bundle; and Android's
+  `./gradlew :engine:test` (JDK 21, as in CI) builds its bundle from this bridge, byte for byte the iPhone's (sha256
+  7eec63d00561), and passes 24 of 24, the shared vectors and the host's version check included.
+
 - On a phone the page links stay on one row that scrolls sideways, and a link inside a sentence gets a tap area at least 24 px tall (3 px of inline padding above and below, which leaves the lines where they are). Source: UI review (links were 17 to 19 px tall). Verified: lint and the build pass; the layout is to be checked live at 390 px once deployed.
 
 - On a phone the newest-item sheet has a Close button and goes by itself after 8 seconds, so it no longer sits over the stage's buttons (such as "Try a sample photo"); a newer item shows it again. While it shows, the footer ends below it. Source: UI review (at 390 px the sheet covered the sample button). Verified: a new PackPage test (close, then a newer item's sheet goes by itself) failed first and passes; the full unit suite passes.
