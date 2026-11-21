@@ -97,6 +97,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .ran th, .ran td { border: var(--outline); padding: var(--space-2); text-align: left; vertical-align: top; }
 .ready { background: var(--holly); color: var(--paper); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); font-family: var(--font-display); font-weight: 700; }
 .site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-bottom: var(--outline); }
+.update-line { margin: 0; padding: var(--space-2) var(--space-5); border-bottom: var(--outline); }
 .wordmark { font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; color: var(--ink); text-decoration: none; }
 .site-header nav { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .nav-pill { color: var(--ink); text-decoration: none; border: var(--outline); border-radius: var(--radius-chip); padding: var(--space-1) var(--space-3); }

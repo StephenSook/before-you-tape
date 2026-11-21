@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import App from "./App";
+import { forgetUpdate, markUpdateReady } from "./pwa/update";
 import { builtPagePaths, routePaths } from "./routes";
 
 describe("App", () => {
@@ -8,6 +9,20 @@ describe("App", () => {
     render(<App />);
     expect(screen.getByTestId("wordmark")).toHaveTextContent("Before You Tape");
     expect(screen.getByText("Not affiliated with or approved by the US Postal Service.")).toBeInTheDocument();
+  });
+});
+
+describe("update line", () => {
+  it("shows on any page once a new version is waiting, above the page", () => {
+    render(<App />);
+    expect(screen.queryByTestId("update-line")).toBeNull();
+    try {
+      act(() => markUpdateReady(async () => {}));
+      const line = screen.getByTestId("update-line");
+      expect(line.compareDocumentPosition(screen.getByRole("main")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      act(() => forgetUpdate());
+    }
   });
 });
 
