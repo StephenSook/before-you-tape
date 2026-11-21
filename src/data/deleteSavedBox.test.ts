@@ -16,10 +16,10 @@ const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
 };
 
 describe("deleteSavedBox", () => {
-  it("stops this page saving, then deletes the saved box, this device's crops and ids, then the anonymous sign-in", async () => {
+  it("stops this page saving, then deletes the saved box, this device's crops, the anonymous sign-in, then this browser's keys", async () => {
     const { d, order } = deps();
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "deleted" });
-    expect(order).toEqual(["stop", "box", "crops", "local", "signIn"]);
+    expect(order).toEqual(["stop", "box", "crops", "signIn", "local"]);
     expect(d.deleteBox).toHaveBeenCalledWith("b1");
     expect(d.clearLocal).toHaveBeenCalledWith("b1");
   });
@@ -34,7 +34,7 @@ describe("deleteSavedBox", () => {
     const recent = Object.assign(new Error("requires recent login"), { code: "auth/requires-recent-login" });
     const { d, order } = deps({ deleteSignIn: vi.fn(async () => { throw recent; }) });
     expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "signed_out" });
-    expect(order).toEqual(["stop", "box", "crops", "local", "signOut"]);
+    expect(order).toEqual(["stop", "box", "crops", "signOut", "local"]);
   });
 
   it("does not say signed out when signing out fails too", async () => {
@@ -46,10 +46,24 @@ describe("deleteSavedBox", () => {
   it("starts a retry at the step that stopped, so the steps already done are not run again", async () => {
     const { d, order } = deps();
     expect(await deleteSavedBox("b1", d, "signIn")).toEqual({ ok: true, signIn: "deleted" });
-    expect(order).toEqual(["signIn"]);
+    expect(order).toEqual(["signIn", "local"]);
     const again = deps();
     await deleteSavedBox("b1", again.d, "crops");
-    expect(again.order).toEqual(["crops", "local", "signIn"]);
+    expect(again.order).toEqual(["crops", "signIn", "local"]);
+  });
+
+  // Taking away the pointer to the box tells other tabs to start again; they must not before the sign-in is gone, or
+  // they would save a new box under it.
+  it("keeps this browser's keys until the sign-in is gone", async () => {
+    const { d, order } = deps({ deleteSignIn: vi.fn(async () => { throw new Error("network"); }) });
+    expect(await deleteSavedBox("b1", d)).toEqual({ ok: false, stoppedAt: "signIn" });
+    expect(order).toEqual(["stop", "box", "crops"]);
+    expect(d.clearLocal).not.toHaveBeenCalled();
+  });
+
+  it("finishes in a browser that refuses its storage, which then holds nothing to remove", async () => {
+    const { d } = deps({ clearLocal: vi.fn(() => { throw new Error("SecurityError"); }) });
+    expect(await deleteSavedBox("b1", d)).toEqual({ ok: true, signIn: "deleted" });
   });
 
   it("says the sign-in step failed for any other sign-in error", async () => {

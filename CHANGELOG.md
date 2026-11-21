@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Delete my saved box now deletes the anonymous sign-in before this browser's box keys. Taking away the pointer to the box tells other tabs to start again, and a tab that did so before the sign-in was gone could save a new box under it, which the sign-in delete (or a retry of it) then stranded. Clearing the keys can no longer stop the delete: storage this browser refuses holds nothing of the box. Source: review. Verified: new and changed deleteSavedBox tests (the order; the keys stay while the sign-in step fails; a refused storage still finishes) failed first and pass; full suite passes.
+
 - deleteBox refuses a box with no expiry before touching any of its items: its tombstone takes its time from the box's expiry, so the last batch would have been refused after the items were already gone. Every box has an expiry since the backfill. Source: review. Verified: a new emulator test (the delete is refused and the item stays) failed first and passes; all 49 emulator tests pass.
 
 - Deleting a box that is not in Firestore yet still retires its id, with a tombstone 67 days out (the box's 37 plus 30), so a first save still on its way from another tab cannot create the box after the delete; the rules allow that only for an id with no box, signed in, with that expiry and nothing else. A refusal there means the id was retired already. Source: review. Verified: rules tests (signed out, a wrong expiry or an extra field refused; the right one accepted; the id then cannot start) and a persistence test failed first and pass; all 48 emulator tests pass.

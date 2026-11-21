@@ -1,8 +1,9 @@
 // "Delete my saved box" on the web: this page stops saving, then the box in Firestore (its items, disputes and the
-// box, with a tombstone), this device's crops and box ids, then the anonymous sign-in. Each step must finish before
-// the next; the first that fails stops the rest and is named, so the sender knows what is left, and a retry starts
-// there, so a step already done is never run again over a box another tab may have started since.
-export type DeleteStep = "box" | "crops" | "local" | "signIn";
+// box, with a tombstone), this device's crops, the anonymous sign-in, and last this browser's box keys. Each step
+// must finish before the next; the first that fails stops the rest and is named, so the sender knows what is left,
+// and a retry starts there. The keys go last because taking away the pointer to the box tells other tabs to start
+// again (whenDeletedElsewhere), which must wait until the sign-in is gone, or they would save a new box under it.
+export type DeleteStep = "box" | "crops" | "signIn";
 export type DeleteResult = { ok: true; signIn: "deleted" | "signed_out" } | { ok: false; stoppedAt: DeleteStep };
 
 export interface DeleteSavedBoxDeps {
@@ -15,7 +16,7 @@ export interface DeleteSavedBoxDeps {
   signOut(): Promise<void>;
 }
 
-const STEPS: DeleteStep[] = ["box", "crops", "local", "signIn"];
+const STEPS: DeleteStep[] = ["box", "crops", "signIn"];
 
 export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from: DeleteStep = "box"): Promise<DeleteResult> {
   const runs = (step: DeleteStep) => STEPS.indexOf(step) >= STEPS.indexOf(from);
@@ -25,19 +26,19 @@ export async function deleteSavedBox(boxId: string, d: DeleteSavedBoxDeps, from:
   if (runs("crops")) {
     try { await d.deleteCrops(); } catch { return { ok: false, stoppedAt: "crops" }; }
   }
-  if (runs("local")) {
-    try { d.clearLocal(boxId); } catch { return { ok: false, stoppedAt: "local" }; }
-  }
+  let signIn: "deleted" | "signed_out" = "deleted";
   try {
     await d.deleteSignIn();
-    return { ok: true, signIn: "deleted" };
   } catch (e) {
     // An old anonymous session cannot sign in again to prove itself, so it is signed out instead; Firebase removes
     // unused anonymous sign-ins on its own.
     if ((e as { code?: unknown } | null)?.code !== "auth/requires-recent-login") return { ok: false, stoppedAt: "signIn" };
     try { await d.signOut(); } catch { return { ok: false, stoppedAt: "signIn" }; }
-    return { ok: true, signIn: "signed_out" };
+    signIn = "signed_out";
   }
+  // Storage this browser refuses holds nothing of the box to remove.
+  try { d.clearLocal(boxId); } catch { /* nothing was kept */ }
+  return { ok: true, signIn };
 }
 
 // The box's own keys in this browser: its saved copy, its journal of unsent changes, its item names, and the pointer
