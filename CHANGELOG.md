@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/TEST-MATRIX.md has a row for a photo read on the device with the network off, on the live site: two reads of the own-01 power bank photo gave "Take it out", shown as "Read on this laptop", in 15,216 ms and 22,156 ms, with 0 requests to the AI Logic host; both misread the battery numbers. The record is evidence/offline-read/2026-11-21T22-08-56Z.json. Source: review of the judge-facing claims. Verified: test-matrix test, hygiene and tone.
+
 - Three CHANGELOG entries from this branch name their source as review of the judge-facing claims, in the public wording the hygiene guard allows. Source: the hygiene guard (it flagged the earlier wording as a private phrase). Verified: the hygiene guard passes on the branch merged with main, where it failed before.
 
 - docs/PRODUCTION-CHECKLIST.md now says how a newer rule edition reaches the phone apps without a new build (publish-edition with a dry run, then rc-publish --set for the pin, and how to undo it), and records the 2026-11-21 run: revision 5 (byt-1e330a4fdf37, SHA-256 b63c55af...3038bc) written to ruleEditions from main 50bbf3b and read back with a matching hash and revision 5, Remote Config version 5 to 6 with exactly the two pin keys changed, and the published android-judge-3 on a Samsung A16 showing byt-1e330a4fdf37 on About 15 seconds after a relaunch, with no notice. Source: the operator's run of the pin. Verified: the outputs above, as reported by the operator and the Android lane.
