@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README.md now says a photo was read offline on the device, where Chrome has the built-in model, citing the TEST-MATRIX row for the network-off read on the live site (right verdict, battery numbers misread). It replaces the line that said no such test was recorded. Source: review of the judge-facing claims. Verified: hygiene, tone and the full gate.
+
 - docs/TEST-MATRIX.md has a row for a photo read on the device with the network off, on the live site: two reads of the own-01 power bank photo gave "Take it out", shown as "Read on this laptop", in 15,216 ms and 22,156 ms, with 0 requests to the AI Logic host; both misread the battery numbers. The record is evidence/offline-read/2026-11-21T22-08-56Z.json. Source: review of the judge-facing claims. Verified: test-matrix test, hygiene and tone.
 
 - Three CHANGELOG entries from this branch name their source as review of the judge-facing claims, in the public wording the hygiene guard allows. Source: the hygiene guard (it flagged the earlier wording as a private phrase). Verified: the hygiene guard passes on the branch merged with main, where it failed before.
