@@ -38,6 +38,11 @@ const addPhoto = async () => {
 const sampleBytes = readFileSync(join(process.cwd(), "public", manifest.items.find((i) => i.itemId === "own-18")!.photo));
 const loadSample = async () => sampleBytes.buffer.slice(sampleBytes.byteOffset, sampleBytes.byteOffset + sampleBytes.byteLength);
 // Presses "Try a sample photo", then "Check this part" on the crop step, as a judge with no camera does.
+// With a recorded read, the sample goes straight to it; with none, it takes the crop step like any photo.
+const tryRecordedSample = async () => {
+  await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+  await screen.findByTestId("sample-sent");
+};
 const trySample = async () => {
   await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
   await screen.findByTestId("sample-note");
@@ -259,7 +264,7 @@ describe("PackPage", () => {
 
   it("shows the sample photo's recorded read, labelled, with no model call and no cloud answer needed", async () => {
     const { models, store } = setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 } }, null);
-    await trySample();
+    await tryRecordedSample();
     const card = await screen.findByTestId("item-card");
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Sample, recorded read");
     // A verdict with the cloud question still unanswered: the sample never needs it.
@@ -270,6 +275,28 @@ describe("PackPage", () => {
     expect(models.device.generate).not.toHaveBeenCalled();
     expect(store.getState().items[0]).toMatchObject({ readSource: "sample_recorded", readMs: 3997 });
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("recorded read");
+  });
+
+  it("clears a blocked alert when the sample's recorded read gives a verdict", async () => {
+    setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 } }, false);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await tryRecordedSample();
+    await screen.findByTestId("item-card");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("lets a late failure to keep the sample's photo say nothing over a newer check", async () => {
+    let fail: () => void = () => {};
+    const saveCrop = vi.fn((key: string) => (key === "sample-key" ? new Promise<void>((_, no) => { fail = () => no(new Error("full")); }) : Promise.resolve()));
+    let k = 0;
+    setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 }, saveCrop, newCropKey: () => (k++ === 0 ? "sample-key" : `k-${k}`) }, false);
+    await tryRecordedSample();
+    await addPhoto();
+    const newer = await screen.findByRole("alert");
+    const text = newer.textContent;
+    await act(async () => { fail(); await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.getByRole("alert").textContent).toBe(text);
   });
 
   it("offers a sample photo that waits for the cloud choice like any photo, and makes no model call before it", async () => {

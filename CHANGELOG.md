@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The sample's recorded read clears an earlier blocked alert when it gives its verdict, and a late failure to keep the sample's photo on the device says nothing once a newer check has been pressed. Source: review. Verified: two new PackPage tests failed first and pass.
+
 - The sample photo goes whole to its recorded read, with no crop step, since that read is of the whole photo; the card keeps the whole photo, not a crop the sender moved. A sample that arrives after the sender added their own photo is dropped, so their photo can never get the sample's read. Source: review. Verified: two new CameraStage tests (the whole photo, the late sample) failed first and pass; the full unit suite passes.
 
 - `evidence/sample-read/own-18.json`: the sample photo's recorded read, a real read of it by the app's own read code on Chrome's built-in model (Chrome 157, Apple M5 Pro), taken from the eval run models-2026-11-21 on a separate eval project. `src/data/sampleRead.ts` checks it with the app's own read parser, and the Pack page now shows it when a sender tries the sample photo. Source: UI review. Verified: a new test (the photo's hash, the source, the parser) failed first and passes; the full unit suite, lint and typecheck pass.

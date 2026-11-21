@@ -321,12 +321,16 @@ export function PackPage(p: PackPageProps) {
   // The sample photo shows its recorded read: no model runs and the cloud is not asked about.
   const onSampleSend = (part: ImagePart) => {
     if (gone.current || !p.sampleRead) return;
-    ++presses.current;
+    // A press like any other: it clears what an older press said, and a late notice of its own never covers a newer one.
+    const owner = ++presses.current;
     setNotice(null);
+    setBlocked(null);
     const key = newCropKey();
     const itemId = store.addRecorded(p.sampleRead.read, p.sampleRead.ms, key);
     setCrops((c) => ({ ...c, [itemId]: part }));
-    void p.saveCrop(key, part, p.sampleRead.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
+    void p.saveCrop(key, part, p.sampleRead.read.labelText).catch(() => {
+      if (presses.current === owner) setNotice("The photo could not be kept on this device. The check still counts.");
+    });
   };
 
   // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
