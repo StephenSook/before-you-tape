@@ -21,7 +21,9 @@ struct BoxView: View {
                 }
                 ForEach(Self.rows(items: box.items, result: box.result)) { row in
                     if let verdict = row.verdict {
-                        ItemCardView(item: row.item, verdict: verdict, box: box)
+                        ItemCardView(item: row.item, verdict: verdict, box: box,
+                                     checkingAgain: model.isCheckingAgain(row.item.itemId), lookError: model.secondLookError(row.item.itemId),
+                                     onRetryLook: { model.retrySecondLook(row.item.itemId) })
                     } else {
                         UncheckedItemRow(item: row.item, box: box)
                     }

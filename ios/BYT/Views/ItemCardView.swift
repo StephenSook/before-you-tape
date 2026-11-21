@@ -1,12 +1,16 @@
 import BYTCore
 import SwiftUI
 
-/// One item: its name, the verdict, the first reason, where it was read, the clerk's question, and
-/// what was checked folded away under "What we checked".
+/// One item: its name, the verdict, the first reason, where it was read, a cloud second look (running,
+/// its reason, or why it failed), what the two reads disagree on, the clerk's question, and what was
+/// checked folded away under "What we checked".
 struct ItemCardView: View {
     let item: BoxItem
     let verdict: ItemVerdict
     let box: BoxStore
+    var checkingAgain = false
+    var lookError: String?
+    var onRetryLook: (() -> Void)?
     @State private var fixing = false
 
     private var name: String {
@@ -20,6 +24,16 @@ struct ItemCardView: View {
             VerdictChip(level: verdict.level)
             if let reason = verdict.hits.first?.text { Text(reason) }
             SourceGlyph(source: item.readSource)
+            if checkingAgain {
+                Text(DisputeWords.checkingAgain).accessibilityIdentifier("checking-again")
+            } else if let look = item.secondLook {
+                Text(look.reason).accessibilityIdentifier("second-look")
+            }
+            if let lookError {
+                Text(lookError).accessibilityIdentifier("second-look-error")
+                if let onRetryLook { Button(DisputeWords.tryAgain, action: onRetryLook).buttonStyle(.bordered) }
+            }
+            DisputePicker(item: item) { field, side in box.settleDispute(item.itemId, field: field, side: side) }
             if let q = verdict.question {
                 QuestionRow(question: q, value: item.answers[q.id]) { box.answer(item.itemId, question: q.id, answer: $0) }
             }

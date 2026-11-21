@@ -282,7 +282,7 @@ final class BoxStore {
     }
 
     /// The facts two reads can dispute, in the web app's order (src/engine/types.ts DISPUTE_FIELDS).
-    static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
+    nonisolated static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
                                 "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence"]
 
     /// Whether these corrections settle a disputed fact: the battery only as a whole set of numbers,

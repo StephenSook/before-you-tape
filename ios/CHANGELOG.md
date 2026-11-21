@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the item card shows a second look and lets the sender settle what the reads dispute
+- What: the card says "Checking again in the cloud." while a look runs, then the web app's reason
+  sentence; a failed look shows why, with "Try again". When the two reads disagree, the card lists
+  each open dispute in the web app's words ("The two reads disagree. Pick what the item shows.",
+  "First read: ..." and "Second look: ..."); a pick that drops what the other read saw (a lithium
+  amount, battery numbers, a hazard flag or a label word) asks first ("The second look saw ... Use
+  ... only if the item really shows that.", "Yes, use ...", "Keep both for now"). A pick settles the
+  dispute in the box. The dispute field list is now readable off the main actor.
+- Source: the iPhone second look (web parity with src/ui/ItemCard.tsx).
+- Verified: five dispute-word tests (labels, box and evidence words and side names equal the web
+  source; the card's sentences are the web's; each reading in plain words; the confirm rule; open
+  disputes in order) failed to compile before and pass after; 189 unit tests and the UI test pass.
+
 ### feat(ios): a photo read on this iPhone gets a cloud second look when the rules ask for one
 - What: after a photo is read on this iPhone, the engine says whether it needs a second look (the web
   app's needsSecondLook, with the Remote Config policy). With a reason and the cloud allowed right
