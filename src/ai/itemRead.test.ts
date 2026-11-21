@@ -44,6 +44,13 @@ describe("readItem", () => {
   it("returns the on-device read with its time", async () =>
     expect(await readItem(models({ hybrid: ok("on_device") }), img, "hybrid", clock(0, 1300))).toMatchObject({ source: "on_device", ms: 1300, recoveredFrom: null, route: "hybrid", read: validRead }));
 
+  it("carries the whole label text the model returned beside the clipped read", async () => {
+    const label = `${"x".repeat(170)} FLAMMABLE`;
+    const out = await readItem(models({ hybrid: text(JSON.stringify({ ...validRead, labelText: label }), "on_device") }), img, "hybrid", clock(0, 1));
+    expect(out.read.labelText).toHaveLength(160);
+    expect(out.fullLabelText).toBe(label);
+  });
+
   it("retries in the cloud on a throw or bad JSON", async () => {
     expect(await readItem(models({ hybrid: fails("QuotaExceededError"), cloud: ok("in_cloud") }), img, "hybrid", clock(0, 2))).toMatchObject({ source: "in_cloud", recoveredFrom: "QuotaExceededError" });
     expect((await readItem(models({ hybrid: text("oops", "on_device"), cloud: ok("in_cloud") }), img, "hybrid", clock(0, 2))).recoveredFrom).toBe("invalid_output");

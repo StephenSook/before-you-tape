@@ -9,6 +9,7 @@ import { prepareDeviceModel } from "../ai/deviceModel";
 import { afterSignIn } from "../ai/authGate";
 import { createItemModels } from "../ai/firebaseModels";
 import { checkGate } from "../ai/gate";
+import { localDay } from "../shared/localDay";
 import type { GateState, ItemModels } from "../ai/port";
 import { openCamera } from "../capture/camera";
 import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
@@ -16,7 +17,7 @@ import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
 import { saveCrop } from "../data/crops";
-import { currentBoxId, localPersistence } from "../data/localPersistence";
+import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
@@ -51,9 +52,10 @@ function buildDeps(): PackDeps | Error {
     store = createBoxStore({
       edition: () => edition,
       persistence,
+      journal: localJournal(localStorage),
       now: () => Date.now(),
       // The device's own local calendar date, which counts the rule layers' age (docs/LIMITS.md).
-      today: () => new Date().toLocaleDateString("en-CA"),
+      today: () => localDay(),
       newId,
       boxId: currentBoxId(localStorage, newId),
       consent: deviceConsent(localStorage),
@@ -88,9 +90,12 @@ function buildDeps(): PackDeps | Error {
   return built;
 }
 
+// Unknown until checkGate answers (a few seconds on a cold page); a press meanwhile waits for it.
+export const INITIAL_GATE: GateState = "checking";
+
 export function PackRoute() {
   const [deps] = useState(buildDeps);
-  const [gate, setGate] = useState<GateState>("no_api");
+  const [gate, setGate] = useState<GateState>(INITIAL_GATE);
   const [progress, setProgress] = useState<number | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [editionNotice, setEditionNotice] = useState<string | null>(null);

@@ -4,37 +4,40 @@ Hold each gift up to your laptop and see what the post office won't take, before
 
 **Live:** https://before-you-tape-2026.web.app
 
-**Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call.
+**Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call. The box starts in the Philippines. USPS suspends mail to Canada from November 29, 2026, so pick Canada to see the app follow it.
 
 ## How it works
 
-1. Hold an item to the camera, add a photo, or type what the label says.
-2. Firebase AI Logic reads the label. It runs on the device when the browser has a built-in model, and in the cloud only after the sender says yes to cloud checks. The item-read models are set up in `src/ai/firebaseModels.ts`.
+1. Hold an item to the camera, add a photo, or type what the label says. With no camera or no item at hand, "Try a sample photo" sends one of our test photos through the same read and the same cloud choice.
+2. Firebase AI Logic reads the label. It runs on the device when the browser has a built-in model, and in the cloud only after the sender says yes to cloud checks. The item-read models are set up in `src/ai/firebaseModels.ts`. If a read fails or takes too long, nothing is guessed: the page says so, "Type an item" stays on the page, and the rules decide the typed item with no model call.
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
-The same rules run in the iPhone app ([`ios/README.md`](ios/README.md)) and the Android app ([`android/RELEASE.md`](android/RELEASE.md)).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build will be linked here when it ships. What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
 
 ## Run it
 
-Requirements: Node.js 22 and npm. The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
+Requirements: Node.js 24.12 or newer and npm (the Firebase SDK this app uses needs it). The Firestore rules tests also need Java 21 or newer, for the Firestore emulator.
 
 1. `npm ci`
 2. Copy `.env.example` to `.env.local` and fill in your own Firebase web config and reCAPTCHA Enterprise site key. Never commit `.env.local`.
 3. `npm run dev` starts the local server.
+
+A browser on localhost does not pass App Check: this project's reCAPTCHA key allows only the deployed site. Cloud checks there need an App Check debug token registered in the Firebase console; the browser tests take one from `APPCHECK_DEBUG_TOKEN` and set it in the page (`tests/e2e/fixtures.ts`). With your own Firebase project, you can add localhost to your own reCAPTCHA key instead.
 
 ```bash
 npm run test            # unit tests
 npm run test:rules      # Firestore rules tests in the local emulator
 npm run lint
 npm run typecheck
-npm run build           # writes dist/, including dist/version.json with the commit SHA
+npm run build           # writes dist/, including dist/version.json with the commit SHA ("unknown" in a copy with no git history)
 npm run tone            # fails on long dashes and curly quotes in user-facing text
-npm run guard           # fails on any model call outside Firebase AI Logic
+npm run guard           # fails on any model call outside Firebase AI Logic, speech recognition included (the system voice is allowed)
 npm run hygiene         # flags private notes in tracked files (fails once the repository is public)
 npm run edition:check   # fails when rules/edition.json is out of date with its part files
 npm run build:embed     # the rules engine as one script for the iPhone and Android apps
 npm run release:gate    # run before a release (see below)
+npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval baseline on eval/set, no model call (eval/PROTOCOL.md)
 ```
 
 ## Checks on every push
@@ -44,6 +47,8 @@ npm run release:gate    # run before a release (see below)
 ## Release gate
 
 `npm run release:gate` fails while any country listing has not been checked line by line by a person, or while any rule layer would be past its limit on the last judging day. It is run before a release, not on every commit.
+
+It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-17, so that layer would read stale on the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
 
 ## Security you can check
 

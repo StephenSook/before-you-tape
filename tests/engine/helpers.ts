@@ -20,6 +20,14 @@ export function withSuspended(e: RuleEdition, codes: string[]): RuleEdition {
   return copy;
 }
 
+// A suspension the post office has announced for a later date.
+export function withUpcoming(e: RuleEdition, code: string, from: string): RuleEdition {
+  const copy = structuredClone(e);
+  copy.suspensions.codes = copy.suspensions.codes.filter((c) => c !== code);
+  copy.suspensions.upcoming = [{ code, from }];
+  return copy;
+}
+
 // The facts a test leaves out, shared with the native clients' vector runners.
 const baseFacts = defaults.baseFacts as ItemFacts;
 

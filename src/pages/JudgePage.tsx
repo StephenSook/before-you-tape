@@ -2,12 +2,19 @@
 // from the eval photo set, with what each label says typed in by us, judged by the app's own rules engine in
 // the browser. Switching the country re-checks the whole box with no model call.
 import { useState, useSyncExternalStore } from "react";
+import { noPersistence } from "../data/boxOps";
 import { createBoxStore, type BoxItem, type BoxStore } from "../data/boxStore";
+import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
+import manifest from "../../eval/set/manifest.json";
+import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
+import type { ItemCategory } from "../shared/itemRead";
+import { CATEGORY_LABELS } from "../ui/categoryLabels";
+import { SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { QuestionRow } from "../ui/QuestionRow";
@@ -18,10 +25,14 @@ export interface JudgePageProps {
   index: readonly DestinationIndexEntry[];
   today: string;
   now?: () => number;
+  // A tracked record of the app's own read on Chrome's built-in model (src/judge/recordedReads.ts), or none.
+  recorded?: RecordedReads | null;
 }
 
+const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
+
 function sampleStore(edition: RuleEdition, today: string, now: () => number): BoxStore {
-  const store = createBoxStore({ edition: () => edition, persistence: { save: () => {}, load: async () => null }, now, today: () => today,
+  const store = createBoxStore({ edition: () => edition, persistence: noPersistence(), now, today: () => today,
     newId: () => crypto.randomUUID(), boxId: "sample" });
   for (const s of SAMPLE_BOX) {
     const item: BoxItem = {
@@ -34,7 +45,7 @@ function sampleStore(edition: RuleEdition, today: string, now: () => number): Bo
   return store;
 }
 
-export function JudgePage({ edition, index, today, now = () => performance.now() }: JudgePageProps) {
+export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null }: JudgePageProps) {
   const [store] = useState(() => sampleStore(edition, today, now));
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -42,6 +53,14 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
     return r ? [[d.code, r.by] as const] : [];
   }));
   const country = index.find((d) => d.code === state.destinationCode)?.name ?? state.destinationCode;
+  const dest = state.result.destination;
+  // A suspension the post office has announced, for a country a judge can pick: the rules follow USPS.
+  const examples = (edition.suspensions.upcoming ?? []).flatMap((u) => {
+    const name = index.find((d) => d.code === u.code)?.name;
+    if (!name) return [];
+    const verb = today >= u.from ? "stopped" : "stops";
+    return [`USPS ${verb} taking mail to ${name} on ${longDate(u.from)}. Pick ${name} to see the app say so.`];
+  });
   const byId = new Map(SAMPLE_BOX.map((s) => [s.itemId, s]));
 
   return (
@@ -51,9 +70,17 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         Nine real items from our test photos. We typed in what each label says, so this page needs no camera, no built-in
         model and no sign-in. The app's own rules decide each verdict, here in your browser.
       </p>
-      <p><a href="/">Check your own box</a></p>
+      <p>
+        <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
+      </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
+      {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
       <DestinationPicker index={index} readBy={readBy} value={state.destinationCode} onChange={(code) => store.setDestination(code)} />
+      {!dest.suspended && dest.suspendsFrom && (
+        <p data-testid="suspension-ahead-banner" className="banner" role="status">
+          The post office stops taking mail to {country} on {longDate(dest.suspendsFrom)}. Mail this box before then.
+        </p>
+      )}
       <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
         recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country }} />
       {state.items.map((item) => {
@@ -77,6 +104,24 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
           </article>
         );
       })}
+      {recorded && (
+        <details data-testid="recorded-reads" className="recorded-reads">
+          <summary>Recorded on-device reads</summary>
+          <p>
+            Recorded {longDate(recorded.ranAt.slice(0, 10))}, Chrome {recorded.chromeVersion} on {recorded.os}
+            {recorded.machine ? `, ${recorded.machine.chip}, ${recorded.machine.memoryGb} GB memory (${recorded.machine.model})` : ""}. A replay, not a live read.
+            The app's own read ran on Chrome's built-in model, with no call to the cloud model.
+          </p>
+          <ul>
+            {recorded.reads.map((r, i) => (
+              <li key={r.itemId}>
+                {PHOTO_ALT.get(r.itemId) ?? r.itemId}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
+                {r.ms.toLocaleString("en-US")} ms{i === 0 ? " (first read, includes the model's start)" : ""}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

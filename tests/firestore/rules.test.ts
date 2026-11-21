@@ -73,12 +73,19 @@ describe("boxes", () => {
     await assertFails(setDoc(doc(nobody, "boxes/b2"), boxFor("alice")));
   });
 
-  it("lets only the owner delete a box", async () => {
+  // No app deletes a box. A deleted box would leave its items behind, and its free id could then be started
+  // again by anyone, who would become the member of those items.
+  it("never lets a client delete a box, so its items stay with it and its id is never free again", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
-      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/b3"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
+      const admin = c.firestore() as unknown as Firestore;
+      await setDoc(doc(admin, "boxes/b3"), { ...boxFor("alice"), memberUids: ["alice", "bob"] });
+      await setDoc(doc(admin, "boxes/b3/items/i1"), itemDoc);
     });
     await assertFails(deleteDoc(doc(bob, "boxes/b3")));
-    await assertSucceeds(deleteDoc(doc(alice, "boxes/b3")));
+    await assertFails(deleteDoc(doc(alice, "boxes/b3")));
+    expect((await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")))).exists()).toBe(true);
+    const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
+    await assertFails(setDoc(doc(eve, "boxes/b3"), boxFor("eve")));
   });
 });
 
@@ -133,7 +140,74 @@ describe("schema", () => {
     await assertFails(setDoc(doc(alice, "boxes/b1/items/i2"), { ...itemDoc, quantity: 100 }));
     await assertFails(setDoc(doc(alice, "boxes/b1/items/i2"), { ...itemDoc, readSource: "somewhere" }));
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags: "alcohol" }));
+    // Each tag must be one known tag, whole.
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags: ["alcohol_flag", "toy_gun", "label_text"] }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags: [] }));
+    for (const labelTags of [["not_a_tag"], ["alcohol", "not_a_tag"], ["alcohol,toy"], [""], ["alcohol", ""], [1], ["ALCOHOL"], ["toy_gunx"]]) {
+      await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags }));
+    }
+    await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { read: { ...itemDoc.read, category: "phonex" } }));
+    await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "spaceship" } }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "toy_gun" } }));
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { secondLook: { ms: 900, reason: "The cloud looked again." }, readFallback: { after: "503", route: "cloud_only" } }));
+    // The item never carries anything about its disputes.
+    await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { secondLook: { ms: 900, reason: "r", rev: "a1b2c3d4" } }));
+  });
+
+  it("keeps a second look's disputes in their own document, with no label text, and refuses any other shape", async () => {
+    const disputes = {
+      category: { device: "power_bank", cloud: "phone", resolved: false },
+      retailBox: { device: "open_or_none", cloud: "sealed", resolved: false },
+      battery: { device: { volts: 3.7, milliampHours: 2500, wattHours: 9.25 }, cloud: { volts: 3.7, milliampHours: 2600, wattHours: 9.62 }, resolved: true },
+      lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
+      flammableOnLabel: { device: true, cloud: false, resolved: false },
+      labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
+      evidence: { device: "not_sure", cloud: "label_read", resolved: false },
+    };
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i1"), disputes));
+    // Every fact at once, with long tag lists: inside one request's evaluation limit.
+    const flag = { device: true, cloud: false, resolved: false };
+    const tags = ["alcohol", "battery_label", "cosmetic", "electronics", "flammable", "label_text", "li_ion", "liquid", "power_bank_label", "pressurized"];
+    const every = { ...disputes, batteryWords: flag, liquid: flag, pressurized: flag, alcoholOnLabel: flag, glassContainer: flag, powder: flag,
+      labelTags: { device: tags, cloud: tags.slice(0, 5), resolved: false } };
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i3"), { ...every, itemRev: "a1b2c3d4" }));
+    // The heaviest item: every correction, many tags, a second look with its revision.
+    const overrides = { itemName: "Power bank", category: "power_bank", volts: 3.7, milliampHours: 10000, wattHours: 37, lithiumGrams: 0,
+      batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false, glassContainer: false,
+      powder: false, retailBox: "sealed", evidence: "label_read" };
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i9"), { ...itemDoc, itemId: "i9", overrides, labelTags: tags, addedAt: 1795000000000,
+      answers: { battery_installed: "installed", cell_count: "one", device_condition: "new_sealed", label_alcohol: "no", label_alcohol_free: "yes" },
+      secondLook: { ms: 900, reason: "The cloud looked again." }, readFallback: { after: "503", route: "cloud_only" } }));
+    // Only a member of the box may read or write it.
+    await assertFails(setDoc(doc(bob, "boxes/b1/disputes/i4"), disputes));
+    await assertFails(getDoc(doc(bob, "boxes/b1/disputes/i1")));
+    await assertSucceeds(getDoc(doc(alice, "boxes/b1/disputes/i1")));
+    const bad: Array<Record<string, unknown>> = [
+      {},
+      { ...disputes, colour: { device: "red", cloud: "blue", resolved: false } },
+      { labelTags: { device: "FLAMMABLE BODY LOTION", cloud: "", resolved: false } },
+      { labelTags: { device: ["shea butter body lotion"], cloud: [], resolved: false } },
+      { labelTags: { device: ["flammable", ""], cloud: [], resolved: false } },
+      { labelTags: { device: [7], cloud: [], resolved: false } },
+      { category: { device: "spaceship", cloud: "phone", resolved: false } },
+      { category: { device: "phone", cloud: "tablet" } },
+      { category: { device: "phone", cloud: "tablet", resolved: "no" } },
+      { category: { device: "phone", cloud: "tablet", resolved: false, label: "IPHONE" } },
+      { retailBox: { device: "maybe", cloud: "sealed", resolved: false } },
+      { lithiumGrams: { device: -1, cloud: 0, resolved: false } },
+      { battery: { device: { volts: 3.7 }, cloud: { volts: 3.7, milliampHours: 1, wattHours: 1 }, resolved: false } },
+      { battery: { device: { volts: 3.7, milliampHours: 1, colour: 1 }, cloud: { volts: 3.7, milliampHours: 1, wattHours: 1 }, resolved: false } },
+      { category: { device: "phone", cloud: "tablet", resolved: false, extra: 1 } },
+      { category: { device: "phone", resolved: false, extra: 1 } },
+      { retailBox: { device: "sealed!", cloud: "sealed", resolved: false } },
+      { liquid: { device: "yes", cloud: false, resolved: false } },
+      { evidence: { device: "guessed", cloud: "label_read", resolved: false } },
+      { ...disputes, itemRev: 7 },
+      { ...disputes, itemRev: "x".repeat(40) },
+      { itemRev: "a1b2c3d4" },
+      { ...disputes, rev: "a1b2c3d4" },
+    ];
+    for (const d of bad) await assertFails(setDoc(doc(alice, "boxes/b1/disputes/i2"), d));
   });
 
   it("accepts an item's added time as a positive whole number of milliseconds, and nothing else", async () => {

@@ -32,6 +32,7 @@ var BYT = (() => {
     itemReadContract: () => itemReadContract,
     labelTagsJson: () => labelTagsJson,
     parseItemReadJson: () => parseItemReadJson,
+    parseItemReadTaggedJson: () => parseItemReadTaggedJson,
     setEdition: () => setEdition
   });
 
@@ -133,6 +134,9 @@ var BYT = (() => {
     }
   }
   function parseItemRead(text) {
+    return parseItemReadWithLabel(text).read;
+  }
+  function parseItemReadWithLabel(text) {
     let data;
     try {
       data = JSON.parse(text);
@@ -152,7 +156,7 @@ var BYT = (() => {
       checkField(f, record[f.name]);
     }
     const read = record;
-    return { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") };
+    return { read: { ...read, labelText: Array.from(read.labelText).slice(0, LABEL_TEXT_MAX).join("") }, fullLabelText: read.labelText };
   }
 
   // src/engine/battery.ts
@@ -257,11 +261,18 @@ var BYT = (() => {
   var NEGATED_BEFORE = / ?(?:\b(?:no|non|not|without|zero|free of|free from) ?-? ?|\b0(?:\.0+)? ?% ?)$/i;
   var NEGATED_AFTER = /^ ?(?:-? ?|- ?\n ?)free\b(?! (?:from|of)\b)/i;
   var FREE_AFTER_BREAK = /^\n ?-? ?free\b(?! (?:from|of)\b)/i;
+  var LINE_END_HYPHEN = /(\p{L})-\n(?=\p{L})/gu;
   function labelTagsOf(labelText, edition2) {
     const text = normalizeLabel(labelText);
     if (text === "") return [];
-    const matchText = text.replace(/\n/g, " ");
     const tags = /* @__PURE__ */ new Set([LABEL_TEXT_TAG]);
+    addWordTags(text, edition2, tags);
+    const joined = text.replace(LINE_END_HYPHEN, "$1");
+    if (joined !== text) addWordTags(joined, edition2, tags);
+    return [...tags].sort();
+  }
+  function addWordTags(text, edition2, tags) {
+    const matchText = text.replace(/\n/g, " ");
     for (const w of edition2.labelWords) {
       if (tags.has(w.tag)) continue;
       let freeAfterBreak = false;
@@ -278,7 +289,6 @@ var BYT = (() => {
       }
       if (freeAfterBreak && !tags.has(w.tag)) tags.add(w.tag === "alcohol" ? ALCOHOL_FREE_UNSURE_TAG : w.tag);
     }
-    return [...tags].sort();
   }
   function conditionOf(answer) {
     return answer === "new_sealed" || answer === "new_opened" || answer === "used" || answer === "refurbished_certified" ? answer : "unknown";
@@ -287,7 +297,8 @@ var BYT = (() => {
     const read = { ...input.read, ...input.overrides };
     const tags = new Set(edition2.categoryTags[read.category]);
     for (const [flag, tag] of FLAG_TAGS) if (read[flag]) tags.add(tag);
-    for (const t of labelTagsOf(read.labelText, edition2)) tags.add(t);
+    const savedTagsCoverLabel = input.overrides.labelText === void 0 && input.labelTags.includes(LABEL_TEXT_TAG);
+    if (!savedTagsCoverLabel) for (const t of labelTagsOf(read.labelText, edition2)) tags.add(t);
     if (input.overrides.labelText === void 0) for (const t of input.labelTags) tags.add(t);
     const freeAnswer = input.answers.label_alcohol_free;
     const freeUnsure = tags.has(ALCOHOL_FREE_UNSURE_TAG) && !tags.has("alcohol");
@@ -611,12 +622,23 @@ var BYT = (() => {
     const dests = obj(e.destinations, "destinations");
     for (const [code, d] of Object.entries(dests)) checkDestination(code, d, questions, producible);
     const s = obj(e.suspensions, "suspensions");
-    keys(s, ["updated", "checkedOn", "url", "codes"], [], "suspensions");
+    keys(s, ["updated", "checkedOn", "url", "codes"], ["upcoming"], "suspensions");
     isoDate(s.updated, "suspensions.updated");
     isoDate(s.checkedOn, "suspensions.checkedOn");
     https(s.url, "suspensions.url");
     list(s.codes, "suspensions.codes").forEach((c, i) => {
       if (typeof c !== "string" || !/^[A-Z]{2}$/.test(c)) fail(`suspensions.codes[${i}]`, "expected a two-letter code");
+    });
+    const announced = /* @__PURE__ */ new Set();
+    if (s.upcoming !== void 0) list(s.upcoming, "suspensions.upcoming").forEach((x, i) => {
+      const u = obj(x, `suspensions.upcoming[${i}]`);
+      keys(u, ["code", "from"], [], `suspensions.upcoming[${i}]`);
+      if (typeof u.code !== "string" || !/^[A-Z]{2}$/.test(u.code)) fail(`suspensions.upcoming[${i}].code`, "expected a two-letter code");
+      const code = u.code;
+      if (announced.has(code)) fail(`suspensions.upcoming[${i}].code`, "listed twice");
+      if (s.codes.includes(code)) fail(`suspensions.upcoming[${i}].code`, "already suspended");
+      announced.add(code);
+      isoDate(u.from, `suspensions.upcoming[${i}].from`);
     });
     list(e.stopWords, "stopWords").forEach((w, i) => str(w, `stopWords[${i}]`));
     list(e.worksheetFields, "worksheetFields").forEach((x, i) => {
@@ -638,8 +660,11 @@ var BYT = (() => {
     }
     return JSON.stringify(value);
   }
-  function resolveDestination(e, code, live) {
-    const suspended = e.suspensions.codes.includes(code);
+  function resolveDestination(e, code, live, today) {
+    const day = today !== void 0 && isCalendarDate(today) ? today : void 0;
+    const ahead = day === void 0 ? void 0 : e.suspensions.upcoming?.find((u) => u.code === code);
+    const started = ahead !== void 0 && day !== void 0 && day >= ahead.from;
+    const suspended = e.suspensions.codes.includes(code) || started;
     const stored = e.destinations[code] ?? null;
     const edition2 = stored ?? live ?? null;
     let reviewState = "not_loaded";
@@ -648,12 +673,14 @@ var BYT = (() => {
       else if (stored && stored.reviewed) reviewState = "reviewed";
       else reviewState = "live_unreviewed";
     }
-    return { code, name: edition2?.name ?? code, reviewState, suspended, edition: edition2 };
+    return { code, name: edition2?.name ?? code, reviewState, suspended, ...ahead && !suspended ? { suspendsFrom: ahead.from } : {}, edition: edition2 };
   }
 
   // src/engine/destination.ts
   var SUSPENSIONS_URL = "https://about.usps.com/newsroom/service-alerts/international/";
   var COUNTRY_INDEX_URL = "https://pe.usps.com/text/imm/immctry.htm";
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var longDate = (iso) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`;
   var SECTION_NAME = {
     prohibitions: "Prohibitions",
     restrictions: "Restrictions",
@@ -670,6 +697,16 @@ var BYT = (() => {
         section: "USPS international service alerts",
         url: SUSPENSIONS_URL,
         text: `Mail to ${dest.name} is suspended right now. Nothing in this box can go until service returns.`
+      });
+    }
+    if (!dest.suspended && dest.suspendsFrom) {
+      hits.push({
+        ruleId: "DEST-SUSPENSION-AHEAD",
+        layer: "destination",
+        level: "note",
+        section: "USPS international service alerts",
+        url: SUSPENSIONS_URL,
+        text: `The post office stops taking mail to ${dest.name} on ${longDate(dest.suspendsFrom)}. Mail this box before then.`
       });
     }
     if (dest.reviewState === "not_loaded" || dest.reviewState === "live_unreviewed") {
@@ -711,6 +748,26 @@ var BYT = (() => {
       }
     }
     return hits;
+  }
+
+  // src/engine/types.ts
+  var DISPUTE_FIELDS = [
+    "category",
+    "retailBox",
+    "battery",
+    "lithiumGrams",
+    "batteryWords",
+    "liquid",
+    "pressurized",
+    "alcoholOnLabel",
+    "flammableOnLabel",
+    "glassContainer",
+    "powder",
+    "labelTags",
+    "evidence"
+  ];
+  function openDisputes(disputes) {
+    return DISPUTE_FIELDS.filter((f) => disputes?.[f] !== void 0 && disputes[f].resolved !== true);
   }
 
   // src/engine/predicates.ts
@@ -878,6 +935,14 @@ var BYT = (() => {
     url: RULES_PAGE,
     text: "We're not sure what this is. Fix the reading or type what it is."
   };
+  var DISPUTE_HIT = {
+    ruleId: "DATA-DISPUTE",
+    layer: "data",
+    level: "check",
+    section: "Before You Tape: two reads disagree",
+    url: RULES_PAGE,
+    text: "The two reads of this item disagree. Choose the reading that matches it."
+  };
   var BAD_QUANTITY_HIT = {
     ruleId: "DATA-BAD-QUANTITY",
     layer: "data",
@@ -917,6 +982,7 @@ var BYT = (() => {
       const facts = deriveFacts(input, edition2);
       const hits = [];
       if (!goodQuantity) hits.push(BAD_QUANTITY_HIT);
+      if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
       if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
       if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
       hits.push(...evaluateItemRules(facts, edition2.rules));
@@ -1061,6 +1127,12 @@ var BYT = (() => {
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
       }
+      if (o.disputes !== void 0) {
+        for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {
+          if (!DISPUTE_FIELDS.includes(k)) throw new BadInputError(`${id}.disputes.${k} is not a fact two reads can dispute`);
+          if (typeof plain(v, `${id}.disputes.${k}`).resolved !== "boolean") throw new BadInputError(`${id}.disputes.${k}.resolved must be true or false`);
+        }
+      }
     });
     return raw;
   }
@@ -1093,7 +1165,8 @@ var BYT = (() => {
       const input = object(inputJson);
       const items = checkItems(input.items);
       const live = input.live === void 0 ? void 0 : plain(input.live, "live");
-      return evaluateBox(items, e, resolveDestination(e, str2(input, "code"), live), str2(input, "today"));
+      const today = str2(input, "today");
+      return evaluateBox(items, e, resolveDestination(e, str2(input, "code"), live, today), today);
     });
   }
   function destinationHitsJson(inputJson) {
@@ -1115,6 +1188,12 @@ var BYT = (() => {
   }
   function parseItemReadJson(text) {
     return reply(() => parseItemRead(text));
+  }
+  function parseItemReadTaggedJson(text) {
+    return reply(() => {
+      const { read, fullLabelText } = parseItemReadWithLabel(text);
+      return { read, labelTags: labelTagsOf(fullLabelText, current()) };
+    });
   }
   function isNoItemJson(readJson) {
     return reply(() => isNoItem(parseItemRead(readJson)));

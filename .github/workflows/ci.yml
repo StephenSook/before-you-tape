@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install
@@ -90,6 +90,18 @@ jobs:
       # with no request to a Google API. These need no App Check token.
       - name: Browser checks on the built app
         run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts
+
+      # The specs that need App Check get it from a debug token kept for CI only ("ci-2026-11", revoke by
+      # 2026-12-17). It is set only for this step, and the workflow never prints it: the fixtures put it in the
+      # page with an init script, and only on this app's own origins. The Firebase SDK logs it to the browser
+      # console, which these checks do not record (no traces, screenshots, videos or console capture).
+      # pack.local answers the model host itself, so this step makes no model call. A pull request from a fork
+      # gets no secrets from GitHub, so it skips this step; main and this repository's own branches run it.
+      - name: Browser checks that need App Check
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
+        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/token-origin.spec.ts
 
       - name: Tone check
         run: npm run tone

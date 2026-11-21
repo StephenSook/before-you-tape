@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, getDoc, getDocs, collection, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { BoxItem, BoxState } from "../../src/data/boxStore";
-import { firestorePersistence } from "../../src/data/persistence";
+import type { BoxItem } from "../../src/data/boxStore";
+import type { BoxMeta } from "../../src/data/boxOps";
+import { firestorePersistence, revisionOf } from "../../src/data/persistence";
 import { createBoxStore } from "../../src/data/boxStore";
 import { ed } from "../engine/helpers";
 
@@ -33,83 +34,80 @@ const item = (itemId: string, patch: Partial<BoxItem> = {}): BoxItem => ({
   customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
   ...patch,
 });
-const state = (items: BoxItem[], patch: Partial<BoxState> = {}): BoxState => ({
-  boxId: "b1", destinationCode: "CA", items, cloudConsent: true,
-  sources: { onDevice: items.length, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 },
-  lastRecheckMs: null, errors: {}, result: {} as BoxState["result"], ...patch,
-});
 
 describe("firestorePersistence", () => {
-  it("creates the box with its owner as the only member, saves items, and loads them back", async () => {
+  const meta = (patch: Partial<BoxMeta> = {}): BoxMeta => ({ destinationCode: "CA", sources: { onDevice: 2, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 }, lastRecheckMs: null, ...patch });
+  const at = (path: string) => admin(async (d) => (await getDoc(doc(d, path))).data());
+
+  it("creates the box with its owner as the only member, saves items, and loads them back with no consent", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    expect(await p.load("b1")).toBeNull();
-    p.save(state([item("i1"), item("i2", { quantity: 3 })]));
-    await p.idle();
-    const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
-    // A box holds no consent answer, whatever the saving tab holds: each device keeps its own.
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1"));
+    await p.putItem("b1", item("i2", { quantity: 3 }));
+    const box = await at("boxes/b1");
+    // A box holds no consent answer: each device keeps its own.
     expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" });
     expect(box && "cloudConsent" in box).toBe(false);
-    const loaded = await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
-    expect(loaded).toMatchObject({ boxId: "b1", destinationCode: "CA", sources: { onDevice: 2 } });
-    expect(loaded && "cloudConsent" in loaded).toBe(false);
-    expect(loaded?.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
+    const loaded = await firestorePersistence(db("alice"), "alice", "byt-test").loadBox("b1");
+    expect(loaded.status === "found" && loaded.box).toMatchObject({ boxId: "b1", destinationCode: "CA", sources: { onDevice: 2 } });
+    expect(loaded.status === "found" && loaded.box.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
   });
 
-  it("creates the box even when the first save comes before the load has answered, as the store does", async () => {
+  it("keeps a second look's disputes in their own document with the item's revision, and loads them back onto it", async () => {
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    const loading = p.load("b1");
-    p.save(state([item("i1")]));
-    await loading;
-    await p.idle();
-    expect(p.lastError()).toBeNull();
-    const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
-    expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
-    expect((await firestorePersistence(db("alice"), "alice", "byt-test").load("b1"))?.items?.map((i) => i.itemId)).toEqual(["i1"]);
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { disputes }));
+    await p.putItem("b1", item("i2"));
+    // The item document never carries them: the item's own rules stay as they are.
+    expect(await at("boxes/b1/items/i1")).not.toHaveProperty("disputes");
+    const { itemRev, ...facts } = (await at("boxes/b1/disputes/i1")) as Record<string, unknown>;
+    expect(facts).toEqual(disputes);
+    expect(itemRev).toBe(revisionOf(await at("boxes/b1/items/i1")));
+    expect(await at("boxes/b1/disputes/i2")).toBeUndefined();
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").loadBox("b1");
+    expect(back.status === "found" && back.box.items?.find((i) => i.itemId === "i1")?.disputes).toEqual(disputes);
+    expect(back.status === "found" && back.box.items?.find((i) => i.itemId === "i2")).not.toHaveProperty("disputes");
   });
 
-  it("creates the box when a save comes with no load at all", async () => {
+  it("writes an item and its disputes in one batch: a refused dispute write saves neither", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    p.save(state([item("i1")]));
-    await p.idle();
-    expect(p.lastError()).toBeNull();
-    expect((await admin((d) => getDoc(doc(d, "boxes/b1")))).exists()).toBe(true);
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { quantity: 1 }));
+    // A dispute the rules refuse (a category no read has): the item's own change must not land either.
+    const bad = { category: { device: "spaceship", cloud: "phone", resolved: false } } as unknown as BoxItem["disputes"];
+    await expect(p.putItem("b1", item("i1", { quantity: 3, disputes: bad, secondLook: { ms: 900, reason: "r" } }))).rejects.toThrow();
+    expect((await at("boxes/b1/items/i1"))?.quantity).toBe(1);
   });
 
-  it("never stores label text, and deletes items removed from the box", async () => {
+  it("holds an item at Check this when it changed after its disputes were saved", async () => {
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: true } };
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    await p.load("b1");
-    p.save(state([item("i1"), item("i2")]));
-    p.save(state([item("i2", { quantity: 2 })]));
-    await p.idle();
-    const items = await admin(async (d) => (await getDocs(collection(d, "boxes/b1/items"))).docs.map((x) => x.data() as BoxItem));
-    expect(items.map((i) => [i.itemId, i.quantity])).toEqual([["i2", 2]]);
-    expect(items.every((i) => i.read.labelText === "")).toBe(true);
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { disputes, secondLook: { ms: 900, reason: "r" } }));
+    await p.putItem("b1", item("i2", { disputes, secondLook: { ms: 900, reason: "r" } }));
+    // Another writer changes one item without its disputes (an older app, a phone, a hand edit).
+    await admin(async (d) => { await updateDoc(doc(d, "boxes/b1/items/i1"), { quantity: 4 }); });
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").loadBox("b1");
+    const byId = (id: string) => (back.status === "found" ? back.box.items?.find((i) => i.itemId === id) : undefined);
+    expect(byId("i1")?.disputes?.category?.resolved).toBe(false);
+    expect(byId("i2")?.disputes).toEqual(disputes);
   });
 
   it("keeps saving after another member joins, and never sends membership again", async () => {
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
-    await p.load("b1");
-    p.save(state([item("i1")]));
-    await p.idle();
+    await p.putMeta("b1", meta());
     await admin((d) => updateDoc(doc(d, "boxes/b1"), { memberUids: ["alice", "phone"], joinKeyHash: "h" }));
-    p.save(state([item("i1")], { destinationCode: "PH" }));
-    await p.idle();
-    expect(p.lastError()).toBeNull();
-    const box = (await admin((d) => getDoc(doc(d, "boxes/b1")))).data();
-    expect(box).toMatchObject({ memberUids: ["alice", "phone"], joinKeyHash: "h", destinationCode: "PH" });
+    await p.putMeta("b1", meta({ destinationCode: "PH" }));
+    expect(await at("boxes/b1")).toMatchObject({ memberUids: ["alice", "phone"], joinKeyHash: "h", destinationCode: "PH" });
   });
 
-  it("reports a refused write instead of throwing, and loads nothing from a box it is not a member of", async () => {
-    await firestorePersistence(db("alice"), "alice", "byt-test").load("b1");
-    const a = firestorePersistence(db("alice"), "alice", "byt-test");
-    await a.load("b1");
-    a.save(state([item("i1")]));
-    await a.idle();
+  it("refuses another user's writes, and reads their box as a failed read", async () => {
+    await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b1", meta());
     const bob = firestorePersistence(db("bob"), "bob", "byt-test");
-    expect(await bob.load("b1")).toBeNull();
-    bob.save(state([item("i9")]));
-    await bob.idle();
-    expect(bob.lastError()).toMatch(/permission/i);
+    expect((await bob.loadBox("b1")).status).toBe("failed");
+    await expect(bob.putItem("b1", item("i9"))).rejects.toThrow(/permission/i);
+    await expect(bob.putMeta("b1", meta())).rejects.toThrow(/permission/i);
   });
 
   it("keeps an item's own names out of Firestore: the model's words and the sender's correction", async () => {
@@ -117,36 +115,80 @@ describe("firestorePersistence", () => {
     const store = createBoxStore({ edition: () => ed, persistence: p, now: () => 0, today: () => "2026-11-20", newId: () => "item-1", boxId: "b2" });
     await store.ready;
     store.addRead({ read: { ...item("x").read, itemName: "SECRET LABEL WORDS LOTION", category: "lotion_cream" }, source: "on_device", ms: 1, route: "device_only", recoveredFrom: null }, "k");
-    await p.idle();
+    await store.settled();
     const items = (await admin((d) => getDocs(collection(d, "boxes/b2/items")))).docs.map((d) => d.data());
     expect(items).toHaveLength(1);
     expect(JSON.stringify(items)).not.toContain("SECRET");
     expect(items[0]?.read?.itemName).toBe("Lotion or cream");
     store.setConsent(true);
     store.override("item-1", { itemName: "GRANDMA ROSE WATER" });
-    await p.idle();
+    await store.settled();
     const after = (await admin((d) => getDocs(collection(d, "boxes/b2/items")))).docs.map((d) => d.data());
     expect(JSON.stringify(after)).not.toMatch(/SECRET|GRANDMA/);
   });
 
   it("deletes the consent an older version saved on a box, and two tabs that both found no box never overwrite it", async () => {
     await admin((d) => setDoc(doc(d, "boxes/b4"), { ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "old", cloudConsent: true }));
-    const old = firestorePersistence(db("alice"), "alice", "byt-test");
-    await old.load("b4");
-    old.save(state([], { boxId: "b4" }));
-    await old.idle();
-    expect(old.lastError()).toBeNull();
-    expect("cloudConsent" in ((await admin((d) => getDoc(doc(d, "boxes/b4")))).data() ?? {})).toBe(false);
-    // Two tabs, both of which found no box: one creates it, the other's first save merges into it.
+    await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b4", meta());
+    expect("cloudConsent" in ((await at("boxes/b4")) ?? {})).toBe(false);
+    // Two tabs, both of which found no box: one creates it, the other's details merge into it.
     const a = firestorePersistence(db("alice"), "alice", "byt-test");
     const b = firestorePersistence(db("alice"), "alice", "byt-test");
-    await Promise.all([a.load("b5"), b.load("b5")]);
-    a.save(state([item("first")], { boxId: "b5", destinationCode: "PH" }));
-    await a.idle();
-    b.save(state([item("late")], { boxId: "b5" }));
-    await b.idle();
-    expect(b.lastError()).toBeNull();
-    expect((await admin((d) => getDoc(doc(d, "boxes/b5")))).data()).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
-    expect((await admin((d) => getDoc(doc(d, "boxes/b5/items/late")))).exists()).toBe(true);
+    expect(await Promise.all([a.loadBox("b5"), b.loadBox("b5")])).toEqual([{ status: "missing" }, { status: "missing" }]);
+    await Promise.all([a.putMeta("b5", meta({ destinationCode: "PH" })), b.putMeta("b5", meta())]);
+    await a.putItem("b5", item("first"));
+    await b.putItem("b5", item("late"));
+    expect(await at("boxes/b5")).toMatchObject({ ownerUid: "alice", memberUids: ["alice"] });
+    expect(await at("boxes/b5/items/late")).toBeDefined();
+    expect(await at("boxes/b5/items/first")).toBeDefined();
   });
+
+  describe("explicit operations", () => {
+    const meta = { destinationCode: "PH", sources: { onDevice: 1, inCloud: 0, secondLooks: 0, rulesOnlyRechecks: 0, cloudFallbacks: 0 }, lastRecheckMs: null };
+
+    it("tells a missing box from a found one and from a read that failed", async () => {
+      const p = firestorePersistence(db("alice"), "alice", "byt-test");
+      expect(await p.loadBox("b1")).toEqual({ status: "missing" });
+      await p.putMeta("b1", meta);
+      await p.putItem("b1", item("i1"));
+      const found = await p.loadBox("b1");
+      expect(found.status).toBe("found");
+      expect(found.status === "found" && found.box.destinationCode).toBe("PH");
+      expect(found.status === "found" && found.box.items?.map((i) => i.itemId)).toEqual(["i1"]);
+      // Another user's box: the read is refused, which is a failure, never an empty box.
+      const other = await firestorePersistence(db("bob"), "bob", "byt-test").loadBox("b1");
+      expect(other.status).toBe("failed");
+    });
+
+    it("creates the box with its owner only, then changes only what each operation names", async () => {
+      const p = firestorePersistence(db("alice"), "alice", "byt-test");
+      await p.putMeta("b1", meta);
+      await p.putItem("b1", item("i1"));
+      await p.putItem("b1", item("i2"));
+      const box = await admin(async (d) => (await getDoc(doc(d, "boxes/b1"))).data());
+      expect(box).toMatchObject({ ownerUid: "alice", memberUids: ["alice"], destinationCode: "PH", editionId: "byt-test" });
+      // A meta change touches only the box document; an item change only that item.
+      await p.putMeta("b1", { ...meta, destinationCode: "CA" });
+      await p.putItem("b1", item("i2", { quantity: 3 }));
+      const items = await admin(async (d) => (await getDocs(collection(d, "boxes/b1/items"))).docs.map((x) => x.data() as BoxItem));
+      expect(items.map((i) => [i.itemId, i.quantity])).toEqual([["i1", 1], ["i2", 3]]);
+      expect((await admin(async (d) => (await getDoc(doc(d, "boxes/b1"))).data()))?.destinationCode).toBe("CA");
+    });
+
+    it("writes an item with its disputes, clears them with the item, and deletes both together", async () => {
+      const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
+      const p = firestorePersistence(db("alice"), "alice", "byt-test");
+      await p.putMeta("b1", meta);
+      await p.putItem("b1", item("i1", { disputes, secondLook: { ms: 900, reason: "r" } }));
+      const at = (path: string) => admin(async (d) => (await getDoc(doc(d, path))).data());
+      expect(await at("boxes/b1/disputes/i1")).toMatchObject(disputes!);
+      await p.putItem("b1", item("i1", { secondLook: { ms: 900, reason: "r" } }));
+      expect(await at("boxes/b1/disputes/i1")).toBeUndefined();
+      await p.putItem("b1", item("i1", { disputes, secondLook: { ms: 900, reason: "r" } }));
+      await p.deleteItem("b1", "i1");
+      expect(await at("boxes/b1/items/i1")).toBeUndefined();
+      expect(await at("boxes/b1/disputes/i1")).toBeUndefined();
+    });
+  });
+
 });

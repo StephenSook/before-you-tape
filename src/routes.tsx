@@ -16,11 +16,9 @@ interface PageRoute {
 const PUBLIC_ROUTES: readonly PageRoute[] = [
   { path: "/", title: "Pack your box" },
   { path: "/judge", title: "Try the sample box" },
-  { path: "/measured", title: "Measured" },
   { path: "/rules", title: "Rules" },
   { path: "/ran", title: "What ran where" },
   { path: "/about", title: "About" },
-  { path: "/worksheet", title: "Customs worksheet" },
   { path: "/blind/:token", title: "Blind check" },
 ];
 
@@ -41,7 +39,8 @@ export function routePaths(dev: boolean): string[] {
   return routeTable(dev).map((r) => r.path);
 }
 
-// Routes with a built page; the others show their title until their page lands.
+// Routes with a built page. Every public route has one (a test holds that); only the development desk routes
+// fall back to their title.
 const PAGES: Record<string, ReactElement> = { "/": <PackRoute />, "/judge": <JudgeRoute />, "/about": <AboutPage />, "/rules": <RulesRoute />, "/ran": <RanPage />, "/blind/:token": <BlindRoute /> };
 
 // The public pages that are built, for lists that must never point at a stub.

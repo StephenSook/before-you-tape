@@ -6,8 +6,15 @@ import { describe, expect, it } from "vitest";
 import { routePaths } from "./routes";
 
 interface Rewrite { source?: string; regex?: string; destination?: string }
+interface HeaderRule { source?: string; regex?: string; headers: { key: string; value: string }[] }
 const root = join(__dirname, "..");
-const hosting = (JSON.parse(readFileSync(join(root, "firebase.json"), "utf8")) as { hosting: { rewrites: Rewrite[] } }).hosting;
+const hosting = (JSON.parse(readFileSync(join(root, "firebase.json"), "utf8")) as { hosting: { rewrites: Rewrite[]; headers?: HeaderRule[] } }).hosting;
+const NO_CACHE = "no-cache";
+const IMMUTABLE = "public, max-age=31536000, immutable";
+// The rules whose pattern matches a request path: a regex, an exact path, or the one "/assets/**" glob.
+const rulesFor = (path: string) => (hosting.headers ?? []).filter((r) =>
+  r.regex !== undefined ? new RegExp(r.regex).test(path) : r.source === "/assets/**" ? path.startsWith("/assets/") : r.source === path);
+const cacheOf = (r: HeaderRule) => r.headers.find((h) => h.key === "Cache-Control")?.value;
 
 // A route as an anchored hosting regex. The router matches routes in any letter case, so each letter of a fixed
 // segment matches either case; a parameter such as ":token" is one segment, kept exactly; one trailing slash is
@@ -23,11 +30,11 @@ describe("hosting", () => {
 
   it("serves every route spelling the app accepts, keeps a token exact, and sends anything else to the 404 page", () => {
     const served = (path: string) => hosting.rewrites.some((r) => new RegExp(r.regex!).test(path));
-    for (const path of ["/", "/judge", "/Judge", "/JUDGE", "/judge/", "/rules", "/RULES", "/Rules/", "/measured", "/ran", "/about", "/worksheet",
+    for (const path of ["/", "/judge", "/Judge", "/JUDGE", "/judge/", "/rules", "/RULES", "/Rules/", "/ran", "/about",
       "/blind/AbC123xyz", "/Blind/AbC123xyz", "/BLIND/abc/"]) {
       expect(served(path), path).toBe(true);
     }
-    for (const path of ["/judge/child", "/judgex", "/blind", "/blind/", "/blind/a/b", "/no-such-page", "/eval/sets/missing.json",
+    for (const path of ["/judge/child", "/judgex", "/blind", "/blind/", "/blind/a/b", "/no-such-page", "/eval/sets/missing.json", "/measured", "/worksheet",
       "/assets/missing.js", "/desk/eval", "/sw.js", "//judge"]) {
       expect(served(path), path).toBe(false);
     }
@@ -38,5 +45,23 @@ describe("hosting", () => {
     expect(html).toMatch(/<title>Page not found[^<]*<\/title>/);
     expect(html).toContain('href="/"');
     expect(html).toContain('href="/judge"');
+  });
+
+  // A visitor who opened the site before a deploy gets the new app at once: pages, version.json, robots.txt and
+  // llms.txt are checked again every time, and the hashed bundles, whose names change with their content, are kept.
+  it("never lets a browser keep an old page, and keeps the hashed bundles", () => {
+    for (const path of ["/", "/judge", "/Judge/", "/rules", "/ran", "/about", "/blind/AbC123xyz", "/index.html", "/404.html",
+      "/version.json", "/robots.txt", "/llms.txt"]) {
+      expect(rulesFor(path).map(cacheOf), path).toEqual([NO_CACHE]);
+    }
+    for (const path of ["/assets/index-u_ZA3lqW.js", "/assets/index-AbC.css"]) {
+      expect(rulesFor(path).map(cacheOf), path).toEqual([IMMUTABLE]);
+    }
+    // Every rewritten route has its no-cache rule, by the same pattern, so a new route cannot miss one.
+    for (const r of hosting.rewrites) {
+      expect((hosting.headers ?? []).some((h) => h.regex === r.regex && cacheOf(h) === NO_CACHE), r.regex).toBe(true);
+    }
+    // No service worker is served that could keep an old app.
+    expect(readFileSync(join(root, "firebase.json"), "utf8")).not.toMatch(/sw\.js/);
   });
 });

@@ -7,7 +7,7 @@ import { deriveFacts } from "./facts";
 import { evaluateItemRules } from "./itemRules";
 import { layerStatuses } from "./layers";
 import { evaluateLithiumBox, type LithiumBoxResult } from "./lithiumBox";
-import type { BoxItemInput, DestinationContext, ItemVerdict, RuleEdition, RuleHit, VerdictLevel } from "./types";
+import { openDisputes, type BoxItemInput, type DestinationContext, type ItemVerdict, type RuleEdition, type RuleHit, type VerdictLevel } from "./types";
 
 export interface BoxResult {
   items: Record<string, ItemVerdict>;
@@ -32,6 +32,13 @@ const IDENTITY_HIT: RuleHit = {
 const UNSURE_HIT: RuleHit = {
   ruleId: "DATA-UNSURE", layer: "data", level: "check", section: "Before You Tape: reading check", url: RULES_PAGE,
   text: "We're not sure what this is. Fix the reading or type what it is.",
+};
+
+// The two reads of a second look disagree on a fact that can change the verdict. Never a silent pick: the
+// sender confirms which reading is right. In code, like the hits above, so no edition can remove it.
+const DISPUTE_HIT: RuleHit = {
+  ruleId: "DATA-DISPUTE", layer: "data", level: "check", section: "Before You Tape: two reads disagree", url: RULES_PAGE,
+  text: "The two reads of this item disagree. Choose the reading that matches it.",
 };
 
 const BAD_QUANTITY_HIT: RuleHit = {
@@ -68,6 +75,7 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
     const facts = deriveFacts(input, edition);
     const hits: RuleHit[] = [];
     if (!goodQuantity) hits.push(BAD_QUANTITY_HIT);
+    if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
     if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
     if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
     hits.push(...evaluateItemRules(facts, edition.rules));

@@ -25,14 +25,10 @@ describe("box documents contract", () => {
   it("the web app writes exactly the contract's box and item documents", async () => {
     const db = env.authenticatedContext("owner-uid").firestore() as unknown as Firestore;
     const p = firestorePersistence(db, "owner-uid", "byt-contract");
-    await p.load("box-1");
-    const s = contract.box.doc;
-    p.save({
-      boxId: "box-1", destinationCode: s.destinationCode, cloudConsent: true, sources: s.sources, lastRecheckMs: s.lastRecheckMs,
-      items: [contract.item.doc], errors: {}, result: {},
-    } as unknown as BoxState);
-    await p.idle();
-    expect(p.lastError()).toBeNull();
+    expect(await p.loadBox("box-1")).toEqual({ status: "missing" });
+    const s = contract.box.doc as { destinationCode: string; sources: BoxState["sources"]; lastRecheckMs: number | null };
+    await p.putMeta("box-1", { destinationCode: s.destinationCode, sources: s.sources, lastRecheckMs: s.lastRecheckMs });
+    await p.putItem("box-1", contract.item.doc);
     expect(await read("boxes/box-1")).toEqual(contract.box.doc);
     expect(await read("boxes/box-1/items/item-1")).toEqual(contract.item.doc);
   });

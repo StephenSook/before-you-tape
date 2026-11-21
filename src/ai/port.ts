@@ -35,7 +35,8 @@ export interface ItemModels {
   fallback?: ModelPort;
 }
 
-export type GateState = "available" | "downloadable" | "downloading" | "unavailable" | "no_api";
+// "checking": the page has not heard yet whether this browser has a built-in model.
+export type GateState = "checking" | "available" | "downloadable" | "downloading" | "unavailable" | "no_api";
 
 export type ReadRoute = "device_only" | "hybrid" | "cloud_only" | "blocked";
 // How an image reached the read: the camera saw an item sit still, the sender pressed Check now, or added a photo.

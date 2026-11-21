@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectors from "../../tests/vectors/destinations.json";
-import { ed, factsOf, withSuspended } from "../../tests/engine/helpers";
+import { ed, factsOf, withSuspended, withUpcoming } from "../../tests/engine/helpers";
 import { evaluateDestination } from "./destination";
 import { resolveDestination } from "./edition";
 import type { DestinationEdition, ItemFacts } from "./types";
@@ -31,6 +31,37 @@ describe("evaluateDestination", () => {
     const e = withSuspended(ed, ["CA"]);
     expect(evaluateDestination(liquidLotion, {}, resolveDestination(e, "CA")).map((x) => x.ruleId)).toContain("DEST-SUSPENDED");
     expect(hits(liquidLotion, "ZZ").map((x) => `${x.ruleId}:${x.level}`)).toEqual(["DATA-DEST-UNREVIEWED:check"]);
+  });
+
+  it("notes a suspension the post office has announced for later, and applies it from its date", () => {
+    const e = withUpcoming(ed, "CA", "2026-11-29");
+    const before = resolveDestination(e, "CA", undefined, "2026-11-28");
+    expect(before).toMatchObject({ suspended: false, suspendsFrom: "2026-11-29" });
+    const notes = evaluateDestination(liquidLotion, {}, before);
+    expect(notes.map((x) => `${x.ruleId}:${x.level}`)).toEqual(["DEST-SUSPENSION-AHEAD:note"]);
+    expect(notes[0]!.text).toBe("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
+    const from = resolveDestination(e, "CA", undefined, "2026-11-29");
+    expect(from).toMatchObject({ suspended: true });
+    expect(from.suspendsFrom).toBeUndefined();
+    expect(evaluateDestination(liquidLotion, {}, from).map((x) => x.ruleId)).toEqual(["DEST-SUSPENDED"]);
+    // A date that is not a real YYYY-MM-DD day neither notes nor starts it (the stale-layer check holds the box).
+    for (const bad of ["", "11/29/2026", "not-a-date", "2026-11-31"]) {
+      const d = resolveDestination(e, "CA", undefined, bad);
+      expect([d.suspended, d.suspendsFrom], bad).toEqual([false, undefined]);
+    }
+    // Without a date (a page that lists a country's rules, the shared vectors), nothing changes.
+    const undated = resolveDestination(e, "CA");
+    expect(undated.suspended).toBe(false);
+    expect(undated.suspendsFrom).toBeUndefined();
+  });
+
+  it("follows the USPS suspension list updated 2026-11-20: no Republic of Congo, Canada from 2026-11-29", () => {
+    expect(ed.suspensions).toMatchObject({ updated: "2026-11-20", url: "https://about.usps.com/newsroom/service-alerts/international/" });
+    expect([...ed.suspensions.codes].sort()).toEqual(["AF", "BT", "CU", "HT", "IR", "KI", "SC", "SD", "SS", "TM", "YE"]);
+    expect(ed.suspensions.upcoming).toEqual([{ code: "CA", from: "2026-11-29" }]);
+    const congo = resolveDestination(ed, "CG", undefined, "2026-11-20");
+    expect(congo.suspended).toBe(false);
+    expect(evaluateDestination(liquidLotion, {}, congo).map((x) => x.ruleId)).not.toContain("DEST-SUSPENDED");
   });
 
   it("checks a country whose listing gives no list", () => {

@@ -5,6 +5,43 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-19
 
+### docs(ios): list the app tests that fail on this Mac's simulator
+- What: the iPhone README lists four app tests that fail in the local CI mirror today (three
+  SignedInCloudTests crash in the test process; LoopUITests cannot find "Check an item"), with
+  the symptom and where each was first seen.
+- Source: review, so the failures are on record and not silent.
+- Verified: each failure was reproduced on the simulator at 02ba81c and at 018c4b3 (Xcode 27.2,
+  iOS 27.2); the README reads back with the table. Docs only; no code changed.
+
+### fix(ios): a photo read keeps the tags of its whole label, never of the clipped text
+- What: the box tagged a photo read's label text after the parser had clipped it to 160
+  characters, and the engine trusts tags that cover the label. A hazard word past the cap was
+  lost (FLAMMABLE could read "OK to pack"), and a cut could make one (FLAMMABLE-FREE ending at
+  FLAMMABLE). The app's parser is now the engine's tagged parse: the read, its whole-label tags
+  and the whole label travel through the reader to the box, which saves those tags. The whole
+  label stays in memory only (never in the saved copy), so a new edition tags it again instead of
+  the clipped text. Typed reads are unchanged: the form already refuses a label over 160.
+- Source: review of the second-look change.
+- Verified: tests for the app's parser (tags and whole label from before the cut), the reader
+  (the parser's tags and whole label reach the outcome), the box (FLAMMABLE past the cap tagged
+  and not OK; FLAMMABLE-FREE cut at FLAMMABLE untagged and OK; a lotion with no hazard word OK;
+  the saved copy holds the tags and no whole label) and a new edition (it tags the whole label
+  again). They failed to compile before the change and pass after; all five pass on the
+  simulator. Not clean: the full app run also shows three SignedInCloudTests crashing in the test
+  runner and LoopUITests not finding "Check an item"; both fail the same way on the branch head
+  before this change, so they are not from it. They are not fixed here.
+
+### feat(ios-core): the engine wrapper parses a read with the tags of its whole label
+- What: `RulesEngine.parseItemReadTagged` calls the bridge's tagged parse and returns the read
+  (label text clipped to 160 characters for showing) with the engine's tags for the whole label.
+  A reply whose read or tags are missing, or whose tags are not all text, is an engine error.
+- Source: review of the second-look change (the phones tagged the clipped label text).
+- Verified: a contract test parses a lotion three ways on the bundled engine and evaluates each:
+  no hazard word is OK; FLAMMABLE past the cap is tagged (flammable, label_text) and not OK, with
+  the shown text 160 characters and without the word; FLAMMABLE-FREE cut at FLAMMABLE is not
+  tagged flammable and is OK. It failed to compile before the wrapper and passes after.
+  `swift test --package-path ios/BYTCore`: 34 tests pass.
+
 ### feat(ios): the sender can turn cloud checks off and on, and turning them off stops uploads
 - What: the cloud choice was asked once and could not be changed. The check screen now shows it as
   the web app does ("Cloud checks are on." with "Turn off cloud checks"; "Cloud checks are off.

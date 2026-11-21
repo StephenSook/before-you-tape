@@ -2,6 +2,7 @@ package app.beforeyoutape.android.ai
 
 import app.beforeyoutape.android.capture.CropImage
 import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.TaggedRead
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 
@@ -10,7 +11,8 @@ enum class BlockReason { NO_MODEL_NO_CONSENT, OFFLINE, CLOUD_PAUSED, REFUSALS_PA
 enum class FailReason { UNREADABLE, REFUSED, DEVICE_REPLY_FROM_CLOUD, DEVICE_ERROR, CLOUD_ERROR }
 
 sealed interface ReadOutcome {
-    data class Read(val read: ItemReadWire, val source: Source, val route: ReadRoute, val ms: Long) : ReadOutcome
+    /** [labelTags] are the engine's tags for the whole label, from the parser; the read's own text is clipped. */
+    data class Read(val read: ItemReadWire, val source: Source, val route: ReadRoute, val ms: Long, val labelTags: List<String>) : ReadOutcome
     data class Blocked(val reason: BlockReason) : ReadOutcome
     data class Failed(val reason: FailReason, val retryable: Boolean) : ReadOutcome
 }
@@ -25,7 +27,8 @@ sealed interface ReadOutcome {
  */
 class ItemReader(
     private val model: LabelModel,
-    private val parse: (String) -> ItemReadWire,
+    /** The web app's tagged parser: the read with clipped label text, and the tags of its whole label. */
+    private val parse: (String) -> TaggedRead,
     private val gate: suspend () -> DeviceModelStatus,
     private val cloud: () -> CloudState,
     private val prompt: () -> String,
@@ -89,7 +92,7 @@ class ItemReader(
             return ReadOutcome.Failed(FailReason.UNREADABLE, retryable = true)
         }
         refusalsInARow = 0
-        return ReadOutcome.Read(parsed, reply.source, route, (System.nanoTime() - t0) / 1_000_000)
+        return ReadOutcome.Read(parsed.read, reply.source, route, (System.nanoTime() - t0) / 1_000_000, parsed.labelTags)
     }
 
     private suspend fun signedIn(): Boolean = try {

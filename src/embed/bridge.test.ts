@@ -100,6 +100,30 @@ describe("the JSON bridge for native clients", () => {
     expect(info.destinations.length).toBe(Object.keys(edition.destinations).length);
   });
 
+  it("tags the whole label when it parses a read, so a word past the cap counts and a cut never makes one", () => {
+    value(BYT.setEdition(JSON.stringify(edition)));
+    const today = box[0]!.today;
+    const lotion = { ...defaults.baseRead, itemName: "Lotion", category: "lotion_cream", liquid: true, retailBox: "sealed", evidence: "label_read" };
+    const parsed = (labelText: string) =>
+      value<{ read: ItemRead; labelTags: string[] }>(BYT.parseItemReadTaggedJson(JSON.stringify({ ...lotion, labelText })));
+    const level = (p: { read: ItemRead; labelTags: string[] }) => {
+      const input = { items: [{ ...item({ itemId: "a", read: p.read as unknown as Record<string, unknown> }), labelTags: p.labelTags }], code: "CA", today };
+      return value<BoxResult>(BYT.evaluateBoxJson(JSON.stringify(input))).items.a?.level;
+    };
+    // The same lotion with no hazard word is OK, so the checks below are not vacuous.
+    expect(level(parsed(`${"x".repeat(155)} LOTION`))).toBe("ok");
+    const past = parsed(`${"x".repeat(155)} FLAMMABLE`);
+    expect(Array.from(past.read.labelText)).toHaveLength(LABEL_TEXT_MAX);
+    expect(past.read.labelText).not.toContain("FLAMMABLE");
+    expect(past.labelTags).toEqual(expect.arrayContaining(["flammable", "label_text"]));
+    expect(level(past)).not.toBe("ok");
+    // The cap falls right after FLAMMABLE in FLAMMABLE-FREE: the whole label says it is not flammable.
+    const cut = parsed(`${"x".repeat(150)} FLAMMABLE-FREE LOTION`);
+    expect(cut.read.labelText.endsWith("FLAMMABLE")).toBe(true);
+    expect(cut.labelTags).not.toContain("flammable");
+    expect(level(cut)).toBe("ok");
+  });
+
   it("gives the read contract and label tags the engine gives", () => {
     value(BYT.setEdition(JSON.stringify(edition)));
     const contract = value<{ fields: Array<{ name: string }>; schema: object; labelTextMax: number }>(BYT.itemReadContract());
@@ -134,6 +158,8 @@ describe("the JSON bridge for native clients", () => {
     expect(send([{ ...good, overrides: { volts: "3.7" } }]).ok, "typed text in a number override is the engine's to judge").toBe(true);
     expect(send([{ ...good, read: { ...good.read, labelText: "\u{1F600}".repeat(160) } }]).ok, "160 characters, counted as the parser counts them").toBe(true);
     expect(send([{ ...good, overrides: { labelText: "y".repeat(400) } }]).ok, "a typed label has no length limit on the web either").toBe(true);
+    const open = send([{ ...good, disputes: { lithiumGrams: { device: 2.5, cloud: 0, resolved: false } } }]);
+    expect(open.ok && (open.value as { items: Record<string, { level: string }> }).items[good.itemId]?.level, "an open dispute holds the item").toBe("check");
     const noEvidence: Record<string, unknown> = { ...good.read };
     delete noEvidence.evidence;
     const bad: Array<[string, unknown]> = [
@@ -149,6 +175,9 @@ describe("the JSON bridge for native clients", () => {
       ["a negative number in the read (the web parser refuses it)", { ...good, read: { ...good.read, wattHours: -150 } }],
       ["a negative number override", { ...good, overrides: { milliampHours: -4000 } }],
       ["read label text past the contract's 160 characters", { ...good, read: { ...good.read, labelText: "x".repeat(160) + " ALCOHOL" } }],
+      ["disputes not an object", { ...good, disputes: [] }],
+      ["a dispute on an unknown fact", { ...good, disputes: { colour: { device: "red", cloud: "blue", resolved: false } } }],
+      ["a dispute with no resolved flag", { ...good, disputes: { category: { device: "phone", cloud: "tablet" } } }],
     ];
     for (const [why, it] of bad) {
       const r = send([it]);

@@ -60,6 +60,23 @@ describe("ItemCard", () => {
     expect(screen.getByTestId("service")).toHaveTextContent("Service: Priority Mail International");
   });
 
+  it("lets the sender say how many there are, and remove the item", async () => {
+    const onQuantity = vi.fn();
+    const onRemove = vi.fn();
+    render(<ItemCard item={{ ...perfume, quantity: 2 }} verdict={takeOut} crop={null} onQuantity={onQuantity} onRemove={onRemove} />);
+    const howMany = screen.getByLabelText("How many");
+    expect(howMany).toHaveValue(2);
+    await userEvent.clear(howMany);
+    await userEvent.type(howMany, "3");
+    // Saved on leaving the field, not on each key.
+    expect(onQuantity).not.toHaveBeenCalled();
+    await userEvent.tab();
+    expect(onQuantity).toHaveBeenCalledTimes(1);
+    expect(onQuantity).toHaveBeenLastCalledWith("p", 3);
+    await userEvent.click(screen.getByRole("button", { name: /^Remove / }));
+    expect(onRemove).toHaveBeenCalledWith("p");
+  });
+
   it("keeps the layer list in a closed What we checked disclosure", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
     const details = screen.getByTestId("layer-list").closest("details");
@@ -133,6 +150,93 @@ describe("ItemCard", () => {
     expect(screen.getByTestId("item-card")).not.toHaveClass("newest");
   });
 
+  it("shows both readings of each fact the two reads disagree on, and settles one with one tap", async () => {
+    const disputed = item("d", { ...base, itemName: "Phone", category: "phone", labelText: "LI-ION 3.7V 5000mAh 18.5Wh", volts: 3.7,
+      milliampHours: 5000, wattHours: 18.5, batteryWords: true }, {
+      disputes: {
+        category: { device: "power_bank", cloud: "phone", resolved: false },
+        battery: { device: { volts: 3.7, milliampHours: 5000, wattHours: 18.5 }, cloud: { volts: 0, milliampHours: 0, wattHours: 0 }, resolved: false },
+        lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
+        labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
+        retailBox: { device: "open_or_none", cloud: "sealed", resolved: false },
+        liquid: { device: true, cloud: false, resolved: true },
+        evidence: { device: "not_sure", cloud: "label_read", resolved: false },
+      },
+    });
+    const v = verdictFor(disputed);
+    expect(v.level).toBe("check");
+    const onSettle = vi.fn();
+    render(<ItemCard item={disputed} verdict={v} crop={null} onSettle={onSettle} />);
+    const box = screen.getByRole("group", { name: "The two reads disagree. Pick what the item shows." });
+    const row = (name: string) => within(within(box).getByRole("group", { name }));
+    expect(row("What it is").getByRole("button", { name: "First read: Power bank" })).toBeInTheDocument();
+    expect(row("What it is").getByRole("button", { name: "Second look: Phone" })).toBeInTheDocument();
+    expect(row("Battery numbers").getByRole("button", { name: "First read: 3.7 V, 5000 mAh, 18.5 Wh" })).toBeInTheDocument();
+    // A zero or empty reading says only that nothing was read, never that nothing is there.
+    expect(row("Battery numbers").getByRole("button", { name: "Second look: No numbers read" })).toBeInTheDocument();
+    expect(row("Lithium metal").getByRole("button", { name: "First read: 2.5 g lithium" })).toBeInTheDocument();
+    expect(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" })).toBeInTheDocument();
+    expect(row("Label words").getByRole("button", { name: "First read: flammable" })).toBeInTheDocument();
+    expect(row("Label words").getByRole("button", { name: "Second look: No warning words read" })).toBeInTheDocument();
+    expect(row("Its box").getByRole("button", { name: "First read: Open or no box" })).toBeInTheDocument();
+    expect(row("How it was read").getByRole("button", { name: "First read: Not sure what it is" })).toBeInTheDocument();
+    expect(row("How it was read").getByRole("button", { name: "Second look: Read its label" })).toBeInTheDocument();
+    // A fact the sender already settled is not asked again.
+    expect(within(box).queryByRole("group", { name: "Liquid" })).toBeNull();
+    await userEvent.click(row("What it is").getByRole("button", { name: "First read: Power bank" }));
+    expect(onSettle).toHaveBeenCalledWith("d", "category", "device");
+    // Dropping a word the other read saw asks first.
+    await userEvent.click(row("Label words").getByRole("button", { name: "Second look: No warning words read" }));
+    expect(onSettle).toHaveBeenCalledTimes(1);
+    await userEvent.click(row("Label words").getByRole("button", { name: "Yes, use No warning words read" }));
+    expect(onSettle).toHaveBeenLastCalledWith("d", "labelTags", "cloud");
+  });
+
+  it("asks before a pick drops a lithium amount, battery numbers or a hazard the other read saw, and not otherwise", async () => {
+    const disputed = item("f", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", lithiumGrams: 2.5 }, {
+      disputes: {
+        lithiumGrams: { device: 2.5, cloud: 0, resolved: false },
+        battery: { device: { volts: 3, milliampHours: 220, wattHours: 0 }, cloud: { volts: 0, milliampHours: 0, wattHours: 0 }, resolved: false },
+        liquid: { device: true, cloud: false, resolved: false },
+      },
+    });
+    const onSettle = vi.fn();
+    render(<ItemCard item={disputed} verdict={verdictFor(disputed)} crop={null} onSettle={onSettle} />);
+    const row = (name: string) => within(screen.getByRole("group", { name }));
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" }));
+    expect(onSettle).not.toHaveBeenCalled();
+    expect(row("Lithium metal").getByRole("alert")).toHaveTextContent("The first read saw 2.5 g lithium. Use No lithium amount read only if the item really shows that.");
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Keep both for now" }));
+    expect(row("Lithium metal").queryByRole("alert")).toBeNull();
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Second look: No lithium amount read" }));
+    await userEvent.click(row("Lithium metal").getByRole("button", { name: "Yes, use No lithium amount read" }));
+    expect(onSettle).toHaveBeenLastCalledWith("f", "lithiumGrams", "cloud");
+    await userEvent.click(row("Battery numbers").getByRole("button", { name: "Second look: No numbers read" }));
+    await userEvent.click(row("Liquid").getByRole("button", { name: "Second look: Not seen" }));
+    expect(onSettle).toHaveBeenCalledTimes(1);
+    // Picking the reading that keeps what was seen needs no question.
+    await userEvent.click(row("Liquid").getByRole("button", { name: "First read: Yes" }));
+    expect(onSettle).toHaveBeenLastCalledWith("f", "liquid", "device");
+  });
+
+  it("asks nothing about the two reads once every disagreement is settled", () => {
+    const settled = item("e", { ...base, itemName: "Phone", category: "phone" }, {
+      identityConfirmedBy: "sender", disputes: { category: { device: "power_bank", cloud: "phone", resolved: true } },
+    });
+    render(<ItemCard item={settled} verdict={verdictFor(settled)} crop={null} onSettle={() => {}} />);
+    expect(screen.queryByRole("group", { name: "The two reads disagree. Pick what the item shows." })).toBeNull();
+  });
+
+  it("says when an item has not saved yet, and offers to try again", async () => {
+    const onRetrySave = vi.fn();
+    const { rerender } = render(<ItemCard item={perfume} verdict={takeOut} crop={null} unsaved onRetrySave={onRetrySave} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Not saved yet. This change is only on this device for now.");
+    await userEvent.click(screen.getByRole("button", { name: "Try saving again" }));
+    expect(onRetrySave).toHaveBeenCalledTimes(1);
+    rerender(<ItemCard item={perfume} verdict={takeOut} crop={null} onRetrySave={onRetrySave} />);
+    expect(screen.queryByText("Not saved yet. This change is only on this device for now.")).toBeNull();
+  });
+
   it("offers a shortcut to the lithium amount when the verdict needs it", async () => {
     const watch = item("w", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", evidence: "label_read" },
       { answers: { battery_installed: "installed" } });
@@ -141,5 +245,64 @@ describe("ItemCard", () => {
     render(<ItemCard item={watch} verdict={v} crop={null} />);
     await userEvent.click(screen.getByRole("button", { name: "Type the lithium amount" }));
     expect(screen.getByLabelText("Lithium (grams)")).toHaveFocus();
+  });
+
+  it("marks a count that is not 1 to 99, says why, and puts back the last good count on leaving the field", async () => {
+    const onQuantity = vi.fn();
+    const shirt = item("q", { ...base, itemName: "Shirt", category: "clothing", evidence: "item_seen" }, { identityConfirmedBy: "sender" });
+    render(<ItemCard item={shirt} verdict={verdictFor(shirt)} crop={null} onQuantity={onQuantity} onRemove={() => {}} />);
+    const field = screen.getByLabelText("How many");
+    await userEvent.clear(field);
+    await userEvent.type(field, "100");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription("Type a whole number from 1 to 99.");
+    // The counts passed on the way (1, then 10) are never saved.
+    expect(onQuantity).not.toHaveBeenCalled();
+    await userEvent.tab();
+    expect(field).toHaveValue(1);
+    expect(field).not.toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByText("Type a whole number from 1 to 99.")).toBeNull();
+  });
+
+  it("names the item on its Remove button", () => {
+    const shirt = item("r", { ...base, itemName: "Shirt", category: "clothing", evidence: "item_seen" });
+    render(<ItemCard item={shirt} verdict={verdictFor(shirt)} crop={null} onRemove={() => {}} />);
+    expect(screen.getByRole("button", { name: "Remove Shirt" })).toBeInTheDocument();
+  });
+
+  it("links each rule the verdict rests on, once each, inside What we checked", () => {
+    render(<ItemCard item={perfume} verdict={takeOut} crop={null} />);
+    const checked = within(screen.getByText("What we checked").closest("details")!);
+    const unique = [...new Map(takeOut.hits.filter((h) => !h.section.startsWith("Before You Tape: ")).map((h) => [`${h.section}|${h.url}`, h])).values()];
+    expect(unique.length).toBeGreaterThan(0);
+    const links = checked.getAllByRole("link", { name: /^Rule: / });
+    expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual(unique.map((h) => [`Rule: ${h.section}`, h.url]));
+  });
+
+  it("names the app's own checks in What we checked as plain text, never as a rule link", () => {
+    expect(identityCheck.hits.map((h) => h.section)).toContain("Before You Tape: identity check");
+    render(<ItemCard item={shirtSeen} verdict={identityCheck} crop={null} />);
+    const list = screen.getByTestId("rule-list");
+    expect(within(list).getByText("Before You Tape: identity check").closest("a")).toBeNull();
+    expect(within(list).queryByRole("link", { name: /Before You Tape/ })).toBeNull();
+  });
+
+  it("shows the battery numbers the verdict rests on for a battery item, and nothing for a book", () => {
+    const phone = item("b1", { ...base, itemName: "Phone", category: "phone", labelText: "3.7V 2000mAh 7.4Wh", volts: 3.7, milliampHours: 2000,
+      wattHours: 7.4, batteryWords: true, retailBox: "sealed" }, { answers: { device_condition: "new_sealed", cell_count: "one" } });
+    const { unmount } = render(<ItemCard item={phone} verdict={verdictFor(phone)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Label read: 3.7 V, 2,000 mAh, 7.4 Wh");
+    unmount();
+    const typed = { ...phone, overrides: { wattHours: 7.5 } };
+    const r2 = render(<ItemCard item={typed} verdict={verdictFor(typed)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Typed by you: 3.7 V, 2,000 mAh, 7.5 Wh");
+    r2.unmount();
+    const coin = item("b2", { ...base, itemName: "Watch", category: "jewelry_watch", labelText: "CR2032", lithiumGrams: 0.1 });
+    const r3 = render(<ItemCard item={coin} verdict={verdictFor(coin)} crop={null} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Label read: 0.1 g lithium");
+    r3.unmount();
+    const book = item("b3", { ...base, itemName: "Book", category: "book_paper", evidence: "item_seen" });
+    render(<ItemCard item={book} verdict={verdictFor(book)} crop={null} />);
+    expect(screen.queryByTestId("battery-numbers")).toBeNull();
   });
 });

@@ -12,31 +12,50 @@ const card = (name: string) => screen.getAllByTestId("sample-card").find((c) => 
 const verdict = (name: string) => within(card(name)).getByTestId("verdict-chip");
 
 describe("JudgePage", () => {
-  it("shows nine real items with their photos and credits, judged for Canada", () => {
+  it("shows nine real items with their photos and credits, judged for the Philippines", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByTestId("destination-picker")).toHaveValue("PH");
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
     expect(within(card("Body lotion")).getByRole("img")).toHaveAttribute("src", "/eval/items/own-18.jpg");
     expect(within(card("Body lotion")).getByText("Photo by the project owner")).toBeInTheDocument();
     expect(within(card("Power bank")).getByText(/^Photo: .*CC BY-SA 4\.0/)).toBeInTheDocument();
-    expect(verdict("Body lotion")).toHaveTextContent("OK to pack");
-    expect(verdict("Power bank")).toHaveTextContent("Take it out");
-    expect(verdict("Ceramic mug")).toHaveTextContent("OK to pack");
-  });
-
-  it("re-checks the whole box for the Philippines with no model call", async () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "PH");
     expect(verdict("Body lotion")).toHaveTextContent("Take it out");
+    expect(verdict("Power bank")).toHaveTextContent("Take it out");
     expect(verdict("Dark chocolate bar")).toHaveTextContent("Check this");
     expect(verdict("Ceramic mug")).toHaveTextContent("Check this");
     expect(verdict("Whole-bean coffee")).toHaveTextContent("Check this");
-    expect(screen.getByTestId("recheck-line")).toHaveTextContent(/Re-checked 9 items for Philippines in \d+ ms\. 0 model calls\./);
+  });
+
+  it("re-checks the whole box for Canada with no model call", async () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(verdict("Body lotion")).toHaveTextContent("OK to pack");
+    expect(verdict("Power bank")).toHaveTextContent("Take it out");
+    expect(verdict("Ceramic mug")).toHaveTextContent("OK to pack");
+    expect(screen.getByTestId("recheck-line")).toHaveTextContent(/Re-checked 9 items for Canada in \d+ ms\. 0 model calls\./);
+  });
+
+  it("shows the post office's Canada suspension as a live example, before and after it starts", async () => {
+    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stops taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
+    expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
+    unmount();
+    render(<JudgePage edition={ed} index={index} today="2026-11-29" />);
+    expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stopped taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(verdict("Body lotion")).toHaveTextContent("Check this");
+    expect(within(card("Body lotion")).getByText(/Mail to Canada is suspended right now/)).toBeInTheDocument();
+    expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
   });
 
   it("asks what the label cannot show, and the verdict follows the answer", async () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    // In the Philippines perfume (a liquid in glass) is out whatever the label says; Canada asks.
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
     expect(verdict("Perfume")).toHaveTextContent("Check this");
     const question = within(card("Perfume")).getByRole("group", { name: "Does the label list alcohol?" });
     await userEvent.click(within(question).getByRole("button", { name: "Yes" }));
@@ -46,6 +65,34 @@ describe("JudgePage", () => {
   it("says plainly that cloud checks stay off when the browser blocks Firebase settings", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     expect(screen.getByTestId("cloud-settings-note")).toHaveTextContent("If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.");
+  });
+
+  it("shows recorded on-device reads only from a record it is given, closed, and says it is a replay", () => {
+    const recorded = { ranAt: "2026-11-21T10:00:00.000Z", sha: "a".repeat(40), chromeVersion: "157.0.8103.80", os: "macOS 27.0",
+      reads: [{ itemId: "own-18", category: "lotion_cream", ms: 2900 }, { itemId: "own-01", category: "power_bank", ms: 3100 }] };
+    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={recorded} />);
+    const block = screen.getByTestId("recorded-reads");
+    expect(block.tagName).toBe("DETAILS");
+    expect(block).not.toHaveAttribute("open");
+    expect(within(block).getByText("Recorded on-device reads")).toBeInTheDocument();
+    expect(block).toHaveTextContent("Recorded November 21, 2026, Chrome 157.0.8103.80 on macOS 27.0. A replay, not a live read.");
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
+    // The first read also starts the model, so its time is marked and never reads as a typical one.
+    expect(within(block).getAllByRole("listitem")[0]).toHaveTextContent("2,900 ms (first read, includes the model's start)");
+    expect(within(block).getAllByRole("listitem")[1]).toHaveTextContent("3,100 ms");
+    expect(within(block).getAllByRole("listitem")[1]).not.toHaveTextContent("first read");
+    unmount();
+    const withMachine = { ...recorded, machine: { model: "Mac17,9", chip: "Apple M5 Pro", memoryGb: 48 } };
+    const second = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={withMachine} />);
+    expect(screen.getByTestId("recorded-reads")).toHaveTextContent("Chrome 157.0.8103.80 on macOS 27.0, Apple M5 Pro, 48 GB memory (Mac17,9).");
+    second.unmount();
+    render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={null} />);
+    expect(screen.queryByTestId("recorded-reads")).toBeNull();
+  });
+
+  it("links the public source code", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
   });
 
   it("names the rule and its section behind each verdict", () => {
