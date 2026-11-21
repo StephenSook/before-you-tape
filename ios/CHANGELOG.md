@@ -5,6 +5,27 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the app has an icon, so App Store Connect accepts the build
+- What: App Store Connect refused the first upload (error 90022, no 120 by 120 iPhone icon; error
+  90713, no CFBundleIconName). The app now has an asset catalog with one 1024 by 1024 opaque icon,
+  drawn from the web app's public/favicon.svg as the web app's maskable icon is (rsvg-convert at 640
+  px, centered on #fff3e6), set as the app icon in ios/project.yml, with CFBundleIconName in the
+  Info.plist.
+- Source: the App Store Connect upload's errors.
+- Verified: two new tests (the built app names its icon, at the top level and as its primary icon;
+  the source is a 1024 by 1024 PNG with no alpha) failed and pass; the built app holds
+  AppIcon60x60@2x.png (120 by 120); 236 unit tests pass.
+
+### fix(test): the test journal is read under its lock
+- What: the fake runners' journal added events under a lock but handed out its array without one.
+  A test waiting for "cloud start" read it while the fake cloud added from another thread, and the
+  test host crashed with "Index out of range" (crash report: a `contains` over the journal inside
+  aLookThatFailedForNoConnectionRunsWhenBackOnline). The journal now copies its events under the lock.
+- Source: a local test run that crashed the test host.
+- Verified: a new stress test (eight tasks add while one reads) crashed the old journal with the same
+  error on 2 of 3 runs at its first size and 1 of 3 at the size kept (a race test catches it only
+  sometimes); with the fix it passes every run, and 236 unit tests pass twice in a row.
+
 ### docs(ios): a known limit for a sign-in deleted on the server but left in the keychain
 - What: docs/LIMITS.md says that when Firebase has deleted the anonymous sign-in on its servers and
   the iPhone then cannot remove it from its keychain, a copy can stay on the iPhone, and it no longer
