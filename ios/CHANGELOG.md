@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the App Privacy answers follow the app's manifest and the removal of Performance
+- What: `ios/app-store/app-privacy.md` loses the Performance Data and Coarse Location rows, names
+  the bundles that declare diagnostic data in the new build (GoogleDataTransport left with
+  Performance), records the AI monitoring setting the web lane read (metrics on, prompts and
+  responses excluded from the logs), and points at the app's own manifest.
+- Source: the privacy manifest and SDK removal (PR #127), and the AI Logic setting read on
+  2026-11-21.
+- Verified: the data types were read again from every manifest in the Release build made after
+  the removal: User ID (Auth, linked); Other Diagnostic Data (Auth, Firestore, Installations,
+  Remote Config, Firestore's frameworks, not linked); Photos or Videos and Other User Content (the
+  app, linked); no tracking; no Performance or Functions bundle.
+
 ### docs(ios): five 6.9-inch App Store screenshots from real on-device reads
 - What: `ios/app-store/screenshots/`: Ready check, a power bank read on the iPhone, the box with
   all three verdicts, an item's reason with the date of each rule layer, and the same box
