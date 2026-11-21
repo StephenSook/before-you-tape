@@ -27,7 +27,7 @@ import { DeadlineClock } from "../ui/DeadlineClock";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
 import { localDay } from "../shared/localDay";
-import { AddByHand } from "../ui/AddByHand";
+import { AddByHand, savedDraft } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
 import { VerdictChip } from "../ui/VerdictChip";
@@ -169,7 +169,8 @@ export function PackPage(p: PackPageProps) {
   const [notice, setNotice] = useState<string | null>(null);
   // Why the last photo could not be read, shown only while that situation still holds.
   const [blocked, setBlocked] = useState<{ text: string; when: string } | null>(null);
-  const [typing, setTyping] = useState(false);
+  // Open when this tab kept an item still being typed (src/ui/AddByHand.tsx), so a reload brings it back in view.
+  const [typing, setTyping] = useState(() => savedDraft() !== null);
   // The cloud question, asked when a photo or an offered second look first needs the cloud (and run once the
   // sender answers), or when the sender turns cloud checks on.
   // One question at a time: a newer photo, a removed item or a choice made in another tab closes it.

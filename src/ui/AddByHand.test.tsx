@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { AddByHand } from "./AddByHand";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AddByHand, DRAFT_KEY, savedDraft } from "./AddByHand";
+import { draftOf } from "./ReadFields";
 
 describe("AddByHand", () => {
   it("adds by hand", async () => {
@@ -33,3 +34,41 @@ describe("AddByHand", () => {
     expect(screen.getByTestId("add-by-hand")).toBeInTheDocument();
   });
 });
+
+// Reload (for a new version, or any other) must not lose an item the sender was still typing.
+describe("an unfinished typed item", () => {
+  afterEach(() => sessionStorage.clear());
+
+  it("comes back after the page reloads, and is forgotten once added", async () => {
+    const first = render(<AddByHand onAdd={vi.fn()} />);
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "lotion_cream");
+    await userEvent.type(screen.getByLabelText("Name (optional)"), "Shea lotion");
+    first.unmount();
+    const onAdd = vi.fn();
+    render(<AddByHand onAdd={onAdd} />);
+    expect(screen.getByLabelText("Name (optional)")).toHaveValue("Shea lotion");
+    expect(screen.getByLabelText("What is it?")).toHaveValue("lotion_cream");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({ itemName: "Shea lotion", category: "lotion_cream" });
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it("ignores a saved draft it cannot read, and keeps nothing for an empty form", () => {
+    sessionStorage.setItem(DRAFT_KEY, "{not json");
+    expect(savedDraft(sessionStorage)).toBeNull();
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ itemName: 3 }));
+    expect(savedDraft(sessionStorage)).toBeNull();
+    const form = { ...draftOf(null), category: "lotion_cream" };
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    expect(savedDraft(sessionStorage)).toEqual(form);
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form, category: "rocket" }));
+    expect(savedDraft(sessionStorage)).toBeNull();
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form, retailBox: "maybe" }));
+    expect(savedDraft(sessionStorage)).toBeNull();
+    sessionStorage.clear();
+    render(<AddByHand onAdd={vi.fn()} />);
+    expect(screen.getByLabelText("Name (optional)")).toHaveValue("");
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+});
+

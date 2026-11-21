@@ -84,11 +84,15 @@ test("a new deploy waits for Reload, then serves the new page and version", asyn
   // version.json is never served from the worker, so a version check sees the new deploy at once.
   expect(await servedSha(page)).toBe(NEXT_SHA);
 
+  // An item still being typed comes back after the Reload.
+  await page.getByRole("button", { name: "Type an item" }).click();
+  await page.getByTestId("add-by-hand").getByLabel("Name (optional)").fill("Grey scarf");
   await line.getByRole("button", { name: "Reload" }).click();
   await expect.poll(() => isNextPage(page), { timeout: 20_000 }).toBe(1);
   expect(await stayed(page)).toBeUndefined();
   await expect(page.getByTestId("update-line")).toHaveCount(0);
   expect(await servedSha(page)).toBe(NEXT_SHA);
+  await expect(page.getByTestId("add-by-hand").getByLabel("Name (optional)")).toHaveValue("Grey scarf");
 });
 
 test("Reload in one tab reloads only that tab; another keeps its page and its old files", async ({ context }) => {
