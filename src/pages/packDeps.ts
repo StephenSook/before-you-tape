@@ -12,7 +12,7 @@ import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
-import { deleteCropsExcept } from "../data/crops";
+import { deleteCrop } from "../data/crops";
 import { leaveDeletedBox, savedBoxDeleter, whenDeletedElsewhere, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
@@ -91,11 +91,12 @@ export function buildDeps(): PackDeps | Error {
       signedIn: signIn,
       currentUid: () => fb.auth.currentUser?.uid ?? null,
       deleteFirestoreBox: (uid, id) => firestorePersistence(fb.db, uid, editionId).deleteBox(id),
-      deleteCropsExcept,
+      deleteCrop,
       storage: localStorage,
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
       onStale: leave,
+      online: () => navigator.onLine,
     });
     built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {

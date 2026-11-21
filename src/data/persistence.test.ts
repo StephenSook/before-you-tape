@@ -58,29 +58,36 @@ describe("sweepUntilEmpty", () => {
 describe("deleteOrRetire", () => {
   const denied = Object.assign(new Error("denied"), { code: "permission-denied" });
 
+  const no = async () => false;
+  const yes = async () => true;
+
   it("deletes a box that is there, and retires the id of one that is not", async () => {
     const del = vi.fn(async () => {});
     const retire = vi.fn(async () => {});
-    await deleteOrRetire(async () => true, del, retire);
+    await deleteOrRetire(yes, del, retire, no);
     expect([del.mock.calls.length, retire.mock.calls.length]).toEqual([1, 0]);
-    await deleteOrRetire(async () => false, del, retire);
+    await deleteOrRetire(no, del, retire, no);
     expect([del.mock.calls.length, retire.mock.calls.length]).toEqual([1, 1]);
   });
 
   it("deletes the box another tab's first save created after the read, when the retire is refused for it", async () => {
     const reads = [false, true];
     const del = vi.fn(async () => {});
-    await deleteOrRetire(async () => reads.shift()!, del, async () => { throw denied; });
+    await deleteOrRetire(async () => reads.shift()!, del, async () => { throw denied; }, no);
     expect(del).toHaveBeenCalledTimes(1);
   });
 
   it("is done when the retire is refused because the id was retired already", async () => {
     const del = vi.fn(async () => {});
-    await deleteOrRetire(async () => false, del, async () => { throw denied; });
+    await deleteOrRetire(no, del, async () => { throw denied; }, yes);
     expect(del).not.toHaveBeenCalled();
   });
 
+  it("fails when the retire is refused and the id is still not retired, never reporting a delete that did not happen", async () => {
+    await expect(deleteOrRetire(no, vi.fn(), async () => { throw denied; }, no)).rejects.toThrow("not retired");
+  });
+
   it("fails on any other refusal", async () => {
-    await expect(deleteOrRetire(async () => false, vi.fn(), async () => { throw new Error("offline"); })).rejects.toThrow("offline");
+    await expect(deleteOrRetire(no, vi.fn(), async () => { throw new Error("offline"); }, no)).rejects.toThrow("offline");
   });
 });

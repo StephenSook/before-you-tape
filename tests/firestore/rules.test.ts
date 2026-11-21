@@ -113,7 +113,7 @@ describe("boxes", () => {
     expect((await assertSucceeds(getDoc(doc(alice, "boxes/b4")))).exists()).toBe(true);
   });
 
-  it("keeps a tombstone 30 days past its box's expiry, written only while its box is deleted, and out of every client's reach", async () => {
+  it("keeps a tombstone 30 days past its box's expiry, written only while its box is deleted, and never changed by a client", async () => {
     await assertSucceeds(setDoc(doc(alice, "boxes/b5"), boxFor("alice")));
     // Alone, with the box's own expiry or any other, or with anything else in it: refused.
     await assertFails(setDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED }));
@@ -123,16 +123,21 @@ describe("boxes", () => {
     batch.set(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED, note: "x" });
     batch.delete(doc(alice, "boxes/b5"));
     await assertFails(batch.commit());
-    // For an id with no box (a first save may still be on its way): only with an expiry 67 days out, the box's 37
-    // plus 30, and never by a signed-out visitor.
+    // For an id with no box (a first save may still be on its way): only with an expiry about 67 days out (the box's
+    // 37 plus 30, a week either side for the device's clock), and never by a signed-out visitor.
     const UNUSED = Timestamp.fromMillis(Date.now() + 67 * DAY);
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: Timestamp.fromMillis(Date.now() + 59 * DAY) }));
+    await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: Timestamp.fromMillis(Date.now() + 75 * DAY) }));
     await assertFails(setDoc(doc(nobody, "retiredBoxes/never"), { expiresAt: UNUSED }));
     await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: EXPIRES }));
     await assertFails(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: UNUSED, note: "x" }));
     await assertSucceeds(setDoc(doc(alice, "retiredBoxes/never"), { expiresAt: UNUSED }));
     await assertFails(setDoc(doc(alice, "boxes/never"), boxFor("alice")));
     await assertSucceeds(retire(alice, "b5"));
-    await assertFails(getDoc(doc(alice, "retiredBoxes/b5")));
+    // Whether an id is retired is readable when signed in (a tombstone holds only its expiry), never listable.
+    await assertSucceeds(getDoc(doc(alice, "retiredBoxes/b5")));
+    await assertFails(getDoc(doc(nobody, "retiredBoxes/b5")));
+    await assertFails(getDocs(collection(alice, "retiredBoxes")));
     await assertFails(updateDoc(doc(alice, "retiredBoxes/b5"), { expiresAt: RETIRED }));
     await assertFails(deleteDoc(doc(alice, "retiredBoxes/b5")));
   });

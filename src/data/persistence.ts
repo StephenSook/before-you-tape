@@ -6,7 +6,7 @@
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
 import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
-import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
+import { NotBoxOwner, stableJson, type BoxGone, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -120,19 +120,26 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     async deleteBox(boxId: string) {
       const box = doc(db, "boxes", boxId);
       let snap: DocumentSnapshot | null = null;
+      let gone: BoxGone = { ownerUid: null, cropKeys: [] };
       await deleteOrRetire(
         async () => (snap = await getDocFromServer(box)).exists(),
         async () => {
           const data = snap!.data()!;
           // A member who is not the owner may delete items, so the check comes before any of them is touched.
-          if (data.ownerUid !== uid) throw new Error("only the box's owner can delete it");
+          if (data.ownerUid !== uid) throw new NotBoxOwner();
           const expiresAt = (data.expiresAt as Timestamp | undefined) ?? null;
           // Its tombstone takes its time from the box's expiry; without one the last batch would be refused after the
           // items were gone, so it is refused here, first. Every box has one since the backfill.
           if (!expiresAt) throw new Error("this box has no expiry, so it cannot be retired");
+          // The crops its items used, as the server holds them, another tab's items included.
+          const cropKeys = new Set<string>();
           await sweepUntilEmpty(
             async () => {
               const [items, disputes] = await Promise.all([getDocsFromServer(collection(box, "items")), getDocsFromServer(collection(box, "disputes"))]);
+              for (const d of items.docs) {
+                const key: unknown = d.get("cropKey");
+                if (typeof key === "string" && key) cropKeys.add(key);
+              }
               return [...items.docs, ...disputes.docs].map((d) => d.ref);
             },
             async (refs) => {
@@ -146,11 +153,15 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
           last.set(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(expiresAt.toMillis() + 30 * DAY_MS) });
           last.delete(box);
           await last.commit();
+          gone = { ownerUid: String(data.ownerUid), cropKeys: [...cropKeys] };
         },
-        // Retired anyway, so a first save still on its way from another tab cannot create the box after this.
+        // Retired anyway, so a first save still on its way from another tab cannot create the box after this. There is
+        // no box expiry to count from, so this device's clock counts, and the rules allow it a week either side.
         () => setDoc(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(now() + (BOX_DAYS + 30) * DAY_MS) }),
+        async () => (await getDocFromServer(doc(db, "retiredBoxes", boxId))).exists(),
       );
       expiries.delete(boxId);
+      return gone;
     },
     async deleteItem(boxId: string, itemId: string) {
       const box = doc(db, "boxes", boxId);
@@ -182,14 +193,18 @@ function paired(item: BoxItem, saved: (Disputes & { itemRev?: string }) | undefi
 // reached the server, so a later visit that signs in sends it.
 // Deletes a box that is there, and retires the id of one that is not. A refused retire means the id was retired
 // already, or another tab's first save created the box since the read (a tombstone is refused while its box exists),
-// so the box is read once more and deleted if it is there now.
-export async function deleteOrRetire(exists: () => Promise<boolean>, deleteExisting: () => Promise<void>, retire: () => Promise<void>): Promise<void> {
+// or the tombstone itself was refused. So the box is read once more and deleted if it is there now; otherwise the id
+// must be retired, or the delete fails: a delete that did not happen is never reported.
+export async function deleteOrRetire(
+  exists: () => Promise<boolean>, deleteExisting: () => Promise<void>, retire: () => Promise<void>, retired: () => Promise<boolean>,
+): Promise<void> {
   if (await exists()) return deleteExisting();
   try {
     await retire();
   } catch (e) {
     if ((e as { code?: unknown } | null)?.code !== "permission-denied") throw e;
-    if (await exists()) await deleteExisting();
+    if (await exists()) return deleteExisting();
+    if (!(await retired())) throw new Error("the box's id is not retired: its tombstone was refused", { cause: e });
   }
 }
 

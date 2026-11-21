@@ -8,7 +8,7 @@ import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
-import type { DeleteResult, DeleteStep } from "../data/deleteSavedBox";
+import type { DeleteResult, DeleteStep, SignInOutcome } from "../data/deleteSavedBox";
 import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
@@ -81,9 +81,9 @@ export interface PackPageProps {
   // Deletes the saved box everywhere it is kept; with none, the page offers no delete.
   onDeleteBox?: (from?: DeleteStep) => Promise<DeleteResult>;
   // After a delete: the route starts the page again on a new, empty box.
-  afterDelete?: (signIn: "deleted" | "signed_out") => void;
+  afterDelete?: (signIn: SignInOutcome) => void;
   // Shown once after a delete started the page again: how the anonymous sign-in went.
-  deletedNotice?: "deleted" | "signed_out" | null;
+  deletedNotice?: SignInOutcome | null;
   // Reloads the page, for a page older than what the server now accepts (the browser's own reload unless a test sets it).
   onReload?: () => void;
   // How long the cloud settings may be missing before the page says so.
@@ -610,10 +610,10 @@ export function PackPage(p: PackPageProps) {
       {blockedNow && <p className="banner" role="alert">{blockedNow}</p>}
       {p.deletedNotice && (
         <p data-testid="box-deleted" className="banner" role="status">
-          Your saved box is deleted.{" "}
+          Your saved box is deleted.
           {p.deletedNotice === "signed_out"
-            ? "Your anonymous sign-in could not be deleted right away; Firebase may delete it automatically any time after it is 30 days old."
-            : "So is your anonymous sign-in."}
+            ? " Your anonymous sign-in could not be deleted right away; Firebase may delete it automatically any time after it is 30 days old."
+            : p.deletedNotice === "deleted" ? " So is your anonymous sign-in." : ""}
         </p>
       )}
       {ask && <ConsentNotice key={ask.id} onChoice={answerAsk} />}
