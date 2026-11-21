@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the cloud choice is written to its own file at once, not to UserDefaults
+- What: the separate record of the cloud choice was kept in UserDefaults, which writes to disk later,
+  so an app stopped right after "off" (with the box save failed) could lose it and come back allowed.
+  The choice is now written synchronously and atomically to its own file, `<box id>.consent` beside
+  the box file, with the box file's protection; it is on disk when the call returns. The ranking of
+  the two records is unchanged. The App Privacy note on UserDefaults names only the box ID again.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: the file test now reads `b1.consent` from disk right after the write (it failed: no
+  file) and passes, reads a later choice back, and writes nothing for an unsafe id; 206 unit tests
+  pass.
+
 ### fix(ios): a label picked after a rule update is tagged by the edition in force
 - What: picking one read's label words copied the words saved with the dispute, which the earlier
   edition had found, while the item already said it was tagged by the new edition. A warning the new

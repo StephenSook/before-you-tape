@@ -16,12 +16,20 @@ import Testing
         #expect(files.load(boxId: "other") == nil)
     }
 
-    /// The cloud choice is kept apart from the box file, per box, and read back by a later launch.
-    @Test func theCloudChoiceIsKeptApartFromTheBoxFile() throws {
-        let defaults = try #require(UserDefaults(suiteName: "consent-\(UUID().uuidString)"))
-        BoxFiles(folder: folder(), defaults: defaults).recordConsent("declined", boxId: "b1")
-        let later = BoxFiles(folder: folder(), defaults: defaults)
+    /// The cloud choice is kept apart from the box file, per box, in a file of its own that is on disk
+    /// when the call returns (an app that stops right after still has it), and read back by a later launch.
+    @Test func theCloudChoiceIsWrittenToItsOwnFileAtOnce() throws {
+        let dir = folder()
+        BoxFiles(folder: dir).recordConsent("declined", boxId: "b1")
+        let file = dir.appendingPathComponent("b1.consent")
+        #expect(try String(contentsOf: file, encoding: .utf8) == "declined")
+        let later = BoxFiles(folder: dir)
         #expect(later.recordedConsent(boxId: "b1") == "declined" && later.recordedConsent(boxId: "b2") == nil)
+        later.recordConsent("allowed-2", boxId: "b1")
+        #expect(BoxFiles(folder: dir).recordedConsent(boxId: "b1") == "allowed-2")
+        // An id that is not a safe file name writes nothing.
+        BoxFiles(folder: dir).recordConsent("declined", boxId: "../b3")
+        #expect(BoxFiles(folder: dir).recordedConsent(boxId: "../b3") == nil)
     }
 
     /// The simulator does not report file protection, so the written options are pinned here and

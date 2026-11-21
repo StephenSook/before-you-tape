@@ -34,19 +34,29 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
     /// Atomic, and readable only while the iPhone is unlocked.
     static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
 
-    /// Where the cloud choice is also kept, apart from the box file.
-    private let defaults: UserDefaults
+    init(folder: URL = BoxFiles.defaultFolder) { self.folder = folder }
 
-    init(folder: URL = BoxFiles.defaultFolder, defaults: UserDefaults = .standard) {
-        self.folder = folder
-        self.defaults = defaults
+    /// The cloud choice's own file, `<id>.consent` beside the box (a box id has no dot, so it is never a box).
+    func consentURL(boxId: String) -> URL? {
+        url(boxId: boxId).map { $0.deletingPathExtension().appendingPathExtension("consent") }
     }
 
-    static func consentKey(_ boxId: String) -> String { "cloudConsent." + boxId }
+    /// Written at once and atomically, apart from the box file, so the choice is on disk when this
+    /// returns even when the box cannot be saved. A write that fails is said in `problem`.
+    func recordConsent(_ choice: String, boxId: String) {
+        guard let url = consentURL(boxId: boxId) else { return }
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data(choice.utf8).write(to: url, options: Self.writeOptions)
+        } catch {
+            problem = "The cloud choice is not saved: \(error.localizedDescription)"
+        }
+    }
 
-    /// UserDefaults, which takes the write even when the box file cannot be written.
-    func recordConsent(_ choice: String, boxId: String) { defaults.set(choice, forKey: Self.consentKey(boxId)) }
-    func recordedConsent(boxId: String) -> String? { defaults.string(forKey: Self.consentKey(boxId)) }
+    func recordedConsent(boxId: String) -> String? {
+        guard let url = consentURL(boxId: boxId), let data = try? Data(contentsOf: url) else { return nil }
+        return String(decoding: data, as: UTF8.self)
+    }
 
     /// Box ids are letters, digits, "-" and "_" only, so an id can never name a file elsewhere.
     func url(boxId: String) -> URL? {
