@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The live read's real parts for /judge (src/judge/liveReadDeps.ts): the Pack page's models, sign-in, App Check, Remote Config and device consent, plus the tracked sample photo, fetched and refused unless its sha256 matches the record, then cropped whole. Cloud settings that do not arrive within 10 s count as paused. Source: /judge live-read plan. Verified: four loader tests (matching and mismatching sample bytes, settings paused or not, settings that never arrive) failed first and pass.
+
 - The app's real parts (Firebase with App Check, Remote Config, the item-read models, the box store, the edition pin) are built in src/pages/packDeps.ts instead of inside PackRoute, so /judge can load them only when its live read is pressed. No behaviour changes. The README's getAi(true) pointer moves with it. Source: /judge live-read plan. Verified: typecheck, the full suite and the home-page browser checks pass.
 
 - A LiveReadPanel for /judge: one live read of the sample photo through the real read path, loaded only when pressed. It reads on this laptop when it can, otherwise in the cloud only after Allow, and never while cloud checks are paused or on a sample whose bytes do not match its record. It shows where the read ran and the time from the press that started it (the button, or Allow) to the verdict on screen. One read at a time, then a 10 s wait. Not on the page yet. Source: /judge live-read plan. Verified: eight panel tests failed first and pass; the full suite passes.
