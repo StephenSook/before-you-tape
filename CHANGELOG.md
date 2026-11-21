@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A /judge sample card no longer says its question twice: a reason that starts with the card's own question (such as "Is it new? Answer to finish this check." above "Is it new?") is left out, as on the pack page's cards and on Android. Both cards now use one helper, restatesQuestion. Source: a 390 px still of /judge. Verified: a new JudgePage test failed first and passes; the pack card tests still pass; the /judge browser checks pass.
+
 - An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
 - The newest-item sheet test gives the sheet 1.5 s before it hides itself, not 60 ms, so a busy machine still finds the sheet before it goes; it waits up to 5 s for the sheet to hide and has a 15 s limit. Source: the test failed while other work loaded the machine. Verified: the test passes alone and in the full suite (796).
 
