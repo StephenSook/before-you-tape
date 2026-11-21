@@ -187,7 +187,7 @@ describe("PackPage", () => {
     const store = newStore();
     const models = spyModels();
     const ui = (online: boolean) => <PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
-      saveCrop={async () => {}} online={online} />;
+      saveCrop={async () => {}} deleteCrop={async () => {}} online={online} />;
     const view = render(ui(true));
     await addPhoto();
     await screen.findByRole("button", { name: "Allow" });

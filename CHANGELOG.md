@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The consent tests that build their own pack page pass the deleteCrop that PackPage now requires, so the branch typechecks on top of main. Source: merging main (removed items delete their crops). Verified: typecheck and the full suite pass.
+
 - The cloud question holds one request at a time and closes when it no longer applies: a newer photo closes it, so Allow can only send the newest; removing an item closes its look's question; a choice made in another tab closes it and drops its photo ("Your cloud choice changed in another tab. Add the photo again."). Choosing this laptop only takes back every card's cloud-look offer. Taking consent back drops looks waiting to go back online, so turning cloud checks on again never sends one by itself. Answering returns focus to the cloud chip. Source: adversarial review of the consent changes. Verified: six new tests failed first and pass; the full suite and home-page browser checks pass.
 
 - The cloud question now covers the second look: "To read items this laptop can't, and to check a read again when the rules ask, the cropped photo goes to Google's Gemini. Allow?", matching the privacy page (the second look sends only the crop). The About page says the same. The answer is versioned (byt.cloudConsent.v2): a yes to the earlier question counts as unanswered, so the new one is asked before any cloud use; an earlier no still counts, and a no written by a tab on the earlier version always counts, so it can still take consent back. Source: consent review (the question must cover the second look). Verified: new deviceConsent tests failed first and pass; the full suite and home-page browser checks pass.
