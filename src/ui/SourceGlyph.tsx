@@ -8,6 +8,7 @@ export const SOURCE_TEXT: Record<ReadSource, string> = {
   manual: "Typed by you",
   phone_on_device: "Read on your phone",
   phone_cloud: "Read in the cloud, from your phone",
+  sample_recorded: "Sample, recorded read",
 };
 
 export function SourceGlyph({ source }: { source: ReadSource }) {
