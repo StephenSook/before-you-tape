@@ -119,6 +119,8 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       const box = doc(db, "boxes", boxId);
       const snap = await getDoc(box);
       if (!snap.exists()) return;
+      // A member who is not the owner may delete items, so the check comes before any of them is touched.
+      if (snap.data().ownerUid !== uid) throw new Error("only the box's owner can delete it");
       const expiresAt = (snap.data().expiresAt as Timestamp | undefined) ?? null;
       const [items, disputes] = await Promise.all([getDocs(collection(box, "items")), getDocs(collection(box, "disputes"))]);
       const refs = [...items.docs, ...disputes.docs].map((d) => d.ref);

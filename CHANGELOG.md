@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- deleteBox checks that the caller owns the box before it deletes any item or dispute. Members may delete items, so a member pressing Delete could otherwise empty a shared box before the box delete was refused. Today only an admin can add a member. Source: review. Verified: the emulator test (a second member is refused and every item stays) failed first and passes; all 46 emulator tests pass.
+
 - The live page wires Delete my saved box: the box in Firestore with its tombstone, every crop on this device, this browser's box keys, then the anonymous sign-in (signed out if it needs a recent login), and then a reload onto a new, empty box that says once how it went (sessionStorage byt.deleted). Source: Delete my saved box plan. Verified: new notice tests failed first and pass; typecheck, the full suite and the home-page browser checks pass.
 
 - The pack page has Delete my saved box under the box, when the route can delete it and the saved box has been read. It asks first ("This deletes every item in this box from this device and from our database. It cannot be undone.", Delete or Keep), says which part is left if deleting stops part-way (Try deleting again), and after a delete says once that the box is deleted, and whether the anonymous sign-in was deleted or Firebase may remove it after 30 days. Source: Delete my saved box plan. Verified: new PackPage tests failed first where expected and pass.

@@ -96,10 +96,14 @@ describe("firestorePersistence", () => {
     await expect(p.deleteBox!("b1")).resolves.toBeUndefined();
   });
 
-  it("never lets anyone but the owner delete a box", async () => {
+  it("never lets anyone but the owner delete a box, nor any of its items on the way", async () => {
     await firestorePersistence(db("alice"), "alice", "byt-test").putMeta("b2", meta());
+    await firestorePersistence(db("alice"), "alice", "byt-test").putItem("b2", item("i1"));
+    // A second member (only an admin can add one): the delete stops before touching anything.
+    await admin((d) => updateDoc(doc(d, "boxes/b2"), { memberUids: ["alice", "bob"] }));
     await expect(firestorePersistence(db("bob"), "bob", "byt-test").deleteBox!("b2")).rejects.toThrow();
     expect(await at("boxes/b2")).toBeDefined();
+    expect(await at("boxes/b2/items/i1")).toBeDefined();
   });
 
   it("keeps a box from before expiry working, and its disputes paired once the backfill gives it an expiry", async () => {
