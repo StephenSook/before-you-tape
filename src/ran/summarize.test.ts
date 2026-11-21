@@ -44,6 +44,11 @@ describe("summarizeRoutes", () => {
     expect(s.boxes).toEqual({ n: 6 });
   });
 
+  it("gives times in whole milliseconds", () => {
+    const s = summarizeRoutes(many(5, (i) => row("in_cloud", 900.4 + i * 0.3)), 5, "2026-11-21T12:00:00Z", "s");
+    expect(s.reads.inCloud).toEqual({ n: 5, p50Ms: 901, p90Ms: 902 });
+  });
+
   it("gives the window of the reads, and none when there are no reads", () => {
     const s = summarizeRoutes([row("on_device", 1000, { createTime: "2026-11-19T08:00:00Z" }), row("on_device", 1000, { createTime: "2026-11-21T09:00:00Z" })], 1, "2026-11-21T12:00:00Z", "s");
     expect(s.window).toEqual({ from: "2026-11-19", to: "2026-11-21" });

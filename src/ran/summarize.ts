@@ -37,7 +37,7 @@ const rank = (sorted: number[], p: number) => sorted[Math.max(0, Math.ceil(p * s
 function timed(ms: number[]): Timed {
   if (ms.length < SMALL) return { fewerThan: SMALL };
   const sorted = [...ms].sort((a, b) => a - b);
-  return { n: ms.length, p50Ms: rank(sorted, 0.5), p90Ms: rank(sorted, 0.9) };
+  return { n: ms.length, p50Ms: Math.round(rank(sorted, 0.5)), p90Ms: Math.round(rank(sorted, 0.9)) };
 }
 
 const ON_DEVICE = new Set(["on_device", "phone_on_device"]);
