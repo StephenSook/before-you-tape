@@ -118,14 +118,14 @@ protocol BoxPersistence {
     func save(_ snapshot: BoxSnapshot) throws
     func load(boxId: String) -> BoxSnapshot?
     /// The sender's cloud choice, kept apart from the box file ("allowed", "declined" or "unasked"),
-    /// so a choice whose box save failed still holds after a relaunch.
-    func recordConsent(_ choice: String, boxId: String)
+    /// so a choice whose box save failed still holds after a relaunch. False when it was not written.
+    @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool
     func recordedConsent(boxId: String) -> String?
 }
 
 extension BoxPersistence {
     /// A box kept only in memory has no separate record: its choice goes with it.
-    func recordConsent(_ choice: String, boxId: String) {}
+    @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool { true }
     func recordedConsent(boxId: String) -> String? { nil }
 }
 
@@ -193,6 +193,8 @@ final class BoxStore {
     static let lithiumWaits = "Another item in this box needs its label read again before the lithium total is known."
     /// The box's lithium line while any item's label must be read again.
     static let lithiumBoxWaits = "An item in this box needs its label read again before the lithium total is known."
+    /// Why the cloud choice may not hold after the app is closed: its own record was not written.
+    static let consentNotSaved = "Your cloud choice is not saved on this iPhone. Set it again before you close the app."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -242,10 +244,10 @@ final class BoxStore {
 
     /// The cloud question's words (ConsentSheet.sentence). 2 names the second look of a read already
     /// made; an "allowed" given to the earlier words is asked again.
-    static let consentVersion = 2
+    nonisolated static let consentVersion = 2
 
     /// How a cloud choice is kept in the separate record; an "allowed" carries the question's words.
-    static func consentRecord(_ choice: Bool?) -> String {
+    nonisolated static func consentRecord(_ choice: Bool?) -> String {
         choice == true ? "allowed-\(consentVersion)" : choice == false ? "declined" : "unasked"
     }
 
@@ -253,7 +255,7 @@ final class BoxStore {
     /// then unasked, then allowed), so a choice taken back whose box save failed never comes back. A box
     /// saved before the record existed keeps its own choice. An "allowed" given to earlier words of the
     /// question counts as unasked.
-    static func consent(file snapshot: BoxSnapshot?, record: String?) -> Bool? {
+    nonisolated static func consent(file snapshot: BoxSnapshot?, record: String?) -> Bool? {
         let file: Bool? = snapshot?.cloudConsent == true && snapshot?.cloudConsentVersion != consentVersion ? nil : snapshot?.cloudConsent
         guard let record else { return file }
         let recorded: Bool? = record == consentRecord(true) ? true : record == consentRecord(false) ? false : nil
@@ -484,9 +486,11 @@ final class BoxStore {
 
     /// The choice is recorded apart from the box file first, so it holds even when the box save fails.
     func setConsent(_ value: Bool?) {
-        persistence.recordConsent(Self.consentRecord(value), boxId: boxId)
+        let recorded = persistence.recordConsent(Self.consentRecord(value), boxId: boxId)
         cloudConsent = value
         commit(result)
+        // Said even when the box saved, so the sender knows the choice may not hold after a relaunch.
+        if !recorded { saveProblem = Self.consentNotSaved }
     }
 
     // MARK: Plumbing

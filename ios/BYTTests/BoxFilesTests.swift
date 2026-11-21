@@ -28,8 +28,20 @@ import Testing
         later.recordConsent("allowed-2", boxId: "b1")
         #expect(BoxFiles(folder: dir).recordedConsent(boxId: "b1") == "allowed-2")
         // An id that is not a safe file name writes nothing.
-        BoxFiles(folder: dir).recordConsent("declined", boxId: "../b3")
+        #expect(!BoxFiles(folder: dir).recordConsent("declined", boxId: "../b3"))
         #expect(BoxFiles(folder: dir).recordedConsent(boxId: "../b3") == nil)
+    }
+
+    /// A choice file that is there but cannot be read is not "no record": it reads as unasked, so the
+    /// stricter of the two records still holds and nothing is allowed from the box file alone.
+    @Test func aChoiceFileThatCannotBeReadCountsAsUnasked() throws {
+        let dir = folder()
+        let files = BoxFiles(folder: dir)
+        #expect(files.recordConsent("declined", boxId: "b1"))
+        let file = try #require(files.consentURL(boxId: "b1"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path) }
+        #expect(files.recordedConsent(boxId: "b1") == BoxStore.consentRecord(nil))
     }
 
     /// The simulator does not report file protection, so the written options are pinned here and

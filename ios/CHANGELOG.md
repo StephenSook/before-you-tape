@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): an unreadable cloud choice record counts as unasked, and a failed write says so
+- What: a choice file that was there but could not be read (the iPhone locked, a read error) read as
+  no record, so the box file's "allowed" alone could hold. It now reads as unasked, so the stricter
+  record wins. Writing the record reports whether it worked; when it did not, the box shows "Your
+  cloud choice is not saved on this iPhone. Set it again before you close the app." even when the
+  box itself saved. The record existed only in this unreleased change, so nothing is migrated.
+- Source: automated security review of the consent file commit.
+- Verified: two new tests (a choice file made unreadable reads as unasked; a failed record write
+  shows the message, and a later good write clears it) failed and pass; 210 unit tests pass.
+
 ### fix(ios): a second look sends only if it is still wanted right before the upload
 - What: the check that a look's item is still in the box and its cloud checks still allowed ran
   before sign-in; the last check before the upload read only the pause. A look whose item was

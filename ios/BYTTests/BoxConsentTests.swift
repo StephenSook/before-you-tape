@@ -14,14 +14,31 @@ import Testing
         struct Failed: Error {}
         var stored: BoxSnapshot?
         var failSaves = false
+        var failRecords = false
         var records: [String: String] = [:]
         func save(_ snapshot: BoxSnapshot) throws {
             if failSaves { throw Failed() }
             stored = snapshot
         }
         func load(boxId: String) -> BoxSnapshot? { stored }
-        func recordConsent(_ choice: String, boxId: String) { records[boxId] = choice }
+        func recordConsent(_ choice: String, boxId: String) -> Bool {
+            guard !failRecords else { return false }
+            records[boxId] = choice
+            return true
+        }
         func recordedConsent(boxId: String) -> String? { records[boxId] }
+    }
+
+    /// A choice whose separate record could not be written says so, even when the box saved.
+    @Test func aChoiceWhoseRecordFailedSaysItIsNotSaved() throws {
+        let p = FlakyBox()
+        let s = try relaunched(p)
+        p.failRecords = true
+        s.setConsent(false)
+        #expect(s.saveProblem == BoxStore.consentNotSaved && s.cloudConsent == false)
+        p.failRecords = false
+        s.setConsent(false)
+        #expect(s.saveProblem == nil)
     }
 
     func relaunched(_ p: FlakyBox) throws -> BoxStore {

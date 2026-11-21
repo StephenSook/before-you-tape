@@ -43,18 +43,24 @@ final class BoxFiles: BoxPersistence, @unchecked Sendable {
 
     /// Written at once and atomically, apart from the box file, so the choice is on disk when this
     /// returns even when the box cannot be saved. A write that fails is said in `problem`.
-    func recordConsent(_ choice: String, boxId: String) {
-        guard let url = consentURL(boxId: boxId) else { return }
+    @discardableResult
+    func recordConsent(_ choice: String, boxId: String) -> Bool {
+        guard let url = consentURL(boxId: boxId) else { return false }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try Data(choice.utf8).write(to: url, options: Self.writeOptions)
+            return true
         } catch {
             problem = "The cloud choice is not saved: \(error.localizedDescription)"
+            return false
         }
     }
 
+    /// nil only when there is no record; a record that is there but cannot be read (the iPhone locked, a
+    /// read error) reads as unasked, so the stricter record still holds and nothing is allowed by default.
     func recordedConsent(boxId: String) -> String? {
-        guard let url = consentURL(boxId: boxId), let data = try? Data(contentsOf: url) else { return nil }
+        guard let url = consentURL(boxId: boxId), FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard let data = try? Data(contentsOf: url) else { return BoxStore.consentRecord(nil) }
         return String(decoding: data, as: UTF8.self)
     }
 
