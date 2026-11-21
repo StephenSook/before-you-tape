@@ -37,7 +37,12 @@ function versionFile(): Plugin {
 
 export default defineConfig({
   // BYT_SW_KILL=1 builds the kill switch: a worker that unregisters itself and deletes its caches (scripts/pwa-options.ts).
-  plugins: [react(), versionFile(), VitePWA(pwaOptions({ kill: process.env.BYT_SW_KILL === "1", routes: appRoutes(hosting.rewrites) }))],
+  // Under vitest the worker is not generated: the unit tests that build only inspect the bundle, and the plugin writes
+  // sw.js to disk even when the build writes nothing. The browser tests check the worker from the real build.
+  plugins: [react(), versionFile(), VitePWA({
+    ...pwaOptions({ kill: process.env.BYT_SW_KILL === "1", routes: appRoutes(hosting.rewrites) }),
+    disable: process.env.VITEST !== undefined,
+  })],
   build: {
     rollupOptions: {
       input: {

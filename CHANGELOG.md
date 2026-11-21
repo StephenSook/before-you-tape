@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The service worker is not generated when vitest runs a build: the unit tests that build only inspect the bundle, and the plugin wrote sw.js and a workbox file into dist even with write false, so a test run after a real build replaced the built worker. Source: local gate (a test run after a build left dist/sw.js with no page entry). Verified: a new test that a no-write build leaves its output folder empty failed first (it held sw.js) and passes; after a real build the full unit suite leaves dist/sw.js byte-identical; the real build still lists the page in the worker; the browser checks pass.
+
 - A browser test that a photo checked with no network, in a browser with no built-in model, shows the page's own offline notice ("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online."), asks nothing of the cloud, makes no request to the model host and shows no answer. Source: review (offline: the cloud says it's offline, no cached cloud answers). Verified: the new test passes with the three earlier offline tests; lint, typecheck, tone, guard and hygiene pass.
 
 - A browser test of a deploy reaching a browser that already has the worker: the new deploy's worker installs and waits, the open page shows "A new version is ready. Reload" and stays the same page load on the old app, version.json already reports the new commit (it never comes from the worker), and after Reload the page is the new build. Source: review (test the deploy-to-update path). Verified: it passes, and fails when the worker is set to take over by itself (skipWaiting true), restored after; the CI browser step runs it; lint, typecheck and the browser checks pass.
