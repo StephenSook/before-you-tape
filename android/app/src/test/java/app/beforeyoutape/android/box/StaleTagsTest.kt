@@ -171,6 +171,17 @@ class StaleTagsTest {
         assertEquals(BoxCounts(0, 2, 0), r.counts)
     }
 
+    /** An item at Take it out is already out of the lithium count, so it holds nothing, as in the web app. */
+    @Test fun aStaleItemAtTakeItOutHoldsNothing() {
+        val lithium = LithiumBox("ok", listOf("b"), emptyList(), "The lithium in this box is within the limit.")
+        val c = controller(Engine(lithium = lithium, levels = mapOf("a" to VerdictLevel.take_out)))
+        c.restore(saved(item("a", "AEROSOL", listOf("label_text"), "byt-old"), item("b", "3.7V 1000mAh", listOf("label_text"), "byt-new")))
+        val r = c.state.result!!
+        assertEquals(lithium, r.lithium)
+        assertReleased(c, "b")
+        assertEquals(BoxCounts(1, 0, 1), r.counts)
+    }
+
     @Test fun newItemsCarryTheEditionThatTaggedThem() {
         val c = controller()
         c.addRead(read("SHEA LOTION"), listOf("label_text"), Source.IN_CLOUD, 900, "r")

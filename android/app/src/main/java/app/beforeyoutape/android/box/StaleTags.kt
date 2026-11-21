@@ -49,8 +49,9 @@ object StaleTags {
     }
 
     /**
-     * A stale item is never OK: it is held at the engine's check level with why, and while one is in the box the
-     * lithium total waits, so no lithium item is OK on it either. A check or take-out verdict is never changed.
+     * A stale item is never OK: it is held at the engine's check level with why. While one that is not marked to take
+     * out is in the box, the lithium total waits, so no lithium item is OK on it either; one marked to take out is out
+     * of that count already (src/engine/verdict.ts), so it holds nothing. A check or take-out verdict is never changed.
      */
     fun guard(result: BoxResult, items: List<BoxItem>, current: String?): BoxResult {
         val stale = items.filter { isStale(it, current) }
@@ -65,7 +66,8 @@ object StaleTags {
         }
         for (item in stale) withhold(item.input.itemId, if (item.tagsEdition == null) LABEL_UNKNOWN else RULES_CHANGED)
         var lithium = result.lithium
-        if (lithium.status == "ok" || lithium.status == "none") {
+        val inCount = stale.any { result.items[it.input.itemId]?.level != VerdictLevel.take_out }
+        if (inCount && (lithium.status == "ok" || lithium.status == "none")) {
             lithium = lithium.copy(status = "depends", text = LITHIUM_BOX_WAITS)
             for (id in result.lithium.itemIds) withhold(id, LITHIUM_WAITS)
         }
