@@ -112,6 +112,9 @@ final class AppModel {
     /// or the sender turning cloud checks off) cancels every upload still running.
     private func refreshCloudGate() { pause.paused = !cloudAllowed }
 
+    /// Whether the upload gate is open now.
+    var cloudGateOpen: Bool { !pause.paused }
+
     struct CloudChoice: Equatable {
         let line: String
         let button: String
@@ -127,14 +130,18 @@ final class AppModel {
         }
     }
 
-    /// Takes the cloud choice back: nothing more is sent, and an upload still running is cancelled.
+    /// Takes the cloud choice back: nothing more is sent, and an upload still running is cancelled. The
+    /// gate closes first, before the choice is saved, so no upload can start while the save runs.
     func turnOffCloudChecks() {
+        pause.paused = true
         box?.setConsent(false)
         refreshCloudGate()
     }
 
-    /// Clears the choice, so the cloud question is asked again before the next cloud call.
+    /// Clears the choice, so the cloud question is asked again before the next cloud call. The gate
+    /// closes first, as when cloud checks are turned off.
     func turnOnCloudChecks() {
+        pause.paused = true
         box?.setConsent(nil)
         refreshCloudGate()
     }

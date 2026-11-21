@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): turning cloud checks off closes the upload gate before the choice is saved
+- What: "Turn off cloud checks" (and "Turn on cloud checks", which clears the choice) saved the box
+  first and closed the upload gate after the save returned, so an upload already allowed could
+  reach the network during the save. The gate now closes first, then the choice is saved.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test that reads the gate at the moment of each save failed (the gate was open
+  while the off choice was saved) and passes; 190 unit tests pass.
+
 ### fix(ios): the app declares the installation ID Remote Config receives as a Device ID
 - What: the app's privacy manifest and the App Privacy evidence now declare Identifiers > Device
   ID, not linked, not for tracking, for App Functionality: the random installation ID that Remote
