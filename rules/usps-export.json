@@ -326,6 +326,28 @@
     "outcome": "check"
   },
   {
+    "id": "USPS-INTL-LI-ONE-READ",
+    "layer": "usps_export",
+    "scope": "item",
+    "section": "Pub 52 622.52",
+    "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
+    "basis": "summarized",
+    "ourWording": "Check the battery numbers on the label. Only a second look that reads the same numbers confirms them, because a misread can hide a battery too big to mail.",
+    "when": {
+      "all": [
+        { "fact": "battery.presence", "op": "eq", "value": "installed" },
+        { "not": { "fact": "identity", "op": "eq", "value": "second_look" } },
+        {
+          "any": [
+            { "fact": "battery.whStatus", "op": "in", "value": ["printed_matches", "printed_only"] },
+            { "fact": "battery.lithiumGrams", "op": "gt", "value": 0 }
+          ]
+        }
+      ]
+    },
+    "outcome": "check"
+  },
+  {
     "id": "USPS-INTL-LI-CELL-OVER",
     "layer": "usps_export",
     "scope": "item",

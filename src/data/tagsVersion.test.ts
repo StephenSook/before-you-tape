@@ -58,7 +58,7 @@ describe("guardStaleTags", () => {
 
   it("lets an item already at Take it out, out of the lithium count, hold nothing else", () => {
     const phone = item({
-      itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" },
+      itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" }, identityConfirmedBy: "second_look",
       read: { ...item({ itemId: "x" }).read, category: "phone", volts: 3.85, milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" },
     });
     const spray = item({ itemId: "spray", tagsVersion: labelWordsVersion(older), read: { ...item({ itemId: "x" }).read, category: "aerosol_spray", pressurized: true } });
@@ -71,7 +71,7 @@ describe("guardStaleTags", () => {
 
   it("makes the box's lithium total wait while an item's label must be read again", () => {
     const phone = item({
-      itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" },
+      itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" }, identityConfirmedBy: "second_look",
       read: { ...item({ itemId: "x" }).read, category: "phone", volts: 3.85, milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" },
     });
     const before = judge([phone]);

@@ -26,7 +26,12 @@ it("applies the battery watt-hour limit to an installed battery", () => {
     ed, "CA", today,
   );
   expect(checkLaptop(10000, 111).hits.map((hit) => hit.ruleId)).toContain("USPS-INTL-LI-BATTERY-OVER");
-  expect(checkLaptop(9000, 99.9).level).toBe("ok");
+  // Under the limit it is not taken out. Typed numbers can't be told from read ones yet, so it waits at Check this
+  // for the battery numbers (USPS-INTL-LI-ONE-READ) rather than reading OK.
+  const under = checkLaptop(9000, 99.9);
+  expect(under.hits.map((hit) => hit.ruleId)).not.toContain("USPS-INTL-LI-BATTERY-OVER");
+  expect(under.hits.map((hit) => hit.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+  expect(under.level).toBe("check");
 });
 
 it("an unconfirmed item is never OK", () => {

@@ -83,8 +83,9 @@ describe("PackPage", () => {
     const laptop: ItemRead = { ...liquidLotionLabelRead, itemName: "Laptop", category: "laptop", labelText: "11.55V 4380mAh 50.6Wh", liquid: false,
       volts: 11.55, milliampHours: 4380, wattHours: 50.6, batteryWords: true };
     act(() => { const id = store.addManual(laptop); store.answer(id, "device_condition", "new_sealed"); });
+    // Typed numbers wait for a second look (USPS-INTL-LI-ONE-READ), so one laptop is Check this, not OK.
     const card = await screen.findByTestId("item-card");
-    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("Check this");
     const howMany = within(card).getByLabelText("How many");
     await userEvent.clear(howMany);
     await userEvent.type(howMany, "3");
@@ -94,7 +95,7 @@ describe("PackPage", () => {
     await userEvent.clear(within(screen.getByTestId("item-card")).getByLabelText("How many"));
     await userEvent.type(within(screen.getByTestId("item-card")).getByLabelText("How many"), "1");
     await userEvent.tab();
-    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
+    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Check this"));
     await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: /^Remove / }));
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);

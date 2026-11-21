@@ -130,7 +130,7 @@ describe("evaluateBox", () => {
 
   it("gives the expected verdict for every named box vector", () => {
     expect(vectors.map((v) => v.name)).toEqual([
-      "perfume_alcohol", "aerosol", "power_bank", "lotion_ca", "lotion_ph", "phone_ok", "laptop_plus_phone", "three_unknown_phones",
+      "perfume_alcohol", "aerosol", "power_bank", "lotion_ca", "lotion_ph", "phone_numbers_read_once_is_check", "laptop_plus_phone", "three_unknown_phones",
       "five_cells", "three_laptops", "used_phone", "wh_mismatch_exact", "coin_cell_toy", "unsure", "identity_unconfirmed",
       "unreviewed_country", "suspended_country", "stale_layer", "quantity_three", "millivolt_misread",
       "chocolate_bar_to_philippines_is_check", "chocolate_named_on_a_packaged_food_to_philippines_is_check",
@@ -140,6 +140,11 @@ describe("evaluateBox", () => {
       "sender_ticked_alcohol_settles_it", "replica_grenade_ca", "replica_grenade_ph", "plain_toy_ca",
       "sunscreen_stick_ph", "sunscreen_stick_ca", "sanitizer_drug_facts_ph",
       "replica_words_ca", "toy_and_brand_words_ca", "replica_props_ca", "replica_props_ph", "extra_questions_ca",
+      "phone_numbers_matched_by_a_second_look_is_ok", "typed_phone_numbers_are_held_for_now", "battery_185_wh_true_numbers_is_take_out",
+      "battery_185_wh_read_as_18_5_is_check", "battery_185_wh_read_ten_times_low_throughout_is_check", "laptop_120_wh_read_as_12_is_check",
+      "coin_cell_grams_read_once_is_check", "not_lithium_answer_keeps_one_read_numbers_held",
+      "identity_tap_does_not_clear_read_numbers", "category_pick_does_not_clear_read_numbers",
+      "typed_laptop_without_label_text_is_held_for_now",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
@@ -153,6 +158,17 @@ describe("evaluateBox", () => {
         expect(r.items[id]?.question?.id, `${v.name} ${id}`).toBe(q);
       }
     }
+  });
+
+  it("holds a second look whose numbers disagree with the first read on the open dispute, not on the second look", () => {
+    // Not a shared vector: only the web and the iPhone run second looks, so Android's engine input carries no disputes.
+    const phone = { ...sealedPhoneOneCell, identityConfirmedBy: "second_look" as const };
+    expect(run([phone], "CA").items.phone?.level).toBe("ok");
+    const disputed = { ...phone, disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 },
+      cloud: { volts: 3.85, milliampHours: 40000, wattHours: 154 }, resolved: false } } };
+    const v = run([disputed], "CA").items.phone!;
+    expect(v.level).toBe("check");
+    expect(v.hits.map((h) => h.ruleId)).toContain("DATA-DISPUTE");
   });
 
   describe("a question no answer can change", () => {
