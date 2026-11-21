@@ -112,8 +112,8 @@
       "ourWording": "No issue of a publication with more than 5 percent of the ad space aimed mainly at Canada, in the ways the listing describes.",
       "matches": [],
       "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Commercial publications aimed at the Canadian ad market; not a family gift item."
+        "decision": "cannot_judge_from_photo",
+        "reason": "A photo can't show what share of a publication's ads is aimed at Canada."
       }
     },
     {
@@ -145,8 +145,8 @@
       "ourWording": "No issue with an ad aimed mainly at Canada unless that ad appears in identical form in every edition distributed in its home country.",
       "matches": [],
       "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Commercial publications with ads aimed mainly at Canada; not a family gift item."
+        "decision": "cannot_judge_from_photo",
+        "reason": "A photo can't show whether an ad appears in every edition of a publication's home country."
       }
     },
     {
@@ -200,8 +200,8 @@
       "ourWording": "No feathers or skins of wild birds.",
       "matches": [],
       "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Wild bird feathers and skins; down in clothing comes from farmed birds and is not matched."
+        "decision": "cannot_judge_from_photo",
+        "reason": "A photo can't show whether feathers or a skin come from a wild bird. The app does not treat down in clothing as wild bird plumage."
       }
     },
     {

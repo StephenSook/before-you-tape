@@ -130,6 +130,18 @@ describe("destination editions", () => {
     expect(l?.ourWording).toMatch(/If this is a medicine/);
   });
 
+  it("gives reasons that hold for lines a photo can't settle", () => {
+    const line = (id: string) => ed.destinations.CA?.lines.find((l) => l.lineId === id);
+    // A family can mail a magazine as a gift, so "not a family gift item" was no reason for these two.
+    for (const id of ["CA-P-09", "CA-P-12"]) {
+      expect(line(id)?.noMatch?.decision, id).toBe("cannot_judge_from_photo");
+      expect(line(id)?.noMatch?.reason, id).not.toMatch(/family gift/);
+    }
+    // Where down in clothing comes from is not something the app knows; it says what it does instead.
+    expect(line("CA-P-17")?.noMatch?.reason).toMatch(/does not treat down in clothing as wild bird plumage/);
+    expect(line("CA-P-17")?.noMatch?.reason).not.toMatch(/farmed/);
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");
