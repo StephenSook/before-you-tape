@@ -5,7 +5,7 @@
 // public copy, with no label text or item names, to eval/runs/.
 //
 //   BYT_NANO_PROFILE=<Chrome profile with the model> APPCHECK_DEBUG_TOKEN=<the eval project's debug token> \
-//     npx tsx scripts/eval-run.ts --date 2026-11-21 [--items own-01,own-18] [--repeat 1]
+//     npx tsx scripts/eval-run.ts --date 2026-11-21 [--items own-01,own-18] [--repeat 3] [--paths device,cloud,shipped]
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { platform, release } from "node:os";
@@ -118,7 +118,8 @@ export function preflight(i: { argv: string[]; env: Record<string, string | unde
   const arg = (name: string) => { const k = i.argv.indexOf(name); return k >= 0 ? i.argv[k + 1] : undefined; };
   const date = arg("--date") ?? "";
   if (!isCalendarDate(date)) throw new Error("--date must be a real YYYY-MM-DD date");
-  const repeat = Number(arg("--repeat") ?? "1");
+  // Three timed runs per crop and path, as the protocol's latency section asks.
+  const repeat = Number(arg("--repeat") ?? "3");
   if (!Number.isInteger(repeat) || repeat < 1 || repeat > 5) throw new Error("--repeat must be a whole number from 1 to 5");
   const paths = (arg("--paths") ?? ALL_PATHS.join(",")).split(",").map((p) => p.trim()) as EvalPath[];
   if (paths.length === 0 || paths.some((p) => !ALL_PATHS.includes(p))) throw new Error(`--paths must name some of ${ALL_PATHS.join(", ")}`);
@@ -172,7 +173,7 @@ async function main(): Promise<void> {
     await page.goto(`${origin}/scripts/device-e2e/harness.html`);
     await page.waitForSelector("body[data-ready='1']", { timeout: 60_000 });
     const result = await page.evaluate((input) => window.bytEvalRun(input), {
-      items: photos.map((p) => ({ itemId: p.itemId!, base64: p.base64 })), set, edition, date, repeat, paths,
+      items: photos.map((p) => ({ itemId: p.itemId!, base64: p.base64 })), set, edition, date, repeat, paths, coldCall: true,
       cloudModel: models.cloud, fallbackModel: models.fallback,
     });
     await page.close();
@@ -191,8 +192,8 @@ async function main(): Promise<void> {
     };
     const metrics = computeEvalMetrics(set, run);
     mkdirSync(join("eval", "runs", "private"), { recursive: true });
-    writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, failures: result.failures, cloudRequests, responses, project }, null, 2) + "\n");
-    if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), metrics }, null, 2) + "\n");
+    writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, coldMs: result.cold, failures: result.failures, cloudRequests, responses, project }, null, 2) + "\n");
+    if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), coldMs: result.cold, metrics }, null, 2) + "\n");
     console.log(JSON.stringify({ runId: run.runId, failures: result.failures.length, cloudRequests, responses, metrics }, null, 2));
   } finally {
     if (chrome && chrome.exitCode === null && chrome.signalCode === null) chrome.kill();

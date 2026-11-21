@@ -6,8 +6,8 @@ import { readItem, ReadFailure } from "../../src/ai/itemRead";
 import { initFirebase, type FirebaseEnv } from "../../src/firebase/app";
 import { cropToJpeg, decodePhoto } from "../../src/capture/crop";
 import { parseEdition } from "../../src/engine/edition";
-import { evalRows, type EvalPath, type RunnerFailure } from "../../src/eval/runner";
-import type { EvalRow, EvalSet } from "../../src/eval/types";
+import { evalRows, type EvalPath, type RunnerResult } from "../../src/eval/runner";
+import type { EvalSet } from "../../src/eval/types";
 import { CROP_LIMITS } from "../../src/shared/cropLimits";
 import type { ImagePart } from "../../src/ai/port";
 
@@ -30,6 +30,7 @@ interface EvalRunInput {
   date: string;
   repeat: number;
   paths: EvalPath[];
+  coldCall: boolean;
   cloudModel: string;
   fallbackModel: string;
 }
@@ -37,7 +38,7 @@ interface EvalRunInput {
 declare global {
   interface Window {
     bytDeviceE2E: (photos: Photo[]) => Promise<{ gate: string; reads: HarnessRead[] }>;
-    bytEvalRun: (input: EvalRunInput) => Promise<{ gate: string; rows: EvalRow[]; failures: RunnerFailure[] }>;
+    bytEvalRun: (input: EvalRunInput) => Promise<{ gate: string } & RunnerResult>;
   }
 }
 
@@ -77,7 +78,7 @@ window.bytEvalRun = async (input) => {
     images[it.itemId] = await cropToJpeg(source, { x: 0, y: 0, w: 1, h: 1 }, CROP_LIMITS.maxSide, CROP_LIMITS.jpegQuality);
     source.close();
   }
-  const out = await evalRows({ set: input.set, edition: parseEdition(input.edition), date: input.date, models, images, now: () => performance.now(), repeat: input.repeat, paths: input.paths });
+  const out = await evalRows({ set: input.set, edition: parseEdition(input.edition), date: input.date, models, images, now: () => performance.now(), repeat: input.repeat, paths: input.paths, coldCall: input.coldCall });
   return { gate, ...out };
 };
 

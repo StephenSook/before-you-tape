@@ -42,7 +42,7 @@ describe("eval-run", () => {
 
   it("checks every precondition before it starts anything, and stops at the first that fails", () => {
     const ok = { argv: ["--date", "2026-11-21"], env: { BYT_NANO_PROFILE: "/p", APPCHECK_DEBUG_TOKEN: "t" }, file: (f: string) => files(own)[f as keyof ReturnType<typeof files>] ?? null, keychain: () => "" };
-    expect(preflight(ok)).toMatchObject({ project: "lab-project", date: "2026-11-21", repeat: 1, profile: "/p", token: "t" });
+    expect(preflight(ok)).toMatchObject({ project: "lab-project", date: "2026-11-21", repeat: 3, profile: "/p", token: "t" });
     expect(() => preflight({ ...ok, argv: [] })).toThrow(/--date/);
     expect(() => preflight({ ...ok, argv: ["--date", "2026-11-21", "--repeat", "0"] })).toThrow(/--repeat/);
     expect(() => preflight({ ...ok, file: (f: string) => files(null)[f as keyof ReturnType<typeof files>] ?? null })).toThrow(/no \.env\.eval\.local/);

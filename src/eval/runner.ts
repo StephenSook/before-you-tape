@@ -30,6 +30,9 @@ export interface RunnerInput {
   paths?: readonly EvalPath[];
   // How long a read or a second look may take, as on the Pack page (READ_TIMEOUT_MS unless a test sets it).
   limitMs?: number;
+  // Read once on the device and in the cloud before the first item and report that time apart, so the cold first
+  // call is not one of the timed runs (eval/PROTOCOL.md, "Latency").
+  coldCall?: boolean;
 }
 
 export type EvalPath = "device" | "cloud" | "shipped";
@@ -81,13 +84,27 @@ async function levelsOf(edition: RuleEdition, date: string, destinations: readon
   return out;
 }
 
-export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failures: RunnerFailure[] }> {
+export interface RunnerResult { rows: EvalRow[]; failures: RunnerFailure[]; cold: { device: number | null; cloud: number | null } }
+
+export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
   const repeat = Math.max(1, i.repeat ?? 1);
   const policy = i.secondLook ?? SECOND_LOOK_DEFAULT;
   const paths = new Set(i.paths ?? ALL_PATHS);
   const limit = i.limitMs ?? READ_TIMEOUT_MS;
   const rows: EvalRow[] = [];
   const failures: RunnerFailure[] = [];
+  const cold: RunnerResult["cold"] = { device: null, cloud: null };
+  const firstImage = i.set.items[0] ? i.images[i.set.items[0].itemId] : undefined;
+  if (i.coldCall && firstImage) {
+    for (const [name, route] of [["device", "device_only"], ["cloud", "cloud_only"]] as const) {
+      if (!paths.has(name)) continue;
+      try {
+        cold[name] = Math.round((await within(limit, (signal) => readItem(i.models, firstImage, route, i.now, undefined, signal))).ms);
+      } catch (e) {
+        failures.push({ itemId: i.set.items[0]!.itemId, path: name, error: `cold call: ${message(e)}` });
+      }
+    }
+  }
   for (const item of i.set.items) {
     const image = i.images[item.itemId];
     if (!image) throw new Error(`${item.itemId}: no photo`);
@@ -157,5 +174,5 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
       });
     }
   }
-  return { rows, failures };
+  return { rows, failures, cold };
 }

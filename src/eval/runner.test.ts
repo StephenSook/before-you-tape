@@ -132,6 +132,18 @@ describe("evalRows", () => {
     expect(out.failures.map((f) => f.path)).toEqual(["second_look"]);
   });
 
+  it("with a cold call, reads once on each path before the first item and reports that time apart", async () => {
+    const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
+    const out = await evalRows({ set: set(["own-18", "own-20"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image, "own-20": image }, now, coldCall: true });
+    expect(models.device.generate).toHaveBeenCalledTimes(3);
+    expect(models.cloud.generate).toHaveBeenCalledTimes(3);
+    expect(out.cold.device).toBeGreaterThan(0);
+    expect(out.cold.cloud).toBeGreaterThan(0);
+    expect(out.rows.every((r) => r.device!.msRuns.length === 1 && r.cloud!.msRuns.length === 1)).toBe(true);
+    const plain = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, paths: ["shipped"] });
+    expect(plain.cold).toEqual({ device: null, cloud: null });
+  });
+
   it("refuses an item with no photo", async () => {
     const models = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
     await expect(evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: {}, now })).rejects.toThrow(/own-18: no photo/);
