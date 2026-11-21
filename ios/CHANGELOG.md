@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### docs(ios): a one-page checklist for the airplane-mode check on a real iPhone
+- What: `docs/evidence/ios/DEVICE-CHECKLIST.md`: what to bring, numbered steps (build, install,
+  read the Ready check lines, airplane mode on, 5 real items, pull the box), a record table and
+  the pass or fail rule.
+- Source: lane goal (prove the photo read in airplane mode on the iPhone).
+- Verified: tone check and hygiene guard clean. Not yet run with the phone.
+
 ### feat(ios): a script for the iPhone session: build, install, pull the box, summarize it
 - What: `ios/scripts/device-session.sh build|install|pull|summary`. It finds the one connected
   physical iPhone (or `$BYT_DEVICE`), builds Release with signing, installs and opens the app,
