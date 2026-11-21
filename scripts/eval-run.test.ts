@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import template from "../remoteconfig.template.json";
-import { evalEnv, evalProjectId, liveModels, parseEnvFile } from "./eval-run";
+import pkg from "../package.json";
+import { evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight } from "./eval-run";
 
 describe("eval-run", () => {
   it("runs only against an eval project, never the live one, and never with no project named", () => {
@@ -26,5 +27,30 @@ describe("eval-run", () => {
     expect(() => evalEnv(own.replace("eval-key", "live-key"), live)).toThrow(/VITE_FB_API_KEY is the live project's/);
     expect(() => evalEnv(own.replace("VITE_USE_EMULATORS=false", "VITE_USE_EMULATORS=true"), live)).toThrow(/VITE_USE_EMULATORS/);
     expect(() => evalEnv(own.replace("qwiklabs-gcp-01-abc", "before-you-tape-2026"), live)).toThrow(/refusing the live project/);
+  });
+
+  const own = "VITE_FB_API_KEY=eval-key\nVITE_FB_AUTH_DOMAIN=lab.firebaseapp.com\nVITE_FB_PROJECT_ID=lab-project\nVITE_FB_APP_ID=1:2:web:eval\nVITE_RECAPTCHA_SITE_KEY=any\nVITE_USE_EMULATORS=false\n";
+  const files = (evalFile: string | null) => ({ ".env.eval.local": evalFile, ".env.local": "VITE_FB_PROJECT_ID=before-you-tape-2026\n" });
+
+  it("takes the eval token from the environment or the Keychain item, and refuses an empty one", () => {
+    expect(evalToken({ APPCHECK_DEBUG_TOKEN: "t-env" }, () => "t-key")).toBe("t-env");
+    expect(evalToken({}, () => "t-key\n")).toBe("t-key");
+    // `security find-generic-password -w` exits 0 on an item with an empty value, so the length decides.
+    expect(() => evalToken({}, () => "")).toThrow(/byt-eval-appcheck-debug-token is empty/);
+    expect(() => evalToken({}, () => { throw new Error("not found"); })).toThrow(/no App Check debug token/);
+  });
+
+  it("checks every precondition before it starts anything, and stops at the first that fails", () => {
+    const ok = { argv: ["--date", "2026-11-21"], env: { BYT_NANO_PROFILE: "/p", APPCHECK_DEBUG_TOKEN: "t" }, file: (f: string) => files(own)[f as keyof ReturnType<typeof files>] ?? null, keychain: () => "" };
+    expect(preflight(ok)).toMatchObject({ project: "lab-project", date: "2026-11-21", repeat: 1, profile: "/p", token: "t" });
+    expect(() => preflight({ ...ok, argv: [] })).toThrow(/--date/);
+    expect(() => preflight({ ...ok, argv: ["--date", "2026-11-21", "--repeat", "0"] })).toThrow(/--repeat/);
+    expect(() => preflight({ ...ok, file: (f: string) => files(null)[f as keyof ReturnType<typeof files>] ?? null })).toThrow(/no \.env\.eval\.local/);
+    expect(() => preflight({ ...ok, env: { APPCHECK_DEBUG_TOKEN: "t" } })).toThrow(/BYT_NANO_PROFILE/);
+    expect(() => preflight({ ...ok, env: { BYT_NANO_PROFILE: "/p" } })).toThrow(/byt-eval-appcheck-debug-token is empty/);
+  });
+
+  it("chains no npm script with ';', so a failed step always stops the next", () => {
+    expect(Object.entries(pkg.scripts).filter(([, v]) => v.includes(";")).map(([k]) => k)).toEqual([]);
   });
 });

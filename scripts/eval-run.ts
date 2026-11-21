@@ -78,20 +78,50 @@ function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): Promise<
   });
 }
 
-async function main(): Promise<void> {
-  const arg = (name: string) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : undefined; };
+const KEYCHAIN_ITEM = "byt-eval-appcheck-debug-token";
+
+// The eval project's App Check debug token: from the environment, or else from its Keychain item. Never printed.
+export function evalToken(env: Record<string, string | undefined>, keychain: (service: string) => string): string {
+  const fromEnv = env.APPCHECK_DEBUG_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+  let value: string;
+  try {
+    value = keychain(KEYCHAIN_ITEM);
+  } catch {
+    throw new Error(`no App Check debug token: set APPCHECK_DEBUG_TOKEN or add the Keychain item ${KEYCHAIN_ITEM}`);
+  }
+  // `security find-generic-password -w` exits 0 on an item whose value is empty, so the length decides.
+  if (value.trim() === "") throw new Error(`the Keychain item ${KEYCHAIN_ITEM} is empty`);
+  return value.trim();
+}
+
+export interface Preflight { date: string; repeat: number; items: string | undefined; project: string; profile: string; token: string }
+
+// Every precondition, checked in order before anything starts; the first that fails stops the run.
+export function preflight(i: { argv: string[]; env: Record<string, string | undefined>; file: (path: string) => string | null; keychain: (service: string) => string }): Preflight {
+  const arg = (name: string) => { const k = i.argv.indexOf(name); return k >= 0 ? i.argv[k + 1] : undefined; };
   const date = arg("--date") ?? "";
   if (!isCalendarDate(date)) throw new Error("--date must be a real YYYY-MM-DD date");
   const repeat = Number(arg("--repeat") ?? "1");
-  const project = evalEnv(existsSync(".env.eval.local") ? readFileSync(".env.eval.local", "utf8") : null,
-    existsSync(".env.local") ? parseEnvFile(readFileSync(".env.local", "utf8")) : {});
-  const profile = resolve(requireEnv(process.env, "BYT_NANO_PROFILE"));
-  const token = requireEnv(process.env, "APPCHECK_DEBUG_TOKEN");
+  if (!Number.isInteger(repeat) || repeat < 1 || repeat > 5) throw new Error("--repeat must be a whole number from 1 to 5");
+  const live = i.file(".env.local");
+  const project = evalEnv(i.file(".env.eval.local"), live === null ? {} : parseEnvFile(live));
+  const profile = resolve(requireEnv(i.env, "BYT_NANO_PROFILE"));
+  const token = evalToken(i.env, i.keychain);
+  return { date, repeat, items: arg("--items"), project, profile, token };
+}
+
+async function main(): Promise<void> {
+  const { date, repeat, items, project, profile, token } = preflight({
+    argv: process.argv, env: process.env,
+    file: (f) => (existsSync(f) ? readFileSync(f, "utf8") : null),
+    keychain: (service) => execFileSync("security", ["find-generic-password", "-s", service, "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }),
+  });
 
   const manifest = JSON.parse(readFileSync("eval/set/manifest.json", "utf8")) as SetManifest;
   const labels = JSON.parse(readFileSync("eval/set/labels.json", "utf8")) as SetLabels;
   const full: EvalSet = buildEvalSet(manifest, labels);
-  const ids = arg("--items") ?? full.items.map((i) => i.itemId).join(",");
+  const ids = items ?? full.items.map((i) => i.itemId).join(",");
   const photos = evalPhotos(ids, manifest, (p) => readFileSync(p), full.items.length);
   const set: EvalSet = { ...full, items: full.items.filter((i) => photos.some((p) => p.itemId === i.itemId)) };
   const edition = JSON.parse(readFileSync("rules/edition.json", "utf8")) as { editionId: string };
