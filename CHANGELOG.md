@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- readMeasured is the /ran page's guard on the measured totals file: it accepts only a file of exactly the right shape, measured within the last 14 days by this device's date, and refuses as unreadable any other shape, a future date, or a count under 5 not written as fewer than 5, so a hand-edited file cannot leak a small number. Not used yet. Source: per-read telemetry plan. Verified: four new tests failed first and pass; full suite passes.
+
 - summarizeRoutes turns the route records saved boxes hold (each item's read source, read time, second look and fallback) into totals for /ran: reads on this device and in the cloud, each with its median and 90th percentile time, second looks, fallbacks, typed items apart from model reads, and the window. Only counts and times come out, and any total under 5 comes out as fewer than 5 with no time, so no number can point at one visitor. Not used yet. Source: per-read telemetry plan. Verified: five new tests failed first and pass; full suite passes.
 
 - README: the saved box is kept for about 30 days, as the privacy page says, and Delete my saved box under the box deletes it sooner, with its photos on this device and the anonymous sign-in. Source: claims sweep. Verified: against legal/privacy.md and the live delete check of 2026-11-21; tone, hygiene and the full suite pass.
