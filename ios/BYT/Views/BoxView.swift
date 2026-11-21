@@ -21,12 +21,17 @@ struct BoxView: View {
                 }
                 ForEach(Self.rows(items: box.items, result: box.result)) { row in
                     if let verdict = row.verdict {
-                        ItemCardView(item: row.item, verdict: verdict, box: box)
+                        let id = row.item.itemId
+                        ItemCardView(item: row.item, verdict: verdict, box: box,
+                                     checkingAgain: model.isCheckingAgain(id), lookError: model.secondLookError(id),
+                                     onRetryLook: model.canRetryLook(id) ? { model.retrySecondLook(id) } : nil,
+                                     onOfferLook: model.isLookOffered(id) ? { model.checkInTheCloud(id) } : nil)
                     } else {
-                        UncheckedItemRow(item: row.item, box: box)
+                        UncheckedItemRow(item: row.item, box: box, remove: model.remove)
                     }
                 }
-                .onDelete { rows in rows.map { box.items[$0].itemId }.forEach(box.remove) }
+                // Through the model, so a removed item's second look is cancelled and its crop forgotten.
+                .onDelete { rows in rows.map { box.items[$0].itemId }.forEach(model.remove) }
             } else {
                 Text(model.rulesProblem ?? AppModel.rulesFailed)
             }
@@ -37,6 +42,10 @@ struct BoxView: View {
             Button("Type it") { typing = true }.disabled(model.box == nil)
         }
         .sheet(isPresented: $typing) { if let box = model.box { TypedEntryView(box: box) } }
+        // The cloud question asked by a card's "Check it in the cloud", with the crop that would be sent.
+        .sheet(isPresented: Binding(get: { model.askingConsent && model.lookAwaitingConsent != nil }, set: { _ in })) {
+            ConsentSheet(crop: model.pendingCrop) { allow in Task { await model.answerConsent(allow) } }
+        }
     }
 }
 
@@ -58,6 +67,8 @@ extension BoxView {
 private struct UncheckedItemRow: View {
     let item: BoxItem
     let box: BoxStore
+    /// The model's removal, which also cancels the item's second look.
+    let remove: (String) -> Void
     @State private var fixing = false
 
     var body: some View {
@@ -66,7 +77,7 @@ private struct UncheckedItemRow: View {
             Text("This item could not be checked. Fix it or remove it.")
             HStack {
                 Button("Fix this reading") { fixing = true }.buttonStyle(.bordered)
-                Button("Remove", role: .destructive) { box.remove(item.itemId) }.buttonStyle(.bordered)
+                Button("Remove", role: .destructive) { remove(item.itemId) }.buttonStyle(.bordered)
             }
         }
         .padding(.vertical, 6)

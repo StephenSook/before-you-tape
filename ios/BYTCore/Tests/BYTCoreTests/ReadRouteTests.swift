@@ -100,4 +100,13 @@ import Testing
         let late: Int? = await Timeout.run(seconds: 0.1) { try? await Task.sleep(for: .seconds(5)); return 1 }
         #expect(late == nil)
     }
+
+    /// Cancelling the caller cancels the call it runs, so a cancelled read stops sending.
+    @Test func cancellingTheCallerCancelsTheCall() async {
+        let caller = Task { await Timeout.run(seconds: 3) { () -> Bool in try? await Task.sleep(for: .seconds(30)); return Task.isCancelled } }
+        try? await Task.sleep(for: .milliseconds(100))
+        caller.cancel()
+        let sawCancel = await caller.value
+        #expect(sawCancel == true)
+    }
 }

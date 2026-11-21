@@ -34,26 +34,9 @@ import Testing
         #expect(BoxSummaryView.recheckLine(items: 3, country: "Philippines", ms: 4.4) == "Re-checked 3 items for Philippines in 4 ms. 0 model calls.")
     }
 
-    /// The iPhone runs no cloud second look yet, so no text in the app may say or imply one: one read
-    /// and the rules decide, and the card says which read it was.
-    @Test func noAppTextMentionsASecondLook() throws {
-        let app = BoxStoreTests.repo.appendingPathComponent("ios/BYT")
-        let files = try #require(FileManager.default.enumerator(at: app, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL }
-            .filter { $0.pathExtension == "swift" })
-        #expect(files.count > 20, "the walk found the app's files")
-        let literal = try Regex(#""(?:[^"\\\n]|\\.)*""#)
-        var seen = 0
-        for file in files {
-            for line in try String(contentsOf: file, encoding: .utf8).split(separator: "\n")
-            where !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") {
-                for match in line.matches(of: literal) {
-                    seen += 1
-                    let text = line[match.range].lowercased()
-                    #expect(!text.contains("second look") && !text.contains("looked again"), "\(file.lastPathComponent): \(text)")
-                }
-            }
-        }
-        #expect(seen > 50, "the walk read the app's strings")
+    /// The card says which read an item came from; a second look's reason is the web app's own sentence
+    /// (AppSecondLookTests.theReasonsAreTheWebAppsSentences).
+    @Test func anOnDeviceReadSaysItWasReadOnThisIPhone() {
         #expect(SourceGlyph.text("phone_on_device") == "Read on this iPhone")
     }
 

@@ -31,6 +31,15 @@ struct BoxSources: Codable, Equatable, Sendable {
     }
 }
 
+/// A cloud second look that landed on an item: how long it took and why it ran (the screen's words).
+struct SecondLookNote: Codable, Equatable, Sendable {
+    var ms: Double
+    var reason: String
+}
+
+/// Which read of a disputed fact the sender picks.
+enum DisputeSide: String, Codable, Sendable { case device, cloud }
+
 /// One item in the box: the engine's input fields (the web app's BoxItemInput) plus where its
 /// read came from. Never a verdict: verdicts are derived.
 struct BoxItem: Codable, Equatable, Identifiable, Sendable {
@@ -54,14 +63,27 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The whole label a photo read returned, before the read's text was clipped: in memory only, so a
     /// new edition can tag it again. Never saved.
     var wholeLabel: String?
+    /// The cloud second look's whole label: a new edition tags it again while its words count. In memory
+    /// only, never saved.
+    var cloudWholeLabel: String?
+    /// Which read's label the sender picked when their words were disputed; nil while both count. In memory
+    /// only, like the labels it chooses between.
+    var labelPick: DisputeSide?
+    /// Set once a cloud second look landed on this item.
+    var secondLook: SecondLookNote?
+    /// The facts the device read and the second look disagreed on, in the web app's shape
+    /// ({ field: { device, cloud, resolved } }); an open one holds the item at "Check this".
+    var disputes: JSONValue?
 
     var id: String { itemId }
 
     var engineInput: JSONValue {
-        .object(["itemId": .string(itemId), "read": read, "overrides": .object(overrides),
+        var input: [String: JSONValue] = ["itemId": .string(itemId), "read": read, "overrides": .object(overrides),
                  "answers": .object(answers.mapValues { .string($0) }), "quantity": .number(Double(quantity)),
                  "identityConfirmedBy": identityConfirmedBy.map { .string($0) } ?? .null,
-                 "labelTags": .array(labelTags.map { .string($0) })])
+                 "labelTags": .array(labelTags.map { .string($0) })]
+        if let disputes { input["disputes"] = disputes }
+        return .object(input)
     }
 
     /// The copy that leaves memory: no label text, read or corrected; the tags stand in for it.
@@ -73,6 +95,8 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
         }
         copy.overrides["labelText"] = nil
         copy.wholeLabel = nil
+        copy.cloudWholeLabel = nil
+        copy.labelPick = nil
         return copy
     }
 }
@@ -84,12 +108,25 @@ struct BoxSnapshot: Codable, Equatable, Sendable {
     var items: [BoxItem]
     var cloudConsent: Bool?
     var sources: BoxSources
+    /// The cloud question's words an "allowed" answered (`BoxStore.consentVersion`); nil before they
+    /// were kept, which counts as the earlier question.
+    var cloudConsentVersion: Int?
 }
 
 protocol BoxPersistence {
     /// Throws when the box could not be saved; the error's description is shown to the sender.
     func save(_ snapshot: BoxSnapshot) throws
     func load(boxId: String) -> BoxSnapshot?
+    /// The sender's cloud choice, kept apart from the box file ("allowed", "declined" or "unasked"),
+    /// so a choice whose box save failed still holds after a relaunch. False when it was not written.
+    @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool
+    func recordedConsent(boxId: String) -> String?
+}
+
+extension BoxPersistence {
+    /// A box kept only in memory has no separate record: its choice goes with it.
+    @discardableResult func recordConsent(_ choice: String, boxId: String) -> Bool { true }
+    func recordedConsent(boxId: String) -> String? { nil }
 }
 
 // The engine's box result (src/engine/verdict.ts), as the screens read it.
@@ -156,6 +193,8 @@ final class BoxStore {
     static let lithiumWaits = "Another item in this box needs its label read again before the lithium total is known."
     /// The box's lithium line while any item's label must be read again.
     static let lithiumBoxWaits = "An item in this box needs its label read again before the lithium total is known."
+    /// Why the cloud choice may not hold after the app is closed: its own record was not written.
+    static let consentNotSaved = "Your cloud choice is not saved on this iPhone. Set it again before you close the app."
 
     let boxId: String
     private(set) var destinationCode = BoxStore.defaultDestination
@@ -190,16 +229,38 @@ final class BoxStore {
 
     /// Merges a saved box under any items already added, then derives the verdicts afresh.
     func load() {
-        guard let saved = persistence.load(boxId: boxId) else { return }
+        let saved = persistence.load(boxId: boxId)
+        if cloudConsent == nil { cloudConsent = Self.consent(file: saved, record: persistence.recordedConsent(boxId: boxId)) }
+        guard let saved else { return }
         savedBoxUnread = false
         // An item id appears once: a damaged file with duplicate ids would make the engine refuse the box.
         var known = Set(items.map(\.itemId))
         let restored = saved.items.filter { known.insert($0.itemId).inserted }
         items = restored + items
         destinationCode = saved.destinationCode
-        if cloudConsent == nil { cloudConsent = saved.cloudConsent }
         sources = saved.sources
         commit()
+    }
+
+    /// The cloud question's words (ConsentSheet.sentence). 2 names the second look of a read already
+    /// made; an "allowed" given to the earlier words is asked again.
+    nonisolated static let consentVersion = 2
+
+    /// How a cloud choice is kept in the separate record; an "allowed" carries the question's words.
+    nonisolated static func consentRecord(_ choice: Bool?) -> String {
+        choice == true ? "allowed-\(consentVersion)" : choice == false ? "declined" : "unasked"
+    }
+
+    /// The cloud choice after a relaunch: the stricter of the box file's and the separate record's (off,
+    /// then unasked, then allowed), so a choice taken back whose box save failed never comes back. A box
+    /// saved before the record existed keeps its own choice. An "allowed" given to earlier words of the
+    /// question counts as unasked.
+    nonisolated static func consent(file snapshot: BoxSnapshot?, record: String?) -> Bool? {
+        let file: Bool? = snapshot?.cloudConsent == true && snapshot?.cloudConsentVersion != consentVersion ? nil : snapshot?.cloudConsent
+        guard let record else { return file }
+        let recorded: Bool? = record == consentRecord(true) ? true : record == consentRecord(false) ? false : nil
+        func rank(_ choice: Bool?) -> Int { choice == false ? 0 : choice == nil ? 1 : 2 }
+        return rank(recorded) <= rank(file) ? recorded : file
     }
 
     @discardableResult
@@ -247,6 +308,7 @@ final class BoxStore {
     func answer(_ itemId: String, question: String, answer: String) { update(itemId) { $0.answers[question] = answer } }
 
     /// A corrected label replaces the read one, so its tags must survive the label text not being saved.
+    /// The sender's own correction of a disputed fact settles that dispute.
     func override(_ itemId: String, patch: [String: JSONValue]) {
         update(itemId) { item in
             item.overrides.merge(patch) { _, new in new }
@@ -255,6 +317,124 @@ final class BoxStore {
                 // Blank words are not a label: a stale item stays stale until real words are read.
                 if hasWords(label) || !isStale(item) { item.tagsEdition = tagsEdition(label) }
             }
+            if case var .object(all)? = item.disputes {
+                for field in Self.disputeFields where Self.corrects(patch, field) {
+                    if case var .object(d)? = all[field] { d["resolved"] = .bool(true); all[field] = .object(d) }
+                }
+                item.disputes = .object(all)
+            }
+        }
+    }
+
+    /// The facts two reads can dispute, in the web app's order (src/engine/types.ts DISPUTE_FIELDS).
+    nonisolated static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
+                                "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence"]
+
+    /// Whether these corrections settle a disputed fact: the battery only as a whole set of numbers,
+    /// the label words only with a corrected label, any other fact by itself (the web app's rule).
+    static func corrects(_ patch: [String: JSONValue], _ field: String) -> Bool {
+        switch field {
+        case "battery": patch["volts"] != nil && patch["milliampHours"] != nil && patch["wattHours"] != nil
+        case "labelTags": patch["labelText"] != nil
+        default: patch[field] != nil
+        }
+    }
+
+    /// The label words that can change a verdict: every tag but the one that only says a label was read.
+    static func wordsOf(_ tags: [String]) -> String { Set(tags.filter { $0 != "label_text" }).sorted().joined(separator: ",") }
+
+    /// What each read of a second look called the item and said on its label, kept in memory only, so
+    /// a picked side brings its own words back (the web app's lookLabels).
+    private struct LookLabels {
+        var device: String, cloud: String
+        var deviceName: String?, cloudName: String?
+    }
+    @ObservationIgnored private var lookLabels: [String: LookLabels] = [:]
+
+    private static func text(_ v: JSONValue?) -> String? { if case let .string(s)? = v { s } else { nil } }
+
+    /// A cloud second look landed (the web app's applySecondLook). The merged read replaces the device's;
+    /// the item keeps the tags of every label either read saw, never only the merged one, so a hazard word
+    /// in the shorter label still counts; a label word only one read saw becomes a dispute of tags (never of
+    /// label text); a fact the sender corrected while the cloud read ran keeps no dispute; and the item
+    /// counts as confirmed only when both reads saw the same kind of item. `cloudLabel` is the cloud read's
+    /// whole label.
+    func applySecondLook(_ itemId: String, merged: JSONValue, ms: Double, reason: String, cloudLabel: String?,
+                         disputes: JSONValue = .object([:])) {
+        sources.add(\.secondLooks)
+        let shown = cloudLabel.map { String(String.UnicodeScalarView($0.unicodeScalars.prefix(ReadDraft.labelTextMax))) }
+        let cloudTags = tags(cloudLabel.map { .string($0) })
+        update(itemId) { item in
+            lookLabels[itemId] = LookLabels(device: Self.text(item.read["labelText"]) ?? "", cloud: shown ?? "",
+                                            deviceName: Self.text(item.read["itemName"]), cloudName: Self.text(merged["itemName"]))
+            var found: [String: JSONValue] = if case let .object(o) = disputes { o } else { [:] }
+            if cloudLabel != nil, Self.wordsOf(item.labelTags) != Self.wordsOf(cloudTags) {
+                found["labelTags"] = .object(["device": .array(item.labelTags.map { .string($0) }),
+                                              "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
+            }
+            for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
+            let sameCategory = merged["category"] == item.read["category"]
+            // A label the sender corrected while the cloud read ran stays theirs: only its tags count.
+            if item.overrides["labelText"] == nil {
+                let added = cloudLabel == nil ? tags(merged["labelText"]) : cloudTags
+                for tag in added where !item.labelTags.contains(tag) { item.labelTags.append(tag) }
+                if !added.isEmpty { item.tagsEdition = engine.editionId }
+                // Both labels stay in memory, so a new edition tags both again: the first read's before
+                // the merged read replaces its text, and the cloud's.
+                if item.wholeLabel == nil { item.wholeLabel = Self.text(item.read["labelText"]) }
+                item.cloudWholeLabel = cloudLabel ?? Self.text(merged["labelText"])
+                item.labelPick = nil
+            }
+            item.read = merged
+            item.secondLook = SecondLookNote(ms: ms, reason: reason)
+            if item.identityConfirmedBy == nil, sameCategory { item.identityConfirmedBy = "second_look" }
+            item.disputes = found.isEmpty ? nil : .object(found)
+        }
+    }
+
+    /// The sender picks one read of a disputed fact (the web app's settleDispute): that reading is used and
+    /// judged. Picking the label brings back that read's words, and its text while this iPhone still has
+    /// it; picking what the item is confirms it, and names it as that read did (or by its category, once
+    /// this iPhone no longer has that read's name).
+    func settleDispute(_ itemId: String, field: String, side: DisputeSide) {
+        update(itemId) { item in
+            guard case var .object(all)? = item.disputes, case var .object(d)? = all[field], let value = d[side.rawValue],
+                  case var .object(read) = item.read else { return }
+            d["resolved"] = .bool(true)
+            all[field] = .object(d)
+            item.disputes = .object(all)
+            // The picked reading is what the rules judge: an earlier correction of the same facts (a part
+            // of the battery numbers, say) no longer stays on top of it.
+            let keys = field == "battery" ? ["volts", "milliampHours", "wattHours"] : field == "labelTags" ? ["labelText"] : [field]
+            for key in keys { item.overrides[key] = nil }
+            switch field {
+            case "battery":
+                for key in ["volts", "milliampHours", "wattHours"] { if let v = value[key] { read[key] = v } }
+            case "labelTags":
+                // The picked label, tagged by the edition in force when this iPhone still has it; else the
+                // words saved with the dispute, which a rule update tags again with the label (refreshStaleTags).
+                let picked = side == .cloud ? item.cloudWholeLabel : item.wholeLabel
+                if let picked, hasWords(.string(picked)) {
+                    item.labelTags = tags(.string(picked))
+                    item.tagsEdition = engine.editionId
+                } else if case let .array(values) = value {
+                    item.labelTags = values.compactMap { if case let .string(s) = $0 { s } else { nil } }
+                }
+                if let words = lookLabels[itemId] { read["labelText"] = .string(side == .device ? words.device : words.cloud) }
+                // Only the picked read's label is tagged again by a new edition; both labels stay, so a later
+                // pick of the other side still has its own.
+                item.labelPick = side
+            default:
+                read[field] = value
+                if field == "category" {
+                    let names = lookLabels[itemId]
+                    let category = Self.text(value) ?? ""
+                    read["itemName"] = .string((side == .device ? names?.deviceName : names?.cloudName)
+                        ?? ReadDraft.categories.first { $0.id == category }?.label ?? category)
+                    if item.identityConfirmedBy == nil { item.identityConfirmedBy = "sender" }
+                }
+            }
+            item.read = .object(read)
         }
     }
 
@@ -272,6 +452,7 @@ final class BoxStore {
 
     func remove(_ itemId: String) {
         items.removeAll { $0.itemId == itemId }
+        lookLabels[itemId] = nil
         commit()
     }
 
@@ -303,9 +484,13 @@ final class BoxStore {
         commit(result)
     }
 
+    /// The choice is recorded apart from the box file first, so it holds even when the box save fails.
     func setConsent(_ value: Bool?) {
+        let recorded = persistence.recordConsent(Self.consentRecord(value), boxId: boxId)
         cloudConsent = value
         commit(result)
+        // Said even when the box saved, so the sender knows the choice may not hold after a relaunch.
+        if !recorded { saveProblem = Self.consentNotSaved }
     }
 
     // MARK: Plumbing
@@ -320,7 +505,8 @@ final class BoxStore {
         result = fresh ?? evaluate()
         do {
             try persistence.save(BoxSnapshot(boxId: boxId, destinationCode: destinationCode, items: items.map(\.forStorage),
-                                             cloudConsent: cloudConsent, sources: sources))
+                                             cloudConsent: cloudConsent, sources: sources,
+                                             cloudConsentVersion: cloudConsent == true ? Self.consentVersion : nil))
             saveProblem = nil
         } catch {
             saveProblem = (error as? LocalizedError)?.errorDescription ?? "This change is not saved on this iPhone."
@@ -369,12 +555,47 @@ final class BoxStore {
     private func refreshStaleTags() -> Bool {
         var changed = false
         for i in items.indices where isStale(items[i]) {
-            guard let label = labelInMemory(items[i]) else { continue }
-            items[i].labelTags = tags(.string(label))
+            let labels = labelsInMemory(items[i])
+            guard !labels.isEmpty else { continue }
+            var found: [String] = []
+            for label in labels { for tag in tags(.string(label)) where !found.contains(tag) { found.append(tag) } }
+            items[i].labelTags = found
             items[i].tagsEdition = engine.editionId
+            // An open dispute of label words keeps each side's words from the same edition as the item's.
+            if case var .object(all)? = items[i].disputes, case var .object(d)? = all["labelTags"], d["resolved"] != .bool(true) {
+                func words(_ label: String?) -> JSONValue? {
+                    guard let label, hasWords(.string(label)) else { return nil }
+                    return .array(tags(.string(label)).map { .string($0) })
+                }
+                if let device = words(items[i].wholeLabel) { d["device"] = device }
+                if let cloud = words(items[i].cloudWholeLabel) { d["cloud"] = cloud }
+                // When the new edition finds the same words on both labels, nothing is left to choose.
+                func strings(_ v: JSONValue?) -> [String] {
+                    if case let .array(a)? = v { a.compactMap { if case let .string(s) = $0 { s } else { nil } } } else { [] }
+                }
+                if Self.wordsOf(strings(d["device"])) == Self.wordsOf(strings(d["cloud"])) { d["resolved"] = .bool(true) }
+                all["labelTags"] = .object(d)
+                items[i].disputes = .object(all)
+            }
             changed = true
         }
         return changed
+    }
+
+    /// Every label this iPhone still holds for an item, which a new edition tags again: a corrected label
+    /// alone; otherwise the picked read's label, or, while no side is picked, the read's and the cloud's.
+    private func labelsInMemory(_ item: BoxItem) -> [String] {
+        if case let .string(text)? = item.overrides["labelText"], hasWords(.string(text)) { return [text] }
+        let first = item.wholeLabel.map { JSONValue.string($0) } ?? item.read["labelText"]
+        let cloud = item.cloudWholeLabel.map { JSONValue.string($0) }
+        let labels: [JSONValue?] = switch item.labelPick {
+        case .device?: [first]
+        case .cloud?: [cloud]
+        case nil: [first, cloud]
+        }
+        return labels.compactMap { label in
+            if case let .string(text)? = label, hasWords(label) { text } else { nil }
+        }
     }
 
     /// A saved item whose tags another edition found, with its label gone, is never OK: the sender

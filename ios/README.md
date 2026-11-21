@@ -8,8 +8,10 @@ The box is kept on the phone only: joining a box started in the web app is not b
   phone and the laptop run the same code.
 - Reading: a label photo or the label's words go to Apple's on-device model (iOS 27; a photo goes
   as an image when the model reports image understanding), or to Gemini in the cloud through
-  Firebase AI Logic when you allow it. A model only reads; the rules decide. There is no cloud
-  second look yet (docs/LIMITS.md).
+  Firebase AI Logic when you allow it. A model only reads; the rules decide. Once you allow cloud
+  checks, a photo read on the iPhone also gets a cloud second look when the web app's rules ask
+  for one, and the two reads are merged by the same engine; label words get none
+  (docs/LIMITS.md).
 - Checks: `bash ios/scripts/ci-local-ios.sh` runs the repository's checks and the iPhone
   client's own. It needs `ios/BYT/Config/GoogleService-Info.plist`, which is gitignored.
 

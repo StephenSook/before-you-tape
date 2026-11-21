@@ -419,7 +419,8 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
 
     @Test func theVerdictIsNeverReadFromStorage() throws {
         let saved = BoxItem(itemId: "saved-1", read: Self.lotion, readSource: "phone_on_device", readMs: 900)
-        let p = MemoryBoxPersistence(stored: BoxSnapshot(boxId: "b", destinationCode: "PH", items: [saved], cloudConsent: true, sources: BoxSources()))
+        let p = MemoryBoxPersistence(stored: BoxSnapshot(boxId: "b", destinationCode: "PH", items: [saved], cloudConsent: true, sources: BoxSources(),
+                                                          cloudConsentVersion: BoxStore.consentVersion))
         let s = try store(p)
         s.load()
         #expect(s.items.map(\.itemId) == ["saved-1"])
