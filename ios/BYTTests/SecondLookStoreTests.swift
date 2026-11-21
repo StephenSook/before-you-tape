@@ -81,6 +81,27 @@ import Testing
         #expect(s.items[0].read["milliampHours"] == .number(10000) && s.items[0].read["wattHours"] == .number(37))
     }
 
+    /// A rule update while the label words are still disputed tags both sides again, so a pick made after
+    /// it uses the current edition's words, never the ones the earlier edition found.
+    @Test func pickingALabelAfterARuleUpdateUsesTheCurrentWords() throws {
+        let deviceText = "SHEA ZQXWORD BODY LOTION"
+        let device = Self.with(Self.lotion, ["labelText": .string(deviceText)])
+        let cloud = Self.with(Self.lotion, ["labelText": .string("FLAMMABLE BODY LOTION")])
+        let engine = try BoxStoreTests.bundledEngine()
+        let s = try t.store(engine: engine)
+        var outcome = t.outcome(device, .onDevice)
+        outcome.wholeLabel = deviceText
+        let id = try #require(s.addRead(outcome, cropFile: nil))
+        let m = try engine.mergeSecondLook(device: device, cloud: cloud)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(cloud), disputes: m.disputes)
+        #expect(dispute(s, "labelTags")?["resolved"] == .bool(false))
+        _ = try engine.setEdition(BoxStoreTests.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+        s.reevaluate()
+        s.settleDispute(id, field: "labelTags", side: .device)
+        #expect(s.items[0].labelTags.contains("alcohol") && !s.items[0].labelTags.contains("flammable"), "\(s.items[0].labelTags)")
+        #expect(s.items[0].tagsEdition == "byt-more-words")
+    }
+
     /// A rule update tags again the labels still in memory: both reads' labels while their words are
     /// merged, and only the picked read's label once the sender picked one. A warning only the cloud
     /// read saw is never dropped by a rule update.

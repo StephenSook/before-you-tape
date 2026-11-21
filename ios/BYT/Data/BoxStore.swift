@@ -38,7 +38,7 @@ struct SecondLookNote: Codable, Equatable, Sendable {
 }
 
 /// Which read of a disputed fact the sender picks.
-enum DisputeSide: String, Sendable { case device, cloud }
+enum DisputeSide: String, Codable, Sendable { case device, cloud }
 
 /// One item in the box: the engine's input fields (the web app's BoxItemInput) plus where its
 /// read came from. Never a verdict: verdicts are derived.
@@ -63,9 +63,12 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The whole label a photo read returned, before the read's text was clipped: in memory only, so a
     /// new edition can tag it again. Never saved.
     var wholeLabel: String?
-    /// The cloud second look's whole label while its words count with the first read's (merged, or
-    /// disputed and not settled): a new edition tags both labels again. In memory only, never saved.
+    /// The cloud second look's whole label: a new edition tags it again while its words count. In memory
+    /// only, never saved.
     var cloudWholeLabel: String?
+    /// Which read's label the sender picked when their words were disputed; nil while both count. In memory
+    /// only, like the labels it chooses between.
+    var labelPick: DisputeSide?
     /// Set once a cloud second look landed on this item.
     var secondLook: SecondLookNote?
     /// The facts the device read and the second look disagreed on, in the web app's shape
@@ -93,6 +96,7 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
         copy.overrides["labelText"] = nil
         copy.wholeLabel = nil
         copy.cloudWholeLabel = nil
+        copy.labelPick = nil
         return copy
     }
 }
@@ -377,6 +381,7 @@ final class BoxStore {
                 // the merged read replaces its text, and the cloud's.
                 if item.wholeLabel == nil { item.wholeLabel = Self.text(item.read["labelText"]) }
                 item.cloudWholeLabel = cloudLabel ?? Self.text(merged["labelText"])
+                item.labelPick = nil
             }
             item.read = merged
             item.secondLook = SecondLookNote(ms: ms, reason: reason)
@@ -404,11 +409,19 @@ final class BoxStore {
             case "battery":
                 for key in ["volts", "milliampHours", "wattHours"] { if let v = value[key] { read[key] = v } }
             case "labelTags":
-                if case let .array(values) = value { item.labelTags = values.compactMap { if case let .string(s) = $0 { s } else { nil } } }
+                // The picked label, tagged by the edition in force when this iPhone still has it; else the
+                // words saved with the dispute, which a rule update tags again with the label (refreshStaleTags).
+                let picked = side == .cloud ? item.cloudWholeLabel : item.wholeLabel
+                if let picked, hasWords(.string(picked)) {
+                    item.labelTags = tags(.string(picked))
+                    item.tagsEdition = engine.editionId
+                } else if case let .array(values) = value {
+                    item.labelTags = values.compactMap { if case let .string(s) = $0 { s } else { nil } }
+                }
                 if let words = lookLabels[itemId] { read["labelText"] = .string(side == .device ? words.device : words.cloud) }
-                // Only the picked read's label is tagged again by a new edition.
-                if side == .cloud { item.wholeLabel = item.cloudWholeLabel }
-                item.cloudWholeLabel = nil
+                // Only the picked read's label is tagged again by a new edition; both labels stay, so a later
+                // pick of the other side still has its own.
+                item.labelPick = side
             default:
                 read[field] = value
                 if field == "category" {
@@ -544,17 +557,34 @@ final class BoxStore {
             for label in labels { for tag in tags(.string(label)) where !found.contains(tag) { found.append(tag) } }
             items[i].labelTags = found
             items[i].tagsEdition = engine.editionId
+            // An open dispute of label words keeps each side's words from the same edition as the item's.
+            if case var .object(all)? = items[i].disputes, case var .object(d)? = all["labelTags"], d["resolved"] != .bool(true) {
+                func words(_ label: String?) -> JSONValue? {
+                    guard let label, hasWords(.string(label)) else { return nil }
+                    return .array(tags(.string(label)).map { .string($0) })
+                }
+                if let device = words(items[i].wholeLabel) { d["device"] = device }
+                if let cloud = words(items[i].cloudWholeLabel) { d["cloud"] = cloud }
+                all["labelTags"] = .object(d)
+                items[i].disputes = .object(all)
+            }
             changed = true
         }
         return changed
     }
 
     /// Every label this iPhone still holds for an item, which a new edition tags again: a corrected label
-    /// alone; otherwise the read's label and, while a second look's words still count, the cloud's.
+    /// alone; otherwise the picked read's label, or, while no side is picked, the read's and the cloud's.
     private func labelsInMemory(_ item: BoxItem) -> [String] {
         if case let .string(text)? = item.overrides["labelText"], hasWords(.string(text)) { return [text] }
         let first = item.wholeLabel.map { JSONValue.string($0) } ?? item.read["labelText"]
-        return [first, item.cloudWholeLabel.map { .string($0) }].compactMap { label in
+        let cloud = item.cloudWholeLabel.map { JSONValue.string($0) }
+        let labels: [JSONValue?] = switch item.labelPick {
+        case .device?: [first]
+        case .cloud?: [cloud]
+        case nil: [first, cloud]
+        }
+        return labels.compactMap { label in
             if case let .string(text)? = label, hasWords(label) { text } else { nil }
         }
     }

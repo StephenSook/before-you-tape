@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a label picked after a rule update is tagged by the edition in force
+- What: picking one read's label words copied the words saved with the dispute, which the earlier
+  edition had found, while the item already said it was tagged by the new edition. A warning the new
+  edition finds on the picked label was lost. Now a pick tags the picked label again with the edition
+  in force while this iPhone holds it, and a rule update also tags both sides of an open label dispute
+  again, so the saved words always match the item's edition. Both labels stay in memory and the item
+  records which side was picked, so picking the other side later uses that side's own label (the
+  earlier fix replaced the first read's label on a cloud pick).
+- Source: review round 2 (Codex and Gemini, on the second-look PR).
+- Verified: a new test (rule update while the label words are disputed, then pick the first read)
+  failed (the new edition's word was missing) and passes; the existing pick-then-pick-again test
+  caught the replaced label during the fix and passes; 206 unit tests pass.
+
 ### docs(ios): the App Privacy evidence says why an iPhone backup adds no row
 - What: note 3 now says the box folder is in the sender's own iPhone backup (iCloud Backup, if they
   use it), which is the sender's own Apple service and not data Before You Tape collects, so it adds
