@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval run has a deadline for the whole page run, worked out from its reads (each at Pack's 45-second limit) plus five minutes, so a page that never answers (for example a model check that hangs before the first read) still reaches the cleanup that closes Chrome and Vite. Source: review. Verified: a new test failed first and passes; lint and typecheck pass.
+
 - The eval run waits for the whole "DevTools listening" line, up to its end, before it reads Chrome's address, so an address printed in two pieces is never cut short. Source: review. Verified: a new test that prints the line in two pieces failed first and passes.
 
 - The eval run starts only with `DEBUG` unset: a wildcard such as `DEBUG=*` also turns on Playwright's protocol log, which would record the script carrying the App Check debug token. Before, only `pw` patterns were refused. Source: review. Verified: the preflight test (now with `*` and a mixed list) failed first and passes.

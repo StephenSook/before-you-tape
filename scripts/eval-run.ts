@@ -16,6 +16,7 @@ import { isCalendarDate } from "../src/engine/edition";
 import { buildEvalSet, type SetLabels, type SetManifest } from "../src/eval/loadSet";
 import { computeEvalReport, redactRun } from "../src/eval/metrics";
 import { ALL_PATHS, type EvalPath } from "../src/eval/runner";
+import { READ_TIMEOUT_MS } from "../src/shared/readLimit";
 import type { EvalRow, EvalRun, EvalSet } from "../src/eval/types";
 import { evalPhotos, machineOf, osName, requireEnv } from "./device-e2e";
 
@@ -100,6 +101,19 @@ export function viteEnv(shell: Record<string, string | undefined>, evalFile: str
   for (const [k, v] of Object.entries(shell)) if (v !== undefined && !k.startsWith("VITE_")) out[k] = v;
   for (const k of Object.keys(liveFile === null ? {} : parseEnvFile(liveFile))) if (k.startsWith("VITE_")) out[k] = "";
   return { ...out, ...parseEnvFile(evalFile) };
+}
+
+// The most the whole run may take: every read and second look at Pack's limit (each item: the device, cloud and
+// shipped paths timed `repeat` times, and one second look; plus the two cold calls), and five minutes to set up.
+export function runDeadlineMs(items: number, repeat: number): number {
+  return (items * (3 * repeat + 1) + 2) * READ_TIMEOUT_MS + 300_000;
+}
+
+// The promise, or a failure once the deadline passes, so a page that never answers still reaches the cleanup.
+export function withDeadline<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, fail) => { timer = setTimeout(() => fail(new Error(`${what} gave no answer within ${ms} ms`)), ms); });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
 }
 
 // The full eval run's name only for a run of every path on every item; anything less is named as a partial run.
@@ -206,10 +220,10 @@ async function main(): Promise<void> {
     await page.addInitScript(({ t, o }) => { if (location.origin === o) (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = t; }, { t: token, o: origin });
     await page.goto(`${origin}/scripts/device-e2e/harness.html`);
     await page.waitForSelector("body[data-ready='1']", { timeout: 60_000 });
-    const result = await page.evaluate((input) => window.bytEvalRun(input), {
+    const result = await withDeadline(page.evaluate((input) => window.bytEvalRun(input), {
       items: photos.map((p) => ({ itemId: p.itemId!, base64: p.base64 })), set, edition, date, repeat, paths, coldCall: true,
       cloudModel: models.cloud, fallbackModel: models.fallback,
-    });
+    }), runDeadlineMs(set.items.length, repeat), "the eval page");
     await page.close();
     const cdp = await browser.newBrowserCDPSession();
     await cdp.send("Browser.close").catch(() => undefined);

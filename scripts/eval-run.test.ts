@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import template from "../remoteconfig.template.json";
 import pkg from "../package.json";
 import { spawn } from "node:child_process";
-import { DEVTOOLS_LINE, devtoolsUrl, evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote, runIdOf, viteEnv, waitForLine } from "./eval-run";
+import { DEVTOOLS_LINE, devtoolsUrl, evalEnv, runDeadlineMs, withDeadline, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote, runIdOf, viteEnv, waitForLine } from "./eval-run";
 
 describe("eval-run", () => {
   it("runs only against an eval project, never the live one, and never with no project named", () => {
@@ -108,5 +108,12 @@ describe("eval-run", () => {
   it("waits for the whole DevTools line, even when Chrome prints it in two pieces", async () => {
     const child = spawn("sh", ["-c", "printf 'DevTools listening on ws://127.0.0.1:9/devtools/browser/a'; sleep 0.3; printf 'bc-123\\n'"], { stdio: ["ignore", "pipe", "pipe"] });
     expect(devtoolsUrl(await waitForLine(child, DEVTOOLS_LINE, 5_000))).toBe("ws://127.0.0.1:9/devtools/browser/abc-123");
+  });
+
+  it("gives the whole run a deadline from its reads, and stops a run that passes it", async () => {
+    // 2 items x (3 device + 3 cloud + 3 shipped + 1 second look) + 2 cold calls = 22 reads of 45 s, plus 5 minutes.
+    expect(runDeadlineMs(2, 3)).toBe(22 * 45_000 + 300_000);
+    await expect(withDeadline(new Promise<never>(() => undefined), 20, "the eval page")).rejects.toThrow(/the eval page.*20 ms/);
+    await expect(withDeadline(Promise.resolve(7), 20, "x")).resolves.toBe(7);
   });
 });
