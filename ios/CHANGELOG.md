@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): screenshot 04 taken again with the answer buttons as they are now
+- What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
+  chosen and filled; the README describes it and drops the note to take it again.
+- Source: the answer-button fix, merged to main at 018f8a6.
+- Verified: captured from a Release build of this branch (main 018f8a6 merged in) on the iPhone 17
+  Pro Max simulator; 1320 x 2868.
+
 ### docs(ios): the screenshot notes say 04 must be taken again after the answer-button change
 - What: screenshot 04 shows a question's answers in the old grey look; the README says to capture
   it again once the change that tints them like every other button is merged.
