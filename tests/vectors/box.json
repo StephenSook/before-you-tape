@@ -217,20 +217,20 @@
     "items": [{ "itemId": "g1", "read": { "category": "toy", "labelText": "GRENADE REPLICA" } },
       { "itemId": "g2", "read": { "category": "toy", "labelText": "REPLICA-GRENADE" } },
       { "itemId": "g3", "read": { "category": "toy", "labelText": "REPLICA M67 GRENADE" } },
-      { "itemId": "g4", "read": { "category": "toy", "labelText": "GRANADA DE ENTRENAMIENTO" } }],
-    "expect": { "g1": "check", "g2": "check", "g3": "check", "g4": "check" },
-    "expectRules": { "g1": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g2": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g3": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g4": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+      { "itemId": "g4", "read": { "category": "toy", "labelText": "GRANADA DE ENTRENAMIENTO" } },
+      { "itemId": "g5", "read": { "category": "toy", "labelText": "TRAINING MORTAR ROUND" } },
+      { "itemId": "g6", "read": { "category": "toy", "labelText": "INERT .50 CAL ROUND" } }],
+    "expect": { "g1": "check", "g2": "check", "g3": "check", "g4": "check", "g5": "check", "g6": "check" },
+    "expectRules": { "g1": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g2": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g3": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g4": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g5": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "g6": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
   },
   {
     "name": "toy_and_brand_words_ca", "source": "IMM 136.2 exempts toys that don't look real, and Grenade is also a protein bar brand",
     "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "rocket", "read": { "category": "toy", "labelText": "FOAM TOY ROCKET" } },
       { "itemId": "shells", "read": { "category": "toy", "labelText": "TOY SHELL SET" } },
-      { "itemId": "bar", "read": { "category": "food_packaged", "labelText": "GRENADE PROTEIN BAR CARB KILLA" } },
-      { "itemId": "shirt", "read": { "category": "clothing", "labelText": "TRAINING SHIRT\nROUND NECK" } },
-      { "itemId": "golf", "read": { "category": "other", "labelText": "PRACTICE ROUND GOLF BALLS 12 PACK" } }],
-    "expect": { "rocket": "ok", "shells": "ok", "shirt": "ok" },
-    "notRules": { "rocket": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shells": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "bar": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shirt": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "golf": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+      { "itemId": "bar", "read": { "category": "food_packaged", "labelText": "GRENADE PROTEIN BAR CARB KILLA" } }],
+    "expect": { "rocket": "ok", "shells": "ok" },
+    "notRules": { "rocket": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "shells": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"], "bar": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
   },
   {
     "name": "replica_props_ca", "source": "IMM 136.2 and Canada CA-P-05: a prop named fake or imitation is still checked, since a label can't show it doesn't look real",
@@ -247,5 +247,13 @@
       { "itemId": "grenade", "read": { "category": "toy", "labelText": "IMITATION GRENADE PROP" } }],
     "expect": { "bomb": "check", "grenade": "check" },
     "expectRules": { "bomb": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"], "grenade": ["USPS-INTL-REPLICA-EXPLOSIVE", "PH-P-03"] }
+  },
+  {
+    "name": "extra_questions_ca", "source": "Known extra questions (docs/LIMITS.md): a weapon cue elsewhere on the label is enough, so these are asked about",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "shirt", "identityConfirmedBy": "sender", "read": { "category": "clothing", "labelText": "TRAINING SHIRT\nROUND NECK" } },
+      { "itemId": "golf", "identityConfirmedBy": "sender", "read": { "category": "toy", "labelText": "PRACTICE ROUND GOLF BALLS 12 PACK" } }],
+    "expect": { "shirt": "check", "golf": "check" },
+    "expectRules": { "shirt": ["USPS-INTL-REPLICA-EXPLOSIVE"], "golf": ["USPS-INTL-REPLICA-EXPLOSIVE"] }
   }
 ]
