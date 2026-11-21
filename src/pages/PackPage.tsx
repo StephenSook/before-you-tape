@@ -8,7 +8,7 @@ import { runSecondLook, SECOND_LOOK_TEXT } from "../ai/secondLook";
 import type { GateState, ImageHow, ImagePart, ItemModels } from "../ai/port";
 import type { openCamera as openCameraFn } from "../capture/camera";
 import type { BoxStore } from "../data/boxStore";
-import type { DeleteResult } from "../data/deleteSavedBox";
+import type { DeleteResult, DeleteStep } from "../data/deleteSavedBox";
 import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { deriveFacts } from "../engine/facts";
@@ -79,7 +79,7 @@ export interface PackPageProps {
   // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
   newestSheetMs?: number;
   // Deletes the saved box everywhere it is kept; with none, the page offers no delete.
-  onDeleteBox?: () => Promise<DeleteResult>;
+  onDeleteBox?: (from?: DeleteStep) => Promise<DeleteResult>;
   // After a delete: the route starts the page again on a new, empty box.
   afterDelete?: (signIn: "deleted" | "signed_out") => void;
   // Shown once after a delete started the page again: how the anonymous sign-in went.

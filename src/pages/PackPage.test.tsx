@@ -816,7 +816,9 @@ describe("PackPage", () => {
       await userEvent.click(screen.getByRole("button", { name: "Delete" }));
       expect(await screen.findByRole("alert")).toHaveTextContent("The saved box is deleted, but your anonymous sign-in could not be. Try again.");
       await userEvent.click(screen.getByRole("button", { name: "Try deleting again" }));
+      // The retry starts where it stopped, so the steps already done are not run again.
       expect(onDeleteBox).toHaveBeenCalledTimes(2);
+      expect(onDeleteBox).toHaveBeenLastCalledWith("signIn");
     });
 
     it("says once that the box was deleted, and when the sign-in was only signed out, that Firebase removes it later", () => {

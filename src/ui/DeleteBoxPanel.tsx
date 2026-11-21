@@ -10,13 +10,14 @@ const LEFT: Record<DeleteStep, string> = {
   signIn: "The saved box is deleted, but your anonymous sign-in could not be. Try again.",
 };
 
-export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: () => Promise<DeleteResult>; onDone: (signIn: "deleted" | "signed_out") => void }) {
+// onDelete(from): a retry passes the step that stopped, so the steps already done are not run again.
+export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: (from?: DeleteStep) => Promise<DeleteResult>; onDone: (signIn: "deleted" | "signed_out") => void }) {
   const [stage, setStage] = useState<"idle" | "asking" | "working">("idle");
   const [left, setLeft] = useState<DeleteStep | null>(null);
-  const run = async () => {
+  const run = async (from?: DeleteStep) => {
     setStage("working");
     setLeft(null);
-    const r = await onDelete();
+    const r = await onDelete(from);
     if (r.ok) { onDone(r.signIn); return; }
     setLeft(r.stoppedAt);
     setStage("idle");
@@ -24,7 +25,7 @@ export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: () => Promise<D
   return (
     <div data-testid="delete-box" className="delete-box">
       {left && (
-        <p role="alert">{LEFT[left]} <button type="button" onClick={() => void run()}>Try deleting again</button></p>
+        <p role="alert">{LEFT[left]} <button type="button" onClick={() => void run(left)}>Try deleting again</button></p>
       )}
       {stage === "idle" && !left && <button type="button" onClick={() => setStage("asking")}>Delete my saved box</button>}
       {stage === "asking" && (

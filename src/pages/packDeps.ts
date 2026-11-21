@@ -13,7 +13,7 @@ import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { deleteCropsExcept } from "../data/crops";
-import { clearLocalBox, deleteSavedBox, type DeleteResult } from "../data/deleteSavedBox";
+import { clearLocalBox, deleteSavedBox, type DeleteResult, type DeleteStep } from "../data/deleteSavedBox";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
@@ -29,7 +29,8 @@ export interface PackDeps {
   lm: unknown;
   followEdition: (onNotice: (notice: string | null) => void) => () => void;
   // Deletes this browser's saved box everywhere it is kept, then its anonymous sign-in.
-  deleteSavedBox: () => Promise<DeleteResult>;
+  // from: where a retry starts, the step that stopped.
+  deleteSavedBox: (from?: DeleteStep) => Promise<DeleteResult>;
 }
 
 let built: PackDeps | Error | null = null;
@@ -81,14 +82,14 @@ export function buildDeps(): PackDeps | Error {
       });
       return () => { alive = false; stop(); };
     };
-    const deleteThisBox = () => deleteSavedBox(box.getState().boxId, {
+    const deleteThisBox = (from?: DeleteStep) => deleteSavedBox(box.getState().boxId, {
       stopSaving: () => box.close(),
       deleteBox: async (id) => { await persistence.deleteBox?.(id); },
       deleteCrops: () => deleteCropsExcept(() => false),
       clearLocal: (id) => clearLocalBox(localStorage, id),
       deleteSignIn: async () => { if (fb.auth.currentUser) await deleteUser(fb.auth.currentUser); },
       signOut: () => signOut(fb.auth),
-    });
+    }, from);
     built = { ai, makeModels, source, store: box, lm, followEdition, deleteSavedBox: deleteThisBox };
   } catch (e) {
     built = e instanceof Error ? e : new Error(String(e));
