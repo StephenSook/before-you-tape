@@ -57,7 +57,21 @@ case "${1:-}" in
     mkdir -p "$out"
     xcrun devicectl device copy from --device "$udid" --domain-type appDataContainer --domain-identifier "$BUNDLE" \
       --source "Library/Application Support/boxes" --destination "$out/boxes"
-    xcrun devicectl device info details --device "$udid" > "$out/device.txt"
+    # Only the model and the iOS version go in the evidence: never the UDID, serial number, ECID or
+    # the phone's name, which this folder could make public.
+    devices="$(mktemp)"
+    xcrun devicectl list devices --json-output "$devices" > /dev/null
+    python3 -I - "$devices" "$udid" > "$out/device.txt" <<'PY'
+import json, sys
+for d in json.load(open(sys.argv[1]))["result"]["devices"]:
+    hp, dp = d.get("hardwareProperties", {}), d.get("deviceProperties", {})
+    if hp.get("udid") == sys.argv[2]:
+        print(f"{hp.get('marketingName')} ({hp.get('productType')}), iOS {dp.get('osVersionNumber')} ({dp.get('osBuildUpdate')})")
+        break
+else:
+    sys.exit("The phone was not in the device list.")
+PY
+    rm -f "$devices"
     git rev-parse HEAD > "$out/commit.txt"
     bash "$0" summary "$out"
     ;;

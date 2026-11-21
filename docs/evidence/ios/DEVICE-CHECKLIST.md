@@ -28,7 +28,8 @@ verdict. Each read's route and time are written down, and the evidence goes in t
    this iPhone, with no network."
 4. Turn on airplane mode. Turn Wi-Fi off too, because airplane mode can leave it on. Open
    Control Center and take a screenshot that shows airplane mode on and Wi-Fi off.
-5. Start a screen recording from Control Center. Keep it on for all 5 items.
+5. Turn on Do Not Disturb, so no notification shows in the recording. Start a screen recording
+   from Control Center. Keep it on for all 5 items.
 6. For each item:
    1. Tap "Check an item".
    2. Hold the label inside the white frame. Tap "Check now".

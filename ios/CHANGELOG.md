@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### fix(ios): the iPhone session's evidence holds no phone identifiers
+- What: `device-session.sh pull` wrote the raw `devicectl device info details` output, which holds
+  the phone's UDID, serial number, ECID and name, into a folder meant for the repository. It now
+  writes one line: model, product type, iOS version and build. The checklist adds Do Not Disturb
+  before the screen recording, so no notification shows in it.
+- Source: automated security review of the session script.
+- Verified: on the Mac's device list the line reads "iPhone 17 Pro (iPhone18,1), iOS 27.2.1
+  (24B156)" and holds no UDID, serial or name; a UDID not in the list exits 1.
+
 ### docs(ios): a one-page checklist for the airplane-mode check on a real iPhone
 - What: `docs/evidence/ios/DEVICE-CHECKLIST.md`: what to bring, numbered steps (build, install,
   read the Ready check lines, airplane mode on, 5 real items, pull the box), a record table and
