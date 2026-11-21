@@ -75,3 +75,7 @@
 - Main exposes remoteConfigSource and getAi(true). The bridge uses those with the web app's App Check initializer, anonymous sign-in and killCloud. Its hosting policy denies all parents until the real extension ID is known.
 - Focused tests: red 1, green 0 (38 passed). The late reply after consent withdrawal reproduced with exit 1. The direct SDK control verifies the request using an intercepted refusal. S-EXT-2 and the real provider refusal are NOT RUN. Playwright Chromium exited before loading the panel, so the browser smoke is NOT VERIFIED.
 - npm exit codes: edition:check 0, lint 0, typecheck 0, test 0, build 0, tone 0, guard 0, ext:build 0, ext:check 0.
+
+### Follow-up - Cloud checks stay on after a reopen (2026-11-21 05:35:38 EST)
+
+- The side panel opens the cloud check again when it reopens with cloud checks already allowed (the stored choice it opened with), once, and says "Cloud checks are on in this panel." when the bridge is ready; it still sends nothing until Read in the cloud is pressed, and a stored Not now stays off. Source: review of #121. Verified: new panel tests (a stored Allow opens it and says on; a stored Not now stays off; an Allow in the panel opens it only once) failed first and pass; ext:build, ext:check and the full suite pass.

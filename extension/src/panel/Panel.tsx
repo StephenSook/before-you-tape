@@ -1,5 +1,5 @@
 import { localDay } from "../../../src/shared/localDay";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { cloudProductRead, type Bridge } from "../bridgeClient";
 import type { TabInfo } from "../tabInfo";
 import { bundledEdition, type LoadedEdition } from "../edition";
@@ -60,7 +60,7 @@ export function Panel({ agreed, device, connectCloud, cloudConsent, saveAgreemen
     setCloud({ status: "off" });
   }
 
-  async function openCloud(connect: NonNullable<PanelProps["connectCloud"]>) {
+  const openCloud = useCallback(async (connect: NonNullable<PanelProps["connectCloud"]>) => {
     const controller = new AbortController();
     bridgeRequest.current = controller;
     setCloud({ status: "opening" });
@@ -72,7 +72,17 @@ export function Panel({ agreed, device, connectCloud, cloudConsent, saveAgreemen
     }
     if (controller.signal.aborted) bridge?.close();
     else setCloud(bridge ? { status: "ready", bridge } : { status: "off" });
-  }
+  }, []);
+
+  // A cloud check allowed in an earlier session (the stored choice this panel opened with) opens again when the
+  // panel does, once; it sends nothing until the sender presses Read in the cloud. A choice made in this panel
+  // opens or closes it itself.
+  const reopened = useRef(false);
+  useEffect(() => {
+    if (!mayRead || reopened.current || cloudConsent !== true || !connectCloud) return;
+    reopened.current = true;
+    void openCloud(connectCloud);
+  }, [mayRead, cloudConsent, connectCloud, openCloud]);
 
   const readCloud: ReadProduct | undefined = cloud.status === "ready" ? async (text, signal) => {
     const connection = bridgeRequest.current;
@@ -108,6 +118,7 @@ export function Panel({ agreed, device, connectCloud, cloudConsent, saveAgreemen
   }, "Could not save your choice. Try again.");
 
   const chooseCloud = (allowed: boolean) => {
+    reopened.current = true;
     closeCloud();
     return save(async () => {
       await saveCloudConsent(allowed);
@@ -149,6 +160,7 @@ export function Panel({ agreed, device, connectCloud, cloudConsent, saveAgreemen
           }} />
           <Details draft={draft} key={usedTab?.atMs} edition={loaded.edition} today={localDay()} itemName={itemName} onItemName={setItemName} />
           {cloud.status === "opening" && <p role="status">Opening cloud checks.</p>}
+          {cloud.status === "ready" && <p role="status">Cloud checks are on in this panel.</p>}
           {cloud.status === "off" && (
             <p>
               Cloud checks are off in this panel.{" "}

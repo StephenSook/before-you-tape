@@ -163,7 +163,7 @@ it("makes no request before consent, then opens the bridge without sending produ
     signal.addEventListener("abort", close, { once: true });
     return { read, close };
   });
-  render(<Panel {...props()} agreed cloudConsent={true} connectCloud={connectCloud} />);
+  render(<Panel {...props()} agreed cloudConsent={null} connectCloud={connectCloud} />);
   expect(connectCloud).not.toHaveBeenCalled();
   expect(document.querySelector("iframe")).toBeNull();
   await user.click(screen.getByText("Cloud settings"));
@@ -176,6 +176,23 @@ it("makes no request before consent, then opens the bridge without sending produ
   await user.click(screen.getByRole("button", { name: "Not now" }));
   expect(close).toHaveBeenCalledOnce();
   expect(screen.queryByRole("button", { name: "Read in the cloud" })).toBeNull();
+});
+
+it("opens the bridge when the stored choice is Allow, says cloud checks are on, and sends no product text", async () => {
+  const read = vi.fn();
+  const connectCloud = vi.fn(async () => ({ read, close: vi.fn() }));
+  render(<Panel {...props()} agreed cloudConsent={true} connectCloud={connectCloud} />);
+  expect(await screen.findByText("Cloud checks are on in this panel.")).toBeVisible();
+  expect(connectCloud).toHaveBeenCalledOnce();
+  expect(screen.queryByText("Cloud checks are off in this panel.")).toBeNull();
+  expect(read).not.toHaveBeenCalled();
+});
+
+it("stays off when the stored choice is Not now", () => {
+  const connectCloud = vi.fn();
+  render(<Panel {...props()} agreed cloudConsent={false} connectCloud={connectCloud} />);
+  expect(connectCloud).not.toHaveBeenCalled();
+  expect(screen.getByText("Cloud checks are off in this panel.")).toBeVisible();
 });
 
 it("shows cloud off when the bridge does not answer", async () => {
