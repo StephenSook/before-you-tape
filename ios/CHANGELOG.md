@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### test(ios): an opt-in live test reads real label photos on the machine's own model
+- What: `LiveModelTests` crops three label photos as the app does and reads them through a real
+  `AppModel`, offline, on the machine's own Apple model, and prints each read's route, time,
+  tokens and screen line. It runs only with `BYT_LIVE_MODEL=1` (`TEST_RUNNER_BYT_LIVE_MODEL=1`
+  for xcodebuild), so no check depends on a model being present.
+- Source: lane goal (see the photo read work before the device session).
+- Verified: on the iPhone 18 Pro simulator all three read on the device and reached a verdict
+  (7.5 s, 4.6 s, 5.0 s). Without the variable the suite is skipped.
+
 ### docs(ios): the README names why four tests failed on Nov 19, and how the iPhone reads photos
 - What: the test status now says the four Nov 19 failures happen in a checkout without the
   gitignored Firebase settings file and pass with it, replacing the earlier guess about the build
