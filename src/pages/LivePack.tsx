@@ -16,5 +16,5 @@ export function LivePack({ source, makeModels, ...page }: LivePackProps) {
     () => makeModels(config.cloudModelItem, config.cloudModelItemFallback),
     [makeModels, config.cloudModelItem, config.cloudModelItemFallback],
   );
-  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, pauseUnknown: config.pauseUnknown === true, secondLook: config.secondLook }} liveConfig={source} onRetryConfig={source.retry ? () => { void source.retry?.(); } : undefined} />;
+  return <PackPage {...page} models={models} config={{ killCloud: config.killCloud, pauseUnknown: config.pauseUnknown === true, secondLook: config.secondLook, holidayDates: config.holidayDates }} liveConfig={source} onRetryConfig={source.retry ? () => { void source.retry?.(); } : undefined} />;
 }
