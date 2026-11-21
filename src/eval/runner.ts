@@ -26,7 +26,7 @@ export interface RunnerInput {
   secondLook?: SecondLookPolicy;
 }
 
-export interface RunnerFailure { itemId: string; path: "device" | "cloud" | "shipped"; error: string }
+export interface RunnerFailure { itemId: string; path: "device" | "cloud" | "shipped" | "second_look"; error: string }
 
 // The cloud is allowed for the eval, as for a sender who chose cloud checks.
 const CLOUD_ON = { cloudConsent: true, killCloud: false, online: true } as const;
@@ -83,9 +83,14 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
         const added = store.getState().items.find((x) => x.itemId === itemId);
         const reason = added ? needsSecondLook(deriveFacts(added, i.edition), outcome, policy) : null;
         if (!reason || !shouldRunSecondLook(reason, CLOUD_ON)) return;
-        const out = await runSecondLook(i.models.cloud, image, outcome.read, i.now, i.models.fallback);
-        store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[reason], out.cloudLabel, out.disputes);
-        looked = true;
+        // A second look that fails leaves the item and its first read in place, as the Pack page does.
+        try {
+          const out = await runSecondLook(i.models.cloud, image, outcome.read, i.now, i.models.fallback);
+          store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[reason], out.cloudLabel, out.disputes);
+          looked = true;
+        } catch (e) {
+          failures.push({ itemId: item.itemId, path: "second_look", error: message(e) });
+        }
       });
       shipped = { levels, source: outcome.source, secondLook: looked };
     } catch (e) {

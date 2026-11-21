@@ -58,6 +58,15 @@ describe("evalRows", () => {
     expect(models.cloud.generate).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the shipped read and its verdict when only the second look fails, as the app keeps the item", async () => {
+    const cloud: Spy = { generate: vi.fn(async () => { throw new Error("Failed to fetch"); }) };
+    const models = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud };
+    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now });
+    expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: false });
+    expect(out.rows[0]!.shipped.source).not.toBe("failed");
+    expect(out.failures.map((f) => `${f.itemId}:${f.path}`)).toEqual(["own-01:cloud", "own-01:second_look"]);
+  });
+
   it("records a failed path instead of guessing, and the shipped route as Check this when its read fails", async () => {
     const models = { device: failing("no device model"), hybrid: failing("no device model"), cloud: failing("Failed to fetch") };
     const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
