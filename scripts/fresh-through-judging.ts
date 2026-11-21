@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import { parseEdition, resolveDestination } from "../src/engine/edition";
 import { layerStatuses } from "../src/engine/layers";
 import type { RuleEdition } from "../src/engine/types";
+import { readCustomsAuthorities, type CustomsAuthority } from "../src/rules/customsAuthorities";
 import { repoRoot } from "./lib/files";
 import { LAST_JUDGING_DAY } from "./release-gate";
 
@@ -34,8 +35,16 @@ export function staleBeforeJudgingEnds(edition: RuleEdition, lastDay: string = L
   return out;
 }
 
-export function freshness(edition: RuleEdition, today: string, lastDay: string = LAST_JUDGING_DAY): { exit: 0 | 1; lines: string[] } {
-  const stale = staleBeforeJudgingEnds(edition, lastDay);
+// The customs authority lines on the Rules page (rules/customs-authorities.json), by the edition's customs limit:
+// each one the page would stop showing on some day through the last judging day.
+export function staleCustomsLines(edition: RuleEdition, customs: readonly CustomsAuthority[], lastDay: string = LAST_JUDGING_DAY): StaleLayer[] {
+  const limit = edition.limits.staleDays.customs;
+  return customs.filter((c) => addDays(c.checkedOn, limit) < lastDay)
+    .map((c) => ({ code: c.code, layer: "customs_authority", checkedOn: c.checkedOn, staleFrom: addDays(c.checkedOn, limit + 1) }));
+}
+
+export function freshness(edition: RuleEdition, today: string, lastDay: string = LAST_JUDGING_DAY, customs: readonly CustomsAuthority[] = []): { exit: 0 | 1; lines: string[] } {
+  const stale = [...staleBeforeJudgingEnds(edition, lastDay), ...staleCustomsLines(edition, customs, lastDay)];
   if (stale.length === 0) return { exit: 0, lines: [`rules fresh through ${lastDay}: every layer reads checked`] };
   const fail = today >= REREAD_FROM;
   const lines = stale.map((s) => `${fail ? "error" : "warning"}: ${s.code} ${s.layer} (last read ${s.checkedOn}) reads stale from ${s.staleFrom}, before judging ends on ${lastDay}`);
@@ -48,7 +57,8 @@ export function freshness(edition: RuleEdition, today: string, lastDay: string =
 function main(): void {
   const edition = parseEdition(JSON.parse(readFileSync(join(repoRoot(), "rules", "edition.json"), "utf8")));
   const today = new Date().toISOString().slice(0, 10);
-  const { exit, lines } = freshness(edition, today);
+  const customs = readCustomsAuthorities(JSON.parse(readFileSync(join(repoRoot(), "rules", "customs-authorities.json"), "utf8")));
+  const { exit, lines } = freshness(edition, today, LAST_JUDGING_DAY, customs);
   for (const l of lines) (exit ? console.error : console.log)(l);
   process.exit(exit);
 }
