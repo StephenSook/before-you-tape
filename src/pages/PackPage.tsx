@@ -454,9 +454,10 @@ export function PackPage(p: PackPageProps) {
       }
     }
     if (route === "blocked") {
-      // A sender who has not been asked yet is asked now, when only the cloud could read this photo.
+      // A sender who has not been asked yet is asked now, when only the cloud could read this photo. Settings that
+      // have not loaded yet do not stop the question: after Allow, the photo waits for them like any other.
       const askNow = press !== null && store.consentNow() === null
-        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true }) !== "blocked";
+        && chooseImageRoute(how, { gate: live.current.gate, ...inputs(), cloudConsent: true, killCloud: inputs().killCloud && !live.current.pauseUnknown }) !== "blocked";
       if (presses.current === owner) {
         setNotice(null);
         if (askNow) { setBlocked(null); openAsk({ kind: "photo", part, how }); }

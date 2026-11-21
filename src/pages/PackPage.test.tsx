@@ -236,6 +236,23 @@ describe("PackPage", () => {
     expect(screen.getByTestId("cloud-chip")).toHaveFocus();
   });
 
+  it("asks for cloud checks when a photo comes before the cloud settings, rather than calling the cloud paused", async () => {
+    // Remote Config has not answered yet, so cloud checks count as paused until it does.
+    const { models } = setup({ config: { killCloud: true, pauseUnknown: true } }, null);
+    await addPhoto();
+    expect(await screen.findByRole("button", { name: "Allow" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  it("does not ask while cloud checks are paused on purpose, and says so", async () => {
+    const { models } = setup({ config: { killCloud: true } }, null);
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cloud checks are paused");
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+  });
+
   it("keeps a photo on this laptop when the sender says so at the ask, and says why it cannot be read", async () => {
     const { store, models } = setup({}, null);
     await addPhoto();
