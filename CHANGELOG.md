@@ -6,6 +6,13 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The crop step is smaller and clearer:
+  - The photo is at most min(60vh, 560px) tall, with its shape kept.
+  - Outside the box it is dimmed, since that part stays on the device.
+  - Check this part and Cancel stay pinned in view.
+  - The second copy of the cropped part and the explainer line are gone.
+  - The send button carries the SHA-256 of the exact part it sends, and the browser test now matches that to the request.
+  Source: UI review (Check this part sat at y 2003). Verified: the PhotoCrop tests failed first and pass; CameraStage, PackPage and the full unit suite pass.
 - When the camera cannot focus, the line names "Use your phone" only when that button is shown (the phone handoff exists); otherwise it says "Add a photo, or type the numbers." Source: review. Verified: the CameraStage test failed first and passes.
 
 - On a phone the Pack page opens the back camera, and the photo picker opens the camera: `src/shared/phoneDevice.ts` reads the browser's mobile flag, or else a phone in the user agent, and PackRoute passes it down. Before, nothing set it, so phones opened the front camera. Source: review. Verified: new phone-detection and PackPage tests failed first and pass.
