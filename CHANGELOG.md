@@ -618,6 +618,16 @@ Source: plan Task 29. Verified by `src/eval/metrics.test.ts` (8 tests, including
 
 ### Changed
 
+- `src/shared/secondLook.ts` now holds the second look's pure parts: `needsSecondLook` (with `SecondLookPolicy`,
+  `SecondLookReason` and `SECOND_LOOK_DEFAULT`), `mergeReads` and `readDisputes`, moved word for word from
+  `src/routing/policy.ts` and `src/ai/secondLook.ts`, which re-export them, so nothing that imports them changes.
+  The native engine bundle may only take code from `src/engine`, `src/shared` and `src/embed`, so the iPhone can run
+  the same rule only once it lives here. `needsSecondLook` takes `{ source }` instead of a `ReadOutcome` pick, which
+  is the same field. Source: the iPhone second look. Verified: typecheck and lint clean, every unit test passes
+  unchanged (the existing second-look and policy tests run through the re-exports), and the iPhone engine bundle is
+  byte for byte the same (`check_engine_bundle.sh`: fresh, sha256 350bddbda726), since the bridge does not import it
+  yet.
+
 - `scripts/model-guard.ts`: the model guard allows the browser's system voice (`speechSynthesis`) and still refuses
   speech recognition, with or without its webkit prefix, and its comment says why: recognition reads the user's
   speech with a model outside Firebase AI Logic, while the system voice speaks text the app already holds and reads
