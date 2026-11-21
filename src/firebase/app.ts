@@ -2,7 +2,7 @@
 // sign-in, Firestore, and Firebase AI Logic on the Gemini Developer API.
 import { getAI, GoogleAIBackend, type AI } from "firebase/ai";
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { connectAuthEmulator, getAuth, signInAnonymously, type Auth } from "firebase/auth";
 import {
   connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore,
@@ -24,6 +24,9 @@ export interface FirebaseHandles {
   auth: Auth;
   db: Firestore;
   getAi(useLimitedUseTokens: boolean): AI;
+  // Whether App Check can get this browser a token now. Firestore sends a placeholder when it cannot and the server
+  // refuses that request, so a refused save asks this to say why.
+  verified(): Promise<boolean>;
 }
 
 export class FirebaseConfigError extends Error {
@@ -53,7 +56,7 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
   // App Check goes first, so every later call to Auth, Firestore or AI Logic carries a token.
   // A debug token, for local runs and CI, is read by the SDK from self.FIREBASE_APPCHECK_DEBUG_TOKEN
   // when the test harness sets it; it is never part of the build.
-  initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  const appCheck = initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
 
   const auth = getAuth(app);
   // The box stays readable offline and in sync across tabs; a browser without IndexedDB keeps it in memory.
@@ -74,6 +77,7 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
     app,
     auth,
     db,
+    verified: () => getToken(appCheck).then(() => true, () => false),
     getAi(useLimitedUseTokens: boolean): AI {
       if (!ai) {
         ai = { instance: getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: useLimitedUseTokens }), limited: useLimitedUseTokens };

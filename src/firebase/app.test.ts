@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // App Check would start loading reCAPTCHA; the unit tests check our wiring, not Google's.
+const appCheck = { kind: "app-check" };
 vi.mock("firebase/app-check", () => ({
-  initializeAppCheck: vi.fn(() => ({})),
+  initializeAppCheck: vi.fn(() => appCheck),
   ReCaptchaEnterpriseProvider: vi.fn(),
+  getToken: vi.fn(),
 }));
 vi.mock("firebase/auth", async (orig) => ({
   ...(await orig<typeof import("firebase/auth")>()),
@@ -15,7 +17,7 @@ vi.mock("firebase/firestore", async (orig) => {
   return { ...real, initializeFirestore: vi.fn(real.initializeFirestore), persistentMultipleTabManager: vi.fn(real.persistentMultipleTabManager) };
 });
 
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { initializeFirestore, persistentMultipleTabManager } from "firebase/firestore";
 import { signInAnonymously, type Auth } from "firebase/auth";
 import { ensureSignedIn, initFirebase, type FirebaseEnv } from "./app";
@@ -49,6 +51,15 @@ describe("initFirebase", () => {
     fresh();
     expect(ReCaptchaEnterpriseProvider).toHaveBeenCalledWith("test-site-key");
     expect(initializeAppCheck).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ isTokenAutoRefreshEnabled: true }));
+  });
+
+  it("says whether App Check can verify this browser now: a token means yes, a failed exchange means no", async () => {
+    const fb = fresh();
+    vi.mocked(getToken).mockResolvedValueOnce({ token: "t" });
+    expect(await fb.verified()).toBe(true);
+    vi.mocked(getToken).mockRejectedValueOnce(new Error("appCheck/fetch-status-error"));
+    expect(await fb.verified()).toBe(false);
+    expect(getToken).toHaveBeenCalledWith(appCheck);
   });
 
   it("builds the AI instance once and refuses a second token setting", () => {
