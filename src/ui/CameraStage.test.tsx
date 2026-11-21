@@ -211,6 +211,17 @@ describe("CameraStage", () => {
     expect(onSampleSend).not.toHaveBeenCalled();
   });
 
+  it("still opens the sender's own photo when a Check now pressed while it decodes fails", async () => {
+    let decoded: (c: HTMLCanvasElement) => void = () => {};
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={() => {}} capture={async () => { throw new Error("no frame yet"); }}
+      decodeFile={() => new Promise<HTMLCanvasElement>((r) => { decoded = r; })} cropPart={async () => part} />);
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await userEvent.upload(screen.getByTestId("upload-input"), new File(["x"], "bank.jpg", { type: "image/jpeg" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await act(async () => { decoded(document.createElement("canvas")); await new Promise((r) => setTimeout(r, 20)); });
+    expect(await screen.findByRole("button", { name: "Check this part" })).toBeInTheDocument();
+  });
+
   it("says nothing when a sample that a newer photo replaced fails to load", async () => {
     const onError = vi.fn();
     let fail: () => void = () => {};
