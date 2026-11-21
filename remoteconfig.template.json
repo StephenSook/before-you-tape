@@ -16,7 +16,7 @@
       "description": "The cloud model for customs descriptions and listing reads."
     },
     "holiday_dates_json": {
-      "defaultValue": { "value": "[]" },
+      "defaultValue": { "value": "[{\"service\":\"Priority Mail International\",\"sendBy\":\"2026-12-09\",\"deliverBy\":\"2026-12-25\",\"sourceUrl\":\"https://www.usps.com/holiday/holiday-shipping-dates.htm\",\"checkedOn\":\"2026-11-21\"}]" },
       "valueType": "JSON",
       "description": "USPS holiday mailing dates read from usps.com: service, mail-by and arrive-by dates, the page and the day it was read. An empty list shows none."
     },

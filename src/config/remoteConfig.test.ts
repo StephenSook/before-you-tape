@@ -69,7 +69,8 @@ describe("readConfig", () => {
     expect(RC_DEFAULTS).toEqual({
       cloud_model_item: "gemini-3.5-flash-lite", cloud_model_item_fallback: "gemini-3.8-flash", cloud_model_text: "gemini-3.5-flash-lite", kill_cloud: false,
       second_look_policy_json: '{"whMismatch":true,"batteryNumbers":true,"notSure":true,"hazardNoLabel":true,"identity":true}',
-      rules_edition_id: "", rules_edition_sha256: "", holiday_dates_json: "[]",
+      rules_edition_id: "", rules_edition_sha256: "",
+      holiday_dates_json: '[{"service":"Priority Mail International","sendBy":"2026-12-09","deliverBy":"2026-12-25","sourceUrl":"https://www.usps.com/holiday/holiday-shipping-dates.htm","checkedOn":"2026-11-21"}]',
     }));
 
   it("reads the holiday mailing dates from JSON; an empty list turns them off, and anything broken keeps the default", () => {
