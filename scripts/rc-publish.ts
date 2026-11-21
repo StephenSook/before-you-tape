@@ -5,7 +5,10 @@
 // is never overwritten.
 //
 // Env: ACCESS_TOKEN (for example from `gcloud auth print-access-token`; never printed).
-// Args: [--dry-run] [--allow KEY]...
+// Args: [--dry-run] [--allow KEY]... [--set KEY=VALUE]...
+// --set gives a template key a value for this publish only, so an operator value such as the rule edition pin
+// (rules_edition_id, rules_edition_sha256) goes live while the template keeps the app's own defaults; a key
+// named by --set is allowed to change.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -41,6 +44,30 @@ export function planPublish(live: RcTemplate, local: RcTemplate): PublishPlan {
   return plan;
 }
 
+// Each --set KEY=VALUE, in order; a later one for the same key wins.
+export function parseSets(args: readonly string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  args.forEach((a, i) => {
+    if (a !== "--set") return;
+    const kv = args[i + 1] ?? "";
+    const at = kv.indexOf("=");
+    if (at <= 0) throw new Error(`--set needs KEY=VALUE, got ${JSON.stringify(kv)}`);
+    out[kv.slice(0, at)] = kv.slice(at + 1);
+  });
+  return out;
+}
+
+// The template with each set key's value replaced; a key the template does not hold is refused.
+export function applySets(t: RcTemplate, sets: Record<string, string>): RcTemplate {
+  const parameters = { ...(t.parameters ?? {}) };
+  for (const [key, value] of Object.entries(sets)) {
+    const p = parameters[key];
+    if (!p) throw new Error(`--set ${key}: the template has no such key`);
+    parameters[key] = { ...p, defaultValue: { ...(p.defaultValue ?? {}), value } };
+  }
+  return { ...t, parameters };
+}
+
 // Every live value that would change or vanish, unless named in allow.
 export function refusals(plan: PublishPlan, allow: ReadonlySet<string>): string[] {
   return [...plan.changed.map((c) => c.key), ...plan.dropped].filter((k) => !allow.has(k)).sort();
@@ -68,15 +95,16 @@ async function main(): Promise<void> {
   const token = process.env.ACCESS_TOKEN?.trim();
   if (!token) throw new Error("ACCESS_TOKEN is not set");
   const args = process.argv.slice(2);
-  const allow = new Set(args.flatMap((a, i) => (a === "--allow" && args[i + 1] ? [args[i + 1]!] : [])));
-  const local = JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate;
+  const sets = parseSets(args);
+  const allow = new Set([...args.flatMap((a, i) => (a === "--allow" && args[i + 1] ? [args[i + 1]!] : [])), ...Object.keys(sets)]);
+  const local = applySets(JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate, sets);
 
   const live = await call("GET", token);
   if (!live.etag) throw new Error("the live template came back with no ETag; nothing was published");
   const plan = planPublish(live.body, local);
   console.log(`live version ${live.body.version?.versionNumber ?? "?"}`);
   for (const k of plan.added) console.log(`  add     ${k}`);
-  for (const c of plan.changed) console.log(`  change  ${c.key}: ${JSON.stringify(c.live)} -> ${JSON.stringify(c.local)}${allow.has(c.key) ? " (allowed)" : ""}`);
+  for (const c of plan.changed) console.log(`  change  ${c.key}: ${JSON.stringify(c.live)} -> ${JSON.stringify(c.local)}${c.key in sets ? " (set)" : allow.has(c.key) ? " (allowed)" : ""}`);
   for (const k of plan.dropped) console.log(`  drop    ${k}${allow.has(k) ? " (allowed)" : ""}`);
   console.log(`  same    ${plan.same.length} keys`);
 
