@@ -6,15 +6,17 @@ import { noPersistence } from "../data/boxOps";
 import { createBoxStore, type BoxItem, type BoxStore } from "../data/boxStore";
 import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
+import { evaluateBox } from "../engine/verdict";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
 import manifest from "../../eval/set/manifest.json";
 import { MATCHED_PAIRS, type MatchedPair } from "../judge/matchedPairs";
+import { LiveReadPanel, type LiveReadDeps } from "../judge/LiveReadPanel";
 import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
 import { thumbOf } from "../judge/thumbs";
-import type { ItemCategory } from "../shared/itemRead";
+import type { ItemCategory, ItemRead } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
@@ -34,6 +36,9 @@ export interface JudgePageProps {
   recorded?: RecordedReads | null;
   // Matched pairs (src/judge/matchedPairs.ts); none shows until the project owner's photos are listed.
   pairs?: readonly MatchedPair[];
+  // The live read's real parts. By default they load only when its button is pressed, so the page itself
+  // makes no request to Google.
+  liveRead?: () => Promise<LiveReadDeps>;
 }
 
 const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
@@ -59,7 +64,9 @@ function sampleStore(edition: RuleEdition, today: string, now: () => number): Bo
   return store;
 }
 
-export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null, pairs = MATCHED_PAIRS }: JudgePageProps) {
+const loadLiveRead = () => import("../judge/liveReadDeps").then((m) => m.loadLiveReadDeps());
+
+export function JudgePage({ edition, index, today, now = () => performance.now(), recorded = null, pairs = MATCHED_PAIRS, liveRead = loadLiveRead }: JudgePageProps) {
   const [store] = useState(() => sampleStore(edition, today, now));
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const readBy = Object.fromEntries(index.flatMap((d) => {
@@ -68,6 +75,9 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
   }));
   const country = index.find((d) => d.code === state.destinationCode)?.name ?? state.destinationCode;
   const dest = state.result.destination;
+  // The live read's item, judged alone by the app's rules for the country picked now.
+  const judgeLive = (read: ItemRead) => evaluateBox([{ itemId: "live-read", read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
+    labelTags: labelTagsOf(read.labelText, edition) }], edition, dest, today).items["live-read"]!.level;
   // A suspension the post office has announced, for a country a judge can pick: the rules follow USPS.
   const examples = (edition.suspensions.upcoming ?? []).flatMap((u) => {
     const name = index.find((d) => d.code === u.code)?.name;
@@ -87,6 +97,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       <p>
         <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
         {" · "}<a href={ANDROID_RELEASE_URL} target="_blank" rel="noreferrer">Android app (APK)</a>
+        {" · "}<a href="#live-read">Run one live read</a>
       </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}
@@ -128,6 +139,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         );
       })}
       </div>
+      <LiveReadPanel load={liveRead} judge={judgeLive} />
       {recorded && (
         <details data-testid="recorded-reads" className="recorded-reads">
           <summary>Recorded on-device reads</summary>
