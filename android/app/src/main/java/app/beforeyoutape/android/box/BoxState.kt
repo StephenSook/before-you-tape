@@ -15,6 +15,11 @@ data class BoxItem(
     val readMs: Double,
     val cropFile: String?,
     val extras: Map<String, Any?> = emptyMap(),
+    /**
+     * The rule edition whose label words made [BoxItemInput.labelTags]; "" when there was no label text, so the tags
+     * depend on no edition; null when unknown (a box saved before this was kept). Kept on this phone only.
+     */
+    val tagsEdition: String? = null,
 )
 
 /**
