@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the review notes answer App Review's six information-needed items
+- What: ios/app-store/review-notes.md now answers, in App Review's order, the six items its
+  Guideline 2.1 "Information Needed" message asks for: the attached screen recording (an earlier
+  build on the same iPhone, and what this build adds), purpose and audience, setup (no account or
+  login; any label photo works), every external service, regional differences, and regulated
+  material (none). It stays under 4000 characters (3986).
+- Source: App Review's information-needed list.
+- Verified: each external service matches what the app links and calls at ba1e88a (Firebase AI
+  Logic, App Check, Authentication, Remote Config, Firestore for one rule-edition read, Apple
+  Foundation Models; no other network call); the recording's facts match its evidence folder and
+  its first frames; the quote left matches the code; tone and hygiene pass.
+
 ### docs(ios): App Store screenshots captured again from the build uploaded as 1.0.0 (1)
 - What: the five 6.9-inch screenshots were taken again from the Release build of ba1e88a. The old
   ones came from earlier commits and lacked Delete everything on this iPhone (01) and the Check it
