@@ -75,5 +75,5 @@ shared location, social media, dating, gambling or loot boxes. Apple's rating fr
 
 ## Version
 
-`MARKETING_VERSION` is 1.0.0 in `ios/project.yml`, the first App Store version (build 1). Keep the
-version in App Store Connect the same.
+`MARKETING_VERSION` is 1.0.0 in `ios/project.yml`, the first App Store version. Build 2 differs from
+build 1 only in its rule edition (revision 4). Keep the version in App Store Connect the same.

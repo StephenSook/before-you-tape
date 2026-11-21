@@ -5,6 +5,25 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the listing and review notes name build 2 and what it changes
+- What: ios/app-store/listing.md says build 2 differs from build 1 only in its rule edition
+  (revision 4). Item 1 of the review notes says the recording shows build 1 and that build 2 changes
+  only the rule edition (revision 4) and the build number; the power bank example in item 3 is cut
+  to stay within 4000 characters.
+- Source: the switch of the submitted build to 1.0.0 (2).
+- Verified: a diff of ba1e88a and 4af742e over the app code, the engine and the rules shows only
+  rules/edition.json changed; check_lengths.py gives 3971 / 4000; tone and hygiene pass.
+
+### build(ios): build number 2 for 1.0.0, carrying rule edition revision 4
+- What: CURRENT_PROJECT_VERSION in ios/project.yml goes from 1 to 2. The app code and the bundled
+  engine are the same as build 1 (engine sha256 7eec63d00561 at both); only rules/edition.json
+  differs, now revision 4 (byt-cfd7e337919a).
+- Source: the plan to submit the revision 4 build, so the suspension layer is not stale during
+  judging.
+- Verified: every shared vector (41 box, 64 guards, 25 destinations) passes through the bundled
+  engine with this edition in VectorTests on the iOS 27.2 simulator and with swift test on macOS;
+  check_engine_bundle.sh says fresh.
+
 ### docs(ios): the review notes describe the attached recording of this build
 - What: item 1 of ios/app-store/review-notes.md now describes the attached 70-second recording of
   this build on an iPhone 17 Pro (iOS 27.2.1), which starts at the Home Screen, and says the photo
