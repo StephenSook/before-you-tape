@@ -65,8 +65,9 @@ Like any online service, Google's servers see your IP address with each request.
   copy until that backup is deleted. The anonymous sign-in can stay in the iPhone's keychain after
   the app is deleted.
 - Android: the box lives in the app, and deleting the app deletes it.
-- On the web, we keep a saved box until you remove its items or ask us to delete it. To delete a
-  whole saved box or your anonymous sign-in from Firebase, open an issue at
+- On the web, a saved box lasts about 30 days. After that the anonymous sign-in may be removed, and
+  the box is deleted automatically within a few days. To delete a whole saved box or your anonymous
+  sign-in from Firebase, open an issue at
   [github.com/StephenSook/before-you-tape/issues](https://github.com/StephenSook/before-you-tape/issues).
   Don't post personal details in the issue. We will reply there and say how to do it.
 - The photo and words from a cloud check are not kept by Before You Tape.
