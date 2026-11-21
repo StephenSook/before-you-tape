@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: the release-gate note says the USPS service alerts were last read on 2026-11-20 (as `rules/suspensions.json` records), so that layer reads stale from 2026-12-12; it said 2026-11-17. Source: doc review. Verified: the layer state computed for 2026-12-11 (checked) and 2026-12-12 (stale).
+
 - The eval times the shipped route to its final verdict. Each shipped row records its second look's own time (`secondLookMs`), and the route's latency is the read plus that time, as on the Pack page. It also counts a shipped read of no item: the read and its times are kept, so it counts against exact numbers and in latency, with still no verdict. Source: review. Verified: new runner and metrics tests failed first and pass; eval tests, lint and typecheck pass.
 
 - The eval measures the shipped route like the other paths. Each shipped row keeps the read its card shows (after any second look), and the route is timed `repeat` times. The metrics give its exact numbers and its latency, and the public copy keeps only whether the numbers matched, and the times. Before, the shipped route had only a verdict, though the protocol asks for exact numbers and timings per path. Source: review. Verified: new runner and metrics tests failed first and pass (the public copy gives the same metrics as the full one); eval tests, lint and typecheck pass.
