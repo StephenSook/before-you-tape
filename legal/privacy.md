@@ -43,7 +43,9 @@ Last updated: November 21, 2026.
    label, whether it was read on the device or in the cloud, how long the reads took, and any
    verdict you report as wrong. It never holds the photo, the label text or a name you typed: the
    app removes them before saving, and the database rules refuse any item whose label text field
-   is not empty. The iPhone and Android apps keep their box on the phone only.
+   is not empty. The iPhone and Android apps keep their box on the phone only. We publish totals
+   across all saved boxes, such as how many items were read on the device or in the cloud and how
+   long reads took. We never publish anything about one box.
 5. **Settings and rules.** The app downloads its settings (Firebase Remote Config) and the
    published rule editions. To pick the settings, Remote Config receives a random installation
    ID, the app's version and your language. The phone apps also send your country and time zone

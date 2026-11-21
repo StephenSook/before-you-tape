@@ -1,0 +1,28 @@
+{
+  "runId": "models-2026-11-21",
+  "date": "2026-11-21",
+  "machine": "Apple M5 Pro, 48 GB, Mac17,9, macOS 27.0",
+  "chrome": "157.0.8103.80",
+  "models": "device: Chrome built-in model (gate available); cloud: gemini-3.5-flash-lite, fallback gemini-3.8-flash",
+  "editionId": "byt-3b5f5508968f",
+  "source": "eval/runs/models-2026-11-21.public.json",
+  "items": 40,
+  "destinations": 2,
+  "checks": 80,
+  "readOnDevice": 80,
+  "secondLookItems": 13,
+  "agreement": {
+    "k": 69,
+    "n": 80
+  },
+  "hazardsCalledOk": {
+    "k": 0,
+    "n": 28
+  },
+  "checkThis": {
+    "k": 14,
+    "n": 80
+  },
+  "p50Ms": 4868,
+  "p90Ms": 7735
+}
