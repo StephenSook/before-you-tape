@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -105,7 +106,8 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                     ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove, onQuantity = actions::quantity,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
-                chosen == null -> Text(Copy.CHOOSE_DESTINATION_FIRST, style = MaterialTheme.typography.bodyLarge)
+                // No destination yet: the destination button above is the one thing to do, and the camera waits.
+                chosen == null -> Unit
                 ui.consent == false && ui.deviceModel != DeviceModelStatus.AVAILABLE ->
                     ConsentScreen(false, ui.deviceModel, actions::consent, onTypeIt = { actions.show(HomeView.TYPE) }, onGetModel = actions::getModel)
                 else -> camera()
@@ -124,7 +126,9 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
 private fun DestinationPicker(chosen: DestinationName?, all: List<DestinationName>, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) { Text(chosen?.let { Copy.sendingTo(it.name) } ?: Copy.WHERE_TO) }
+        // Until a destination is chosen this is the screen's main action; after, a quiet reminder of where the box goes.
+        if (chosen == null) Button(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) { Text(Copy.WHERE_TO) }
+        else OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) { Text(Copy.sendingTo(chosen.name)) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             for (d in all) DropdownMenuItem(text = { Text(d.name) }, onClick = { open = false; onPick(d.code) })
         }
