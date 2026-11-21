@@ -156,10 +156,10 @@ describe("PackPage", () => {
   it("asks for cloud checks only when a photo needs them, then reads that photo and remembers the answer", async () => {
     const { store, models } = setup({}, null);
     // Nothing asks on arrival: the chip says cloud checks are off.
-    expect(screen.queryByText(/go to Google's Gemini/)).toBeNull();
+    expect(screen.queryByText(/goes to Google's Gemini/)).toBeNull();
     expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
     await addPhoto();
-    expect(await screen.findByText(/a cropped photo of the item and the words on its label go to Google's Gemini/)).toBeInTheDocument();
+    expect(await screen.findByText(/the cropped photo goes to Google's Gemini/)).toBeInTheDocument();
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).toBeNull();
     // The question takes focus, so a keyboard or screen reader user lands on it.
@@ -275,7 +275,7 @@ describe("PackPage", () => {
     const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
     const { models } = setup({ store });
     expect(store.getState().cloudConsent).toBe(true);
-    localStorage.setItem("byt.cloudConsent", "false");
+    localStorage.setItem("byt.cloudConsent.v2", "false");
     await addPhoto();
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(models.cloud.generate).not.toHaveBeenCalled();

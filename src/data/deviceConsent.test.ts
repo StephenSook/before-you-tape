@@ -13,20 +13,37 @@ describe("deviceConsent", () => {
     expect(c.get()).toBe(false);
     c.set(null);
     expect(c.get()).toBeNull();
-    localStorage.setItem("byt.cloudConsent", "yes");
+    localStorage.setItem("byt.cloudConsent.v2", "yes");
     expect(c.get()).toBeNull();
+  });
+
+  it("asks again anyone who said yes to the earlier question, which did not mention a second look, and keeps an earlier no", () => {
+    localStorage.setItem("byt.cloudConsent", "true");
+    expect(deviceConsent(localStorage).get()).toBeNull();
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(deviceConsent(localStorage).get()).toBe(false);
+    // An answer to this question replaces the earlier one.
+    deviceConsent(localStorage).set(true);
+    expect(localStorage.getItem("byt.cloudConsent")).toBeNull();
+    expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("true");
+    expect(deviceConsent(localStorage).get()).toBe(true);
+    // A tab still on the earlier version can still take consent back; its yes never counts.
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(deviceConsent(localStorage).get()).toBe(false);
+    localStorage.setItem("byt.cloudConsent", "true");
+    expect(deviceConsent(localStorage).get()).toBe(true);
   });
 
   it("hears another tab's change to the answer, and only that key", () => {
     const c = deviceConsent(localStorage);
     const heard = vi.fn();
     const stop = c.onChange(heard);
-    localStorage.setItem("byt.cloudConsent", "false");
-    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "false" }));
+    localStorage.setItem("byt.cloudConsent.v2", "false");
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "false" }));
     window.dispatchEvent(new StorageEvent("storage", { key: "byt.box.b1", newValue: "{}" }));
     expect(heard.mock.calls).toEqual([[false]]);
     stop();
-    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent", newValue: "true" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
