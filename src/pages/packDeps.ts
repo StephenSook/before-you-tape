@@ -82,6 +82,7 @@ export function buildDeps(): PackDeps | Error {
       return () => { alive = false; stop(); };
     };
     const deleteThisBox = () => deleteSavedBox(box.getState().boxId, {
+      stopSaving: () => box.close(),
       deleteBox: async (id) => { await persistence.deleteBox?.(id); },
       deleteCrops: () => deleteCropsExcept(() => false),
       clearLocal: (id) => clearLocalBox(localStorage, id),

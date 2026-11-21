@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Delete my saved box first closes the page's box store, so a save still on its way lands before the delete and nothing is kept or sent after it. A failed sign-out after a sign-in that needs a recent login now counts as the sign-in step failing, not as signed out. deleteSavedBox can start at a given step, and clearLocalBox removes the current-box pointer only while it names the deleted box. Source: review. Verified: new tests failed first and pass; full suite passes.
+
 - The box store has close(): from then on no edit is kept in this browser or sent, and it resolves once the writes already out have answered, so a first save still on its way cannot land after the box is deleted. Not called yet. Source: review. Verified: a new store test (a box creation in flight; an item and an edit after close are never sent or kept) failed without the change and passes.
 
 - A box's tombstone now expires 30 days after the box (the rules require exactly that), so a TTL policy on retiredBoxes can never remove the tombstone before an item or dispute the box left behind, which keeps the box's own expiry; until then the id could have been started again and its leftovers read. Source: review. Verified: rules tests (the box's own expiry and any other refused, box expiry plus 30 days accepted) and the persistence test failed first and pass; all 46 emulator tests pass.
