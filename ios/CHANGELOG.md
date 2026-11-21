@@ -5,6 +5,86 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): screenshot 04 taken again with the answer buttons as they are now
+- What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
+  chosen and filled; the README describes it and drops the note to take it again.
+- Source: the answer-button fix, merged to main at 018f8a6.
+- Verified: captured from a Release build of this branch (main 018f8a6 merged in) on the iPhone 17
+  Pro Max simulator; 1320 x 2868.
+
+### docs(ios): the screenshot notes say 04 must be taken again after the answer-button change
+- What: screenshot 04 shows a question's answers in the old grey look; the README says to capture
+  it again once the change that tints them like every other button is merged.
+- Source: the answer-button fix.
+- Verified: docs only.
+
+### docs(ios): the App Privacy answers follow the app's manifest and the removal of Performance
+- What: `ios/app-store/app-privacy.md` loses the Performance Data and Coarse Location rows, names
+  the bundles that declare diagnostic data in the new build (GoogleDataTransport left with
+  Performance), records the AI monitoring setting the web lane read (metrics on, prompts and
+  responses excluded from the logs), and points at the app's own manifest.
+- Source: the privacy manifest and SDK removal (PR #127), and the AI Logic setting read on
+  2026-11-21.
+- Verified: the data types were read again from every manifest in the Release build made after
+  the removal: User ID (Auth, linked); Other Diagnostic Data (Auth, Firestore, Installations,
+  Remote Config, Firestore's frameworks, not linked); Photos or Videos and Other User Content (the
+  app, linked); no tracking; no Performance or Functions bundle.
+
+### docs(ios): five 6.9-inch App Store screenshots from real on-device reads
+- What: `ios/app-store/screenshots/`: Ready check, a power bank read on the iPhone, the box with
+  all three verdicts, an item's reason with the date of each rule layer, and the same box
+  re-checked for the Philippines with 0 model calls. A README says how each was made and its
+  limits.
+- Source: App Store preparation.
+- Verified: each file is 1320 x 2868; every read was made by Apple's on-device model on the
+  iPhone 17 Pro Max simulator through Add a photo; only the owner's own photos appear (a CC BY-SA
+  photo first used in 02 was replaced). The simulator was shut down afterwards.
+
+### docs(ios): the App Privacy answers, with where each one comes from
+- What: `ios/app-store/app-privacy.md`: tracking (no), and each Apple data type the iPhone app
+  collects (User ID; the photo crop and label words only after Allow; Firebase's own diagnostic
+  data), with its source in the code or in the manifests bundled in the built app, plus the two
+  extra rows if Firebase Performance stays.
+- Source: App Store preparation.
+- Verified: the data types were read from every `PrivacyInfo.xcprivacy` inside a built BYT.app
+  (User ID linked for App Functionality from FirebaseAuth; Other Diagnostic Data, not linked, from
+  five Firebase bundles; no tracking anywhere) and from Firebase's App Store disclosure page.
+
+### chore(ios): a script measures the App Store fields against Apple's limits
+- What: `ios/app-store/check_lengths.py` measures the name, subtitle, promotional text,
+  description, keywords, what's new and review notes, and fails on a field that is too long or
+  missing, or on a dash or curly quote.
+- Source: App Store preparation.
+- Verified: every field fits (promotional text 169 of 170, keywords 99 of 100); exit 0.
+
+### docs(ios): App Review notes, with the path for an iPhone without Apple Intelligence
+- What: `ios/app-store/review-notes.md`: no account needed; a two-minute path; what happens with
+  Apple Intelligence on (read on the iPhone, also offline) and without it (the cloud question in
+  its exact words, Allow or Keep everything on this iPhone, and Type it by hand).
+- Source: App Store preparation.
+- Verified: each screen name, button and sentence is the app's own (Ready check, Check an item,
+  Add a photo, Your box, What we checked, the consent sentence and both buttons, Turn off and Turn
+  on cloud checks); 2123 of 4000 characters.
+
+### docs(ios): the App Store listing text, availability and age rating
+- What: `ios/app-store/listing.md`: name, subtitle, categories, URLs, promotional text,
+  description, keywords (no trademarked names), age rating answers, and availability in every
+  country except France and China mainland, with the reason for each.
+- Source: App Store preparation.
+- Verified: every claim is from the app (three verdicts, on-device reads, the consent sentence,
+  Canada and the Philippines in the edition); measured by the script above. Nothing is created in
+  App Store Connect.
+
+### docs(ios): the device checklist names the 5 items and starts from the newest main
+- What: the checklist now names the 5 items to bring (a lotion or cream; a perfume or another
+  alcohol-based spray; a power bank; a boxed device with a battery; one clearly harmless item). A
+  new first step moves to the newest main (`git checkout --detach origin/main`, which works in a
+  worktree) and runs `check_engine_bundle.sh`, so the phone runs the web app's engine. It runs
+  after any other app's install in the same session. The pull step says it records the model and
+  iOS version only.
+- Source: session planning.
+- Verified: `bash ios/scripts/check_engine_bundle.sh` exit 0 at 5f47e05; tone check clean.
+
 ### fix(ios): a question's answers look tappable, and the chosen one is filled
 - What: an item's question (for example "Does the label list alcohol?") showed its answers tinted
   grey until one was chosen, which read as switched off, though they worked. Every answer now uses
