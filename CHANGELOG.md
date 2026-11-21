@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Consent cannot be brought back by a tab on the earlier version: its no is recorded under the current key, so its later yes to the earlier question is ignored. Another tab's changes reach this page with each event's own value, so a tab that hears an off and an on together still drops waiting second looks. Each cloud question records the choice when it opened, and an Allow pressed after another tab answered (even before its event arrives) is not taken. A press of Check now or of the sample closes an open question at once, before cropping. Source: second adversarial review of the consent changes. Verified: four new tests failed first and pass; the full suite and home-page browser checks pass.
+
 - The consent tests that build their own pack page pass the deleteCrop that PackPage now requires, so the branch typechecks on top of main. Source: merging main (removed items delete their crops). Verified: typecheck and the full suite pass.
 
 - The cloud question holds one request at a time and closes when it no longer applies: a newer photo closes it, so Allow can only send the newest; removing an item closes its look's question; a choice made in another tab closes it and drops its photo ("Your cloud choice changed in another tab. Add the photo again."). Choosing this laptop only takes back every card's cloud-look offer. Taking consent back drops looks waiting to go back online, so turning cloud checks on again never sends one by itself. Answering returns focus to the cloud chip. Source: adversarial review of the consent changes. Verified: six new tests failed first and pass; the full suite and home-page browser checks pass.

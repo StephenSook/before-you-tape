@@ -183,6 +183,22 @@ describe("PackPage", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
+  it("sends nothing when Allow is pressed after another tab said no, even before this page has heard of it", async () => {
+    localStorage.clear();
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    const { models } = setup({ store }, null);
+    await addPhoto();
+    await screen.findByRole("button", { name: "Allow" });
+    // The other tab's answer is stored; its storage event has not arrived.
+    localStorage.setItem("byt.cloudConsent.v2", "false");
+    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    expect(localStorage.getItem("byt.cloudConsent.v2")).toBe("false");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed in another tab. Add the photo again.");
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(models.cloud.generate).not.toHaveBeenCalled();
+    localStorage.clear();
+  });
+
   it("drops an older photo's cloud question when a newer photo is added, so Allow can only send the newest", async () => {
     const store = newStore();
     const models = spyModels();

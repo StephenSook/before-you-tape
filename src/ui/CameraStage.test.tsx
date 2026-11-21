@@ -103,6 +103,18 @@ describe("CameraStage", () => {
     await waitFor(() => expect(onImage).toHaveBeenCalledTimes(2));
   });
 
+  it("says a Check now press happened at once, before the frame is cropped, even when the crop then fails", async () => {
+    const onPress = vi.fn();
+    let fail: (e: Error) => void = () => {};
+    const capture = vi.fn(() => new Promise<never>((_, no) => { fail = no; }));
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={() => {}} onPress={onPress} capture={capture} />);
+    await start();
+    await userEvent.click(screen.getByTestId("check-now"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await act(async () => { fail(new CropError("empty crop box")); await Promise.resolve(); });
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
   it("says in plain words why Check now read nothing, never the raw error", async () => {
     const onError = vi.fn();
     const capture = vi.fn(async () => { throw new CropError("empty crop box"); });
