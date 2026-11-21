@@ -42,14 +42,19 @@ accuracy.
   10.1%). Each of its 11 rows that differ from our draft labels is on the careful side: 7 rows labelled "OK to
   pack" got "Check this", 3 rows labelled "Take it out" got "Check this", and 1 row labelled "Check this" got "Take
   it out".
+- **Device plus cloud beats either alone.** The shipped route, which reads on the device and asks the cloud for a
+  second look when the read needs one, agrees on 69 of 80 rows, against 60 for the device alone and 64 for the cloud
+  alone.
 - **Against the baselines.** By the protocol's rule, the shipped route beats always "Check this" but not rules only:
-  its agreement (69) is lower than rules only (71). Rules only is given each item's category from a fixed table, so
-  it starts from the answer a model has to read from the photo.
+  its agreement (69) is lower than rules only (71). Rules only is told each item's category, from a fixed table over
+  the item descriptions, while the shipped route has to read it from the photo.
 - **Without the two items that prompted rule changes** (38 items, 76 rows): the shipped route agrees on 67 of 76,
   calls 0 of 26 hazard items OK, and says "Check this" on 12 of 76.
 - **Printed battery numbers**, on the 5 items that print them: read exactly on the device 1 of 5, in the cloud 5 of
-  5, and on the shipped route 4 of 5. The device misread the numbers on 4 items; for all 4, no destination got "OK
-  to pack".
+  5, and on the shipped route 4 of 5. On 4 items the device's numbers differed from the printed ones: 2 misread a
+  printed value, and 2 added a watt-hour figure the label does not print (volts times mAh). All 4 got a second
+  look in the cloud; after it, 3 matched the printed numbers. All 4 ended as "Take it out" for both destinations,
+  so none was called "OK to pack".
 - **Second looks.** The shipped route read every item on the device and asked the cloud for a second look on 13 of
   the 40 items.
 - **Time to a verdict** (median of three warm runs per item, then across items): on the device 4.6 s (p90 7.5 s),
