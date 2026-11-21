@@ -283,8 +283,11 @@ service cloud.firestore {
     function isValidItem(d) {
       return d.keys().hasAll(['read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags', 'readSource'])
         && d.keys().hasOnly(['itemId', 'read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags',
-                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt', 'expiresAt'])
+                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt', 'expiresAt',
+                             'tagsVersion'])
         && (!('itemId' in d) || isShortString(d.itemId, 64))
+        // Which label words made labelTags (src/data/tagsVersion.ts); an item saved before it was kept has none.
+        && (!('tagsVersion' in d) || (d.tagsVersion is string && d.tagsVersion.matches('^[0-9a-f]{8}$')))
         && isValidRead(d.read)
         && isValidOverrides(d.overrides)
         && isValidAnswers(d.answers)

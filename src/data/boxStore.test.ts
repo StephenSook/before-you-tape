@@ -7,6 +7,7 @@ import { ed } from "../../tests/engine/helpers";
 import type { BoxMeta, BoxOps, LoadResult } from "./boxOps";
 import { createBoxStore, type BoxItem, type BoxState } from "./boxStore";
 import { deviceConsent } from "./deviceConsent";
+import { LABEL_UNKNOWN, labelWordsVersion } from "./tagsVersion";
 
 const base: ItemRead = {
   itemName: "Item", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0,
@@ -47,7 +48,7 @@ const store = (o: { persistence?: BoxOps; verified?: () => Promise<boolean> } = 
 
 const phoneItem: BoxItem = {
   itemId: "phone-1", read: { ...shirtRead, evidence: "label_read", labelText: "" }, overrides: {}, answers: {}, quantity: 1,
-  identityConfirmedBy: null, labelTags: ["label_text"], readSource: "phone_cloud", readMs: 2100, secondLook: null, cropKey: null,
+  identityConfirmedBy: null, labelTags: ["label_text"], tagsVersion: labelWordsVersion(ed), readSource: "phone_cloud", readMs: 2100, secondLook: null, cropKey: null,
   customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
 };
 const savedItemWithOldVerdict: BoxItem = { ...phoneItem, itemId: "saved-1", readSource: "on_device" };
@@ -180,6 +181,29 @@ describe("createBoxStore", () => {
     expect(s.getState().destinationCode).toBe("PH");
     // An answer an older version saved on the box is ignored: consent is this device's own.
     expect(s.getState().cloudConsent).toBeNull();
+  });
+
+  it("holds a saved item an older app tagged at Check this, without a write, until its label is read again", async () => {
+    // How the revision 3 web app saved a toy labelled REPLICA GRENADE: its words then found nothing, so the tags are
+    // label_text alone, and no label words version was kept.
+    const toy: BoxItem = { ...phoneItem, itemId: "toy-1", read: { ...base, itemName: "Toy", category: "toy", labelText: "" }, labelTags: ["label_text"] };
+    delete (toy as { tagsVersion?: string }).tagsVersion;
+    const p = spyPersistence({ items: [toy], destinationCode: "CA" });
+    const s = store({ persistence: p });
+    await s.ready;
+    expect(s.getState().result.items["toy-1"]).toMatchObject({ level: "check" });
+    expect(s.getState().result.items["toy-1"]?.hits[0]).toMatchObject({ ruleId: "DATA-LABEL-AGAIN", text: LABEL_UNKNOWN });
+    expect(writes(p)).toBe(0);
+    s.override("toy-1", { labelText: "REPLICA GRENADE" });
+    await s.settled();
+    const hits = s.getState().result.items["toy-1"]?.hits.map((h) => h.ruleId);
+    expect(hits).toContain("USPS-INTL-REPLICA-EXPLOSIVE");
+    expect(hits).not.toContain("DATA-LABEL-AGAIN");
+    expect(p.saved()?.items?.find((i) => i.itemId === "toy-1")?.tagsVersion).toBe(labelWordsVersion(ed));
+    // An item added now carries the current version, so it is never held for this.
+    const id = s.addManual(liquidLotionRead);
+    expect(s.getState().items.find((i) => i.itemId === id)?.tagsVersion).toBe(labelWordsVersion(ed));
+    expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-LABEL-AGAIN");
   });
 
   it("clears the item's error when a second look then succeeds", () => {

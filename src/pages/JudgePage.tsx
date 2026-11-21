@@ -4,6 +4,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { noPersistence } from "../data/boxOps";
 import { createBoxStore, type BoxItem, type BoxStore } from "../data/boxStore";
+import { labelWordsVersion } from "../data/tagsVersion";
 import { longDate } from "../engine/destination";
 import { resolveDestination } from "../engine/edition";
 import { evaluateBox } from "../engine/verdict";
@@ -56,7 +57,8 @@ function sampleStore(edition: RuleEdition, today: string, now: () => number): Bo
   for (const s of SAMPLE_BOX) {
     const item: BoxItem = {
       itemId: s.itemId, read: s.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
-      labelTags: labelTagsOf(s.read.labelText, edition), readSource: "manual", readMs: 0, secondLook: null, cropKey: null,
+      labelTags: labelTagsOf(s.read.labelText, edition), tagsVersion: labelWordsVersion(edition), readSource: "manual", readMs: 0,
+      secondLook: null, cropKey: null,
       customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
     };
     store.mergeRemoteItem(item);
