@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### docs(ios): the iPhone app says it runs no cloud second look yet, and no app text implies one
+- What: docs/LIMITS.md says the iPhone app does not run the cloud second look yet: a read on the
+  iPhone's own model is that one read, the rules decide, and the card says "Read on this iPhone".
+  A test reads every string in the app's Swift files and fails on "second look" or "looked
+  again", as Android's copy test does.
+- Source: lane decision (ship the iPhone without a second look now; a web-parity one may follow).
+- Verified: the test failed on a planted line ("The cloud took a second look at this item.") and
+  passes with it removed; 155 unit tests pass.
+
 ### test(ios): tests that wait for a task at a gate poll for up to 5 seconds
 - What: six tests waited for a background task to reach a gate with 1000 `Task.yield()` calls.
   On a busy Mac (load average 80 to 150) that ran out first: the mirror failed
