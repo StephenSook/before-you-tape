@@ -89,7 +89,13 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     if (e instanceof CropError && /empty crop box/.test(e.message)) return "Hold the item inside the box, or type it instead.";
     return photo ? "That photo could not be opened. Try another, or type the item." : "That could not be read. Try again, or type the item.";
   };
+  // Each photo pick, the sender's or the sample's, gets the next number, and so does each press of Check now (its
+  // own count). A sample that finishes after a newer pick or press is dropped, so a slow sample never covers the
+  // sender's own check; a press never drops the sender's own photo.
+  const pickSeq = useRef(0);
+  const pressSeq = useRef(0);
   const read = useCallback(async (box: Box, how: ImageHow) => {
+    if (how === "check_now") ++pressSeq.current;
     const { onImage: emit, onError: fail, capture: grab } = latest.current;
     try {
       const video = videoRef.current;
@@ -156,9 +162,6 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
     return () => window.removeEventListener("keydown", onKey);
   }, [read]);
 
-  // Each photo pick, the sender's or the sample's, gets the next number; a pick that finishes after a newer one
-  // started is dropped, so a slow sample can never take the place of the sender's own photo.
-  const pickSeq = useRef(0);
   // An added photo turns the camera off and opens the crop step; nothing is read yet.
   const onFile = async (file: File | undefined, isSample = false, seq?: number) => {
     if (!file) return;
@@ -181,21 +184,28 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   const trySample = async () => {
     if (!sample) return;
     const mine = ++pickSeq.current;
+    const press = pressSeq.current;
+    const current = () => mine === pickSeq.current && press === pressSeq.current;
     try {
       const bytes = await loadSample(sample.url);
-      if (mine !== pickSeq.current) return;
+      if (!current()) return;
       if ((await bytesSha256(bytes)) !== sample.sha256) { onError?.(SAMPLE_FAILED); return; }
       const file = new File([bytes], sample.url.split("/").pop() ?? "sample.jpg", { type: "image/jpeg" });
       if (!onSampleSend) { await onFile(file, true, mine); return; }
       const source = await (decodeFile ?? decodePhoto)(file);
-      if (mine !== pickSeq.current) { release(source); return; }
-      const part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
-      release(source);
-      if (mine !== pickSeq.current) return;
+      if (!current()) { release(source); return; }
+      let part: ImagePart;
+      try {
+        part = await (cropPart ?? cropWithLimits)(source, WHOLE_PHOTO);
+      } finally {
+        release(source);
+      }
+      if (!current()) return;
       setSampleSent(true);
       onSampleSend(part);
     } catch {
-      onError?.(SAMPLE_FAILED);
+      // A sample a newer photo or press replaced says nothing over it.
+      if (current()) onError?.(SAMPLE_FAILED);
     }
   };
 

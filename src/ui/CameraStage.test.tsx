@@ -151,7 +151,8 @@ describe("CameraStage", () => {
     // The same decode as a photo the sender adds: the file holds the tracked bytes.
     const file = decodeFile.mock.calls[0]![0];
     expect(Buffer.from(await file.arrayBuffer()).equals(bytes)).toBe(true);
-    await screen.findByRole("img", { name: "The part that will be checked" });
+    // The preview can take over a second when the whole suite runs at once.
+    await screen.findByRole("img", { name: "The part that will be checked" }, { timeout: 5000 });
     await userEvent.click(screen.getByRole("button", { name: "Check this part" }));
     expect(onImage).toHaveBeenCalledWith(part, "upload");
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("The last check used a sample photo from our test set, not your item.");
@@ -192,6 +193,58 @@ describe("CameraStage", () => {
     await userEvent.click(send);
     expect(onImage).toHaveBeenCalledWith(part, "upload");
     expect(onSampleSend).not.toHaveBeenCalled();
+  });
+
+  it("drops a pending sample once the sender presses Check now", async () => {
+    const onImage = vi.fn();
+    const onSampleSend = vi.fn();
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    let arrive: (b: ArrayBuffer) => void = () => {};
+    render(<CameraStage openCamera={okCamera} onImage={onImage} onSampleSend={onSampleSend} capture={async () => part} decodeFile={async () => document.createElement("canvas")}
+      cropPart={async () => part} sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }}
+      loadSample={() => new Promise<ArrayBuffer>((r) => { arrive = r; })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    expect(onImage).toHaveBeenCalledWith(part, "check_now");
+    arrive(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(onSampleSend).not.toHaveBeenCalled();
+  });
+
+  it("still opens the sender's own photo when a Check now pressed while it decodes fails", async () => {
+    let decoded: (c: HTMLCanvasElement) => void = () => {};
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={() => {}} capture={async () => { throw new Error("no frame yet"); }}
+      decodeFile={() => new Promise<HTMLCanvasElement>((r) => { decoded = r; })} cropPart={async () => part} />);
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await userEvent.upload(screen.getByTestId("upload-input"), new File(["x"], "bank.jpg", { type: "image/jpeg" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await act(async () => { decoded(document.createElement("canvas")); await new Promise((r) => setTimeout(r, 20)); });
+    expect(await screen.findByRole("button", { name: "Check this part" })).toBeInTheDocument();
+  });
+
+  it("says nothing when a sample that a newer photo replaced fails to load", async () => {
+    const onError = vi.fn();
+    let fail: () => void = () => {};
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={onError} onSampleSend={() => {}} decodeFile={async () => document.createElement("canvas")}
+      cropPart={async () => part} sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }}
+      loadSample={() => new Promise<ArrayBuffer>((_, no) => { fail = () => no(new Error("offline")); })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    await userEvent.upload(screen.getByTestId("upload-input"), new File(["x"], "bank.jpg", { type: "image/jpeg" }));
+    await screen.findByRole("button", { name: "Check this part" });
+    await act(async () => { fail(); await new Promise((r) => setTimeout(r, 20)); });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("closes the decoded sample even when it cannot be encoded", async () => {
+    const close = vi.fn();
+    const bytes = readFileSync(join(process.cwd(), "public", sampleItem.photo));
+    render(<CameraStage openCamera={okCamera} onImage={() => {}} onError={() => {}} onSampleSend={() => {}}
+      decodeFile={async () => Object.assign(document.createElement("canvas"), { close })} cropPart={async () => { throw new Error("no blob"); }}
+      sample={{ url: sampleItem.photo, sha256: sampleItem.photoSha256, alt: sampleItem.alt }}
+      loadSample={async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Try a sample photo" }));
+    await waitFor(() => expect(close).toHaveBeenCalled());
   });
 
   it("opens nothing when the sample photo does not match its tracked SHA-256", async () => {

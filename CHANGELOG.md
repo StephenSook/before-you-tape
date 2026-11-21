@@ -9,6 +9,9 @@ All notable changes to this project are listed here.
 - When the camera cannot focus, the line names "Use your phone" only when that button is shown (the phone handoff exists); otherwise it says "Add a photo, or type the numbers." Source: review. Verified: the CameraStage test failed first and passes.
 
 - On a phone the Pack page opens the back camera, and the photo picker opens the camera: `src/shared/phoneDevice.ts` reads the browser's mobile flag, or else a phone in the user agent, and PackRoute passes it down. Before, nothing set it, so phones opened the front camera. Source: review. Verified: new phone-detection and PackPage tests failed first and pass.
+- Check now keeps its own count, so a press drops only a pending sample, never a photo the sender added that is still decoding. Source: review. Verified: a new CameraStage test (a failed Check now while the photo decodes) failed first and passes; CameraStage and PackPage tests pass.
+
+- A pending sample is dropped once the sender presses Check now, a sample that a newer photo or press replaced shows no error over it, and the decoded sample is closed even when it cannot be encoded. One crop-step test waits up to 5 s for its preview, which can take over a second when the whole suite runs. Source: review. Verified: three new CameraStage tests failed first and pass; CameraStage and PackPage tests pass twice in a row.
 
 - The sample's recorded read clears an earlier blocked alert when it gives its verdict, and a late failure to keep the sample's photo on the device says nothing once a newer check has been pressed. Source: review. Verified: two new PackPage tests failed first and pass.
 
