@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### fix(ios): the local CI mirror stops and says so when the Firebase settings file is missing
+- What: `ios/BYT/Config/GoogleService-Info.plist` is gitignored, so a fresh clone or worktree has
+  none. Without it the app shows its missing-settings screen (LoopUITests cannot find "Check an
+  item") and the three SignedInCloudTests that build the cloud client crash: exactly the four
+  failures listed on Nov 19. `ci-local-ios.sh` now stops before the app build with "...
+  GoogleService-Info.plist is missing (it is gitignored). Copy it ... then run again."
+- Source: the mirror run in a fresh worktree at d4a5a06 failed those four tests; the same commit
+  with the file copied in passed them.
+- Verified: in a fresh worktree without the file, the four failed (and no other app test); with
+  the file copied in, all four passed. The new check exits 0 with the file and 1 with it missing
+  or empty. Earlier, the README guessed the build-cache deletion; that guess was wrong for these
+  four.
+
 ### docs(ios): the iPhone app says it runs no cloud second look yet, and no app text implies one
 - What: docs/LIMITS.md says the iPhone app does not run the cloud second look yet: a read on the
   iPhone's own model is that one read, the rules decide, and the card says "Read on this iPhone".
