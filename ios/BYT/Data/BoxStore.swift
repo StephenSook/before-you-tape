@@ -31,6 +31,15 @@ struct BoxSources: Codable, Equatable, Sendable {
     }
 }
 
+/// A cloud second look that landed on an item: how long it took and why it ran (the screen's words).
+struct SecondLookNote: Codable, Equatable, Sendable {
+    var ms: Double
+    var reason: String
+}
+
+/// Which read of a disputed fact the sender picks.
+enum DisputeSide: String, Sendable { case device, cloud }
+
 /// One item in the box: the engine's input fields (the web app's BoxItemInput) plus where its
 /// read came from. Never a verdict: verdicts are derived.
 struct BoxItem: Codable, Equatable, Identifiable, Sendable {
@@ -54,14 +63,21 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The whole label a photo read returned, before the read's text was clipped: in memory only, so a
     /// new edition can tag it again. Never saved.
     var wholeLabel: String?
+    /// Set once a cloud second look landed on this item.
+    var secondLook: SecondLookNote?
+    /// The facts the device read and the second look disagreed on, in the web app's shape
+    /// ({ field: { device, cloud, resolved } }); an open one holds the item at "Check this".
+    var disputes: JSONValue?
 
     var id: String { itemId }
 
     var engineInput: JSONValue {
-        .object(["itemId": .string(itemId), "read": read, "overrides": .object(overrides),
+        var input: [String: JSONValue] = ["itemId": .string(itemId), "read": read, "overrides": .object(overrides),
                  "answers": .object(answers.mapValues { .string($0) }), "quantity": .number(Double(quantity)),
                  "identityConfirmedBy": identityConfirmedBy.map { .string($0) } ?? .null,
-                 "labelTags": .array(labelTags.map { .string($0) })])
+                 "labelTags": .array(labelTags.map { .string($0) })]
+        if let disputes { input["disputes"] = disputes }
+        return .object(input)
     }
 
     /// The copy that leaves memory: no label text, read or corrected; the tags stand in for it.
@@ -247,6 +263,7 @@ final class BoxStore {
     func answer(_ itemId: String, question: String, answer: String) { update(itemId) { $0.answers[question] = answer } }
 
     /// A corrected label replaces the read one, so its tags must survive the label text not being saved.
+    /// The sender's own correction of a disputed fact settles that dispute.
     func override(_ itemId: String, patch: [String: JSONValue]) {
         update(itemId) { item in
             item.overrides.merge(patch) { _, new in new }
@@ -255,6 +272,104 @@ final class BoxStore {
                 // Blank words are not a label: a stale item stays stale until real words are read.
                 if hasWords(label) || !isStale(item) { item.tagsEdition = tagsEdition(label) }
             }
+            if case var .object(all)? = item.disputes {
+                for field in Self.disputeFields where Self.corrects(patch, field) {
+                    if case var .object(d)? = all[field] { d["resolved"] = .bool(true); all[field] = .object(d) }
+                }
+                item.disputes = .object(all)
+            }
+        }
+    }
+
+    /// The facts two reads can dispute, in the web app's order (src/engine/types.ts DISPUTE_FIELDS).
+    static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
+                                "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence"]
+
+    /// Whether these corrections settle a disputed fact: the battery only as a whole set of numbers,
+    /// the label words only with a corrected label, any other fact by itself (the web app's rule).
+    static func corrects(_ patch: [String: JSONValue], _ field: String) -> Bool {
+        switch field {
+        case "battery": patch["volts"] != nil && patch["milliampHours"] != nil && patch["wattHours"] != nil
+        case "labelTags": patch["labelText"] != nil
+        default: patch[field] != nil
+        }
+    }
+
+    /// The label words that can change a verdict: every tag but the one that only says a label was read.
+    static func wordsOf(_ tags: [String]) -> String { Set(tags.filter { $0 != "label_text" }).sorted().joined(separator: ",") }
+
+    /// What each read of a second look called the item and said on its label, kept in memory only, so
+    /// a picked side brings its own words back (the web app's lookLabels).
+    private struct LookLabels {
+        var device: String, cloud: String
+        var deviceName: String?, cloudName: String?
+    }
+    @ObservationIgnored private var lookLabels: [String: LookLabels] = [:]
+
+    private static func text(_ v: JSONValue?) -> String? { if case let .string(s)? = v { s } else { nil } }
+
+    /// A cloud second look landed (the web app's applySecondLook). The merged read replaces the device's;
+    /// the item keeps the tags of every label either read saw, never only the merged one, so a hazard word
+    /// in the shorter label still counts; a label word only one read saw becomes a dispute of tags (never of
+    /// label text); a fact the sender corrected while the cloud read ran keeps no dispute; and the item
+    /// counts as confirmed only when both reads saw the same kind of item. `cloudLabel` is the cloud read's
+    /// whole label.
+    func applySecondLook(_ itemId: String, merged: JSONValue, ms: Double, reason: String, cloudLabel: String?,
+                         disputes: JSONValue = .object([:])) {
+        sources.add(\.secondLooks)
+        let shown = cloudLabel.map { String(String.UnicodeScalarView($0.unicodeScalars.prefix(ReadDraft.labelTextMax))) }
+        let cloudTags = tags(cloudLabel.map { .string($0) })
+        update(itemId) { item in
+            lookLabels[itemId] = LookLabels(device: Self.text(item.read["labelText"]) ?? "", cloud: shown ?? "",
+                                            deviceName: Self.text(item.read["itemName"]), cloudName: Self.text(merged["itemName"]))
+            var found: [String: JSONValue] = if case let .object(o) = disputes { o } else { [:] }
+            if cloudLabel != nil, Self.wordsOf(item.labelTags) != Self.wordsOf(cloudTags) {
+                found["labelTags"] = .object(["device": .array(item.labelTags.map { .string($0) }),
+                                              "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
+            }
+            for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
+            let sameCategory = merged["category"] == item.read["category"]
+            // A label the sender corrected while the cloud read ran stays theirs: only its tags count.
+            if item.overrides["labelText"] == nil {
+                let added = cloudLabel == nil ? tags(merged["labelText"]) : cloudTags
+                for tag in added where !item.labelTags.contains(tag) { item.labelTags.append(tag) }
+                if !added.isEmpty { item.tagsEdition = engine.editionId }
+            }
+            item.read = merged
+            item.secondLook = SecondLookNote(ms: ms, reason: reason)
+            if item.identityConfirmedBy == nil, sameCategory { item.identityConfirmedBy = "second_look" }
+            item.disputes = found.isEmpty ? nil : .object(found)
+        }
+    }
+
+    /// The sender picks one read of a disputed fact (the web app's settleDispute): that reading is used and
+    /// judged. Picking the label brings back that read's words, and its text while this iPhone still has
+    /// it; picking what the item is confirms it, and names it as that read did (or by its category, once
+    /// this iPhone no longer has that read's name).
+    func settleDispute(_ itemId: String, field: String, side: DisputeSide) {
+        update(itemId) { item in
+            guard case var .object(all)? = item.disputes, case var .object(d)? = all[field], let value = d[side.rawValue],
+                  case var .object(read) = item.read else { return }
+            d["resolved"] = .bool(true)
+            all[field] = .object(d)
+            item.disputes = .object(all)
+            switch field {
+            case "battery":
+                for key in ["volts", "milliampHours", "wattHours"] { if let v = value[key] { read[key] = v } }
+            case "labelTags":
+                if case let .array(values) = value { item.labelTags = values.compactMap { if case let .string(s) = $0 { s } else { nil } } }
+                if let words = lookLabels[itemId] { read["labelText"] = .string(side == .device ? words.device : words.cloud) }
+            default:
+                read[field] = value
+                if field == "category" {
+                    let names = lookLabels[itemId]
+                    let category = Self.text(value) ?? ""
+                    read["itemName"] = .string((side == .device ? names?.deviceName : names?.cloudName)
+                        ?? ReadDraft.categories.first { $0.id == category }?.label ?? category)
+                    if item.identityConfirmedBy == nil { item.identityConfirmedBy = "sender" }
+                }
+            }
+            item.read = .object(read)
         }
     }
 
@@ -272,6 +387,7 @@ final class BoxStore {
 
     func remove(_ itemId: String) {
         items.removeAll { $0.itemId == itemId }
+        lookLabels[itemId] = nil
         commit()
     }
 

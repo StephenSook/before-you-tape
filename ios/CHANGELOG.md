@@ -5,6 +5,25 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the box lands a cloud second look and keeps its disputes
+- What: `BoxStore.applySecondLook` (the web app's): the merged read replaces the device's, the
+  item keeps the tags of every label either read saw, a label word only one read saw becomes a
+  dispute of tags (never of label text), a fact the sender corrected while the cloud read ran keeps
+  no dispute, the item counts as confirmed when both reads saw the same category, and the box
+  counts the second look. `settleDispute` uses the picked read (the battery as a whole set; the
+  label brings back that read's words and text; picking the category confirms the item and names
+  it as that read did, or by its category after a reload). A sender's own correction settles the
+  dispute on that fact; the battery only on a whole set of numbers. `BoxItem` saves `secondLook`
+  and `disputes`, and the engine gets the disputes, so an open one holds the item at "Check this".
+- Source: the iPhone second look (web parity).
+- Verified: 13 tests ported from the web app's box store tests, same reads and expectations (an
+  agreeing look confirms and a different one does not; the union of tags; a correction kept across
+  a reload; a power bank read as a phone held at Check this; no cautious reading ends at OK; a
+  label-word dispute with no label text; no dispute on a corrected fact; settling each kind; a not
+  sure first read; naming after a reload; no hazard from a clipped label; battery settles only on a
+  whole set; a fix settles and the saved copy keeps the disputes). They failed to compile before and
+  pass after; 174 unit tests pass.
+
 ### feat(ios-core): the engine wrapper gives the second-look reason and merge
 - What: `RulesEngine.secondLookReason(item:source:policy:)` returns the web app's reason (or nil) for an
   item just added, and `mergeSecondLook(device:cloud:)` returns the merged read, the disputed facts
