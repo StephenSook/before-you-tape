@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The README's offline line now claims only what is tested: typed items are judged offline, and a photo can be read offline only by the browser's built-in model, which we have not recorded a test of with the network off. It said reads on the device still work offline, with no network-off on-device read on record (CI covers the offline reload and a typed item). Source: a self-audit of the judge-facing claims. Verified against tests/e2e (the offline specs reload the page and judge a typed item) and docs/TEST-MATRIX.md (no network-off on-device read).
+
 - What ran where now says its cloud count includes reads whose route the SDK did not report: the line reads items read in the cloud (counting reads whose route the SDK did not report), and the detail row Read in the cloud, or by a route the SDK did not report. Such a read is saved as cloud_unreported and counted as cloud for privacy (src/data/boxStore.ts, src/ran/summarize.ts), which the page did not say. Source: a self-audit of the judge-facing claims. Verified: the page test, with the new wording, failed first and passes; the full suite passes.
 
 - What ran where no longer says Nothing leaves the device for typing an item or changing the country. Neither calls a model, but the box list is saved to Firestore (each item's category, count, battery numbers, answers and label words), and a new country is saved with it. The rows now say Nothing goes to a model and point to the saved box line below the table. Source: a self-audit of the judge-facing claims. Verified: a new test (the two rows' wording, and no row in the table ending Nothing.) failed first and passes; the full suite passes.
