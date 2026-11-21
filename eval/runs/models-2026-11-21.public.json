@@ -1,0 +1,2803 @@
+{
+  "runId": "models-2026-11-21",
+  "setId": "eval-v1",
+  "date": "2026-11-21",
+  "machine": "Apple M5 Pro, 48 GB, Mac17,9, macOS 27.0",
+  "chromeVersion": "157.0.8103.80",
+  "modelShown": "device: Chrome built-in model (gate available); cloud: gemini-3.5-flash-lite, fallback gemini-3.8-flash",
+  "editionId": "byt-3b5f5508968f",
+  "rows": [
+    {
+      "itemId": "own-01",
+      "destination": "CA",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          7340,
+          3797,
+          4694
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1341,
+          1402,
+          1252
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1313,
+        "numbersExact": false,
+        "msRuns": [
+          4577,
+          4459,
+          4610
+        ]
+      }
+    },
+    {
+      "itemId": "own-01",
+      "destination": "PH",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          7340,
+          3797,
+          4694
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1341,
+          1402,
+          1252
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1313,
+        "numbersExact": false,
+        "msRuns": [
+          4577,
+          4459,
+          4610
+        ]
+      }
+    },
+    {
+      "itemId": "own-03",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4768,
+          7669,
+          6526
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1600,
+          1251,
+          1166
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1287,
+        "numbersExact": null,
+        "msRuns": [
+          10333,
+          6869,
+          4142
+        ]
+      }
+    },
+    {
+      "itemId": "own-03",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4768,
+          7669,
+          6526
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1600,
+          1251,
+          1166
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1287,
+        "numbersExact": null,
+        "msRuns": [
+          10333,
+          6869,
+          4142
+        ]
+      }
+    },
+    {
+      "itemId": "own-04",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4531,
+          4608,
+          5392
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1590,
+          1274,
+          1193
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          8887,
+          7575,
+          5525
+        ]
+      }
+    },
+    {
+      "itemId": "own-04",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4531,
+          4608,
+          5392
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1590,
+          1274,
+          1193
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          8887,
+          7575,
+          5525
+        ]
+      }
+    },
+    {
+      "itemId": "own-14",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8555,
+          4569,
+          4573
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1808,
+          1387,
+          1415
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7478,
+          6579,
+          7696
+        ]
+      }
+    },
+    {
+      "itemId": "own-14",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8555,
+          4569,
+          4573
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1808,
+          1387,
+          1415
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7478,
+          6579,
+          7696
+        ]
+      }
+    },
+    {
+      "itemId": "own-16",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4508,
+          3967,
+          4227
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1658,
+          1277,
+          1340
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5051,
+          5341,
+          6427
+        ]
+      }
+    },
+    {
+      "itemId": "own-16",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4508,
+          3967,
+          4227
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1658,
+          1277,
+          1340
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5051,
+          5341,
+          6427
+        ]
+      }
+    },
+    {
+      "itemId": "own-18",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          11121,
+          9970,
+          5667
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1571,
+          1492,
+          1298
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4683,
+          6966,
+          7969
+        ]
+      }
+    },
+    {
+      "itemId": "own-18",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          11121,
+          9970,
+          5667
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1571,
+          1492,
+          1298
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4683,
+          6966,
+          7969
+        ]
+      }
+    },
+    {
+      "itemId": "own-20",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          12820,
+          9732,
+          8064
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1962,
+          1444,
+          1467
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          12164,
+          21681,
+          5754
+        ]
+      }
+    },
+    {
+      "itemId": "own-20",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          12820,
+          9732,
+          8064
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1962,
+          1444,
+          1467
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          12164,
+          21681,
+          5754
+        ]
+      }
+    },
+    {
+      "itemId": "own-23",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4573,
+          3887,
+          4551
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1680,
+          1260,
+          1294
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7046,
+          7659,
+          8679
+        ]
+      }
+    },
+    {
+      "itemId": "own-23",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4573,
+          3887,
+          4551
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1680,
+          1260,
+          1294
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7046,
+          7659,
+          8679
+        ]
+      }
+    },
+    {
+      "itemId": "own-25",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6090,
+          4490,
+          4674
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1949,
+          1356,
+          1232
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3814,
+          4806,
+          4895
+        ]
+      }
+    },
+    {
+      "itemId": "own-25",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6090,
+          4490,
+          4674
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1949,
+          1356,
+          1232
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3814,
+          4806,
+          4895
+        ]
+      }
+    },
+    {
+      "itemId": "own-27",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8537,
+          10190,
+          6286
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1910,
+          1278,
+          1252
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4151,
+          4098,
+          4442
+        ]
+      }
+    },
+    {
+      "itemId": "own-27",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8537,
+          10190,
+          6286
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1910,
+          1278,
+          1252
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4151,
+          4098,
+          4442
+        ]
+      }
+    },
+    {
+      "itemId": "own-30",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4960,
+          5913,
+          4600
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1730,
+          1372,
+          1285
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4397,
+          4100,
+          4808
+        ]
+      }
+    },
+    {
+      "itemId": "own-30",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4960,
+          5913,
+          4600
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1730,
+          1372,
+          1285
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4397,
+          4100,
+          4808
+        ]
+      }
+    },
+    {
+      "itemId": "own-32",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          5423,
+          4693,
+          5469
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1708,
+          1316,
+          1377
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3235,
+          4469,
+          6118
+        ]
+      }
+    },
+    {
+      "itemId": "own-32",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          5423,
+          4693,
+          5469
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1708,
+          1316,
+          1377
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3235,
+          4469,
+          6118
+        ]
+      }
+    },
+    {
+      "itemId": "own-33",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6037,
+          6342,
+          6501
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1975,
+          1214,
+          1300
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5726,
+          6298,
+          4809
+        ]
+      }
+    },
+    {
+      "itemId": "own-33",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6037,
+          6342,
+          6501
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1975,
+          1214,
+          1300
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5726,
+          6298,
+          4809
+        ]
+      }
+    },
+    {
+      "itemId": "i01",
+      "destination": "CA",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          5273,
+          4384,
+          4431
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1792,
+          1311,
+          1871
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1289,
+        "numbersExact": true,
+        "msRuns": [
+          4836,
+          4857,
+          4376
+        ]
+      }
+    },
+    {
+      "itemId": "i01",
+      "destination": "PH",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          5273,
+          4384,
+          4431
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1792,
+          1311,
+          1871
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1289,
+        "numbersExact": true,
+        "msRuns": [
+          4836,
+          4857,
+          4376
+        ]
+      }
+    },
+    {
+      "itemId": "i02",
+      "destination": "CA",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          6845,
+          5173,
+          5157
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1636,
+          1346,
+          1429
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1289,
+        "numbersExact": true,
+        "msRuns": [
+          3986,
+          5895,
+          5027
+        ]
+      }
+    },
+    {
+      "itemId": "i02",
+      "destination": "PH",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          6845,
+          5173,
+          5157
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1636,
+          1346,
+          1429
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1289,
+        "numbersExact": true,
+        "msRuns": [
+          3986,
+          5895,
+          5027
+        ]
+      }
+    },
+    {
+      "itemId": "i03",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6884,
+          5690,
+          5597
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1844,
+          1708,
+          1323
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1522,
+        "numbersExact": null,
+        "msRuns": [
+          7131,
+          11929,
+          13297
+        ]
+      }
+    },
+    {
+      "itemId": "i03",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          6884,
+          5690,
+          5597
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1844,
+          1708,
+          1323
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1522,
+        "numbersExact": null,
+        "msRuns": [
+          7131,
+          11929,
+          13297
+        ]
+      }
+    },
+    {
+      "itemId": "i04",
+      "destination": "CA",
+      "device": {
+        "numbersExact": true,
+        "msRuns": [
+          6330,
+          5478,
+          4577
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1613,
+          1338,
+          1262
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1435,
+        "numbersExact": true,
+        "msRuns": [
+          5003,
+          4321,
+          5062
+        ]
+      }
+    },
+    {
+      "itemId": "i04",
+      "destination": "PH",
+      "device": {
+        "numbersExact": true,
+        "msRuns": [
+          6330,
+          5478,
+          4577
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1613,
+          1338,
+          1262
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1435,
+        "numbersExact": true,
+        "msRuns": [
+          5003,
+          4321,
+          5062
+        ]
+      }
+    },
+    {
+      "itemId": "i05",
+      "destination": "CA",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          5787,
+          4730,
+          5205
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1533,
+          1222,
+          1327
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1232,
+        "numbersExact": true,
+        "msRuns": [
+          3627,
+          3625,
+          3883
+        ]
+      }
+    },
+    {
+      "itemId": "i05",
+      "destination": "PH",
+      "device": {
+        "numbersExact": false,
+        "msRuns": [
+          5787,
+          4730,
+          5205
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": true,
+        "msRuns": [
+          1533,
+          1222,
+          1327
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1232,
+        "numbersExact": true,
+        "msRuns": [
+          3627,
+          3625,
+          3883
+        ]
+      }
+    },
+    {
+      "itemId": "i06",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3937,
+          3618,
+          4227
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1542,
+          1207,
+          1141
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1141,
+        "numbersExact": null,
+        "msRuns": [
+          3569,
+          2904,
+          3675
+        ]
+      }
+    },
+    {
+      "itemId": "i06",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3937,
+          3618,
+          4227
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1542,
+          1207,
+          1141
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1141,
+        "numbersExact": null,
+        "msRuns": [
+          3569,
+          2904,
+          3675
+        ]
+      }
+    },
+    {
+      "itemId": "i07",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3915,
+          3171,
+          3698
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1568,
+          1177,
+          1374
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1436,
+        "numbersExact": null,
+        "msRuns": [
+          2948,
+          2995,
+          3069
+        ]
+      }
+    },
+    {
+      "itemId": "i07",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3915,
+          3171,
+          3698
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1568,
+          1177,
+          1374
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1436,
+        "numbersExact": null,
+        "msRuns": [
+          2948,
+          2995,
+          3069
+        ]
+      }
+    },
+    {
+      "itemId": "i08",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3114,
+          3576,
+          3228
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1816,
+          1538,
+          1248
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3152,
+          3242,
+          3879
+        ]
+      }
+    },
+    {
+      "itemId": "i08",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3114,
+          3576,
+          3228
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1816,
+          1538,
+          1248
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3152,
+          3242,
+          3879
+        ]
+      }
+    },
+    {
+      "itemId": "i09",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3779,
+          3830,
+          4530
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1644,
+          1491,
+          1417
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3930,
+          4391,
+          4946
+        ]
+      }
+    },
+    {
+      "itemId": "i09",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3779,
+          3830,
+          4530
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1644,
+          1491,
+          1417
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3930,
+          4391,
+          4946
+        ]
+      }
+    },
+    {
+      "itemId": "i10",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3545,
+          3938,
+          3864
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1638,
+          1337,
+          1211
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          2936,
+          3448,
+          3356
+        ]
+      }
+    },
+    {
+      "itemId": "i10",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3545,
+          3938,
+          3864
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1638,
+          1337,
+          1211
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          2936,
+          3448,
+          3356
+        ]
+      }
+    },
+    {
+      "itemId": "i11",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3488,
+          3958,
+          4035
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1440,
+          1122,
+          1186
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3578,
+          4039,
+          3760
+        ]
+      }
+    },
+    {
+      "itemId": "i11",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3488,
+          3958,
+          4035
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1440,
+          1122,
+          1186
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3578,
+          4039,
+          3760
+        ]
+      }
+    },
+    {
+      "itemId": "i12",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3770,
+          3582,
+          3361
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1464,
+          1287,
+          1267
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3781,
+          3762,
+          3228
+        ]
+      }
+    },
+    {
+      "itemId": "i12",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3770,
+          3582,
+          3361
+        ],
+        "level": "take_out"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1464,
+          1287,
+          1267
+        ],
+        "level": "take_out"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3781,
+          3762,
+          3228
+        ]
+      }
+    },
+    {
+      "itemId": "i13",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          2914,
+          2971,
+          5311
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1981,
+          1248,
+          1218
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4876,
+          9744,
+          4764
+        ]
+      }
+    },
+    {
+      "itemId": "i13",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          2914,
+          2971,
+          5311
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1981,
+          1248,
+          1218
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4876,
+          9744,
+          4764
+        ]
+      }
+    },
+    {
+      "itemId": "i14",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8731,
+          8588,
+          8131
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          2207,
+          1345,
+          1204
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4913,
+          4889,
+          4511
+        ]
+      }
+    },
+    {
+      "itemId": "i14",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          8731,
+          8588,
+          8131
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          2207,
+          1345,
+          1204
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          4913,
+          4889,
+          4511
+        ]
+      }
+    },
+    {
+      "itemId": "i15",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4028,
+          4995,
+          4519
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1703,
+          1289,
+          1206
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          8259,
+          4294,
+          4613
+        ]
+      }
+    },
+    {
+      "itemId": "i15",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4028,
+          4995,
+          4519
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1703,
+          1289,
+          1206
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          8259,
+          4294,
+          4613
+        ]
+      }
+    },
+    {
+      "itemId": "i16",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4087,
+          6279,
+          3155
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1700,
+          1166,
+          1482
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3070,
+          3436,
+          3114
+        ]
+      }
+    },
+    {
+      "itemId": "i16",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4087,
+          6279,
+          3155
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1700,
+          1166,
+          1482
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3070,
+          3436,
+          3114
+        ]
+      }
+    },
+    {
+      "itemId": "i17",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4724,
+          4181,
+          3896
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1743,
+          1377,
+          1127
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3273,
+          3341,
+          3949
+        ]
+      }
+    },
+    {
+      "itemId": "i17",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4724,
+          4181,
+          3896
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1743,
+          1377,
+          1127
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3273,
+          3341,
+          3949
+        ]
+      }
+    },
+    {
+      "itemId": "i18",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3285,
+          3308,
+          3112
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1631,
+          1095,
+          1265
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3374,
+          3197,
+          5041
+        ]
+      }
+    },
+    {
+      "itemId": "i18",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3285,
+          3308,
+          3112
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1631,
+          1095,
+          1265
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3374,
+          3197,
+          5041
+        ]
+      }
+    },
+    {
+      "itemId": "i19",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4357,
+          5332,
+          10016
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1698,
+          1235,
+          1189
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1258,
+        "numbersExact": null,
+        "msRuns": [
+          6298,
+          7710,
+          7093
+        ]
+      }
+    },
+    {
+      "itemId": "i19",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4357,
+          5332,
+          10016
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1698,
+          1235,
+          1189
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1258,
+        "numbersExact": null,
+        "msRuns": [
+          6298,
+          7710,
+          7093
+        ]
+      }
+    },
+    {
+      "itemId": "i20",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7076,
+          5003,
+          6549
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1570,
+          1250,
+          1215
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1283,
+        "numbersExact": null,
+        "msRuns": [
+          4053,
+          3411,
+          4108
+        ]
+      }
+    },
+    {
+      "itemId": "i20",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7076,
+          5003,
+          6549
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1570,
+          1250,
+          1215
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "take_out",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1283,
+        "numbersExact": null,
+        "msRuns": [
+          4053,
+          3411,
+          4108
+        ]
+      }
+    },
+    {
+      "itemId": "i21",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3551,
+          3940,
+          3260
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1759,
+          1482,
+          1482
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3374,
+          4167,
+          6523
+        ]
+      }
+    },
+    {
+      "itemId": "i21",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3551,
+          3940,
+          3260
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1759,
+          1482,
+          1482
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3374,
+          4167,
+          6523
+        ]
+      }
+    },
+    {
+      "itemId": "i22",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7408,
+          9851,
+          5741
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          2050,
+          1411,
+          1288
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7298,
+          11202,
+          7007
+        ]
+      }
+    },
+    {
+      "itemId": "i22",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7408,
+          9851,
+          5741
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          2050,
+          1411,
+          1288
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          7298,
+          11202,
+          7007
+        ]
+      }
+    },
+    {
+      "itemId": "i23",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4103,
+          3971,
+          4074
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1777,
+          1194,
+          1249
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1111,
+        "numbersExact": null,
+        "msRuns": [
+          3537,
+          3548,
+          3638
+        ]
+      }
+    },
+    {
+      "itemId": "i23",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          4103,
+          3971,
+          4074
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1777,
+          1194,
+          1249
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1111,
+        "numbersExact": null,
+        "msRuns": [
+          3537,
+          3548,
+          3638
+        ]
+      }
+    },
+    {
+      "itemId": "i24",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3227,
+          3720,
+          3560
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1559,
+          1224,
+          1338
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1192,
+        "numbersExact": null,
+        "msRuns": [
+          3017,
+          2940,
+          3476
+        ]
+      }
+    },
+    {
+      "itemId": "i24",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3227,
+          3720,
+          3560
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1559,
+          1224,
+          1338
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": true,
+        "secondLookMs": 1192,
+        "numbersExact": null,
+        "msRuns": [
+          3017,
+          2940,
+          3476
+        ]
+      }
+    },
+    {
+      "itemId": "i25",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3637,
+          3503,
+          4764
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1447,
+          1486,
+          1282
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3877,
+          4068,
+          4738
+        ]
+      }
+    },
+    {
+      "itemId": "i25",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3637,
+          3503,
+          4764
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1447,
+          1486,
+          1282
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3877,
+          4068,
+          4738
+        ]
+      }
+    },
+    {
+      "itemId": "i26",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3638,
+          3646,
+          4377
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1592,
+          1255,
+          1243
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5420,
+          7688,
+          7855
+        ]
+      }
+    },
+    {
+      "itemId": "i26",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          3638,
+          3646,
+          4377
+        ],
+        "level": "check"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1592,
+          1255,
+          1243
+        ],
+        "level": "check"
+      },
+      "shipped": {
+        "level": "check",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          5420,
+          7688,
+          7855
+        ]
+      }
+    },
+    {
+      "itemId": "i27",
+      "destination": "CA",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7201,
+          5292,
+          4339
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1799,
+          1730,
+          1356
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3233,
+          6615,
+          5242
+        ]
+      }
+    },
+    {
+      "itemId": "i27",
+      "destination": "PH",
+      "device": {
+        "numbersExact": null,
+        "msRuns": [
+          7201,
+          5292,
+          4339
+        ],
+        "level": "ok"
+      },
+      "cloud": {
+        "numbersExact": null,
+        "msRuns": [
+          1799,
+          1730,
+          1356
+        ],
+        "level": "ok"
+      },
+      "shipped": {
+        "level": "ok",
+        "source": "on_device",
+        "secondLook": false,
+        "numbersExact": null,
+        "msRuns": [
+          3233,
+          6615,
+          5242
+        ]
+      }
+    }
+  ],
+  "coldMs": {
+    "device": 26698,
+    "cloud": 1465
+  },
+  "metrics": {
+    "allItems": {
+      "items": 40,
+      "truthAgreement": {
+        "k": 69,
+        "n": 80
+      },
+      "hazardCalledOk": {
+        "k": 0,
+        "n": 28,
+        "upper95": 0.1014657355727247
+      },
+      "checkRate": {
+        "k": 14,
+        "n": 80
+      },
+      "noVerdict": {
+        "k": 0,
+        "n": 80
+      },
+      "numbersExact": {
+        "device": {
+          "k": 1,
+          "n": 5
+        },
+        "cloud": {
+          "k": 5,
+          "n": 5
+        },
+        "shipped": {
+          "k": 4,
+          "n": 5
+        }
+      },
+      "misreadsCaught": {
+        "k": 4,
+        "n": 4
+      },
+      "latency": {
+        "device": {
+          "p50": 4562,
+          "p90": 7520.9000000000015,
+          "n": 40
+        },
+        "cloud": {
+          "p50": 1340.5,
+          "p90": 1496.6000000000001,
+          "n": 40
+        },
+        "shipped": {
+          "p50": 4867.5,
+          "p90": 7734.800000000001,
+          "n": 40
+        },
+        "pairedMedianDiffMs": 3243.5,
+        "diffCi95": [
+          2751,
+          3653
+        ]
+      }
+    },
+    "withoutRuleChangeItems": {
+      "items": 38,
+      "truthAgreement": {
+        "k": 67,
+        "n": 76
+      },
+      "hazardCalledOk": {
+        "k": 0,
+        "n": 26,
+        "upper95": 0.10883035576078487
+      },
+      "checkRate": {
+        "k": 12,
+        "n": 76
+      },
+      "noVerdict": {
+        "k": 0,
+        "n": 76
+      },
+      "numbersExact": {
+        "device": {
+          "k": 1,
+          "n": 5
+        },
+        "cloud": {
+          "k": 5,
+          "n": 5
+        },
+        "shipped": {
+          "k": 4,
+          "n": 5
+        }
+      },
+      "misreadsCaught": {
+        "k": 4,
+        "n": 4
+      },
+      "latency": {
+        "device": {
+          "p50": 4562,
+          "p90": 7746.699999999997,
+          "n": 38
+        },
+        "cloud": {
+          "p50": 1340.5,
+          "p90": 1505.8,
+          "n": 38
+        },
+        "shipped": {
+          "p50": 4867.5,
+          "p90": 7828.399999999999,
+          "n": 38
+        },
+        "pairedMedianDiffMs": 3243.5,
+        "diffCi95": [
+          2767,
+          3616.4375000000036
+        ]
+      }
+    }
+  }
+}

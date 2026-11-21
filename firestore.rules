@@ -269,7 +269,7 @@ service cloud.firestore {
         && d.quantity is int && d.quantity >= 1 && d.quantity <= 99
         && (d.identityConfirmedBy == null || d.identityConfirmedBy in ['sender', 'second_look'])
         && isKnownTagList(d.labelTags)
-        && d.readSource in ['on_device', 'in_cloud', 'cloud_unreported', 'manual', 'phone_on_device', 'phone_cloud']
+        && d.readSource in ['on_device', 'in_cloud', 'cloud_unreported', 'manual', 'phone_on_device', 'phone_cloud', 'sample_recorded']
         && (!('readMs' in d) || d.readMs is number)
         && (!('secondLook' in d) || isValidSecondLook(d.secondLook))
         && (!('readFallback' in d) || isValidFallback(d.readFallback))

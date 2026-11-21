@@ -2,6 +2,7 @@
 // the model it names, the box in Firestore after anonymous sign-in (in this browser's storage if sign-in
 // fails), the rule edition Remote Config pins (the bundled one unless a published one verifies), and the
 // destination index. A build without its Firebase settings says so plainly instead of breaking.
+import { SAMPLE_READ } from "../data/sampleRead";
 import { useEffect, useState } from "react";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
@@ -133,7 +134,7 @@ export function PackRoute() {
   };
 
   return (
-    <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera}
+    <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera} sampleRead={SAMPLE_READ}
       index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
   );
 }

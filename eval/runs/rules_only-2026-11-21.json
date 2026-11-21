@@ -1,0 +1,891 @@
+{
+  "runId": "rules_only-2026-11-21",
+  "setId": "eval-v1",
+  "date": "2026-11-21",
+  "machine": "darwin arm64",
+  "chromeVersion": "none",
+  "modelShown": "none",
+  "editionId": "byt-3b5f5508968f",
+  "rows": [
+    {
+      "itemId": "own-01",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-01",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-03",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-03",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-04",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-04",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-14",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-14",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-16",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-16",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-18",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-18",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-20",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-20",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-23",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-23",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-25",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-25",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-27",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-27",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-30",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-30",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-32",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-32",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-33",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "own-33",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i01",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i01",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i02",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i02",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i03",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i03",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i04",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i04",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i05",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i05",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i06",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i06",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i07",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i07",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i08",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i08",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i09",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i09",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i10",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i10",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i11",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i11",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i12",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i12",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "take_out",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i13",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i13",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i14",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i14",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i15",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i15",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i16",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i16",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i17",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i17",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i18",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i18",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i19",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i19",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i20",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i20",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i21",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i21",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i22",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i22",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i23",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i23",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i24",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i24",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i25",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i25",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i26",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i26",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "check",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i27",
+      "destination": "CA",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    },
+    {
+      "itemId": "i27",
+      "destination": "PH",
+      "device": null,
+      "cloud": null,
+      "shipped": {
+        "level": "ok",
+        "source": "rules_only",
+        "secondLook": false
+      }
+    }
+  ]
+}
