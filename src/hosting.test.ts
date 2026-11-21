@@ -63,7 +63,8 @@ describe("hosting", () => {
     }
     // The service worker is checked again every time too, so a browser learns of a new version on its next visit
     // instead of keeping an old worker, and the old app it caches, for up to an hour.
-    for (const path of ["/sw.js"]) expect(rulesFor(path).map(cacheOf), path).toEqual([NO_CACHE]);
+    // The web app manifest too, so a changed name or icon list reaches an installed app at once.
+    for (const path of ["/sw.js", "/manifest.webmanifest"]) expect(rulesFor(path).map(cacheOf), path).toEqual([NO_CACHE]);
   });
 
   it("ships an icon that every page names, so no browser asks for a missing favicon.ico", () => {
