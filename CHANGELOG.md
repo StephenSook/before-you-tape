@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An icon: `public/favicon.svg` (a box with its tape), named by the app page and the 404 page, so a browser no longer asks for a missing `/favicon.ico` on every first load. Source: UI review (a 404 in the console). Verified: a new hosting test failed first and passes.
 - `npm run fresh` (`scripts/fresh-through-judging.ts`): fails when a rule layer would read stale before the last judging day (2026-12-16). A stale layer turns every "OK to pack" into "Check this". Until the re-read window opens on 2026-11-27 it only warns, naming each layer and the day it turns stale (today: the CA and PH suspensions layers, last read 2026-11-20, stale from 2026-12-12); from then on it fails until the USPS alerts are read again and the edition is rebuilt. It runs in CI and in a daily job of the scheduled probe workflow, so it turns red even with no push. Source: review (the judging window). Verified: new tests (the stale day, warn before and fail from the window, the bundled edition) failed first and pass; the script warns and exits 0 today; both workflow files parse.
 - docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.
 
