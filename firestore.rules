@@ -119,7 +119,7 @@ service cloud.firestore {
     function isValidBox(d) {
       return d.keys().hasAll(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId'])
         && d.keys().hasOnly(['ownerUid', 'memberUids', 'joinKeyHash', 'destinationCode', 'editionId', 'cloudConsent',
-                             'sources', 'lastRecheckMs', 'updatedAt'])
+                             'sources', 'lastRecheckMs', 'updatedAt', 'expiresAt'])
         && isShortString(d.ownerUid, 128)
         && d.memberUids is list && d.memberUids.size() >= 1 && d.memberUids.size() <= 4
         && isShortString(d.joinKeyHash, 128)
@@ -128,7 +128,26 @@ service cloud.firestore {
 
         && (!('sources' in d) || isValidSources(d.sources))
         && (!('lastRecheckMs' in d) || isNumberOrNull(d.lastRecheckMs))
-        && (!('updatedAt' in d) || d.updatedAt is timestamp);
+        && (!('updatedAt' in d) || d.updatedAt is timestamp)
+        && (!('expiresAt' in d) || d.expiresAt is timestamp);
+    }
+
+    // A box lasts 37 days from its creation: its anonymous owner may be removed after 30, and Firestore's TTL policy
+    // on expiresAt then deletes the box, its items and its disputes. A new box's expiry is checked against the
+    // server's time, with a day either side for the client's clock.
+    function isNewBoxExpiry(t) {
+      return t is timestamp && t > request.time + duration.value(36, 'd') && t < request.time + duration.value(38, 'd');
+    }
+
+    // No client changes, removes or adds an expiry; a full write carrying the same time keeps it unchanged. An item's
+    // or a dispute's expiry needs no type check of its own: on create it must equal its box's, which is a time.
+    function expiryUnchanged() {
+      return request.resource.data.get('expiresAt', null) == resource.data.get('expiresAt', null);
+    }
+
+    // A member writing a new item or dispute, with the box's own expiry. The box is read once and passed in.
+    function joinsBoxWithItsExpiry(box) {
+      return isMemberOf(box) && request.resource.data.get('expiresAt', null) == box.data.get('expiresAt', null);
     }
 
     // Consent is kept on each device, never here: a write may leave an older box's cloudConsent as it is or
@@ -183,8 +202,10 @@ service cloud.firestore {
     // One fact a second look's two reads disagreed on: what each read saw and whether the sender settled it.
     // Exactly the three keys device, cloud and resolved. Each check below is kept small: one request may evaluate
     // at most 1000 expressions, and every element of a list literal counts.
+    // Three keys, with resolved a bool. A missing device or cloud is refused where it is read: reading a missing
+    // field is an error, and an error refuses the write.
     function isDisputeShape(d) {
-      return d is map && d.size() == 3 && 'device' in d && 'cloud' in d && d.resolved is bool;
+      return d is map && d.size() == 3 && d.resolved is bool;
     }
 
     function isBatteryNumbers(b) {
@@ -226,9 +247,10 @@ service cloud.firestore {
     // At least one fact, each typed as the read types it, and itemRev: a revision of the item document the
     // disputes were written with, in the same batch.
     function isValidDisputes(m) {
-      return m.size() >= ('itemRev' in m ? 2 : 1)
+      return m.size() >= 1 + ('itemRev' in m ? 1 : 0) + ('expiresAt' in m ? 1 : 0)
         && m.keys().hasOnly(['category', 'retailBox', 'battery', 'lithiumGrams', 'batteryWords', 'liquid', 'pressurized',
-                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence', 'itemRev'])
+                             'alcoholOnLabel', 'flammableOnLabel', 'glassContainer', 'powder', 'labelTags', 'evidence', 'itemRev',
+                             'expiresAt'])
         && (!('itemRev' in m) || isShortString(m.itemRev, 16))
         && (!('category' in m) || isCategoryDispute(m.category))
         && isEnumDispute(m, 'retailBox', '^(sealed|open_or_none|cannot_tell)$')
@@ -261,7 +283,7 @@ service cloud.firestore {
     function isValidItem(d) {
       return d.keys().hasAll(['read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags', 'readSource'])
         && d.keys().hasOnly(['itemId', 'read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags',
-                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt'])
+                             'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt', 'expiresAt'])
         && (!('itemId' in d) || isShortString(d.itemId, 64))
         && isValidRead(d.read)
         && isValidOverrides(d.overrides)
@@ -291,12 +313,14 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.memberUids == [request.auth.uid]
         && request.resource.data.joinKeyHash == ''
-        && !('cloudConsent' in request.resource.data);
+        && !('cloudConsent' in request.resource.data)
+        && isNewBoxExpiry(request.resource.data.get('expiresAt', null));
       // Members change the box contents, never who belongs to it.
       allow update: if isMemberOf(resource)
         && isValidBox(request.resource.data)
         && areImmutableFieldsUnchanged(['ownerUid', 'memberUids', 'joinKeyHash'])
-        && consentUntouchedOrDeleted();
+        && consentUntouchedOrDeleted()
+        && expiryUnchanged();
       // No client deletes a box. A deleted box would leave its items and disputes behind (a delete does not
       // reach subcollections), and its id would read as free, so anyone could start it again and become the
       // member of those items.
@@ -307,7 +331,9 @@ service cloud.firestore {
           return get(/databases/$(database)/documents/boxes/$(boxId));
         }
         allow read, delete: if isMemberOf(parentBox());
-        allow create, update: if isMemberOf(parentBox()) && isValidItem(request.resource.data);
+        // An item expires with its box: the same time on create, unchanged after.
+        allow create: if joinsBoxWithItsExpiry(parentBox()) && isValidItem(request.resource.data);
+        allow update: if isMemberOf(parentBox()) && isValidItem(request.resource.data) && expiryUnchanged();
       }
 
       match /disputes/{itemId} {
@@ -315,7 +341,9 @@ service cloud.firestore {
           return get(/databases/$(database)/documents/boxes/$(boxId));
         }
         allow read, delete: if isMemberOf(disputesBox());
-        allow create, update: if isMemberOf(disputesBox()) && isValidDisputes(request.resource.data);
+        // Disputes expire with their box: the same time on create, unchanged after.
+        allow create: if joinsBoxWithItsExpiry(disputesBox()) && isValidDisputes(request.resource.data);
+        allow update: if isMemberOf(disputesBox()) && isValidDisputes(request.resource.data) && expiryUnchanged();
       }
     }
 

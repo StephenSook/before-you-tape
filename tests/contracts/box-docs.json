@@ -1,5 +1,13 @@
 {
-  "about": "The documents the web app writes for one box, as Firestore stores them. Phone clients write the same shapes; tests/firestore/contract.test.ts checks the web app against this file and firestore.rules enforces it.",
+  "about": "The documents the web app writes for one box, as Firestore stores them. Phone clients write the same shapes; tests/firestore/contract.test.ts checks the web app against this file and firestore.rules enforces it. The documents below are shown without expiresAt, which depends on when the box was made: see expiry.",
+  "expiry": {
+    "field": "expiresAt",
+    "type": "Firestore timestamp",
+    "boxDays": 37,
+    "box": "Set once, when the box is created: its creation time plus boxDays days. Never changed.",
+    "itemsAndDisputes": "Each item and disputes document carries its box's expiresAt exactly, on every write. Never changed. Omitted when the box has none (a box from before expiry).",
+    "why": "The anonymous owner may be removed after 30 days; Firestore's TTL policy on expiresAt then deletes the box, its items and its disputes."
+  },
   "box": {
     "path": "boxes/{boxId}",
     "doc": {

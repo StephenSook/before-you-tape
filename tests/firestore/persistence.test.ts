@@ -1,7 +1,7 @@
 // Firestore persistence against the local emulator and the real rules: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, collection, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { doc, getDoc, getDocs, collection, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BoxItem } from "../../src/data/boxStore";
 import type { BoxMeta } from "../../src/data/boxOps";
@@ -22,6 +22,10 @@ const admin = async <T>(f: (d: Firestore) => Promise<T>) => {
   await env.withSecurityRulesDisabled(async (c) => { out = await f(c.firestore() as unknown as Firestore); });
   return out;
 };
+
+const DAY = 86_400_000;
+// A stored document without its expiry, which the app keeps out of the items it holds.
+const unexpired = (d: unknown) => { const { expiresAt: _e, ...rest } = (d ?? {}) as Record<string, unknown>; void _e; return rest; };
 
 const item = (itemId: string, patch: Partial<BoxItem> = {}): BoxItem => ({
   itemId, quantity: 1, identityConfirmedBy: null, labelTags: ["cosmetic"], readSource: "on_device", readMs: 1200, secondLook: null, cropKey: `k-${itemId}`,
@@ -53,6 +57,43 @@ describe("firestorePersistence", () => {
     expect(loaded.status === "found" && loaded.box.items?.map((i) => [i.itemId, i.quantity]).sort()).toEqual([["i1", 1], ["i2", 3]]);
   });
 
+  it("gives a new box an expiry 37 days out and its items and disputes the same, and keeps the expiry out of loaded items", async () => {
+    const before = Date.now();
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    await p.putMeta("b1", meta());
+    await p.putItem("b1", item("i1", { disputes: { liquid: { device: true, cloud: false, resolved: false } } }));
+    const expiresAt = (await at("boxes/b1"))!.expiresAt as Timestamp;
+    expect(expiresAt.toMillis()).toBeGreaterThanOrEqual(before + 37 * DAY);
+    expect(expiresAt.toMillis()).toBeLessThanOrEqual(Date.now() + 37 * DAY);
+    expect((await at("boxes/b1/items/i1"))!.expiresAt).toEqual(expiresAt);
+    expect((await at("boxes/b1/disputes/i1"))!.expiresAt).toEqual(expiresAt);
+    // A session that only loaded the box, and one that never read it, write the same expiry.
+    const loadedFirst = firestorePersistence(db("alice"), "alice", "byt-test");
+    const back = await loadedFirst.loadBox("b1");
+    await loadedFirst.putItem("b1", item("i2"));
+    await firestorePersistence(db("alice"), "alice", "byt-test").putItem("b1", item("i3"));
+    for (const id of ["i2", "i3"]) expect((await at(`boxes/b1/items/${id}`))!.expiresAt).toEqual(expiresAt);
+    // The items the app holds carry no expiry.
+    expect(back.status === "found" && back.box.items?.some((i) => "expiresAt" in i)).toBe(false);
+    // An update leaves the box's expiry as it was.
+    await p.putMeta("b1", meta({ destinationCode: "PH" }));
+    expect((await at("boxes/b1"))!.expiresAt).toEqual(expiresAt);
+  });
+
+  it("keeps a box from before expiry working, and its disputes paired once the backfill gives it an expiry", async () => {
+    await admin((d) => setDoc(doc(d, "boxes/old"), { ownerUid: "alice", memberUids: ["alice"], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" }));
+    const p = firestorePersistence(db("alice"), "alice", "byt-test");
+    const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
+    await p.putItem("old", item("i1", { disputes }));
+    expect(await at("boxes/old/items/i1")).not.toHaveProperty("expiresAt");
+    const later = Timestamp.fromMillis(Date.now() + 37 * DAY);
+    await admin(async (d) => {
+      for (const path of ["boxes/old", "boxes/old/items/i1", "boxes/old/disputes/i1"]) await updateDoc(doc(d, path), { expiresAt: later });
+    });
+    const back = await firestorePersistence(db("alice"), "alice", "byt-test").loadBox("old");
+    expect(back.status === "found" && back.box.items?.[0]?.disputes).toEqual(disputes);
+  });
+
   it("keeps a second look's disputes in their own document with the item's revision, and loads them back onto it", async () => {
     const disputes: BoxItem["disputes"] = { category: { device: "power_bank", cloud: "phone", resolved: false } };
     const p = firestorePersistence(db("alice"), "alice", "byt-test");
@@ -61,9 +102,10 @@ describe("firestorePersistence", () => {
     await p.putItem("b1", item("i2"));
     // The item document never carries them: the item's own rules stay as they are.
     expect(await at("boxes/b1/items/i1")).not.toHaveProperty("disputes");
-    const { itemRev, ...facts } = (await at("boxes/b1/disputes/i1")) as Record<string, unknown>;
+    const { itemRev, ...facts } = unexpired(await at("boxes/b1/disputes/i1"));
     expect(facts).toEqual(disputes);
-    expect(itemRev).toBe(revisionOf(await at("boxes/b1/items/i1")));
+    // The revision is of the item as the app holds it, without its expiry, so a backfilled expiry changes nothing.
+    expect(itemRev).toBe(revisionOf(unexpired(await at("boxes/b1/items/i1"))));
     expect(await at("boxes/b1/disputes/i2")).toBeUndefined();
     const back = await firestorePersistence(db("alice"), "alice", "byt-test").loadBox("b1");
     expect(back.status === "found" && back.box.items?.find((i) => i.itemId === "i1")?.disputes).toEqual(disputes);

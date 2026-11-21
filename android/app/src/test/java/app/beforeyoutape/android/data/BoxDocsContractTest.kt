@@ -60,6 +60,15 @@ class BoxDocsContractTest {
         assertEquals(norm(d), norm(BoxDocs.boxToDoc(box)))
     }
 
+    /** The phone writes the contract's expiry field and day count; box and item docs carry no other new field. */
+    @Test fun thePhoneWritesTheContractsExpiry() {
+        val expiry = fixture.getValue("expiry").jsonObject
+        assertEquals("expiresAt", (expiry.getValue("field") as JsonPrimitive).content)
+        assertEquals(BoxDocs.EXPIRES_AT, (expiry.getValue("field") as JsonPrimitive).content)
+        assertEquals(BoxDocs.BOX_DAYS.toLong(), (expiry.getValue("boxDays") as JsonPrimitive).longOrNull)
+        assertTrue("expiresAt" !in doc("box") && "expiresAt" !in doc("item"))
+    }
+
     /** Consent lives on each device; the rules refuse a box that carries any consent field. */
     @Test fun aNewBoxCarriesNoConsentAtAll() {
         val d = BoxDocs.newBoxDoc("owner-uid", "CA", "byt-e1")

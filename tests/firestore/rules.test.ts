@@ -1,7 +1,7 @@
 // Firestore rules (spec 5.8), run against the local emulator: npm run test:rules.
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, Timestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let env: RulesTestEnvironment;
@@ -9,7 +9,11 @@ let alice: Firestore;
 let bob: Firestore;
 let nobody: Firestore;
 
-const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test" });
+// A box lasts 37 days from its creation (its anonymous owner may be removed after 30); its items and disputes
+// carry the same time, so Firestore's TTL policy deletes them together.
+const DAY = 86_400_000;
+const EXPIRES = Timestamp.fromMillis(Date.now() + 37 * DAY);
+const boxFor = (uid: string) => ({ ownerUid: uid, memberUids: [uid], joinKeyHash: "", destinationCode: "CA", editionId: "byt-test", expiresAt: EXPIRES });
 // An item as the box store saves it: the read with its label text emptied, never sent.
 const itemDoc = {
   itemId: "i1",
@@ -21,6 +25,7 @@ const itemDoc = {
   overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: ["cosmetic"], readSource: "on_device", readMs: 1200,
   secondLook: null, cropKey: "k1",
   customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
+  expiresAt: EXPIRES,
 };
 
 beforeAll(async () => {
@@ -86,6 +91,76 @@ describe("boxes", () => {
     expect((await assertSucceeds(getDoc(doc(alice, "boxes/b3/items/i1")))).exists()).toBe(true);
     const eve = env.authenticatedContext("eve").firestore() as unknown as Firestore;
     await assertFails(setDoc(doc(eve, "boxes/b3"), boxFor("eve")));
+  });
+});
+
+describe("expiry", () => {
+  const box = (expiresAt: unknown) => ({ ...boxFor("alice"), expiresAt });
+
+  it("starts a box only with an expiry 36 to 38 days out, as a time", async () => {
+    const { expiresAt: _none, ...noExpiry } = boxFor("alice");
+    void _none;
+    await assertFails(setDoc(doc(alice, "boxes/e1"), noExpiry));
+    await assertFails(setDoc(doc(alice, "boxes/e1"), box(Timestamp.fromMillis(Date.now() + DAY))));
+    await assertFails(setDoc(doc(alice, "boxes/e1"), box(Timestamp.fromMillis(Date.now() + 60 * DAY))));
+    await assertFails(setDoc(doc(alice, "boxes/e1"), box(EXPIRES.toMillis())));
+    await assertSucceeds(setDoc(doc(alice, "boxes/e1"), box(EXPIRES)));
+  });
+
+  it("never lets a client change, remove or add a box's expiry", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/e2"), box(EXPIRES)));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/e2"), { destinationCode: "PH" }));
+    await assertFails(updateDoc(doc(alice, "boxes/e2"), { expiresAt: Timestamp.fromMillis(EXPIRES.toMillis() + DAY) }));
+    await assertFails(updateDoc(doc(alice, "boxes/e2"), { expiresAt: deleteField() }));
+    // A box from before expiry: it keeps working, and only the one-time backfill (admin) gives it an expiry.
+    await env.withSecurityRulesDisabled(async (c) => {
+      const { expiresAt: _none, ...legacy } = boxFor("alice");
+      void _none;
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/e3"), legacy);
+    });
+    await assertSucceeds(updateDoc(doc(alice, "boxes/e3"), { destinationCode: "PH" }));
+    await assertFails(updateDoc(doc(alice, "boxes/e3"), { expiresAt: EXPIRES }));
+  });
+
+  // A dispute's shape check does not test for device and cloud by name, to stay under the 1000-expression limit:
+  // a missing one is refused where it is read. This pins that refusal.
+  it("refuses a dispute missing its device or cloud reading, whatever stands in its place", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/e6"), box(EXPIRES)));
+    const missing: Array<Record<string, unknown>> = [
+      { liquid: { cloud: false, resolved: false, extra: true } },
+      { liquid: { device: true, resolved: false, extra: true } },
+      { category: { cloud: "phone", resolved: false, extra: 1 } },
+      { battery: { cloud: { volts: 3.7, milliampHours: 1, wattHours: 1 }, resolved: false, extra: 1 } },
+      { labelTags: { device: ["flammable"], resolved: false, extra: 1 } },
+      { retailBox: { cloud: "sealed", resolved: false, extra: 1 } },
+      { lithiumGrams: { device: 1, resolved: false, extra: 1 } },
+    ];
+    for (const m of missing) await assertFails(setDoc(doc(alice, "boxes/e6/disputes/i1"), { ...m, expiresAt: EXPIRES }));
+    await assertSucceeds(setDoc(doc(alice, "boxes/e6/disputes/i1"), { liquid: { device: true, cloud: false, resolved: false }, expiresAt: EXPIRES }));
+  });
+
+  it("gives items and disputes their box's expiry exactly, and never lets it change", async () => {
+    await assertSucceeds(setDoc(doc(alice, "boxes/e4"), box(EXPIRES)));
+    const { expiresAt: _none, ...itemNoExpiry } = itemDoc;
+    void _none;
+    await assertFails(setDoc(doc(alice, "boxes/e4/items/i1"), itemNoExpiry));
+    await assertFails(setDoc(doc(alice, "boxes/e4/items/i1"), { ...itemDoc, expiresAt: Timestamp.fromMillis(EXPIRES.toMillis() + 1000) }));
+    await assertSucceeds(setDoc(doc(alice, "boxes/e4/items/i1"), itemDoc));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/e4/items/i1"), { quantity: 2 }));
+    await assertFails(updateDoc(doc(alice, "boxes/e4/items/i1"), { expiresAt: Timestamp.fromMillis(EXPIRES.toMillis() + DAY) }));
+    await assertFails(updateDoc(doc(alice, "boxes/e4/items/i1"), { expiresAt: deleteField() }));
+    const flag = { device: true, cloud: false, resolved: false };
+    await assertFails(setDoc(doc(alice, "boxes/e4/disputes/i1"), { liquid: flag }));
+    await assertSucceeds(setDoc(doc(alice, "boxes/e4/disputes/i1"), { liquid: flag, expiresAt: EXPIRES }));
+    await assertFails(updateDoc(doc(alice, "boxes/e4/disputes/i1"), { expiresAt: deleteField() }));
+    // Items of a box from before expiry have none, as their box.
+    await env.withSecurityRulesDisabled(async (c) => {
+      const { expiresAt: _b, ...legacy } = boxFor("alice");
+      void _b;
+      await setDoc(doc(c.firestore() as unknown as Firestore, "boxes/e5"), legacy);
+    });
+    await assertSucceeds(setDoc(doc(alice, "boxes/e5/items/i1"), itemNoExpiry));
+    await assertFails(setDoc(doc(alice, "boxes/e5/items/i2"), itemDoc));
   });
 });
 
@@ -165,6 +240,7 @@ describe("schema", () => {
       flammableOnLabel: { device: true, cloud: false, resolved: false },
       labelTags: { device: ["flammable", "label_text"], cloud: ["label_text"], resolved: false },
       evidence: { device: "not_sure", cloud: "label_read", resolved: false },
+      expiresAt: EXPIRES,
     };
     await assertSucceeds(setDoc(doc(alice, "boxes/b1/disputes/i1"), disputes));
     // Every fact at once, with long tag lists: inside one request's evaluation limit.
