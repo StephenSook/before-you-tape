@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.
+
 - The Android judge build is linked: /judge has an "Android app (APK)" link to the android-judge release, and the README names the APK and its SHA-256 instead of saying it will be linked when it ships. Source: the APK release. Verified: the release page and the APK answer HTTP 200 signed out (the APK is 27,277,603 bytes); a JudgePage test failed first and passes.
 
 - Removed `createTextCloudModel` and its test: no code called it, and the header of `src/ai/firebaseModels.ts` no longer promises a text-only cloud model. The `cloud_model_text` Remote Config value stays, now described as read by no web code. Source: doc review. Verified: no caller in src or scripts; lint, typecheck, the model guard and the ai and config tests pass.
