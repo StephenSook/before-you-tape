@@ -5,6 +5,41 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the iPhone README gives the airplane-mode result
+- What: the line that kept the iPhone client out of the entry until an airplane-mode test passed
+  is replaced by the result: on 2026-11-20 an iPhone 17 Pro read 22 label photos on the phone with
+  airplane mode on, none in the cloud, with a link to the record.
+- Source: the device session.
+- Verified: the numbers are those of `docs/evidence/ios/2026-11-20-device/`.
+
+### docs(ios): record the airplane-mode check on a real iPhone
+- What: `docs/evidence/ios/2026-11-20-device/`: the result (pass: 22 of 22 reads on the phone, 0 in
+  the cloud), the phone's model and iOS version, the commit, one status-bar strip per minute of the
+  recording (airplane on, no Wi-Fi or cellular), a table of every read (category, evidence, route,
+  read time, verdict, first rule) and `summary.json` with the same rows, and what it does not show
+  (no power bank or boxed battery device was read; 15 of 22 reads said item_seen). The raw box file
+  and the recording stay off the repository, named by SHA-256.
+- Source: the device session.
+- Verified: the box was copied off the phone over USB; every route is `phone_on_device` and the
+  box's counters say 22 on the device, 0 in the cloud; the recording shows the airplane icon in all
+  eleven minutes, the first read at 1:26 and the last at 10:44, and only iOS's camera prompt; a
+  script checked that the README table equals `summary.json` row for row.
+
+### chore(ios): a tool gives each item's verdict in a box pulled off a phone
+- What: `ios/scripts/box_verdicts.swift` runs an engine bundle in JavaScriptCore, as the app does,
+  over a pulled box file, and prints each item's category, evidence, verdict and first rule.
+- Source: the device session (the box file holds reads, not verdicts).
+- Verified: on the pulled box with main's bundle (sha256 350bddbda726) it gave the same 22 verdicts
+  as the scratch run: 1 OK to pack, 10 Check this, 11 Take it out.
+
+### fix(ios): the session script finds a paired phone and keeps the pulled box out of git
+- What: `device-session.sh` looked only for a phone listed as "connected", and the phone on the day
+  was listed as "available (paired)", so it found none. It now takes either. The pulled box goes to
+  `<out>/raw.local/`, which git ignores, because item names can name personal products.
+- Source: the device session.
+- Verified: on the live device list it finds the iPhone; on sample lines it takes "available
+  (paired)" and refuses "unavailable" and a simulator; `git check-ignore` shows `raw.local` ignored.
+
 ### docs(ios): screenshot 04 taken again with the answer buttons as they are now
 - What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
   chosen and filled; the README describes it and drops the note to take it again.

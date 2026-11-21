@@ -1,0 +1,233 @@
+{
+ "date": "2026-11-20",
+ "country": "CA",
+ "sources": {
+  "secondLooks": 0,
+  "inCloud": 0,
+  "onDevice": 22,
+  "rulesOnlyRechecks": 0,
+  "cloudFallbacks": 0
+ },
+ "items": [
+  {
+   "n": 1,
+   "category": "lotion_cream",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 5572,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-NEEDS-ANSWER"
+  },
+  {
+   "n": 2,
+   "category": "laptop",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 3206,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  },
+  {
+   "n": 3,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 3314,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  },
+  {
+   "n": 4,
+   "category": "perfume_fragrance",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 3389,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-AEROSOL"
+  },
+  {
+   "n": 5,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 3024,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  },
+  {
+   "n": 6,
+   "category": "aerosol_spray",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 3667,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-AEROSOL"
+  },
+  {
+   "n": 7,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 6800,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-OTHER"
+  },
+  {
+   "n": 8,
+   "category": "food_packaged",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 3095,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-NEEDS-ANSWER"
+  },
+  {
+   "n": 9,
+   "category": "alcohol_drink",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 2966,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-LIQUID"
+  },
+  {
+   "n": 10,
+   "category": "medicine",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 13276,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-LIQUID"
+  },
+  {
+   "n": 11,
+   "category": "medicine",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 7769,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  },
+  {
+   "n": 12,
+   "category": "hand_sanitizer",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 13886,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-LIQUID"
+  },
+  {
+   "n": 13,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 3180,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-AEROSOL"
+  },
+  {
+   "n": 14,
+   "category": "lotion_cream",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 4589,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-LIQUID"
+  },
+  {
+   "n": 15,
+   "category": "lotion_cream",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 3789,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-NEEDS-ANSWER"
+  },
+  {
+   "n": 16,
+   "category": "lotion_cream",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 11401,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-NEEDS-ANSWER"
+  },
+  {
+   "n": 17,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 10999,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-OTHER"
+  },
+  {
+   "n": 18,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 2837,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-OTHER"
+  },
+  {
+   "n": 19,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 10527,
+   "level": "take_out",
+   "headline": "Take it out",
+   "firstRule": "USPS-INTL-FLAMMABLE-LIQUID"
+  },
+  {
+   "n": 20,
+   "category": "liquid_toiletry",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 4441,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  },
+  {
+   "n": 21,
+   "category": "lotion_cream",
+   "evidence": "label_read",
+   "readSource": "phone_on_device",
+   "readMs": 4618,
+   "level": "ok",
+   "headline": "OK to pack",
+   "firstRule": "DEST-SUSPENSION-AHEAD"
+  },
+  {
+   "n": 22,
+   "category": "other",
+   "evidence": "item_seen",
+   "readSource": "phone_on_device",
+   "readMs": 9943,
+   "level": "check",
+   "headline": "Check this",
+   "firstRule": "DATA-IDENTITY"
+  }
+ ]
+}
