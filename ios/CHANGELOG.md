@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-20
 
+### test(ios): tests that wait for a task at a gate poll for up to 5 seconds
+- What: six tests waited for a background task to reach a gate with 1000 `Task.yield()` calls.
+  On a busy Mac (load average 80 to 150) that ran out first: the mirror failed
+  `AppConfigTests.anOlderEditionRequestNeverReplacesTheCurrentRules` with "Expectation failed:
+  gate.isWaiting". The gate now has `untilWaiting()`, which checks every millisecond for up to 5
+  seconds; each test's own check still decides.
+- Source: the local CI mirror on Nov 20 (the failure message read from its result bundle).
+- Verified: no fixed-yield wait is left (0 found, 6 helper calls); 155 unit tests pass.
+
 ### feat(ios): the screens say whether a photo is read on this iPhone, and what to do when not
 - What: Ready check gets a photo line: "Label photos are read on this iPhone, with no network.",
   or, when the model reads words but not photos, "This iPhone's model does not read photos. Type
