@@ -3,6 +3,20 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### feat(ios): the app carries its own privacy manifest
+- What: `ios/BYT/PrivacyInfo.xcprivacy`: no tracking and no tracking domains; the app's own use of
+  UserDefaults (reason CA92.1, the box id) and of file metadata (reason C617.1, the saved box's
+  size, which also brings `stat` into the binary); and what a cloud check sends after the sender
+  taps Allow (the photo crop and the label words, linked, for app functionality, not tracking).
+  Firebase's own bundles declare their own collection. Without the API reasons, App Store Connect
+  refuses the upload.
+- Source: App Store preparation (the built app had no manifest of its own).
+- Verified: three tests read the manifest from the app bundle; they failed with "BYT.app carries
+  no PrivacyInfo.xcprivacy" before and pass after; `plutil -lint` OK; XcodeGen puts the file in
+  the app's resources; 159 unit tests pass.
+
 ## 2026-11-20
 
 ### fix(ios): the iPhone session's evidence holds no phone identifiers
