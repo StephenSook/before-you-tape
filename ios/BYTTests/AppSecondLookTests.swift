@@ -112,6 +112,32 @@ import Testing
         await settle(m)
     }
 
+    static let reasonsOff = #"{"whMismatch":false,"batteryNumbers":false,"notSure":false,"hazardNoLabel":false,"identity":false}"#
+
+    /// Remote Config turns every reason off after a look was offered, or after it failed: nothing is asked
+    /// or sent for it, and it is forgotten.
+    @Test func aLookWhoseReasonWasTurnedOffSendsNothing() async throws {
+        let off = RemoteConfigValues.parse(["kill_cloud": "false", "second_look_policy_json": Self.reasonsOff])
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [Self.ok(Self.powerBank)], consent: nil)
+        await m.readPhoto(jpeg)
+        let id = try #require(m.box?.items.first?.itemId)
+        #expect(m.isLookOffered(id))
+        await m.applyConfig(off)
+        m.checkInTheCloud(id)
+        #expect(!m.askingConsent && !m.isLookOffered(id) && m.pendingLookCount == 0)
+        let k = FakeItemRunner.Journal()
+        let n = model(k, cloud: [.failure(ReadError(.parseFailed)), Self.ok(Self.powerBank)])
+        await n.readPhoto(jpeg)
+        await settle(n)
+        let id2 = try #require(n.box?.items.first?.itemId)
+        #expect(n.secondLookError(id2) != nil)
+        await n.applyConfig(off)
+        n.retrySecondLook(id2)
+        await settle(n)
+        #expect(k.events.filter { $0 == "cloud start" }.count == 1 && n.box?.items.first?.secondLook == nil && n.pendingLookCount == 0)
+    }
+
     /// While the look will be tried again by itself, the card offers no "Try again"; once the automatic
     /// tries are used up it does.
     @Test func tryAgainIsOfferedOnlyWhenNoRetryIsComing() async throws {

@@ -336,6 +336,11 @@ final class AppModel {
     /// the cloud question first when they were never answered.
     func checkInTheCloud(_ itemId: String) {
         guard offeredLooks.contains(itemId), let box else { return }
+        // The rules may have stopped asking since the offer (a reason turned off): nothing is asked then.
+        guard lookReason(itemId) != nil else {
+            forgetLooks { $0 == itemId }
+            return
+        }
         switch box.cloudConsent {
         case true?:
             offeredLooks.remove(itemId)
@@ -350,11 +355,17 @@ final class AppModel {
     func secondLookError(_ itemId: String) -> String? { lookErrors[itemId] }
 
     /// The engine decides whether the item gets a look; it runs only if the cloud is allowed now.
-    private func planSecondLook(_ itemId: String, deviceRead: JSONValue, crop: Data) {
-        guard let engine, let item = box?.items.first(where: { $0.itemId == itemId }) else { return }
+    /// The engine's reason to look at this item again now, under the Remote Config policy in force; nil when
+    /// the rules no longer ask (a reason turned off, or the item changed). A policy or item the engine
+    /// refuses gives no reason, so no cloud call.
+    private func lookReason(_ itemId: String) -> String? {
+        guard let engine, let item = box?.items.first(where: { $0.itemId == itemId }) else { return nil }
         let policy = try? JSONDecoder().decode(JSONValue.self, from: Data(config.secondLookPolicyJSON.utf8))
-        // A policy or item the engine refuses gives no reason, so no cloud call.
-        guard let reason = try? engine.secondLookReason(item: item.engineInput, source: ReadPath.onDevice.rawValue, policy: policy) else { return }
+        return try? engine.secondLookReason(item: item.engineInput, source: ReadPath.onDevice.rawValue, policy: policy)
+    }
+
+    private func planSecondLook(_ itemId: String, deviceRead: JSONValue, crop: Data) {
+        guard let reason = lookReason(itemId) else { return }
         if cloudAllowed, network.online {
             pendingLooks[itemId] = PendingLook(reason: reason, deviceRead: deviceRead, crop: crop)
             startLook(itemId)
@@ -413,6 +424,14 @@ final class AppModel {
         guard let look = pendingLooks[itemId], let reader, let box, let engine else { return }
         // An item removed from the box is never sent to the cloud again.
         guard box.items.contains(where: { $0.itemId == itemId }) else { pendingLooks[itemId] = nil; return }
+        // A look the rules no longer ask for (Remote Config turned its reason off since) is forgotten, not sent.
+        guard lookReason(itemId) != nil else {
+            pendingLooks[itemId] = nil
+            lookErrors[itemId] = nil
+            offeredLooks.remove(itemId)
+            lookAutoTried[itemId] = nil
+            return
+        }
         refreshCloudGate()
         guard cloudAllowed, network.online else {
             if !network.online { waitingForOnline.insert(itemId) }

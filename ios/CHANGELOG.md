@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a look runs only while the rules still ask for it
+- What: the reason for a second look was worked out once, when the photo was read. A look offered,
+  waiting, or tried again later still went to the cloud after Remote Config had turned its reason
+  off. The reason is now worked out again under the policy in force when "Check it in the cloud" is
+  tapped and when a look starts; a look the rules no longer ask for is forgotten, not asked or sent.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (all reasons turned off after an offer, and after a failure: the offer asks
+  nothing, "Try again" sends nothing, both looks are forgotten) failed and passes; 221 unit tests
+  pass.
+
 ### docs(ios): the limits name what no fix can close for the cloud choice and a sent photo
 - What: docs/LIMITS.md says that when no file at all can be saved as cloud checks are turned off
   (storage full, say), the earlier choice can come back after a restart, and that the app warns; and
