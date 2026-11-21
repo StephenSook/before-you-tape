@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- On a phone the newest-item sheet has a Close button and goes by itself after 8 seconds, so it no longer sits over the stage's buttons (such as "Try a sample photo"); a newer item shows it again. While it shows, the footer ends below it. Source: UI review (at 390 px the sheet covered the sample button). Verified: a new PackPage test (close, then a newer item's sheet goes by itself) failed first and passes; the full unit suite passes.
+
 - docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.
 
 - The Android judge build is linked: /judge has an "Android app (APK)" link to the android-judge release, and the README names the APK and its SHA-256 instead of saying it will be linked when it ships. Source: the APK release. Verified: the release page and the APK answer HTTP 200 signed out (the APK is 27,277,603 bytes); a JudgePage test failed first and passes.

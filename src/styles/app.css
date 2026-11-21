@@ -90,7 +90,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   .newest-sheet { display: flex; align-items: center; gap: var(--space-3); position: fixed; left: var(--space-2); right: var(--space-2); bottom: var(--space-2); z-index: 2;
     background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4); }
   .newest-sheet .item-name { margin: 0; flex: 1; font-size: 1rem; }
+  .sheet-close { min-width: 44px; min-height: 44px; padding: 0; font-size: 1.4rem; line-height: 1; }
   .pack-page { padding-bottom: 96px; }
+  /* While the sheet shows, the page ends far enough below it that the footer is never under it. */
+  body:has(.newest-sheet) .site-footer { padding-bottom: 104px; }
 }
 
 /* The page says what it is for, in one line, and where judges should start. */
