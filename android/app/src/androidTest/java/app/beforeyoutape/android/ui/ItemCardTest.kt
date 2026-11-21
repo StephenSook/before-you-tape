@@ -1,7 +1,10 @@
 package app.beforeyoutape.android.ui
 
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.beforeyoutape.android.ai.Source
@@ -49,5 +52,17 @@ class ItemCardTest {
         rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }) }
         rule.onNodeWithText(question.text).assertExists()
         rule.onNodeWithText(restating).assertDoesNotExist()
+    }
+
+    /** One more and one fewer are real 48 dp buttons, with the same spoken names. */
+    @Test fun theQuantityButtonsAreFullSize() {
+        val item = box.state.items.single()
+        val verdict = box.state.result!!.items.getValue("a")
+        rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }, onQuantity = { _, _ -> }) }
+        for (name in listOf(Copy.ONE_FEWER, Copy.ONE_MORE)) {
+            val b = rule.onNodeWithContentDescription(name).getBoundsInRoot()
+            assertTrue("$name is ${b.right - b.left} wide", b.right - b.left >= 48.dp)
+            assertTrue("$name is ${b.bottom - b.top} tall", b.bottom - b.top >= 48.dp)
+        }
     }
 }

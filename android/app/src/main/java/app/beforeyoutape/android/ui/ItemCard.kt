@@ -2,14 +2,17 @@ package app.beforeyoutape.android.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,11 +56,11 @@ fun ItemCard(
                 // Each tap sends a step, applied to the current quantity (1 to 99) in order.
                 val n = input.quantity.toInt()
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { set(input.itemId, -1) }, enabled = n > 1,
-                        modifier = Modifier.semantics { contentDescription = Copy.ONE_FEWER }) { Text("-") }
+                    OutlinedButton(onClick = { set(input.itemId, -1) }, enabled = n > 1, contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).semantics { contentDescription = Copy.ONE_FEWER }) { Text("-") }
                     Text(Copy.howMany(n), style = MaterialTheme.typography.bodyLarge)
-                    TextButton(onClick = { set(input.itemId, 1) }, enabled = n < 99,
-                        modifier = Modifier.semantics { contentDescription = Copy.ONE_MORE }) { Text("+") }
+                    OutlinedButton(onClick = { set(input.itemId, 1) }, enabled = n < 99, contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).semantics { contentDescription = Copy.ONE_MORE }) { Text("+") }
                 }
             }
             if (onFix != null || onRemove != null) {
