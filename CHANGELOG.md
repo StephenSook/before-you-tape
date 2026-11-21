@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The box store has close(): from then on no edit is kept in this browser or sent, and it resolves once the writes already out have answered, so a first save still on its way cannot land after the box is deleted. Not called yet. Source: review. Verified: a new store test (a box creation in flight; an item and an edit after close are never sent or kept) failed without the change and passes.
+
 - A box's tombstone now expires 30 days after the box (the rules require exactly that), so a TTL policy on retiredBoxes can never remove the tombstone before an item or dispute the box left behind, which keeps the box's own expiry; until then the id could have been started again and its leftovers read. Source: review. Verified: rules tests (the box's own expiry and any other refused, box expiry plus 30 days accepted) and the persistence test failed first and pass; all 46 emulator tests pass.
 
 - deleteBox lists and deletes the box's items and disputes again until a list comes back empty (sweepUntilEmpty), so an item another tab saved while the first batches ran is deleted too; after five lists that each found more it stops without deleting the box. An item saved in the instant before the final batch is left with the box's expiry and removed by TTL. Source: review. Verified: two new unit tests failed first and pass; all 46 emulator tests pass.
