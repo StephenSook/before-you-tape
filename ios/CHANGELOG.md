@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): App Store screenshots captured again from the build uploaded as 1.0.0 (1)
+- What: the five 6.9-inch screenshots were taken again from the Release build of ba1e88a. The old
+  ones came from earlier commits and lacked Delete everything on this iPhone (01) and the Check it
+  in the cloud offer on the power bank (03), and every file had an alpha channel. The new files are
+  RGB with no alpha. The README says what was done by hand, including turning off a wrong "spray or
+  under pressure" switch on the lotion's read in Fix this reading.
+- Source: a check that the screenshots show the uploaded build.
+- Verified: each file is 1320 by 2868, PNG color type 2 (no alpha); stripping the opaque alpha
+  changed 0 pixels; each capture was viewed. The app build is unchanged.
+
 ### docs(ios): the review notes cover the cloud offer and the Canada suspension
 - What: ios/app-store/review-notes.md now says that an item the rules want read again shows Check it
   in the cloud when the cloud question was never answered, and asks first; and that USPS stops taking
