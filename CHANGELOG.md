@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/LIMITS.md says what the one-read battery hold (USPS-INTL-LI-ONE-READ) means on each platform: on the web and the iPhone a cloud second look that reads the same numbers releases it, typing the numbers in Fix this reading does not release it yet, and on Android, which runs no second look, such an item stays at Check this unless it is typed instead of photographed. Source: the revision 6 battery hold. Verified: hygiene, tone and the full gate.
+
 - Rule edition revision 6 (byt-08bb60c0af4d) adds USPS-INTL-LI-ONE-READ: a lithium battery inside a device whose Wh or lithium grams come from one model read gets "Check this" ("Check the battery numbers on the label") instead of "OK to pack", until a cloud second look that read the same numbers, or the sender, stands behind them. A read can be about ten times too low; before this, the engine gave "OK to pack" to a 185 Wh battery read as 18.5 Wh and to a 120 Wh laptop read as 12 Wh. Box vectors: phone_ok is now phone_numbers_read_once_is_check, quantity_three is check, and seven new vectors cover those misreads, a coin cell's grams, the true numbers, a second look and a typed item. Test fixtures whose subject is something else now have numbers matched by a second look. Source: the network-off read on the live site misread a power bank's numbers. Verified: full gate and the Android guard.
 
 - docs/LIMITS.md records that the built-in model misread a power bank's battery numbers about ten times too low in both network-off reads on 2026-11-21 (5,000 mAh where the label says 50000 mAh). Source: the network-off read on the live site. Verified: hygiene, tone and the full gate.
