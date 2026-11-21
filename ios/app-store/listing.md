@@ -71,5 +71,5 @@ nothing other people make.
 
 ## Version
 
-`MARKETING_VERSION` is 0.1.0 in `ios/project.yml`. Set the first App Store version (for example
-1.0.0) before the archive is made, and keep the version in App Store Connect the same.
+`MARKETING_VERSION` is 1.0.0 in `ios/project.yml`, the first App Store version (build 1). Keep the
+version in App Store Connect the same.
