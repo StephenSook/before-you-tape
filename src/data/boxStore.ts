@@ -13,7 +13,7 @@ import { evaluateBox, type BoxResult } from "../engine/verdict";
 import { LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
 import { stableJson, type BoxMeta, type BoxOps } from "./boxOps";
 import type { DeviceConsent } from "./deviceConsent";
-import { guardStaleTags, labelWordsVersion } from "./tagsVersion";
+import { guardStaleTags, labelWordsVersion, tagsAreStale } from "./tagsVersion";
 
 // Where an item's read came from. The phones use one name each for both of them.
 // cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
@@ -535,8 +535,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         });
         const cloudTags = tagsOf(cloudLabel ?? "");
         const found: ReadDisputes = { ...disputes };
-        // Label words only one read saw: a dispute of tags (never of label text) the sender settles.
-        if (cloudLabel !== undefined && wordsOf(i.labelTags) !== wordsOf(cloudTags)) {
+        const now = wordsVersion();
+        // Label words only one read saw: a dispute of tags (never of label text) the sender settles. Tags that other
+        // label words made are no side of one: the tags made below, with the current words, replace them.
+        if (cloudLabel !== undefined && !tagsAreStale(i, now) && wordsOf(i.labelTags) !== wordsOf(cloudTags)) {
           found.labelTags = { device: [...i.labelTags], cloud: cloudTags, resolved: false };
         }
         // A fact the sender corrected while the cloud read ran is theirs: no dispute stands on it.
@@ -546,6 +548,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
           labelTags: i.overrides.labelText !== undefined ? i.labelTags
             : [...new Set([...i.labelTags, ...(cloudLabel === undefined ? tagsOf(merged.labelText) : cloudTags)])],
+          // Tags made just now carry the current words; a label the sender corrected keeps its own version.
+          ...(i.overrides.labelText !== undefined ? {} : { tagsVersion: now }),
           identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
         }, found);
       });

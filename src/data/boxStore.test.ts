@@ -206,6 +206,28 @@ describe("createBoxStore", () => {
     expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-LABEL-AGAIN");
   });
 
+  it("judges an item again after a second look under new label words, with no tag dispute against the old ones", () => {
+    const s = store();
+    s.setDestination("CA");
+    const shirtLabel: ItemRead = { ...base, itemName: "Shirt", category: "clothing", labelText: "100% COTTON T-SHIRT" };
+    const toyLabel: ItemRead = { ...base, itemName: "Toy", category: "toy", labelText: "REPLICA GRENADE" };
+    const shirt = s.addManual(shirtLabel);
+    const toy = s.addManual(toyLabel);
+    // Other label words arrive (a pinned edition): the shirt, OK on its tags, is held until it is read again.
+    const other = { ...ed, labelWords: ed.labelWords.filter((w) => w.tag !== "replica_explosive") };
+    s.setEdition(other);
+    expect(s.getState().result.items[shirt]).toMatchObject({ level: "check" });
+    expect(s.getState().result.items[shirt]?.hits[0]?.ruleId).toBe("DATA-LABEL-AGAIN");
+    s.applySecondLook(shirt, shirtLabel, 900, "The cloud looked again.", "100% COTTON T-SHIRT");
+    s.applySecondLook(toy, toyLabel, 900, "The cloud looked again.", "REPLICA GRENADE");
+    const after = (id: string) => s.getState().items.find((i) => i.itemId === id);
+    expect(after(shirt)?.tagsVersion).toBe(labelWordsVersion(other));
+    expect(s.getState().result.items[shirt]).toMatchObject({ level: "ok" });
+    // The toy's tags from before were made by other words, so they are not one side of a dispute the sender settles.
+    expect(after(toy)?.tagsVersion).toBe(labelWordsVersion(other));
+    expect(after(toy)?.disputes?.labelTags).toBeUndefined();
+  });
+
   it("clears the item's error when a second look then succeeds", () => {
     const s = store();
     const id = s.addRead(outcome(shirtSeenRead, "on_device"), "k");
