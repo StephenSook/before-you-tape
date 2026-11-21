@@ -93,7 +93,9 @@ struct DisputePicker: View {
         let open = DisputeWords.open(item.disputes)
         if !open.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text(DisputeWords.disagree)
+                // Wraps, never truncates: the list row shrinks as disputes are settled, and without this
+                // the line was cut to "Pick what the ite..." after the last pick but one.
+                Text(DisputeWords.disagree).fixedSize(horizontal: false, vertical: true)
                 ForEach(open, id: \.self) { field in row(field) }
             }
             .accessibilityElement(children: .contain)
@@ -127,6 +129,7 @@ struct DisputePicker: View {
                 let otherSaw = DisputeWords.flagFields.contains(field) ? (DisputeWords.labels[field] ?? field).lowercased()
                     : DisputeWords.reading(field, value(field, other))
                 Text(DisputeWords.confirm(otherSide: other, otherSaw: otherSaw, picked: picked))
+                    .fixedSize(horizontal: false, vertical: true)
                 Button(DisputeWords.use(picked)) { asking = nil; onSettle(field, askingSide) }.buttonStyle(.bordered)
                 Button(DisputeWords.keepBoth) { asking = nil }.buttonStyle(.borderless)
             }

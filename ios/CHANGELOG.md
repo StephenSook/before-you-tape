@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the dispute lines wrap instead of being cut short
+- What: "The two reads disagree. Pick what the item shows." and the confirm sentence are set to
+  wrap at any height. As disputes were settled the card's list row shrank, and the first line was
+  cut to "The two reads disagree. Pick what the ite...".
+- Source: the second-look UI test's screenshots.
+- Verified: with one dispute left, the UI test's screenshot shows the line on two full lines; the
+  UI test, `LoopUITests` and 189 unit tests pass.
+
 ### test(ios): a UI test drives a second look and settles its disputes on screen
 - What: with the launch arguments `-uiTestFakeReader -uiTestSecondLook` (debug builds only), the
   app reads one photo at start on a fixed on-device reader as a power bank (5000 mAh, 18.5 Wh, no
