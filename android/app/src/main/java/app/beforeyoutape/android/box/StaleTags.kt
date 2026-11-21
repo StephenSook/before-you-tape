@@ -8,9 +8,10 @@ import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * An item's labelTags were made by one rule edition's label words; a newer edition can add words (a new rule), and
- * old tags cannot show them. As the iPhone app does (ios/BYT/Data/BoxStore.swift), each item keeps the edition that
- * made its tags ([BoxItem.tagsEdition]): a label this phone still holds whole is tagged again under the edition in
- * use, and an item whose label it cannot read again (cut, or gone) is never OK until the sender reads it again.
+ * old tags cannot show them. As the web app (src/data/tagsVersion.ts) and the iPhone app do, each item keeps the
+ * edition whose words made its tags ([BoxItem.tagsEdition]), and an item whose tags came from a label under other
+ * words is never judged OK on them. Only a new reading with label text, or the sender typing a label, releases it:
+ * never a blank label, an edit of another field, or a restart, since staleness is read from what is saved alone.
  */
 object StaleTags {
     const val RULES_CHANGED = "The rules changed since this label was read. Photograph or type the label again."
@@ -20,8 +21,8 @@ object StaleTags {
     /** The box's lithium line while any item's label must be read again. */
     const val LITHIUM_BOX_WAITS = "An item in this box needs its label read again before the lithium total is known."
 
-    /** A read's label text is kept clipped to this many characters (src/shared/itemRead.ts); at this length it may be cut. */
-    const val LABEL_TEXT_MAX = 160
+    /** The tag a label's words always add (src/engine/facts.ts LABEL_TEXT_TAG): tags without it came from no label. */
+    const val LABEL_TEXT_TAG = "label_text"
 
     /**
      * The engine's own headline for its middle level (src/engine/verdict.ts HEADLINE.check, pinned by StaleTagsTest).
@@ -29,48 +30,22 @@ object StaleTags {
      */
     const val CHECK_HEADLINE = "Check this"
 
-    private fun hasWords(label: String?) = !label.isNullOrBlank()
+    fun hasWords(label: String?) = !label.isNullOrBlank()
 
     private fun typedLabel(input: BoxItemInput): String? =
         (input.overrides["labelText"] as? JsonPrimitive)?.takeIf { it.isString }?.content
 
-    /** The label the item's tags came from: a typed label wins over the read's. */
-    private fun label(input: BoxItemInput): String = typedLabel(input) ?: input.read.labelText
-
-    /** The whole label this phone holds: a typed label, or a read label short enough that it was not cut. */
-    private fun wholeLabel(input: BoxItemInput): String? {
-        val typed = typedLabel(input)
-        if (typed != null) return typed.takeIf(::hasWords)
-        val read = input.read.labelText
-        return read.takeIf { hasWords(it) && it.codePointCount(0, it.length) < LABEL_TEXT_MAX }
-    }
-
     /** The edition that makes the tags of [label] now: "" when it has no words, so its tags depend on no edition. */
     fun editionFor(label: String?, current: String?): String? = if (hasWords(label)) current else ""
 
-    /** The edition to record for an item's newly made tags. */
-    fun editionFor(input: BoxItemInput, current: String?): String? = editionFor(label(input), current)
+    /** The edition to record for an item whose tags were just made from its label (a typed label wins). */
+    fun editionFor(input: BoxItemInput, current: String?): String? = editionFor(typedLabel(input) ?: input.read.labelText, current)
 
+    /** Its tags came from a label (they hold label_text), and words other than the current ones, or unknown ones, made them. */
     fun isStale(item: BoxItem, current: String?): Boolean {
-        if (current == null) return false
-        // Unknown provenance counts as another edition's; no label words depend on no edition.
+        if (current == null || LABEL_TEXT_TAG !in item.input.labelTags) return false
         val tagged = item.tagsEdition ?: return true
         return tagged.isNotEmpty() && tagged != current
-    }
-
-    /**
-     * A box saved before the edition was kept: an item with no label words on this phone made no tags from words.
-     * Every label this phone saw is kept on it, so an empty one had none.
-     */
-    fun settleUnknown(items: List<BoxItem>): List<BoxItem> =
-        items.map { if (it.tagsEdition == null && !hasWords(label(it.input))) it.copy(tagsEdition = "") else it }
-
-    /** A stale item whose whole label is on this phone is tagged again under [current]; when [tagger] cannot, it stays stale. */
-    fun refresh(items: List<BoxItem>, current: String?, tagger: (String) -> List<String>?): List<BoxItem> = items.map { item ->
-        if (!isStale(item, current)) return@map item
-        val whole = wholeLabel(item.input) ?: return@map item
-        val tags = tagger(whole) ?: return@map item
-        item.copy(input = item.input.copy(labelTags = tags), tagsEdition = current)
     }
 
     /**
@@ -78,6 +53,8 @@ object StaleTags {
      * lithium total waits, so no lithium item is OK on it either. A check or take-out verdict is never changed.
      */
     fun guard(result: BoxResult, items: List<BoxItem>, current: String?): BoxResult {
+        val stale = items.filter { isStale(it, current) }
+        if (stale.isEmpty()) return result
         val verdicts = result.items.toMutableMap()
         var counts = result.counts
         fun withhold(id: String, reason: String) {
@@ -86,11 +63,9 @@ object StaleTags {
             verdicts[id] = v.copy(level = VerdictLevel.check, headline = CHECK_HEADLINE, hits = listOf(hit) + v.hits)
             counts = counts.copy(ok = counts.ok - 1, check = counts.check + 1)
         }
-        val stale = items.filter { isStale(it, current) }
-        // Even marked to take out, the item is in the box until the sender removes it.
         for (item in stale) withhold(item.input.itemId, if (item.tagsEdition == null) LABEL_UNKNOWN else RULES_CHANGED)
         var lithium = result.lithium
-        if (stale.isNotEmpty() && (lithium.status == "ok" || lithium.status == "none")) {
+        if (lithium.status == "ok" || lithium.status == "none") {
             lithium = lithium.copy(status = "depends", text = LITHIUM_BOX_WAITS)
             for (id in result.lithium.itemIds) withhold(id, LITHIUM_WAITS)
         }

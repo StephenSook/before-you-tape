@@ -99,9 +99,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         BoxLogic.empty(store.destination() ?: ""),
         BoxEngine { items, code, today -> (host ?: throw EngineError("EngineNotLoaded", "the rules are not loaded")).evaluateBox(items, code, today) },
         today = { LocalDate.now().toString() },
-        // The edition in use and its label words, so an item tagged under another edition is tagged again or held.
+        // The edition in use, so an item tagged under another edition's label words is held.
         edition = { runningEdition?.editionId },
-        tagger = { label -> runCatching { host?.labelTags(label) }.getOrNull() },
     )
 
     private val reader: ItemReader? = ai?.let { client ->

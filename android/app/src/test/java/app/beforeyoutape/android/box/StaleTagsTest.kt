@@ -1,6 +1,8 @@
 package app.beforeyoutape.android.box
 
 import app.beforeyoutape.android.ai.Source
+import app.beforeyoutape.android.data.BoxPersistence
+import app.beforeyoutape.android.data.Prefs
 import app.beforeyoutape.engine.BoxCounts
 import app.beforeyoutape.engine.BoxItemInput
 import app.beforeyoutape.engine.BoxResult
@@ -20,12 +22,10 @@ import org.junit.Test
 import java.io.File
 
 /**
- * A saved item whose tags another edition's label words made is never judged OK on them: a label this phone still
- * holds whole is tagged again, and an item whose label is gone or was cut is held at Check this until it is read again.
+ * A saved item whose tags another edition's label words made is never judged OK on them. Only a new reading with
+ * label text, or the sender typing a label, releases it: never a blank label, an edit of another field or a restart.
  */
 class StaleTagsTest {
-    private val cut = "A".repeat(StaleTags.LABEL_TEXT_MAX)
-
     private fun read(label: String) = ItemReadWire("Toy", ItemCategoryWire.lotion_cream, label, 0.0, 0.0, 0.0, 0.0,
         false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
 
@@ -43,6 +43,12 @@ class StaleTagsTest {
         }
     }
 
+    private class MapPrefs : Prefs {
+        val values = mutableMapOf<String, String>()
+        override fun get(key: String): String? = values[key]
+        override fun put(key: String, value: String) { values[key] = value }
+    }
+
     private fun tags(label: String) = when {
         label.isBlank() -> emptyList()
         "REPLICA" in label -> listOf("label_text", "replica_explosive")
@@ -51,10 +57,12 @@ class StaleTagsTest {
 
     private var current: String? = "byt-new"
 
-    private fun controller(engine: Engine) =
-        BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-21" }, edition = { current }, tagger = ::tags)
+    private fun controller(engine: Engine = Engine()) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-21" }, edition = { current })
 
     private fun saved(vararg items: BoxItem) = BoxLogic.empty("CA").copy(items = items.toList())
+
+    /** How the revision 3 app saved a toy labelled REPLICA GRENADE: its words then found nothing beyond label_text. */
+    private val legacyToy = item("t", "REPLICA GRENADE", listOf("label_text"), null)
 
     private fun assertHeld(c: BoxController, id: String, reason: String) {
         val v = c.state.result!!.items.getValue(id)
@@ -64,59 +72,89 @@ class StaleTagsTest {
         assertEquals(reason, v.hits.first().text)
     }
 
-    @Test fun anItemWhoseCutLabelOtherWordsTaggedIsHeldAtCheckThis() {
+    private fun assertReleased(c: BoxController, id: String) =
+        assertEquals("engine", c.state.result!!.items.getValue(id).headline)
+
+    @Test fun anItemTaggedUnderAnotherEditionIsHeldAtCheckThis() {
         val e = Engine()
         val c = controller(e)
-        c.restore(saved(item("t", cut, listOf("label_text"), "byt-old")))
+        c.restore(saved(item("t", "REPLICA GRENADE", listOf("label_text"), "byt-old")))
         assertHeld(c, "t", StaleTags.RULES_CHANGED)
         assertEquals(BoxCounts(0, 1, 0), c.state.result!!.counts)
         assertEquals(listOf("label_text"), e.seen.last().getValue("t"))
     }
 
-    @Test fun anItemSavedBeforeTheEditionWasKeptIsHeldWhenItsLabelWasCut() {
-        val c = controller(Engine())
-        c.restore(saved(item("t", cut, listOf("label_text"), null)))
+    @Test fun anItemSavedBeforeTheEditionWasKeptIsHeldWithTheEarlierVersionWords() {
+        val c = controller()
+        c.restore(saved(legacyToy))
         assertHeld(c, "t", StaleTags.LABEL_UNKNOWN)
     }
 
-    /** How the revision 3 app saved a toy labelled REPLICA GRENADE: the words then found nothing beyond label_text. */
-    @Test fun aStaleItemWhoseWholeLabelIsOnThePhoneIsTaggedAgain() {
-        val e = Engine()
-        val c = controller(e)
-        c.restore(saved(item("t", "REPLICA GRENADE", listOf("label_text"), null)))
-        val t = c.state.items.single()
-        assertEquals(listOf("label_text", "replica_explosive"), t.input.labelTags)
-        assertEquals("byt-new", t.tagsEdition)
-        assertEquals(listOf("label_text", "replica_explosive"), e.seen.last().getValue("t"))
-        assertEquals("engine", c.state.result!!.items.getValue("t").headline)
+    /** The label is still on the phone, but only a new reading or the sender's typing releases the item. */
+    @Test fun theLabelStillOnThePhoneDoesNotReleaseIt() {
+        val c = controller()
+        c.restore(saved(legacyToy))
+        c.rulesChanged()
+        assertEquals(listOf("label_text"), c.state.items.single().input.labelTags)
+        assertEquals(null, c.state.items.single().tagsEdition)
+        assertHeld(c, "t", StaleTags.LABEL_UNKNOWN)
     }
 
-    @Test fun anItemWithNoLabelWordsDoesNotDependOnTheEdition() {
-        val c = controller(Engine())
-        c.restore(saved(item("t", "", emptyList(), null)))
-        assertEquals("", c.state.items.single().tagsEdition)
-        assertEquals(VerdictLevel.ok, c.state.result!!.items.getValue("t").level)
+    /** Tags not made from a label depend on no edition. */
+    @Test fun anItemWithNoLabelTagsIsNotHeld() {
+        val c = controller()
+        c.restore(saved(item("t", "", listOf("li_ion"), null)))
+        assertReleased(c, "t")
     }
 
     @Test fun typingTheLabelReleasesAHeldItem() {
-        val c = controller(Engine())
-        c.restore(saved(item("t", cut, listOf("label_text"), "byt-old")))
+        val c = controller()
+        c.restore(saved(legacyToy))
         c.override("t", mapOf("labelText" to JsonPrimitive("REPLICA GRENADE")), tags("REPLICA GRENADE"))
         assertEquals("byt-new", c.state.items.single().tagsEdition)
-        assertEquals("engine", c.state.result!!.items.getValue("t").headline)
+        assertEquals(listOf("label_text", "replica_explosive"), c.state.items.single().input.labelTags)
+        assertReleased(c, "t")
     }
 
     @Test fun aBlankTypedLabelKeepsItHeld() {
-        val c = controller(Engine())
-        c.restore(saved(item("t", cut, listOf("label_text"), "byt-old")))
-        c.override("t", mapOf("labelText" to JsonPrimitive("   ")), emptyList())
-        assertHeld(c, "t", StaleTags.RULES_CHANGED)
+        val c = controller()
+        c.restore(saved(legacyToy, item("k", "SHEA LOTION", listOf("label_text"), "byt-old")))
+        c.override("t", mapOf("labelText" to JsonPrimitive("")), emptyList())
+        c.override("k", mapOf("labelText" to JsonPrimitive("   ")), emptyList())
+        assertHeld(c, "t", StaleTags.LABEL_UNKNOWN)
+        assertHeld(c, "k", StaleTags.RULES_CHANGED)
+        assertEquals(listOf("label_text"), c.state.items.first().input.labelTags)
+    }
+
+    /** The case a restart could release: a legacy item with its label cleared, saved, and the app started again. */
+    @Test fun aBlankTypedLabelStaysHeldAfterARestart() {
+        val prefs = MapPrefs()
+        val first = controller()
+        first.restore(saved(legacyToy))
+        first.override("t", mapOf("labelText" to JsonPrimitive("")), emptyList())
+        BoxPersistence(prefs).save(first.state)
+        val again = controller()
+        again.restore(BoxPersistence(prefs).load()!!)
+        assertHeld(again, "t", StaleTags.LABEL_UNKNOWN)
+        again.override("t", mapOf("labelText" to JsonPrimitive("REPLICA GRENADE")), tags("REPLICA GRENADE"))
+        BoxPersistence(prefs).save(again.state)
+        val third = controller()
+        third.restore(BoxPersistence(prefs).load()!!)
+        assertReleased(third, "t")
+    }
+
+    @Test fun anEditOfAnotherFieldKeepsItHeld() {
+        val c = controller()
+        c.restore(saved(legacyToy))
+        c.override("t", mapOf("wattHours" to JsonPrimitive(0.0)), null)
+        c.answer("t", "is_replica", "yes")
+        c.stepQuantity("t", 1)
+        assertHeld(c, "t", StaleTags.LABEL_UNKNOWN)
     }
 
     @Test fun aCheckOrTakeItOutVerdictIsNeverChanged() {
-        val e = Engine(levels = mapOf("a" to VerdictLevel.check, "b" to VerdictLevel.take_out))
-        val c = controller(e)
-        c.restore(saved(item("a", cut, listOf("label_text"), "byt-old"), item("b", cut, listOf("label_text"), "byt-old")))
+        val c = controller(Engine(levels = mapOf("a" to VerdictLevel.check, "b" to VerdictLevel.take_out)))
+        c.restore(saved(item("a", "X", listOf("label_text"), "byt-old"), item("b", "Y", listOf("label_text"), "byt-old")))
         val r = c.state.result!!
         assertEquals("engine", r.items.getValue("a").headline)
         assertEquals(VerdictLevel.take_out, r.items.getValue("b").level)
@@ -124,9 +162,8 @@ class StaleTagsTest {
     }
 
     @Test fun theLithiumTotalWaitsWhileAnItemNeedsItsLabelReadAgain() {
-        val e = Engine(lithium = LithiumBox("ok", listOf("b"), emptyList(), "The lithium in this box is within the limit."))
-        val c = controller(e)
-        c.restore(saved(item("a", cut, listOf("label_text"), "byt-old"), item("b", "3.7V 1000mAh", listOf("label_text"), "byt-new")))
+        val c = controller(Engine(lithium = LithiumBox("ok", listOf("b"), emptyList(), "The lithium in this box is within the limit.")))
+        c.restore(saved(legacyToy, item("b", "3.7V 1000mAh", listOf("label_text"), "byt-new")))
         val r = c.state.result!!
         assertEquals("depends", r.lithium.status)
         assertEquals(StaleTags.LITHIUM_BOX_WAITS, r.lithium.text)
@@ -135,7 +172,7 @@ class StaleTagsTest {
     }
 
     @Test fun newItemsCarryTheEditionThatTaggedThem() {
-        val c = controller(Engine())
+        val c = controller()
         c.addRead(read("SHEA LOTION"), listOf("label_text"), Source.IN_CLOUD, 900, "r")
         c.addManual(read(""), emptyList(), "m")
         assertEquals(listOf("byt-new", ""), c.state.items.map { it.tagsEdition })
@@ -143,21 +180,20 @@ class StaleTagsTest {
 
     @Test fun withNoRulesLoadedNothingIsHeld() {
         current = null
-        val c = controller(Engine())
-        c.restore(saved(item("t", cut, listOf("label_text"), "byt-old")))
+        val c = controller()
+        c.restore(saved(item("t", "X", listOf("label_text"), "byt-old")))
         assertEquals(VerdictLevel.ok, c.state.result!!.items.getValue("t").level)
-        assertEquals("byt-old", c.state.items.single().tagsEdition)
     }
 
-    /** The sentences are the iPhone app's, and a cut label is the web app's LABEL_TEXT_MAX long. */
-    @Test fun theWordsAndTheCutMatchTheOtherApps() {
+    /** The sentences are the iPhone app's and the web app's. */
+    @Test fun theWordsMatchTheOtherApps() {
         val root = File(System.getProperty("byt.repoRoot") ?: error("byt.repoRoot is not set by Gradle"))
         val ios = File(root, "ios/BYT/Data/BoxStore.swift").readText()
+        val web = File(root, "src/data/tagsVersion.ts").readText()
         for (s in listOf(StaleTags.RULES_CHANGED, StaleTags.LABEL_UNKNOWN, StaleTags.LITHIUM_WAITS, StaleTags.LITHIUM_BOX_WAITS)) {
             assertTrue(s, ios.contains("\"$s\""))
+            assertTrue(s, web.contains("\"$s\""))
         }
-        val max = Regex("LABEL_TEXT_MAX = (\\d+);").find(File(root, "src/shared/itemRead.ts").readText())!!.groupValues[1].toInt()
-        assertEquals(max, StaleTags.LABEL_TEXT_MAX)
     }
 
     /** The held headline is the engine's own words for its check level, not the app's. */
