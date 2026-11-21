@@ -57,6 +57,26 @@ jobs:
           BYT_LIVE_URL: ${{ inputs.site }}
         run: npx playwright test --project=live tests/e2e/starts.spec.ts
 
+  # Fails, from the re-read window's first day, when a rule layer would read stale before judging ends: a stale
+  # layer turns every "OK to pack" into "Check this" (scripts/fresh-through-judging.ts). Daily, so it turns red
+  # even when nothing is pushed.
+  rules-fresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Rules stay fresh through judging
+        run: npm run fresh
+
   # A cron is no liveness guarantee: this fails when the scheduled run before this one started more than 36
   # hours ago, so a long silence shows red on the next run. It counts runs of any result, because a failed run
   # is already red, and counting only passing ones would keep this red after one bad day. It cannot alarm when

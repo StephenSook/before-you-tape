@@ -9,12 +9,32 @@ import Testing
 @Suite struct AppReadTests {
     let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
 
-    func fakeModel(_ j: FakeItemRunner.Journal) -> AppModel {
-        let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
+    /// A model that cannot read photos unless a test says otherwise, so a photo needs the cloud.
+    func fakeModel(_ j: FakeItemRunner.Journal, status: OnDeviceStatus = .wordsOnly, cloudReads: [JSONValue] = [BoxStoreTests.lotion]) -> AppModel {
+        let cloud = FakeItemRunner("cloud", journal: j, results: cloudReads.map { .success(ItemReply(read: $0, tokens: nil)) })
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { status }, persistence: MemoryBoxPersistence(),
+                             reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         return model
+    }
+
+    /// A photo is read on this iPhone with no network and no cloud question, lands in the box as an
+    /// on-device read, and the line says so.
+    @Test func aPhotoIsReadOnThisIPhoneOffline() async throws {
+        let j = FakeItemRunner.Journal()
+        let device = FakeItemRunner("device", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: TokenUse(input: 900, output: 80)))])
+        let reader = ItemReader(device: device, makeCloud: { _ in FakeItemRunner("cloud", journal: j, results: []) }, parse: { ParsedRead(read: $0) })
+        let model = AppModel(signIn: SignIn(isSignedIn: { false }, attempt: { false }), onDeviceStatus: { .wordsAndPhotos },
+                             persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        model.network.pathChanged(satisfied: false)
+        await model.readPhoto(jpeg)
+        #expect(!model.askingConsent && model.box?.cloudConsent == nil)
+        #expect(j.events == ["device start", "device end"])
+        #expect(model.lastRead?.records.map(\.path) == [.onDevice] && model.lastRead?.records.first?.kind == .photo)
+        #expect(model.box?.items.first?.readSource == "phone_on_device")
+        #expect(model.readLine == "Body lotion: OK to pack. Read on this iPhone.")
+        #expect(model.lastCrop == jpeg)
     }
 
     /// The app's parser is the engine's tagged parse: the read keeps clipped label text, and its tags
@@ -46,7 +66,7 @@ import Testing
         await model.readPhoto(jpeg)
         await model.answerConsent(false)
         #expect(j.events.isEmpty && model.box?.cloudConsent == false && model.box?.items.isEmpty == true)
-        #expect(model.readLine == "You chose to keep everything on this iPhone, and this iPhone does not read photos yet.")
+        #expect(model.readLine == "You chose to keep everything on this iPhone, and this iPhone's model does not read photos. Type the label's words instead.")
         // Asked once: a second photo does not ask again.
         await model.readPhoto(jpeg)
         #expect(!model.askingConsent && j.events.isEmpty)
@@ -56,7 +76,8 @@ import Testing
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                             reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
         await model.readPhoto(jpeg)
@@ -74,7 +95,8 @@ import Testing
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: nothing, tokens: nil)),
                                                                  .success(ItemReply(read: BoxStoreTests.lotion, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                             reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
         await model.readPhoto(jpeg)
@@ -99,6 +121,31 @@ import Testing
         #expect(AppModel.readLine(read, verdict: ok, name: "") == "This item: OK to pack. Read on this iPhone.")
         #expect(AppModel.readLine(read, verdict: ok, name: "  ") == "This item: OK to pack. Read on this iPhone.")
         #expect(AppModel.readLine(read, verdict: ok, name: "Hand cream") == "Hand cream: OK to pack. Read on this iPhone.")
+    }
+
+    /// A photo this iPhone cannot read says why and what to do instead.
+    @Test func aPhotoThisIPhoneCannotReadSaysWhyAndWhatToDo() {
+        let blocked = ReadOutcome(read: nil, source: nil, route: .blocked, failure: nil, records: [])
+        let off = OnDeviceStatus(unavailable: .appleIntelligenceOff, localeSupported: true, contextSize: 4096, variant: "t", vision: true)
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: false, status: .wordsOnly)
+                == "You chose to keep everything on this iPhone, and this iPhone's model does not read photos. Type the label's words instead.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: false, status: off)
+                == "You chose to keep everything on this iPhone, and Apple's on-device model is not available on it. Add it by hand with Type it in Your box.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: nil, status: .wordsOnly)
+                == "Checking a photo needs the cloud, and the cloud is not allowed right now. Type the label's words instead.")
+        #expect(AppModel.readLine(blocked, verdict: nil, consent: true, status: off)
+                == "Checking a photo needs the cloud, and the cloud is not allowed right now. Add it by hand with Type it in Your box.")
+        // A photo read on this iPhone that failed, with no cloud to try, says what to do.
+        let failed = ReadOutcome(read: nil, source: nil, route: .deviceOnly, failure: .timeout, records: [])
+        #expect(AppModel.readLine(failed, verdict: nil, status: .wordsAndPhotos)
+                == "This iPhone could not read that photo. Try another photo, or type the label's words instead.")
+    }
+
+    /// The check screen says why a photo is not read on this iPhone; it says nothing when it is.
+    @Test func theCheckScreenSaysWhyPhotosAreNotReadOnThisIPhone() {
+        let j = FakeItemRunner.Journal()
+        #expect(fakeModel(j, status: .wordsAndPhotos).photoNotice == nil)
+        #expect(fakeModel(j, status: .wordsOnly).photoNotice == "This iPhone's model does not read photos. Type the label's words instead.")
     }
 
     @Test func theConsentQuestionIsTheWebAppsSentenceForThisIPhone() throws {
@@ -135,7 +182,8 @@ import Testing
         let j = FakeItemRunner.Journal()
         let cloud = FakeItemRunner("cloud", journal: j, results: [.success(ItemReply(read: BoxStoreTests.perfume, tokens: nil))])
         let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: []), makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
-        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), reader: reader, config: .defaults)
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), onDeviceStatus: { .wordsOnly }, persistence: MemoryBoxPersistence(),
+                             reader: reader, config: .defaults)
         model.network.pathChanged(satisfied: true)
         model.box?.setConsent(true)
         await model.readPhoto(jpeg)

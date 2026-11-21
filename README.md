@@ -13,7 +13,7 @@ Hold each gift up to your laptop and see what the post office won't take, before
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again.
 
-The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build will be linked here when it ships. What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge) (`before-you-tape-android-76acd04.apk`, SHA-256 `df64d580a71f9cd01ea9efc95df0542d4286a94ff8dc39494cf012f840ab4f71`). What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
 
 ## Run it
 
@@ -48,7 +48,7 @@ npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval b
 
 `npm run release:gate` fails while any country listing has not been checked line by line by a person, or while any rule layer would be past its limit on the last judging day. It is run before a release, not on every commit.
 
-It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-17, so that layer would read stale on the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
+It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-20, so that layer reads stale from 2026-12-12, before the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
 
 ## Security you can check
 
