@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ItemRead } from "../shared/itemRead";
-import { clopperPearsonUpper, computeEvalMetrics, percentile, redactRun } from "./metrics";
+import { clopperPearsonUpper, computeEvalMetrics, computeEvalReport, percentile, redactRun } from "./metrics";
 import type { EvalItem, EvalRow, EvalRun, EvalSet, Level } from "./types";
 
 const provenance = { sourcePage: "https://example.org/p", author: "A", license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "resized" };
@@ -55,6 +55,65 @@ describe("computeEvalMetrics", () => {
     expect(m.hazardCalledOk).toMatchObject({ k: 0, n: 1 });
   });
 
+  it("gives a row with no verdict (failed, not run, no item, too slow) no agreement and no check, and counts it", () => {
+    const s2 = set([item("lotion", false, { CA: "check", PH: "check" })]);
+    const none = (source: string, d: string) => row("lotion", d, "check", { shipped: { level: "check", source, secondLook: false } });
+    for (const source of ["failed", "not_run", "no_item", "too_slow"]) {
+      const m = computeEvalMetrics(s2, run([none(source, "CA"), row("lotion", "PH", "check")]));
+      expect(m.truthAgreement, source).toEqual({ k: 1, n: 2 });
+      expect(m.checkRate, source).toEqual({ k: 1, n: 2 });
+      expect(m.noVerdict, source).toEqual({ k: 1, n: 2 });
+    }
+  });
+
+  it("counts a hazard item as a trial only when the shipped route judged all of it, unless it called it OK", () => {
+    const hz = (id: string) => item(id, true, { CA: "take_out", PH: "take_out" });
+    const none = (id: string, d: string) => row(id, d, "check", { shipped: { level: "check", source: "not_run", secondLook: false } });
+    const skipped = computeEvalMetrics(set([hz("a")]), run([none("a", "CA"), none("a", "PH")]));
+    expect(skipped.hazardCalledOk).toMatchObject({ k: 0, n: 0 });
+    expect(skipped.hazardCalledOk.upper95).toBeNaN();
+    const half = computeEvalMetrics(set([hz("a"), hz("b")]), run([none("a", "CA"), row("a", "PH", "take_out"), none("b", "CA"), row("b", "PH", "ok")]));
+    expect(half.hazardCalledOk).toMatchObject({ k: 1, n: 1 });
+  });
+
+  it("does not count a device misread as caught when the shipped route gave no verdict", () => {
+    const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const wrong = { read: read({ volts: 3.7, milliampHours: 1000, wattHours: 3.7 }), msRuns: [1], level: "check" as Level };
+    const failedShip = { level: "check" as Level, source: "failed", secondLook: false };
+    const m = computeEvalMetrics(set([pb]), run(["CA", "PH"].map((d) => row("pb", d, "check", { device: wrong, shipped: failedShip }))));
+    expect(m.misreadsCaught).toEqual({ k: 0, n: 1 });
+  });
+
+  it("checks the shipped route's numbers and times it too", () => {
+    const pb = item("pb", true, { CA: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const shipped = { level: "take_out" as Level, source: "on_device", secondLook: false, read: read({ volts: 3.7, milliampHours: 10000, wattHours: 37 }), msRuns: [900, 1000, 1100] };
+    const m = computeEvalMetrics(set([pb]), run([row("pb", "CA", "take_out", { shipped })]));
+    expect(m.numbersExact.shipped).toEqual({ k: 1, n: 1 });
+    expect(m.latency.shipped).toMatchObject({ p50: 1000, n: 1 });
+    const pub = redactRun(run([row("pb", "CA", "take_out", { shipped })]), set([pb]));
+    expect(pub.rows[0]!.shipped).toEqual({ level: "take_out", source: "on_device", secondLook: false, numbersExact: true, msRuns: [900, 1000, 1100] });
+    expect(computeEvalMetrics(set([pb]), pub)).toEqual(m);
+  });
+
+  it("times the shipped route to its final verdict, with its second look, and counts its read of no item", () => {
+    const pb = item("pb", true, { CA: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const looked = { level: "take_out" as Level, source: "on_device", secondLook: true, read: read({ volts: 3.7, milliampHours: 10000, wattHours: 37 }), msRuns: [1000, 1000, 1000], secondLookMs: 9000 };
+    expect(computeEvalMetrics(set([pb]), run([row("pb", "CA", "take_out", { shipped: looked })])).latency.shipped).toMatchObject({ p50: 10000, n: 1 });
+    const empty = { level: "check" as Level, source: "no_item", secondLook: false, read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [800] };
+    const m = computeEvalMetrics(set([pb]), run([row("pb", "CA", "check", { shipped: empty })]));
+    expect(m.numbersExact.shipped).toEqual({ k: 0, n: 1 });
+    expect(m.latency.shipped.n).toBe(1);
+    expect(m.noVerdict).toEqual({ k: 1, n: 1 });
+  });
+
+  it("counts a read of no item against exact numbers, since the model gave its numbers", () => {
+    const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const empty = { read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [5], level: "check" as Level, noItem: true as const };
+    const m = computeEvalMetrics(set([pb]), run(["CA", "PH"].map((d) => row("pb", d, "check", { device: empty }))));
+    expect(m.numbersExact.device).toEqual({ k: 0, n: 1 });
+    expect(m.latency.device.n).toBe(1);
+  });
+
   it("uses the median of warm runs per crop and pairs the two paths", () => {
     const set2 = set([item("a", false, { CA: "ok" }), item("b", false, { CA: "ok" })]);
     const runMs = (ms: Record<string, { device: number[]; cloud: number[] }>) =>
@@ -73,8 +132,20 @@ describe("computeEvalMetrics", () => {
     const wrong = read({ volts: 3.7, milliampHours: 5000, wattHours: 185 });
     const r = run([row("pb", "CA", "take_out", { device: { read: wrong, msRuns: [1], level: "check" }, cloud: { read: exact, msRuns: [1], level: "take_out" }, shipped: { level: "take_out", source: "in_cloud", secondLook: true } })]);
     const m = computeEvalMetrics(set([pb]), r);
-    expect(m.numbersExact).toEqual({ k: 1, n: 2 });
+    // The shipped row here carries no read, so it adds nothing to the shipped count.
+    expect(m.numbersExact).toEqual({ device: { k: 0, n: 1 }, cloud: { k: 1, n: 1 }, shipped: { k: 0, n: 0 } });
     expect(m.misreadsCaught).toEqual({ k: 1, n: 1 });
+  });
+});
+
+describe("computeEvalReport", () => {
+  it("gives every metric for all items and for the items that prompted no rule change", () => {
+    const s = set([item("i20", false, { CA: "check" }), item("own-18", false, { CA: "ok" })]);
+    const rep = computeEvalReport(s, run([row("i20", "CA", "check"), row("own-18", "CA", "take_out")]));
+    expect(rep.allItems.truthAgreement).toEqual({ k: 1, n: 2 });
+    expect(rep.withoutRuleChangeItems.truthAgreement).toEqual({ k: 0, n: 1 });
+    expect(rep.withoutRuleChangeItems.items).toBe(1);
+    expect(rep.allItems.items).toBe(2);
   });
 });
 
