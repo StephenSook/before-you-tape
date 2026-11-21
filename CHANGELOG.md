@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An icon: `public/favicon.svg` (a box with its tape), named by the app page and the 404 page, so a browser no longer asks for a missing `/favicon.ico` on every first load. Source: UI review (a 404 in the console). Verified: a new hosting test failed first and passes.
+
 - `eval/runs/README.md` says what the run shows about the second look exactly: on the 4 battery items where the device's numbers differed from the printed ones (2 misreads, 2 watt-hour figures the label does not print), all 4 got a second look, 3 then matched, and none was called "OK to pack". It also states that device plus cloud (69 of 80) beats the device alone (60) and the cloud alone (64), and why rules only (71) starts ahead. Source: review of the results wording. Verified: each item traced in the private run file.
 
 - `eval/runs/models-2026-11-21.public.json` and its results in `eval/runs/README.md`: the first full model run on the frozen set (40 items, 80 rows, three timed runs per item and path). Agreement with our draft labels (drafted in a build session, author not verified, adopted by the developer 2026-11-20 without a row-by-row review; no blind second-person check): the shipped route 69 of 80, rules only 71 of 80. Hazards called OK: 0 of 28. Median time to a verdict on the shipped route: 4.9 s. All 134 cloud calls answered with HTTP 200. The full run stays private. Source: the eval protocol's model run. Verified: the public copy holds no item name or label text; each figure in the README was checked against the run file.
