@@ -4,8 +4,10 @@
 // local copy of the box. If the item shows there for the same user, it was read from the server. The
 // server never gets an item's own name, only its category's label, so the second browser shows "Clothing"
 // and never the typed name, which stays in the first browser. The deploy gate runs this after every
-// deploy; it leaves one box with one typed clothing item.
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+// deploy; it leaves one box with one typed clothing item. Both browsers carry the CI App Check debug token, so the
+// round trip still works once Firestore enforces App Check.
+import type { BrowserContext, Page } from "@playwright/test";
+import { expect, giveAppCheckToken, test } from "./fixtures";
 
 type BaseState = Awaited<ReturnType<BrowserContext["storageState"]>>;
 // Playwright returns each origin's IndexedDB when asked ({ indexedDB: true }), but its types omit the field.
@@ -44,7 +46,7 @@ function signInOnly(state: StorageState): StorageState {
   };
 }
 
-test("a typed item comes back from the server in a browser with no copy of the box", async ({ browser, page, context }) => {
+test("a typed item comes back from the server in a browser with no copy of the box", async ({ browser, page, context, appCheckToken }) => {
   test.setTimeout(150_000);
   const name = `Round-trip check ${new Date().toISOString()}`;
   await page.goto("/");
@@ -66,6 +68,7 @@ test("a typed item comes back from the server in a browser with no copy of the b
   // Each try is a fresh browser, so a miss is never served from a cache; the first browser keeps syncing.
   await expect(async () => {
     const fresh = await browser.newContext({ storageState: state });
+    await giveAppCheckToken(fresh, appCheckToken);
     try {
       const second = await fresh.newPage();
       await second.goto("/");
