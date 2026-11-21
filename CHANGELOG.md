@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A tab whose box another tab deletes (the delete takes away byt.currentBox for that box, or this browser's storage is cleared) closes its box store, so it keeps and sends nothing more of the old box, and reloads onto a new one (whenDeletedElsewhere). Source: review. Verified: two new tests (only that change counts, once; a storage clear counts; stopping the watch ends it) failed first and pass; typecheck, build, the full suite and the home-page browser checks pass.
+
 - Delete my saved box deletes the box in Firestore under whoever is signed in when it runs (savedBoxDeleter), not through the page's own saving: a page whose sign-in failed kept the box only in this browser and skipped Firestore, while another tab, signed in since under the same account, had saved it there, and the sign-in was then deleted with the box left behind. It deletes only the crops this box's items use; any other crop is removed when the next box opens. The sign-in wrapper's unused whole-box delete is gone. Source: review. Verified: three new savedBoxDeleter tests failed first and pass; typecheck, build, all 46 emulator tests and the full suite pass.
 
 - Try deleting again starts at the step that stopped (the panel passes it to deleteSavedBox), so a retry after a failed sign-in step does not delete this device's crops or box pointer again, which another tab may already be using for a new box. Source: review. Verified: the PackPage retry test (the second call names the sign-in step) failed first and passes; full suite passes.

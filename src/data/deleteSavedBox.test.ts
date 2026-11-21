@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearLocalBox, deleteSavedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
+import { clearLocalBox, deleteSavedBox, rememberDeleted, savedBoxDeleter, takeDeletedNotice, whenDeletedElsewhere, type DeleteSavedBoxDeps, type DeleterParts } from "./deleteSavedBox";
 
 const deps = (over: Partial<DeleteSavedBoxDeps> = {}) => {
   const order: string[] = [];
@@ -127,5 +127,34 @@ describe("savedBoxDeleter", () => {
     const keep = vi.mocked(p.deleteCropsExcept).mock.calls[0]![0];
     expect(keep("c1")).toBe(false);
     expect(keep("another-box-crop")).toBe(true);
+  });
+});
+
+describe("whenDeletedElsewhere", () => {
+  const change = (key: string | null, oldValue: string | null, newValue: string | null) =>
+    window.dispatchEvent(new StorageEvent("storage", { key, oldValue, newValue, storageArea: localStorage }));
+
+  it("tells this tab once another tab's delete takes away the pointer to its box, and not for any other change", () => {
+    const gone = vi.fn();
+    const stop = whenDeletedElsewhere(window, "b1", gone);
+    change("byt.currentBox", null, "b1");
+    change("byt.journal.b1", "x", null);
+    change("byt.currentBox", "b2", null);
+    expect(gone).not.toHaveBeenCalled();
+    change("byt.currentBox", "b1", null);
+    expect(gone).toHaveBeenCalledTimes(1);
+    change(null, null, null);
+    expect(gone).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("counts this browser's storage being cleared in another tab", () => {
+    const gone = vi.fn();
+    const stop = whenDeletedElsewhere(window, "b1", gone);
+    change(null, null, null);
+    expect(gone).toHaveBeenCalledTimes(1);
+    stop();
+    change("byt.currentBox", "b1", null);
+    expect(gone).toHaveBeenCalledTimes(1);
   });
 });

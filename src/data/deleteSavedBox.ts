@@ -100,3 +100,18 @@ export function takeDeletedNotice(storage: Storage): "deleted" | "signed_out" | 
     return null;
   }
 }
+
+// Another tab deleted this tab's box: its delete takes away the pointer to it (a clear of this browser's storage
+// does too). Calls gone once, so this tab stops saving and reloads before it can keep anything of the old box.
+export function whenDeletedElsewhere(target: Pick<Window, "addEventListener" | "removeEventListener">, boxId: string, gone: () => void): () => void {
+  let told = false;
+  const onStorage = (e: StorageEvent) => {
+    if (told) return;
+    if (e.key === null || (e.key === "byt.currentBox" && e.oldValue === boxId && e.newValue !== boxId)) {
+      told = true;
+      gone();
+    }
+  };
+  target.addEventListener("storage", onStorage);
+  return () => target.removeEventListener("storage", onStorage);
+}
