@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The box store tells a save refused because App Check could not verify this browser from a page out of date: Firestore refuses both with permission-denied, so on that refusal the store asks a verified() check and sets unverified instead of outOfDate when it fails. The next save that lands clears it. A failed connection asks nothing, and without the check a refusal still means out of date. Not shown on the page yet. Source: App Check enforcement plan. Verified: new store tests (unverified, then cleared by a retry that lands; a verified browser still out of date; no question for a failed connection) failed first where expected and pass; full suite passes.
+
 - Opening the Delete my saved box question again clears the earlier "Connect to the internet to delete your saved box." line, so a fresh question never sits under an old error. Source: review of the live offline check. Verified: a new PackPage test failed first and passes; typecheck, build, the full suite and the home and accessibility browser checks pass.
 
 - LIMITS: Delete my saved box needs the internet and this browser's own sign-in; an item or dispute another tab saves in the last instant before the box's own delete is left behind, unreadable by anyone, until TTL deletes it at the box's expiry; the sign-in is deleted only when it owned the box; the shared list of unsent saves can lose another tab's change after a delete that failed, as after any save; and a deleted box's id can be reused once its tombstone expires, 30 days after the box would have, when nothing of it is left to read. Source: review (accepted residuals). Verified: tone, hygiene and guard checks and the full suite pass.

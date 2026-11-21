@@ -61,6 +61,9 @@ export interface BoxState {
   // The server refused a save to a box this visit could open: the page was loaded before a change to what the
   // server accepts, so saving goes on only after a reload.
   outOfDate?: boolean;
+  // The server refused a save while App Check could not verify this browser: a reload would not help, and the next
+  // save that lands clears it.
+  unverified?: boolean;
   // Whether the country is known: the saved box has been read, or the sender chose one. Until then the picker
   // shows no country, so even a first pick of the default counts.
   destinationKnown?: boolean;
@@ -143,6 +146,10 @@ export interface BoxStoreDeps {
   // this page only.
   consent?: DeviceConsent;
   deviceNames?: DeviceNames;
+  // Whether App Check can verify this browser now. Firestore refuses a request it could not verify with the same
+  // permission-denied as a page out of date, so a refusal asks this before saying which. Without it, a refusal
+  // always means out of date.
+  verified?: () => Promise<boolean>;
 }
 
 // A new box starts in the Philippines: Canada's mail is suspended from 2026-11-29 (rules/suspensions.json).
@@ -216,11 +223,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
   let outOfDate = false;
+  let unverified = false;
   // A country the sender chose before the saved box was read: it stands over the saved one.
   let chosenDestination: string | null = null;
   const snapshot = (result: BoxResult): BoxState => ({
     boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
     destinationKnown: loadState === "ready" || chosenDestination !== null, ...(outOfDate ? { outOfDate } : {}),
+    ...(unverified ? { unverified } : {}),
   });
   let state: BoxState = snapshot(evaluate());
 
@@ -243,11 +252,30 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
 
   const publish = () => { for (const l of listeners) l(state); };
   // A refusal is the server saying no, unlike a failed connection. For a box this visit opened, that means the
-  // page is older than what the server now accepts. A box that could not be opened keeps its own notice.
+  // page is older than what the server now accepts, unless App Check could not verify this browser, which Firestore
+  // refuses with the same code. A box that could not be opened keeps its own notice.
   const noteRefusal = (e: unknown) => {
     if (outOfDate || loadState !== "ready" || (e as { code?: unknown } | null)?.code !== "permission-denied") return;
-    outOfDate = true;
-    state = { ...state, outOfDate };
+    void (deps.verified ? deps.verified().catch(() => false) : Promise.resolve(true)).then((ok) => {
+      if (!ok) {
+        if (unverified) return;
+        unverified = true;
+        state = { ...state, unverified };
+      } else {
+        if (outOfDate) return;
+        outOfDate = true;
+        state = { ...state, outOfDate };
+      }
+      publish();
+    });
+  };
+  // A save that landed: whatever stopped this browser being verified has passed.
+  const landed = () => {
+    if (!unverified) return;
+    unverified = false;
+    const { unverified: _gone, ...rest } = state;
+    void _gone;
+    state = rest;
     publish();
   };
   const refreshUnsaved = () => {
@@ -297,6 +325,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
             await deps.persistence.putMeta(boxId, meta);
             boxExists = true;
             failed.delete("meta");
+            landed();
             if (deps.persistence.localOnly?.() !== true) {
               serverMeta = stableJson(meta);
               if (journal.meta === sent) journal.meta = null;
@@ -313,6 +342,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
+              landed();
               // A write kept only in this browser stays in the journal for the server. A write that landed is
               // what the server now holds, even when a newer edit made meanwhile (a change, or a removal now
               // waiting as a delete) stays in the journal to be sent next.
