@@ -1,0 +1,13 @@
+[
+  {
+    "code": "CA",
+    "authority": "Canada Border Services Agency",
+    "url": "https://www.cbsa-asfc.gc.ca/import/courier/menu-eng.html",
+    "checkedOn": "2026-11-21",
+    "source": "rules/sources-text/cbsa-importing-by-mail.txt",
+    "lines": [
+      { "label": "Mailed items", "quote": "Under the provisions of the Postal Imports Remission Order, if someone mails you an item worth CAN$20 or less, there is no duty or tax payable." },
+      { "label": "Gifts", "quote": "If you receive an imported gift by mail that is worth CAN$60 or less, you will not have to pay duty and/or tax on it." }
+    ]
+  }
+]
