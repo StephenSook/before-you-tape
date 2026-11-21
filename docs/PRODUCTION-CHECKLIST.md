@@ -16,6 +16,17 @@ The $25 Gemini spend cap stays in place under all three; its enforcement is not 
 
 Only through `ACCESS_TOKEN="$(gcloud auth print-access-token)" npm run rc:publish -- --dry-run`, then again without `--dry-run`. It reads the live template first and refuses to change or drop a live value, such as a `kill_cloud` an operator turned on, unless that key is named with `--allow KEY`. `firebase.json` does not name the template, so no plain `firebase deploy` can publish it.
 
+## Sending a newer rule edition to the phone apps
+
+The phone apps carry the edition they were built with. A newer one reaches them without a new build through the edition pin, in this order:
+
+1. `npx tsx scripts/publish-edition.ts --dry-run` prints the `ruleEditions/{id}` document's id, size and SHA-256 and writes nothing. Then `ACCESS_TOKEN="$(gcloud auth print-access-token)" npx tsx scripts/publish-edition.ts` writes it. Read it back and check that the SHA-256 of its `json` field equals the printed hash.
+2. `ACCESS_TOKEN=... npm run rc:publish -- --dry-run --set rules_edition_id=<id> --set rules_edition_sha256=<hash>` must show exactly those two changes. Then run it again without `--dry-run`. A later publish without `--set` refuses to drop the live pin unless it is allowed.
+
+The apps use the pinned edition only when its id and hash match and its revision is higher than their own; otherwise they keep the built-in one. Undo: publish both values empty, or roll Remote Config back a version.
+
+Done on 2026-11-21 for revision 5 (`byt-1e330a4fdf37`, SHA-256 `b63c55afc6a0c77b7c32a1457ff593f9cc13992b2821363291ade2cfab3038bc`) from main 50bbf3b: the document was written and read back (hash match, revision 5), and Remote Config went from version 5 to version 6 with exactly the two pin keys changed. On a Samsung A16, the published android-judge-3 (built with revision 4) showed "Rules edition: byt-1e330a4fdf37" on its About screen 15 seconds after a relaunch (21:48 UTC), with no notice.
+
 ## After every deploy
 
 A matching `version.json` does not mean the app works: on 2026-11-18 it matched for almost an hour while every visitor saw "The checker could not start." Only a check of the started screen shows that the app works.
