@@ -11,39 +11,46 @@ verdict. Each read's route and time are written down, and the evidence goes in t
 - Apple Intelligence on, with its model downloaded: Settings > Apple Intelligence & Siri. The
   phone's language: English.
 - `ios/BYT/Config/GoogleService-Info.plist` on the Mac (it is gitignored).
-- 5 real items with printed labels. A mix, for example:
-  1. a body lotion or hand cream,
-  2. a perfume or a spray,
-  3. a hand sanitizer or nail polish,
-  4. a power bank or a battery with its numbers printed,
-  5. a packaged food or a book.
+- These 5 real items, each with its label printed on it:
+  1. a lotion or cream,
+  2. a perfume or another alcohol-based spray,
+  3. a power bank, with its numbers printed,
+  4. a boxed device with a battery, such as earbuds or a phone in its retail box,
+  5. one clearly harmless item, such as a book or a T-shirt.
 
 ## Steps
 
-1. Connect the iPhone and unlock it. On the Mac, run `bash ios/scripts/device-session.sh build`.
-   It prints the commit and the phone's UDID. The phone owner answers any signing prompt.
-2. Run `bash ios/scripts/device-session.sh install`. The app opens on the phone.
-3. On the phone, read the Ready check screen. Write down its two lines about the model.
+If another app is installed on the phone in the same session, do these steps after it, with the
+phone still connected.
+
+1. On the Mac, with no uncommitted changes, move to the newest main and check the engine file:
+   `git fetch origin`, `git checkout --detach origin/main`, then
+   `bash ios/scripts/check_engine_bundle.sh`. It must pass, so the phone runs the same rules
+   engine as the web app.
+2. Connect the iPhone and unlock it. Run `bash ios/scripts/device-session.sh build`. It prints
+   the commit and the phone's UDID. The phone owner answers any signing prompt.
+3. Run `bash ios/scripts/device-session.sh install`. The app opens on the phone.
+4. On the phone, read the Ready check screen. Write down its two lines about the model.
    They must say "This iPhone can check items with no network." and "Label photos are read on
    this iPhone, with no network."
-4. Turn on airplane mode. Turn Wi-Fi off too, because airplane mode can leave it on. Open
+5. Turn on airplane mode. Turn Wi-Fi off too, because airplane mode can leave it on. Open
    Control Center and take a screenshot that shows airplane mode on and Wi-Fi off.
-5. Turn on Do Not Disturb, so no notification shows in the recording. Start a screen recording
+6. Turn on Do Not Disturb, so no notification shows in the recording. Start a screen recording
    from Control Center. Keep it on for all 5 items.
-6. For each item:
+7. For each item:
    1. Tap "Check an item".
    2. Hold the label inside the white frame. Tap "Check now".
    3. Wait for the line under the photo. Write down the whole line.
    4. A pass ends "Read on this iPhone." If the cloud question appears, or the line says the
       item could not be read, write that down: it is a fail for that item.
    5. Go back to the Ready check screen.
-7. Stop the screen recording. Keep airplane mode on.
-8. On the Mac, run `bash ios/scripts/device-session.sh pull`. It copies the saved box from the
-   phone into `docs/evidence/ios/<date>-device/`, with the device details and the commit, and
+8. Stop the screen recording. Keep airplane mode on.
+9. On the Mac, run `bash ios/scripts/device-session.sh pull`. It copies the saved box from the
+   phone into `docs/evidence/ios/<date>-device/`, with the phone's model, iOS version and the commit, and
    prints each item's route (`phone_on_device` or `phone_cloud`) and read time in ms.
-9. Move the screenshot and the screen recording into the same folder. Turn airplane mode off.
+10. Move the screenshot and the screen recording into the same folder. Turn airplane mode off.
 
-If step 8 cannot copy the box, write that down with the error. The screen recording and the
+If step 9 cannot copy the box, write that down with the error. The screen recording and the
 written lines are then the record.
 
 ## Record (one row per item)

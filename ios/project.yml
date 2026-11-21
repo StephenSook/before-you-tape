@@ -65,11 +65,7 @@ targets:
       - package: Firebase
         product: FirebaseFirestore
       - package: Firebase
-        product: FirebaseFunctions
-      - package: Firebase
         product: FirebaseRemoteConfig
-      - package: Firebase
-        product: FirebasePerformance
       - package: BYTCore
         product: BYTCore
   BYTTests:

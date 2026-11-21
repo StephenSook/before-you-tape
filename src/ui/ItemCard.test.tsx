@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -305,4 +305,22 @@ describe("ItemCard", () => {
     render(<ItemCard item={book} verdict={verdictFor(book)} crop={null} />);
     expect(screen.queryByTestId("battery-numbers")).toBeNull();
   });
+
+  it("does not say the question twice: a reason that only restates it is left out, a reason that adds to it is kept", () => {
+    // A phone with no condition answer: its first reason is "Is it new? Answer to finish this check."
+    const phone = item("q", { ...base, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
+      wattHours: 15.4, batteryWords: true, retailBox: "sealed" }, { answers: { cell_count: "one" } });
+    const v = verdictFor(phone);
+    expect(v.question?.text).toBe("Is it new?");
+    expect(v.hits[0]?.text).toBe("Is it new? Answer to finish this check.");
+    render(<ItemCard item={phone} verdict={v} crop={jpeg} />);
+    expect(screen.queryByText("Is it new? Answer to finish this check.")).toBeNull();
+    expect(screen.getAllByText("Is it new?")).toHaveLength(1);
+    cleanup();
+    // A reason that says more than the question stays.
+    const saysMore = { ...v, hits: [{ ...v.hits[0]!, text: "We read \"alcohol\" and \"free\" on two lines. Does the label say alcohol-free?" }], question: { ...v.question!, text: "Does the label say alcohol-free?" } };
+    render(<ItemCard item={phone} verdict={saysMore} crop={jpeg} />);
+    expect(screen.getByText(/We read "alcohol" and "free" on two lines/)).toBeInTheDocument();
+  });
 });
+

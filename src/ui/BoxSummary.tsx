@@ -17,10 +17,10 @@ export function BoxSummary({ result, itemCount, recheck, limits }: { result: Box
     <section data-testid="box-summary" aria-label="Your box">
       <h2 id="box-heading" tabIndex={-1}>Your box</h2>
       {itemCount === 0 ? <p>Nothing in the box yet.</p> : (
-        <ul>
-          {counts.takeOut > 0 && <li>{counts.takeOut} to take out</li>}
-          {counts.check > 0 && <li>{counts.check} to check</li>}
-          {counts.ok > 0 && <li>{counts.ok} OK to pack</li>}
+        <ul className="count-chips">
+          {counts.takeOut > 0 && <li className="chip count-chip chip-take_out">{counts.takeOut} to take out</li>}
+          {counts.check > 0 && <li className="chip count-chip chip-check">{counts.check} to check</li>}
+          {counts.ok > 0 && <li className="chip count-chip chip-ok">{counts.ok} OK to pack</li>}
         </ul>
       )}
       {lithiumParts.length > 0 && <p>Lithium: {lithiumParts.join(", ")}</p>}

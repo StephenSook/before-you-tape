@@ -152,4 +152,59 @@ describe("evaluateBox", () => {
       }
     }
   });
+
+  describe("a question no answer can change", () => {
+    const perfume = input({ itemId: "perfume", read: { category: "perfume_fragrance", labelText: "EAU DE PARFUM 100 mL", liquid: true, glassContainer: true } });
+
+    it("is not asked once another rule has taken the item out, whatever the answer", () => {
+      const v = run([perfume], "PH").items.perfume!;
+      expect(v.level).toBe("take_out");
+      expect(v.question).toBeNull();
+      expect(v.hits.some((h) => h.askId !== undefined)).toBe(false);
+      expect(v.hits.map((h) => h.ruleId)).toContain("PH-P-01");
+    });
+
+    it("is still asked where its answer can change the verdict", () => {
+      const v = run([perfume], "CA").items.perfume!;
+      expect(v.question?.id).toBe("label_alcohol");
+    });
+
+    it("is still asked when its answer would change another item in the box", () => {
+      // Three phones with multi-cell batteries are over the box's limit; a "Used" answer would take one out of the
+      // lithium count and change the other two.
+      const phones = ["a", "b", "c"].map((id) => input({ itemId: id, read: { category: "phone", batteryWords: true, labelText: "7.7V 5000mAh 38.5Wh",
+        volts: 7.7, milliampHours: 5000, wattHours: 38.5 }, answers: { cell_count: "more_than_one" } }));
+      const r = run(phones, "CA");
+      for (const id of ["a", "b", "c"]) {
+        expect(r.items[id]!.level, id).toBe("take_out");
+        expect(r.items[id]!.question?.id, id).toBe("device_condition");
+      }
+    });
+
+    it("never leaves a Take it out without the hit that decides it", () => {
+      const e = structuredClone(ed);
+      const rule = e.rules.find((x) => x.id === "USPS-INTL-LI-METAL-CLASS")!;
+      rule.outcome = "take_out";
+      const watch = input({ itemId: "watch", quantity: 5, read: { category: "smartwatch", batteryWords: true, labelText: "LITHIUM METAL 1.5 g", lithiumGrams: 1.5,
+        retailBox: "sealed" }, answers: { device_condition: "new_sealed" } });
+      const v = run([watch], "CA", "2026-11-20", e).items.watch!;
+      if (v.level === "take_out") expect(v.hits.some((h) => h.level === "take_out")).toBe(true);
+    });
+
+    it("takes time in step with the box, not with its square, for items with no battery", () => {
+      // A wall-clock limit fails on a busy machine, so two box sizes are timed in turns on the same machine,
+      // each by its fastest run: four times the items take about four times as long, while comparing every
+      // item with every other would take about sixteen.
+      const box = (n: number) => Array.from({ length: n }, (_, k) => ({ ...perfume, itemId: `perfume-${k}` }));
+      const small = box(100), big = box(400);
+      const time = (items: BoxItemInput[]) => { const t0 = performance.now(); run(items, "PH"); return performance.now() - t0; };
+      run(small, "PH"); run(big, "PH");
+      let fastSmall = Infinity, fastBig = Infinity;
+      for (let i = 0; i < 5; i++) { fastSmall = Math.min(fastSmall, time(small)); fastBig = Math.min(fastBig, time(big)); }
+      expect(fastBig / fastSmall).toBeLessThan(10);
+      expect(run(small, "PH").items["perfume-7"]!.question).toBeNull();
+      // Ten judged boxes of 100 and 400 items: a busy machine needs more than 5 s for them.
+    }, 30_000);
+  });
 });
+

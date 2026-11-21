@@ -4,7 +4,9 @@
 #   bash ios/scripts/device-session.sh install   install it on the phone and open it once
 #   bash ios/scripts/device-session.sh pull      copy the saved box off the phone, then summarize it
 #   bash ios/scripts/device-session.sh summary <folder>   print each item's route and read time
-# The phone is the one connected iPhone that devicectl lists as physical, or $BYT_DEVICE.
+# The phone is the one physical iPhone devicectl lists as connected or available (paired), or $BYT_DEVICE.
+# The raw box goes in <out>/raw.local (ignored by git: item names can be personal); only the model,
+# the iOS version and the commit sit beside it for the record.
 # Signing prompts, Apple ID and the phone's own settings are the phone owner's to answer.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -21,12 +23,12 @@ device() {
   # A device's name can hold spaces, so the UDID is found by its own pattern.
   ids="$(python3 -I -c "
 import re, sys
-rows = [l for l in open(sys.argv[1]) if re.search(r'\sconnected\s', l) and 'physical' in l]
+rows = [l for l in open(sys.argv[1]) if re.search(r'\s(connected|available)\b', l) and 'physical' in l]
 print('\n'.join(m.group(1) for l in rows for m in [re.search(r'([0-9A-Fa-f-]{20,}) \(UDID\)', l)] if m))
 " "$list")"
   rm -f "$list"
   if [ -z "$ids" ] || [ "$(printf '%s\n' "$ids" | wc -l | tr -d ' ')" != "1" ]; then
-    echo "Expected one connected physical iPhone; found: ${ids:-none}. Set BYT_DEVICE to its UDID." >&2
+    echo "Expected one connected or available physical iPhone; found: ${ids:-none}. Set BYT_DEVICE to its UDID." >&2
     exit 1
   fi
   echo "$ids"
@@ -56,7 +58,7 @@ case "${1:-}" in
     out="docs/evidence/ios/$(date +%Y-%m-%d)-device"
     mkdir -p "$out"
     xcrun devicectl device copy from --device "$udid" --domain-type appDataContainer --domain-identifier "$BUNDLE" \
-      --source "Library/Application Support/boxes" --destination "$out/boxes"
+      --source "Library/Application Support/boxes" --destination "$out/raw.local/boxes"
     # Only the model and the iOS version go in the evidence: never the UDID, serial number, ECID or
     # the phone's name, which this folder could make public.
     devices="$(mktemp)"
@@ -73,7 +75,7 @@ else:
 PY
     rm -f "$devices"
     git rev-parse HEAD > "$out/commit.txt"
-    bash "$0" summary "$out"
+    bash "$0" summary "$out/raw.local"
     ;;
   summary)
     folder="${2:?usage: device-session.sh summary <folder>}"

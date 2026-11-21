@@ -56,7 +56,7 @@ function setup(over: Partial<PackPageProps> = {}, consent: boolean | null = true
   if (consent !== null) store.setConsent(consent);
   const models = (over.models as ReturnType<typeof spyModels> | undefined) ?? spyModels();
   render(<PackPage store={store} models={models} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
-    saveCrop={async () => {}} online {...over} />);
+    saveCrop={async () => {}} deleteCrop={async () => {}} online {...over} />);
   return { store, models };
 }
 
@@ -170,7 +170,7 @@ describe("PackPage", () => {
     expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read in the cloud");
     expect(within(card).getByTestId("crop-image")).toHaveAttribute("src", expect.stringMatching(/^data:image\/jpeg/));
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
-    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(screen.getByTestId("recheck-line")).toHaveTextContent("0 model calls");
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
@@ -193,7 +193,7 @@ describe("PackPage", () => {
     const cloud = { generate: vi.fn(() => new Promise<never>((_r, reject) => { fail = reject; })) };
     const fallback = { generate: vi.fn(async () => ({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" as const })) };
     const models = { ...spyModels(), cloud, fallback };
-    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, online: true };
+    const props = { store, models, gate: "no_api" as const, openCamera: okCamera, index, saveCrop: async () => {}, deleteCrop: async () => {}, online: true };
     const { rerender } = render(<PackPage {...props} config={{ killCloud: false }} />);
     await addPhoto();
     await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
@@ -238,7 +238,7 @@ describe("PackPage", () => {
     const store = newStore();
     store.setConsent(true);
     const saveCrop = vi.fn(async () => {});
-    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} online />);
+    const { unmount } = render(<PackPage store={store} models={{ ...spyModels(), cloud }} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index} saveCrop={saveCrop} deleteCrop={async () => {}} online />);
     await addPhoto();
     await waitFor(() => expect(cloud.generate).toHaveBeenCalledTimes(1));
     unmount();
@@ -260,6 +260,30 @@ describe("PackPage", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
     localStorage.clear();
+  });
+
+  it("clears a read's failure alert once a typed item goes in the box", async () => {
+    const failing = { generate: vi.fn(async () => { throw new Error("the model failed"); }) };
+    setup({ models: { device: failing, hybrid: failing, cloud: failing } });
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByTestId("newest-sheet");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("opens the back camera on a phone, and the front one on a laptop", async () => {
+    const openCamera = vi.fn(okCamera);
+    setup({ openCamera, phone: true });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(openCamera).toHaveBeenCalledWith("environment"));
+    cleanup();
+    const laptop = vi.fn(okCamera);
+    setup({ openCamera: laptop });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(laptop).toHaveBeenCalledWith("user"));
   });
 
   it("shows the sample photo's recorded read, labelled, with no model call and no cloud answer needed", async () => {
@@ -333,7 +357,7 @@ describe("PackPage", () => {
     const page = (store: ReturnType<typeof newStore>, models: ReturnType<typeof spyModels>, gate: PackPageProps["gate"], settingsWaitMs = 10_000,
       online = true, config: PackPageProps["config"] = { killCloud: false }) => (
       <PackPage store={store} models={models} gate={gate} config={config} openCamera={okCamera} index={index}
-        saveCrop={async () => {}} online={online} loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
+        saveCrop={async () => {}} deleteCrop={async () => {}} online={online} loadSample={loadSample} settingsWaitMs={settingsWaitMs} />
     );
 
     it("drops the press when the cloud choice changes while it waits, and says so", async () => {
@@ -490,6 +514,30 @@ describe("PackPage", () => {
     expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
   });
 
+  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
+    setup({ today: "2026-11-21" });
+    expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
+  it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {
+    // Long enough that a busy machine still finds the sheet before it goes, short enough to wait for.
+    setup({ newestSheetMs: 1500 });
+    const add = async (name: string) => {
+      await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+      await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+      await userEvent.type(screen.getByLabelText("Name (optional)"), name);
+      await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    };
+    await add("Wool scarf");
+    const sheet = await screen.findByTestId("newest-sheet");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(screen.queryByTestId("newest-sheet")).toBeNull();
+    // A newer item shows its own sheet, which then goes by itself.
+    await add("Cotton socks");
+    expect(within(await screen.findByTestId("newest-sheet")).getByText("Cotton socks")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId("newest-sheet")).toBeNull(), { timeout: 5000 });
+  }, 15_000);
+
   it("shows no alert before the sender has done anything", async () => {
     setup({}, null);
     await act(async () => { await Promise.resolve(); });
@@ -509,7 +557,7 @@ describe("PackPage", () => {
     const store = newStore();
     store.setConsent(true);
     const models = spyModels();
-    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {} };
+    const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {}, deleteCrop: async () => {} };
     const { rerender } = render(<PackPage {...props} online={false} />);
     await addPhoto();
     expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
@@ -564,12 +612,12 @@ describe("PackPage", () => {
     const loadBox = vi.fn(() => new Promise<LoadResult>((r) => { answer = r; }));
     const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox }, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
     setup({ store });
-    expect(screen.getByTestId("destination-picker")).toHaveValue("");
+    expect(within(screen.getByTestId("destination-picker")).getAllByRole("radio").map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false"]);
     await act(async () => { answer({ status: "failed", error: "offline" }); await store.ready; });
     expect(screen.getByRole("alert")).toHaveTextContent("Your saved box could not be opened. New items stay on this device until it opens.");
     loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "PH", items: [] } });
     await userEvent.click(screen.getByRole("button", { name: "Try opening it again" }));
-    await waitFor(() => expect(screen.getByTestId("destination-picker")).toHaveValue("PH"));
+    await waitFor(() => expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true"));
     expect(screen.queryByText("Your saved box could not be opened. New items stay on this device until it opens.")).toBeNull();
   });
 
@@ -587,6 +635,24 @@ describe("PackPage", () => {
     await userEvent.click(within(screen.getByTestId("removal-unsaved")).getByRole("button", { name: "Try saving again" }));
     await store.settled();
     await waitFor(() => expect(screen.queryByTestId("removal-unsaved")).toBeNull());
+  });
+
+  it("deletes an item's saved photo and label words from this device when the item leaves the box, here or from another device", async () => {
+    const deleteCrop = vi.fn<(key: string) => Promise<void>>(async () => {});
+    const { store } = setup({ deleteCrop });
+    await store.ready;
+    act(() => { store.addRecorded({ ...liquidLotionLabelRead, itemName: "Lotion A" }, 1000, "crop-a"); });
+    act(() => { store.addRecorded({ ...liquidLotionLabelRead, itemName: "Lotion B" }, 1000, "crop-b"); });
+    act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Typed lotion" }); });
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Lotion A" }));
+    await waitFor(() => expect(deleteCrop).toHaveBeenCalledWith("crop-a"));
+    // A removal from another device reaches this one as the item leaving the box.
+    const b = store.getState().items.find((i) => i.read.itemName === "Lotion B")!;
+    act(() => { store.remove(b.itemId); });
+    await waitFor(() => expect(deleteCrop).toHaveBeenCalledWith("crop-b"));
+    // A typed item has no photo to delete.
+    await userEvent.click(await screen.findByRole("button", { name: "Remove Typed lotion" }));
+    expect(deleteCrop.mock.calls.map(([k]) => k)).toEqual(["crop-a", "crop-b"]);
   });
 
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {

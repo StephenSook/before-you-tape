@@ -8,6 +8,7 @@ import { openDisputes, type DisputeField, type DisputeValues, type ItemVerdict, 
 import type { ItemCategory, ItemRead } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "./categoryLabels";
 import { FixReading } from "./FixReading";
+import { restatesQuestion } from "./questionReason";
 import { QuestionRow } from "./QuestionRow";
 import { SourceGlyph } from "./SourceGlyph";
 import { VerdictChip } from "./VerdictChip";
@@ -145,7 +146,8 @@ const OWN_CHECK = "Before You Tape: ";
 export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave, onQuantity, onRemove }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
-  const reason = verdict.hits[0]?.text;
+  // The first reason, but not one that only restates the item's question, which the card asks just below.
+  const reason = verdict.hits.find((h) => !restatesQuestion(h.text, verdict.question))?.text;
   const numbers = batteryLine(item);
   // Each published rule the verdict cites, once, as a link to its page. The app's own checks ("Before You Tape: ...")
   // are not published rules and no rule page explains them, so they are named once each as plain text.

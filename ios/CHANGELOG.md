@@ -3,6 +3,173 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-21
+
+### fix(ios): the mirror's simulator shutdown is quiet when it is already shut down
+- What: after "ci-local-ios: all checks passed", the exit trap printed "Unable to shutdown device in
+  current state: Shutdown" when xcodebuild had already shut the simulator down. The shutdown's
+  error output is now dropped; it stays best effort.
+- Source: the full mirror run of the second-look branch with this script (exit 0, then that line).
+- Verified: `bash -n` passes; the trap calls the same command with stderr dropped.
+
+### fix(ios): the local CI mirror shuts down only the simulator it booted
+- What: `ios/scripts/ci-local-ios.sh` ended with `xcrun simctl shutdown all`, which stopped every
+  simulator on the Mac, including other test runs in progress (they fail with "Test crashed with
+  signal term before establishing connection"). It now finds its own simulator (iPhone 17 Pro,
+  iOS 27.2) before the tests, and shuts down only that one, only if it was not already booted, and
+  also when a check fails (an exit trap).
+- Source: three simulator test runs on this Mac were stopped by a `shutdown all` from other work.
+- Verified: `bash -n` passes; the lookup alone finds the iPhone 17 Pro and its state. With an
+  iPhone 18 Pro booted: when the run booted its own simulator, only that one is shut down and the
+  iPhone 18 Pro stays booted; when its own simulator was booted before the run, both stay booted.
+
+### docs(ios): the iPhone README gives the airplane-mode result
+- What: the line that kept the iPhone client out of the entry until an airplane-mode test passed
+  is replaced by the result: on 2026-11-20 an iPhone 17 Pro read 22 label photos on the phone with
+  airplane mode on, none in the cloud, with a link to the record.
+- Source: the device session.
+- Verified: the numbers are those of `docs/evidence/ios/2026-11-20-device/`.
+
+### docs(ios): record the airplane-mode check on a real iPhone
+- What: `docs/evidence/ios/2026-11-20-device/`: the result (pass: 22 of 22 reads on the phone, 0 in
+  the cloud), the phone's model and iOS version, the commit, one status-bar strip per minute of the
+  recording (airplane on, no Wi-Fi or cellular), a table of every read (category, evidence, route,
+  read time, verdict, first rule) and `summary.json` with the same rows, and what it does not show
+  (no power bank or boxed battery device was read; 15 of 22 reads said item_seen). The raw box file
+  and the recording stay off the repository, named by SHA-256.
+- Source: the device session.
+- Verified: the box was copied off the phone over USB; every route is `phone_on_device` and the
+  box's counters say 22 on the device, 0 in the cloud; the recording shows the airplane icon in all
+  eleven minutes, the first read at 1:26 and the last at 10:44, and only iOS's camera prompt; a
+  script checked that the README table equals `summary.json` row for row.
+
+### chore(ios): a tool gives each item's verdict in a box pulled off a phone
+- What: `ios/scripts/box_verdicts.swift` runs an engine bundle in JavaScriptCore, as the app does,
+  over a pulled box file, and prints each item's category, evidence, verdict and first rule.
+- Source: the device session (the box file holds reads, not verdicts).
+- Verified: on the pulled box with main's bundle (sha256 350bddbda726) it gave the same 22 verdicts
+  as the scratch run: 1 OK to pack, 10 Check this, 11 Take it out.
+
+### fix(ios): the session script finds a paired phone and keeps the pulled box out of git
+- What: `device-session.sh` looked only for a phone listed as "connected", and the phone on the day
+  was listed as "available (paired)", so it found none. It now takes either. The pulled box goes to
+  `<out>/raw.local/`, which git ignores, because item names can name personal products.
+- Source: the device session.
+- Verified: on the live device list it finds the iPhone; on sample lines it takes "available
+  (paired)" and refuses "unavailable" and a simulator; `git check-ignore` shows `raw.local` ignored.
+
+### docs(ios): screenshot 04 taken again with the answer buttons as they are now
+- What: `04-why-and-when.png` now shows a question's answers in the accent tint, with "Can't tell"
+  chosen and filled; the README describes it and drops the note to take it again.
+- Source: the answer-button fix, merged to main at 018f8a6.
+- Verified: captured from a Release build of this branch (main 018f8a6 merged in) on the iPhone 17
+  Pro Max simulator; 1320 x 2868.
+
+### docs(ios): the screenshot notes say 04 must be taken again after the answer-button change
+- What: screenshot 04 shows a question's answers in the old grey look; the README says to capture
+  it again once the change that tints them like every other button is merged.
+- Source: the answer-button fix.
+- Verified: docs only.
+
+### docs(ios): the App Privacy answers follow the app's manifest and the removal of Performance
+- What: `ios/app-store/app-privacy.md` loses the Performance Data and Coarse Location rows, names
+  the bundles that declare diagnostic data in the new build (GoogleDataTransport left with
+  Performance), records the AI monitoring setting the web lane read (metrics on, prompts and
+  responses excluded from the logs), and points at the app's own manifest.
+- Source: the privacy manifest and SDK removal (PR #127), and the AI Logic setting read on
+  2026-11-21.
+- Verified: the data types were read again from every manifest in the Release build made after
+  the removal: User ID (Auth, linked); Other Diagnostic Data (Auth, Firestore, Installations,
+  Remote Config, Firestore's frameworks, not linked); Photos or Videos and Other User Content (the
+  app, linked); no tracking; no Performance or Functions bundle.
+
+### docs(ios): five 6.9-inch App Store screenshots from real on-device reads
+- What: `ios/app-store/screenshots/`: Ready check, a power bank read on the iPhone, the box with
+  all three verdicts, an item's reason with the date of each rule layer, and the same box
+  re-checked for the Philippines with 0 model calls. A README says how each was made and its
+  limits.
+- Source: App Store preparation.
+- Verified: each file is 1320 x 2868; every read was made by Apple's on-device model on the
+  iPhone 17 Pro Max simulator through Add a photo; only the owner's own photos appear (a CC BY-SA
+  photo first used in 02 was replaced). The simulator was shut down afterwards.
+
+### docs(ios): the App Privacy answers, with where each one comes from
+- What: `ios/app-store/app-privacy.md`: tracking (no), and each Apple data type the iPhone app
+  collects (User ID; the photo crop and label words only after Allow; Firebase's own diagnostic
+  data), with its source in the code or in the manifests bundled in the built app, plus the two
+  extra rows if Firebase Performance stays.
+- Source: App Store preparation.
+- Verified: the data types were read from every `PrivacyInfo.xcprivacy` inside a built BYT.app
+  (User ID linked for App Functionality from FirebaseAuth; Other Diagnostic Data, not linked, from
+  five Firebase bundles; no tracking anywhere) and from Firebase's App Store disclosure page.
+
+### chore(ios): a script measures the App Store fields against Apple's limits
+- What: `ios/app-store/check_lengths.py` measures the name, subtitle, promotional text,
+  description, keywords, what's new and review notes, and fails on a field that is too long or
+  missing, or on a dash or curly quote.
+- Source: App Store preparation.
+- Verified: every field fits (promotional text 169 of 170, keywords 99 of 100); exit 0.
+
+### docs(ios): App Review notes, with the path for an iPhone without Apple Intelligence
+- What: `ios/app-store/review-notes.md`: no account needed; a two-minute path; what happens with
+  Apple Intelligence on (read on the iPhone, also offline) and without it (the cloud question in
+  its exact words, Allow or Keep everything on this iPhone, and Type it by hand).
+- Source: App Store preparation.
+- Verified: each screen name, button and sentence is the app's own (Ready check, Check an item,
+  Add a photo, Your box, What we checked, the consent sentence and both buttons, Turn off and Turn
+  on cloud checks); 2123 of 4000 characters.
+
+### docs(ios): the App Store listing text, availability and age rating
+- What: `ios/app-store/listing.md`: name, subtitle, categories, URLs, promotional text,
+  description, keywords (no trademarked names), age rating answers, and availability in every
+  country except France and China mainland, with the reason for each.
+- Source: App Store preparation.
+- Verified: every claim is from the app (three verdicts, on-device reads, the consent sentence,
+  Canada and the Philippines in the edition); measured by the script above. Nothing is created in
+  App Store Connect.
+
+### docs(ios): the device checklist names the 5 items and starts from the newest main
+- What: the checklist now names the 5 items to bring (a lotion or cream; a perfume or another
+  alcohol-based spray; a power bank; a boxed device with a battery; one clearly harmless item). A
+  new first step moves to the newest main (`git checkout --detach origin/main`, which works in a
+  worktree) and runs `check_engine_bundle.sh`, so the phone runs the web app's engine. It runs
+  after any other app's install in the same session. The pull step says it records the model and
+  iOS version only.
+- Source: session planning.
+- Verified: `bash ios/scripts/check_engine_bundle.sh` exit 0 at 5f47e05; tone check clean.
+
+### fix(ios): a question's answers look tappable, and the chosen one is filled
+- What: an item's question (for example "Does the label list alcohol?") showed its answers tinted
+  grey until one was chosen, which read as switched off, though they worked. Every answer now uses
+  the accent tint, outlined; the chosen answer is filled and marked selected for VoiceOver.
+- Source: found by eye on the simulator while making the App Store screenshots.
+- Verified: a test for the open and chosen looks and their tint failed to compile before and
+  passes after; 157 unit tests and the UI test pass; on the iPhone 17 Pro Max simulator the three
+  answers show blue, and after tapping "Can't tell" it is filled and the others stay outlined.
+
+### fix(ios): drop Firebase Performance and Functions, which the app never calls
+- What: `ios/project.yml` linked FirebasePerformance and FirebaseFunctions, and no code used either.
+  Performance still collected by itself once linked (the IP address, app launch and network
+  request times, CPU and memory use, device information) and bundled no privacy manifest. Both
+  are removed, so less leaves the phone, and the App Privacy answers and the privacy page lose
+  their Performance rows.
+- Source: App Store preparation (an audit of what the built app sends).
+- Verified: a test that neither `FIRPerformance` nor `FIRFunctions` is in the app process failed
+  before (both present) and passes after; the built binary has 0 Performance and 0 Functions
+  symbols (14593 Firebase AI Logic symbols as a control); 160 unit tests and the UI test pass.
+
+### feat(ios): the app carries its own privacy manifest
+- What: `ios/BYT/PrivacyInfo.xcprivacy`: no tracking and no tracking domains; the app's own use of
+  UserDefaults (reason CA92.1, the box id) and of file metadata (reason C617.1, the saved box's
+  size, which also brings `stat` into the binary); and what a cloud check sends after the sender
+  taps Allow (the photo crop and the label words, linked, for app functionality, not tracking).
+  Firebase's own bundles declare their own collection. Without the API reasons, App Store Connect
+  refuses the upload.
+- Source: App Store preparation (the built app had no manifest of its own).
+- Verified: three tests read the manifest from the app bundle; they failed with "BYT.app carries
+  no PrivacyInfo.xcprivacy" before and pass after; `plutil -lint` OK; XcodeGen puts the file in
+  the app's resources; 159 unit tests pass.
+
 ## 2026-11-20
 
 ### fix(ios): the iPhone session's evidence holds no phone identifiers

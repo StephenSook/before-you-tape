@@ -57,6 +57,15 @@ import Testing
         #expect(SourceGlyph.text("phone_on_device") == "Read on this iPhone")
     }
 
+    /// An answer not chosen yet looks as tappable as any other button (the accent tint, outlined);
+    /// grey read as switched off. The chosen answer is filled.
+    @Test func everyAnswerLooksTappableAndTheChosenOneIsFilled() {
+        #expect(QuestionRow.look("yes", value: nil) == .open)
+        #expect(QuestionRow.look("yes", value: "no") == .open)
+        #expect(QuestionRow.look("yes", value: "yes") == .chosen)
+        #expect(QuestionRow.tint(.open) == .accentColor && QuestionRow.tint(.chosen) == .accentColor)
+    }
+
     @Test func theDestinationsAreTheEditionsCountries() throws {
         let text = try String(contentsOf: BoxStoreTests.repo.appendingPathComponent("rules/edition.json"), encoding: .utf8)
         let list = AppModel.destinations(fromEdition: text)

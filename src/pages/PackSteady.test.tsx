@@ -40,7 +40,7 @@ function setup(gate: GateState, read: ItemRead) {
   store.setConsent(true);
   const m = models(read);
   render(<PackPage store={store} models={m} gate={gate} config={{ killCloud: false }} openCamera={camera} index={index}
-    saveCrop={async () => {}} online />);
+    saveCrop={async () => {}} deleteCrop={async () => {}} online />);
   return { store, m };
 }
 const startCamera = () => userEvent.click(screen.getByRole("button", { name: "Start camera" }));
@@ -72,7 +72,7 @@ describe("PackPage when the camera reads by itself", () => {
     store.setConsent(true);
     const hung = { generate: vi.fn(() => new Promise<never>(() => {})) };
     render(<PackPage store={store} models={{ device: hung, hybrid: hung, cloud: port(base, "in_cloud") }} gate="available" config={{ killCloud: false }}
-      openCamera={camera} index={index} saveCrop={async () => {}} online readTimeoutMs={50} />);
+      openCamera={camera} index={index} saveCrop={async () => {}} deleteCrop={async () => {}} online readTimeoutMs={50} />);
     await startCamera();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The check took too long. Try again or type the item."));
     expect(hung.generate).toHaveBeenCalledTimes(1);
