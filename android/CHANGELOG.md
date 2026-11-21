@@ -3,6 +3,7 @@
 The native Android app (`android/`). One entry per commit, newest first: what changed, its
 source (plan task or finding) and how it was verified.
 
+- **The judge build's release gate on the A16 is on record.** `docs/evidence/android/a16-2026-11-21/README.md` records the `android-judge` APK from main 76acd04 (SHA-256 df64d580...4f71) on the Samsung A16: the `release.sh` checks, the permissions by aapt2, the install over the earlier build (installed file matches), the `ReleaseAppCheckProbeTest` pass at 01:17:22Z (Play Integrity token, sign-in, cloud read of the known label as a power bank), one typed item added and removed in the app, and no AICore on the phone. Source: `android/RELEASE.md` asks for a record per release gate. Verified: text only; each value is from that run's output.
 - **The consent choice no longer says "Keep everything on this phone".** It now reads "Check on this
   phone only": the box list still saves each item's category, battery numbers and answers to the
   account, so "everything" was not true. The web button changes the same way ("Check on this laptop
