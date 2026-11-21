@@ -139,6 +139,8 @@ describe("schema", () => {
     await assertFails(setDoc(doc(alice, "boxes/b1/items/i2"), { ...itemDoc, quantity: 0 }));
     await assertFails(setDoc(doc(alice, "boxes/b1/items/i2"), { ...itemDoc, quantity: 100 }));
     await assertFails(setDoc(doc(alice, "boxes/b1/items/i2"), { ...itemDoc, readSource: "somewhere" }));
+    // The sample photo's recorded read keeps its own source when the box is shared.
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i3"), { ...itemDoc, readSource: "sample_recorded" }));
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags: "alcohol" }));
     // Each tag must be one known tag, whole.
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { labelTags: ["alcohol_flag", "toy_gun", "label_text"] }));

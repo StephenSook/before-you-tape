@@ -16,7 +16,9 @@ import type { DeviceConsent } from "./deviceConsent";
 
 // Where an item's read came from. The phones use one name each for both of them.
 // cloud_unreported: the SDK named no route, so it counts as cloud and the card says so.
-export type ReadSource = InferenceSourceName | "cloud_unreported" | "manual" | "phone_on_device" | "phone_cloud";
+// sample_recorded: the sample photo's read, recorded earlier on a laptop's own model and shown as recorded, so a
+// sender with no model and no cloud still sees a verdict; it is never counted as a read made here.
+export type ReadSource = InferenceSourceName | "cloud_unreported" | "manual" | "phone_on_device" | "phone_cloud" | "sample_recorded";
 
 export interface CustomsLine {
   description: string;
@@ -87,6 +89,8 @@ export interface BoxStore {
   subscribe(listener: (s: BoxState) => void): () => void;
   addRead(outcome: ReadOutcome, cropKey: string): string;
   addManual(read: ItemRead): string;
+  // The sample photo's recorded read: judged like any read, but counted as no read made on this device.
+  addRecorded(read: ItemRead, ms: number, cropKey: string): string;
   mergeRemoteItem(item: BoxItem): void;
   confirmIdentity(itemId: string): void;
   // cloudLabel: the second look's own label text, whose tags count even when the merge kept the other label.
@@ -433,6 +437,16 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         itemId, read, overrides: read.alcoholOnLabel ? { alcoholOnLabel: true } : {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
         addedAt: clock(),
+      }];
+      lastRecheckMs = null;
+      commit();
+      return itemId;
+    },
+    addRecorded(read, ms, cropKey) {
+      const itemId = deps.newId();
+      items = [...items, {
+        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText),
+        readSource: "sample_recorded", readMs: ms, secondLook: null, cropKey, customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       }];
       lastRecheckMs = null;
       commit();
