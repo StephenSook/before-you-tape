@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): record the rule edition pin switching a real iPhone to revision 5
+- What: docs/evidence/ios/2026-11-21-rule-edition-pin.md records that build 1.0.0 (2), which carries
+  revision 4, switched to revision 5 on an iPhone 17 Pro through the Remote Config pin and the
+  published edition document: the two items checked after the pin are tagged byt-1e330a4fdf37. Only
+  categories, routes, read times and edition ids are kept; the box file stays off the repo.
+- Source: the device check of the pin.
+- Verified: the box was copied off the phone with devicectl and read; the pin's hash was matched to
+  the app's own check before, and the simulator run of build 2's code under the pin passed; tone and
+  hygiene pass.
+
 ### fix(ios): the local CI runs the app tests on a simulator of its own and always shuts it down
 - What: ios/scripts/ci-local-ios.sh used the shared "iPhone 17 Pro" simulator and shut it down only
   when the run had booted it, so a simulator another task had booted stayed up after the run, where

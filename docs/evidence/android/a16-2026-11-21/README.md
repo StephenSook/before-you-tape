@@ -57,3 +57,38 @@ live tests that use production Firestore ran from main at ac509e2, on both App C
   2026-11-21T17:51:23Z, 2 tests, 0 failures, with the same results.
 - **Afterwards:** the Gradle run removed the app and the test package from the A16. The `android-judge-2` APK was
   installed again (SHA-256 `8b9f332d...3cade9`, versionCode 1795234079).
+
+## The `android-judge-3` build, 2026-11-21
+
+The release APK attached to the `android-judge-3` release (`before-you-tape-android-4af742e.apk`, SHA-256
+`89c36ece556c125275ba61216112ec27c980a72dd43862163d33e83dd98d26bc`), built from main at 4af742e (rule edition
+`byt-cfd7e337919a`, revision 4) with `android/release.sh`, on the same Samsung A16.
+
+- **The file:** `release.sh` passed: `scan-apk.sh` found 0 hits in 679 entries, the 16 KB alignment check exited 0, and
+  versionCode 1795293287 is the HEAD commit time. By aapt2 it asks for the camera and network, the AICore binding and
+  the Google services read, and for no location, microphone or contacts permission.
+- **The install:** `adb install -r` over the `android-judge-2` build (versionCode 1795234079). The installed `base.apk`
+  had the SHA-256 above.
+- **The release gate:** the `RELEASE.md` command passed at 2026-11-21T20:48:45Z; then the attached APK was installed
+  again (SHA-256 checked) and `ReleaseAppCheckProbeTest` was run with `am instrument` against it, passing at
+  2026-11-21T20:48:53Z: App Check used Play Integrity (a 1037-character token), sign-in worked, and the app's reader
+  returned the known label as a `power_bank` (outcome Read, source `IN_CLOUD`, route `CLOUD_ONLY`).
+- **The rules on the phone:** on the same attached file, `DeviceVectorsTest` and `EngineDifferentialTest` passed 4 of 4
+  at 2026-11-21T20:49Z: box 41, guards 64, destinations 25, and QuickJS equal to WebView V8 157.0.8103.50 on 442 inputs.
+- **Afterwards:** the test package was removed; the installed file still had the attached file's SHA-256.
+
+## A newer rule edition reaches the published app, 2026-11-21
+
+The published `android-judge-3` app (installed SHA-256 `89c36ece...26bc`, the attached release APK, nothing installed
+over it) on the same A16, while rule edition `byt-1e330a4fdf37` (revision 5) was published to Firestore
+(`ruleEditions/byt-1e330a4fdf37`) and pinned in Remote Config (version 6: `rules_edition_id` and
+`rules_edition_sha256`).
+
+- **Before the pin:** at 2026-11-21T21:39:08Z, its About screen read "Rules edition: byt-cfd7e337919a" (revision 4, the
+  edition built into this file) and "Rules bundle: cf36a8d (7eec63d00561)".
+- **After the pin:** the app was stopped and opened again at 21:47:51Z. At 21:48:06Z, on the first read, About read
+  "Rules edition: byt-1e330a4fdf37", and the home screen showed no notice that the edition could not be loaded or was
+  older.
+- The screens were read from the phone's UI tree. About was opened from the consent screen, which was left
+  unanswered; no setting was changed.
+
