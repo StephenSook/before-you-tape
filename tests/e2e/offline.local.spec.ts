@@ -1,4 +1,5 @@
-import { expect, test } from "./fixtures";
+// Plain Playwright, not ./fixtures: nothing here needs App Check, and this runs in the CI step that has no token.
+import { expect, test } from "@playwright/test";
 
 // Local only: the built app on vite preview. After one visit online, the service worker holds the app and its
 // bundled rule edition, so a reload with no network still opens the page and checks a typed item by the rules.

@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The offline browser tests use plain Playwright instead of the App Check fixture: nothing in them needs App Check, and they run in the CI step that has no token, where the fixture refuses to start without one. Source: CI (the step failed with APPCHECK_DEBUG_TOKEN_CI is not set in CI). Verified: with CI=1 set locally the spec failed the same way and now passes, along with the rest of that CI step's specs; lint, typecheck, tone and hygiene pass.
+
 - Privacy page, under what stays on your device: on the web, after the first visit the browser keeps a copy of this app's own files so the page can open with no connection, and that copy holds no photo, no label text and no answer from the cloud. Source: plan Task 36 (the service worker is a new thing kept on the device). Verified: npm run legal regenerated the served page, which holds the sentence once; tone, hygiene, lint and the full suite pass.
 
 - Docs for the service worker. README step 5: after one visit the page opens with no connection, typed items and reads on the device still work, no cloud answer is kept, and a new version waits for Reload. LIMITS: offline the app opens only after one visit and only on its own pages, a photo is read offline only by the browser's built-in model, saves wait for the network, and a new version reaches an open page only on Reload. SECURITY: what the worker caches, and the kill switch with its exact commands. Source: plan Task 36 and review (kill switch command written down). Verified: the commands match deploy-live.yml and the kill test; tone, hygiene, lint, typecheck and the full suite pass.
