@@ -10,6 +10,8 @@ import { createBoxStore } from "../data/boxStore";
 import { deriveFacts } from "../engine/facts";
 import type { RuleEdition } from "../engine/types";
 import { needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy } from "../routing/policy";
+import { isNoItem } from "../shared/noItem";
+import { READ_TIMEOUT_MS } from "../shared/readLimit";
 import type { EvalRow, EvalSet, Level, PathResult } from "./types";
 
 export interface RunnerInput {
@@ -26,6 +28,8 @@ export interface RunnerInput {
   secondLook?: SecondLookPolicy;
   // The paths to run (all three by default). A path not run is null, and a shipped route not run is "not_run".
   paths?: readonly EvalPath[];
+  // How long a read or a second look may take, as on the Pack page (READ_TIMEOUT_MS unless a test sets it).
+  limitMs?: number;
 }
 
 export type EvalPath = "device" | "cloud" | "shipped";
@@ -37,6 +41,27 @@ export interface RunnerFailure { itemId: string; path: "device" | "cloud" | "shi
 const CLOUD_ON = { cloudConsent: true, killCloud: false, online: true } as const;
 
 const message = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+
+class NoItem extends Error {}
+
+class TooSlow extends Error {
+  constructor(ms: number) {
+    super(`over ${ms} ms`);
+    this.name = "TooSlow";
+  }
+}
+
+// Runs one model call with the Pack page's time limit; past it the call is aborted and the result is not used.
+async function within<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const work = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, fail) => { timer = setTimeout(() => { work.abort(); fail(new TooSlow(ms)); }, ms); });
+  try {
+    return await Promise.race([run(work.signal), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // The level the Pack page shows for this read, alone in its box, for each destination, after an optional second look.
 async function levelsOf(edition: RuleEdition, date: string, destinations: readonly string[], outcome: ReadOutcome,
@@ -60,19 +85,33 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
   const repeat = Math.max(1, i.repeat ?? 1);
   const policy = i.secondLook ?? SECOND_LOOK_DEFAULT;
   const paths = new Set(i.paths ?? ALL_PATHS);
+  const limit = i.limitMs ?? READ_TIMEOUT_MS;
   const rows: EvalRow[] = [];
   const failures: RunnerFailure[] = [];
   for (const item of i.set.items) {
     const image = i.images[item.itemId];
     if (!image) throw new Error(`${item.itemId}: no photo`);
 
+    const read = (route: "device_only" | "cloud_only" | "hybrid") =>
+      within(limit, (signal) => readItem(i.models, image, route, i.now, undefined, signal));
+    // The first read is the one judged; the others only time the path. A read of no item gets no verdict.
     const path = async (name: "device" | "cloud", route: "device_only" | "cloud_only") => {
       try {
-        const outcomes: ReadOutcome[] = [];
-        for (let k = 0; k < repeat; k++) outcomes.push(await readItem(i.models, image, route, i.now));
-        const first = outcomes[0]!;
+        const first = await read(route);
+        if (isNoItem(first.read)) {
+          failures.push({ itemId: item.itemId, path: name, error: "no item found" });
+          return null;
+        }
+        const ms = [first.ms];
+        for (let k = 1; k < repeat; k++) {
+          try {
+            ms.push((await read(route)).ms);
+          } catch (e) {
+            failures.push({ itemId: item.itemId, path: name, error: `timing run ${k + 1}: ${message(e)}` });
+          }
+        }
         const levels = await levelsOf(i.edition, i.date, i.set.destinations, first);
-        return { read: first.read, msRuns: outcomes.map((o) => Math.round(o.ms)), levels };
+        return { read: first.read, msRuns: ms.map((v) => Math.round(v)), levels };
       } catch (e) {
         failures.push({ itemId: item.itemId, path: name, error: message(e) });
         return null;
@@ -82,8 +121,10 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
     const cloud = paths.has("cloud") ? await path("cloud", "cloud_only") : null;
 
     let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean } | null = null;
+    let noVerdict = paths.has("shipped") ? "failed" : "not_run";
     if (paths.has("shipped")) try {
-      const outcome = await readItem(i.models, image, "hybrid", i.now);
+      const outcome: ReadOutcome = await read("hybrid");
+      if (isNoItem(outcome.read)) throw new NoItem();
       let looked = false;
       const levels = await levelsOf(i.edition, i.date, i.set.destinations, outcome, async (store, itemId) => {
         const added = store.getState().items.find((x) => x.itemId === itemId);
@@ -91,7 +132,7 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
         if (!reason || !shouldRunSecondLook(reason, CLOUD_ON)) return;
         // A second look that fails leaves the item and its first read in place, as the Pack page does.
         try {
-          const out = await runSecondLook(i.models.cloud, image, outcome.read, i.now, i.models.fallback);
+          const out = await within(limit, (signal) => runSecondLook(i.models.cloud, image, outcome.read, i.now, i.models.fallback, undefined, signal));
           store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[reason], out.cloudLabel, out.disputes);
           looked = true;
         } catch (e) {
@@ -100,7 +141,11 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
       });
       shipped = { levels, source: outcome.source, secondLook: looked };
     } catch (e) {
-      failures.push({ itemId: item.itemId, path: "shipped", error: message(e) });
+      if (e instanceof NoItem) noVerdict = "no_item";
+      else {
+        noVerdict = e instanceof TooSlow ? "too_slow" : "failed";
+        failures.push({ itemId: item.itemId, path: "shipped", error: message(e) });
+      }
     }
 
     for (const destination of i.set.destinations) {
@@ -108,7 +153,7 @@ export async function evalRows(i: RunnerInput): Promise<{ rows: EvalRow[]; failu
       rows.push({
         itemId: item.itemId, destination, device: pathResult(device), cloud: pathResult(cloud),
         shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook }
-          : { level: "check", source: paths.has("shipped") ? "failed" : "not_run", secondLook: false },
+          : { level: "check", source: noVerdict, secondLook: false },
       });
     }
   }

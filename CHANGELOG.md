@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval runner treats reads as the Pack page does: a read of no item gets no verdict (Pack shows a notice and adds no card), and every read and second look has Pack's 45-second limit, now one shared constant (`src/shared/readLimit.ts`). A first read past it gets no verdict (`too_slow`), a second look past it keeps the first verdict, a slow timing run is noted, and a call that never answers no longer stalls the run. Source: review. Verified: three new runner tests failed first and pass; the full unit suite, lint and typecheck pass.
+
 - Eval metrics give a row with no verdict (its shipped read failed, was not run, found no item, or ran past the time limit) no agreement and no "Check this", and count such rows as `noVerdict`; a device misread counts as caught only when every shipped row of its item has a verdict and none is "OK to pack". Before, a failed read scored as "Check this", so an all-failed run looked like the always-check baseline. The Pack page adds no card in those cases. Source: review. Verified: two new metrics tests failed first and pass; eval and script tests and typecheck pass.
 
 - The eval run's private record notes each App Check and AI Logic response by host, path, status and error message, never the query, the body or a token, so a failed cloud read says why. Source: a wiring check whose one cloud call failed with only "FirebaseError". Verified: a new test (an error response, a token exchange, and that no key or token is kept) failed first and passes; lint and typecheck pass.

@@ -103,6 +103,35 @@ describe("evalRows", () => {
     expect(out.failures).toEqual([]);
   });
 
+  it("gives no verdict for a read of no item, as the Pack page adds no card for it", async () => {
+    const nothing: ItemRead = { ...base, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
+    const models = { device: answers(nothing, "on_device"), hybrid: answers(nothing, "on_device"), cloud: answers(nothing, "in_cloud") };
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
+    expect(out.rows[0]!.device).toBeNull();
+    expect(out.rows[0]!.cloud).toBeNull();
+    expect(out.rows[0]!.shipped).toMatchObject({ source: "no_item", secondLook: false });
+    expect(out.failures.map((f) => `${f.path}:${f.error}`)).toEqual(["device:no item found", "cloud:no item found"]);
+  });
+
+  it("gives no verdict for a read past the time limit, and goes on to the next item", async () => {
+    const hung: Spy = { generate: vi.fn(() => new Promise<never>(() => undefined)) };
+    const models = { device: hung, hybrid: hung, cloud: hung };
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, limitMs: 30 });
+    expect(out.rows[0]!.device).toBeNull();
+    expect(out.rows[0]!.cloud).toBeNull();
+    expect(out.rows[0]!.shipped).toMatchObject({ source: "too_slow" });
+    expect(out.failures.map((f) => f.path)).toEqual(["device", "cloud", "shipped"]);
+    expect(out.failures[0]!.error).toMatch(/over 30 ms/);
+  });
+
+  it("keeps the first verdict when the second look runs past the time limit, as the Pack page does", async () => {
+    const hung: Spy = { generate: vi.fn(() => new Promise<never>(() => undefined)) };
+    const models = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud: hung };
+    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now, limitMs: 30, paths: ["shipped"] });
+    expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: false });
+    expect(out.failures.map((f) => f.path)).toEqual(["second_look"]);
+  });
+
   it("refuses an item with no photo", async () => {
     const models = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
     await expect(evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: {}, now })).rejects.toThrow(/own-18: no photo/);
