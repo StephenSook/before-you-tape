@@ -18,6 +18,7 @@ import { READ_TIMEOUT_MS } from "../shared/readLimit";
 import { chooseImageRoute, cloudAllowed, needsSecondLook, SECOND_LOOK_DEFAULT, shouldRunSecondLook, type SecondLookPolicy, type SecondLookReason } from "../routing/policy";
 import { BoxSummary } from "../ui/BoxSummary";
 import { CameraStage } from "../ui/CameraStage";
+import { CloudChip } from "../ui/CloudChip";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { destinationBadges } from "../ui/destinationBadges";
@@ -493,20 +494,13 @@ export function PackPage(p: PackPageProps) {
         )}
         <p data-testid="suspension-checked">{suspensionChecked}</p>
         <ReadyButton gate={gate} progress={p.downloadProgress ?? null} onReady={() => p.onGetReady?.()} cloudOn={state.cloudConsent === true && !config.killCloud} />
+        {/* The sender can take the cloud choice back at any time; turning it on again asks first. */}
+        {state.cloudConsent !== null && (
+          <CloudChip consent={state.cloudConsent} paused={config.killCloud && !config.pauseUnknown}
+            onToggle={() => store.setConsent(state.cloudConsent ? false : null)} />
+        )}
       </div>
       {state.cloudConsent === null && <ConsentNotice onChoice={(allow) => store.setConsent(allow)} />}
-      {/* The sender can take the cloud choice back at any time; turning it on again shows the notice first. */}
-      {state.cloudConsent !== null && (
-        <p data-testid="cloud-choice">
-          {state.cloudConsent ? "Cloud checks are on." : gate === "checking" ? "Cloud checks are off."
-            : gate === "available"
-            ? "Cloud checks are off. Photos and label text stay on this laptop."
-            : "Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks."}{" "}
-          <button type="button" onClick={() => store.setConsent(state.cloudConsent ? false : null)}>
-            {state.cloudConsent ? "Turn off cloud checks" : "Turn on cloud checks"}
-          </button>
-        </p>
-      )}
       {config.killCloud && (!config.pauseUnknown || settingsLate) && (
         <p data-testid="paused-banner" className="banner" role="status">
           {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}

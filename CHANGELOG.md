@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Cloud checks show as one chip, "Cloud: on", "Cloud: off" or "Cloud: paused" (aria-pressed), beside the laptop's status. It turns them off, or asks again before turning them on. The two-line cloud notice and its button are gone. A laptop that reads on its own says "Photos and label text stay on it" while cloud checks are off. Source: the UI review (notice stack: one cloud chip). Verified: the rewritten PackPage and ReadyButton tests failed first and pass; the full suite and the home-page browser checks pass.
+
 - The "Cloud checks start once their settings load" notice and its Try again button show only after the cloud settings have been missing for 8 s, instead of on every load, where they flashed and moved the stage down. A deliberate pause still shows at once. Source: the UI review (notice stack). Verified: new LivePack tests (settings landing before the limit never show the notice; settings still missing after it show the notice and its button, which go once the settings land; a deliberate pause shows at once) failed first where expected and pass; the full suite passes (799).
 - The phone grid's two columns can shrink below their widest word, and long words wrap inside a card, so /judge has no sideways scroll at 320 px before the web fonts load. Linux's fallback font overflowed by 24 px. The 320 px browser check now also runs at 280 px, which stands in for a wider fallback font. Source: CI on #134. Verified: the 280 px check failed without the fix (36 px) and passes with it; no overflow at 320, 300 or 280 px.
 

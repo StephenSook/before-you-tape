@@ -438,8 +438,8 @@ describe("PackPage", () => {
       const models = spyModels();
       const view = render(page(store, models, "checking"));
       // While it checks, nothing on the page says this laptop cannot read photos.
-      expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off.");
-      expect(screen.getByTestId("cloud-choice")).not.toHaveTextContent("can't read photos");
+      expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
+      expect(screen.queryByText(/can't read photos/)).toBeNull();
       await trySample();
       expect(await screen.findByTestId("getting-ready")).toHaveTextContent("Getting ready to check. One moment.");
       expect(models.device.generate).not.toHaveBeenCalled();
@@ -480,23 +480,32 @@ describe("PackPage", () => {
 
   it("says photos and label text stay on this laptop when cloud checks are off and it reads on its own", () => {
     setup({ gate: "available" }, false);
-    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off. Photos and label text stay on this laptop.");
+    expect(screen.getByText("This laptop checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
   });
 
-  it("lets the sender take back cloud consent, and asks again before turning it on", async () => {
+  it("shows cloud checks as one chip that turns them off, and asks again before turning them on", async () => {
     const { store, models } = setup({}, null);
     await userEvent.click(screen.getByRole("button", { name: "Allow" }));
-    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are on.");
-    await userEvent.click(screen.getByRole("button", { name: "Turn off cloud checks" }));
+    const chip = screen.getByTestId("cloud-chip");
+    expect(chip).toHaveTextContent("Cloud: on");
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    // The long cloud line is gone: the chip is the one place the choice shows.
+    expect(screen.queryByTestId("cloud-choice")).toBeNull();
+    await userEvent.click(chip);
     expect(store.getState().cloudConsent).toBe(false);
-    // One state line: this laptop has no model of its own, so the cloud line says what that means.
-    expect(screen.getByTestId("cloud-choice")).toHaveTextContent("Cloud checks are off, and this laptop can't read photos on its own. Type items, or turn on cloud checks.");
+    expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
+    expect(screen.getByTestId("cloud-chip")).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByText("This device checks items in the cloud.")).toBeNull();
     await addPhoto();
     expect(models.cloud.generate).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Turn on cloud checks" }));
+    await userEvent.click(screen.getByTestId("cloud-chip"));
     expect(store.getState().cloudConsent).toBeNull();
     expect(screen.getByRole("button", { name: "Allow" })).toBeInTheDocument();
+  });
+
+  it("shows paused cloud checks on the chip", () => {
+    setup({ config: { killCloud: true } });
+    expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: paused");
   });
 
   it("puts the newest item's verdict in a sheet, linked to its card, and announces it", async () => {
