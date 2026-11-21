@@ -142,6 +142,7 @@ describe("destination editions", () => {
       expect(line(id)?.noMatch?.decision, id).toBe("cannot_judge_from_photo");
       expect(line(id)?.noMatch?.reason, id).not.toMatch(/family gift/);
     }
+    expect(line("CA-P-12")?.noMatch?.reason).toBe("A photo can't show whether an ad appears in every edition distributed in the publication's home country.");
     // Where down in clothing comes from is not something the app knows; it says what it does instead.
     expect(line("CA-P-17")?.noMatch?.reason).toMatch(/does not treat down in clothing as wild bird plumage/);
     expect(line("CA-P-17")?.noMatch?.reason).not.toMatch(/farmed/);

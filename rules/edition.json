@@ -1,5 +1,5 @@
 {
-  "editionId": "byt-b4866e8a4a67",
+  "editionId": "byt-1e330a4fdf37",
   "revision": 5,
   "service": "Priority Mail International",
   "sources": [
@@ -1751,7 +1751,7 @@
           "matches": [],
           "noMatch": {
             "decision": "cannot_judge_from_photo",
-            "reason": "A photo can't show whether an ad appears in every edition of a publication's home country."
+            "reason": "A photo can't show whether an ad appears in every edition distributed in the publication's home country."
           }
         },
         {

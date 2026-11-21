@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- CA-P-12's reason now reads: A photo can't show whether an ad appears in every edition distributed in the publication's home country. It said every edition of a publication's home country. Source: review of the revision 5 desk pass sheet. Verified: a test pinning the reason failed first and passes; the full suite passes.
+
 - Four more lines take USPS's exact scope: CA-P-06 says vaping liquid with a nicotine level of 66 mg/g or more, by weight (it said a high level; the app takes out all vaping either way); CA-O-02 says postcards are excepted from the full-address rule; CA-R-02 says drugs and medicines; PH-P-05 adds lottery circulars. Wording only. Source: the person's desk pass review and a second-model check of it. Verified: the wording test failed first and passes; the lines share no six words in a row with their USPS paragraphs; the full suite passes.
 
 - Three Canada lines the app does not check now give a reason that holds. CA-P-09 and CA-P-12 (ads aimed at Canada in a publication) said not a family gift item, but a family can mail a magazine as a gift; they now say a photo can't show what share of a publication's ads is aimed at Canada, or whether an ad appears in every home edition. CA-P-17 (wild bird plumage and skins) said down in clothing comes from farmed birds, which the app does not know; it now says a photo can't show whether feathers or a skin come from a wild bird, and that the app does not treat down in clothing as wild bird plumage. Source: a second-model check of the person's desk pass review. Verified: a new test, pinning each reason and its decision, failed first and passes; the full suite passes.

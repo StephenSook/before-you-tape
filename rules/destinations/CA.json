@@ -146,7 +146,7 @@
       "matches": [],
       "noMatch": {
         "decision": "cannot_judge_from_photo",
-        "reason": "A photo can't show whether an ad appears in every edition of a publication's home country."
+        "reason": "A photo can't show whether an ad appears in every edition distributed in the publication's home country."
       }
     },
     {
