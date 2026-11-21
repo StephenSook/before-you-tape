@@ -158,6 +158,11 @@ struct ItemReader: Sendable {
         var fallbackAfter: FallbackAfter?
 
         while true {
+            // A cancelled read makes no further call: no retry, no fallback.
+            if Task.isCancelled, path == .cloud {
+                return ReadOutcome(read: nil, source: nil, route: decision.route, failure: .cloudPaused, records: records,
+                                   fallbackAfter: fallbackAfter)
+            }
             let runner: any ItemModelRunner
             let model: String
             let seconds: Double

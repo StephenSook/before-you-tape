@@ -112,6 +112,42 @@ import Testing
         await settle(m)
     }
 
+    /// "Try again" replaces a retry still waiting its turn: the look runs now, and the old wait sends
+    /// nothing later.
+    @Test func tryAgainReplacesAWaitingRetry() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: [.failure(ReadError(.network)), .failure(ReadError(.network)), Self.ok(Self.powerBank)])
+        m.lookBackoff = { _ in 30 }
+        await m.readPhoto(jpeg)
+        let id = try #require(m.box?.items.first?.itemId)
+        while m.secondLookError(id) == nil { await Task.yield() }
+        let start = ContinuousClock.now
+        m.retrySecondLook(id)
+        await settle(m)
+        #expect(ContinuousClock.now - start < .seconds(10))
+        #expect(m.box?.items.first?.secondLook != nil && j.events.filter { $0 == "cloud start" }.count == 3)
+    }
+
+    /// One look per item at a time: "Try again" while a look runs replaces it (the running one sends
+    /// nothing more), and automatic tries never go past the cap.
+    @Test func aRetryAskedWhileALookRunsNeverSendsMoreThanTheCap() async throws {
+        let j = FakeItemRunner.Journal()
+        let cloud = HeldCloud(j, reply: Self.powerBank, first: Array(repeating: .failure(ReadError(.network)), count: 20))
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [Self.ok(Self.powerBank)]),
+                                makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
+        let m = model(reader)
+        m.lookBackoff = { _ in 0 }
+        await m.readPhoto(jpeg)
+        let id = try #require(m.box?.items.first?.itemId)
+        while !j.events.contains("cloud start") { await Task.yield() }
+        m.retrySecondLook(id)
+        cloud.letGo()
+        await settle(m)
+        // The replaced look's one call, then the new look's first try and three more, each a call and its retry.
+        #expect(j.events.filter { $0 == "cloud start" }.count == 9, "\(j.events.filter { $0 == "cloud start" }.count)")
+        #expect(m.secondLookError(id) == "The cloud step did not run. Try again.")
+    }
+
     /// Sign-in that does not answer until the test lets it.
     @MainActor final class HeldSignIn {
         private(set) var started = false

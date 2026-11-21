@@ -276,8 +276,6 @@ final class AppModel {
     /// Items being looked at again right now, and any look's failure, for the item's card.
     private var checkingAgain: Set<String> = []
     private var lookErrors: [String: String] = [:]
-    /// A look asked for again while one runs: it runs once the current one ends.
-    @ObservationIgnored private var lookAgain: Set<String> = []
     /// Looks that failed for no connection; they run again when the iPhone is back online.
     @ObservationIgnored private var waitingForOnline: Set<String> = []
     /// The looks running or waiting, each with its item. Each one drops its own entry when it ends;
@@ -312,7 +310,6 @@ final class AppModel {
         pendingLooks = pendingLooks.filter { !match($0.key) }
         lookErrors = lookErrors.filter { !match($0.key) }
         waitingForOnline = waitingForOnline.filter { !match($0) }
-        lookAgain = lookAgain.filter { !match($0) }
         lookAutoTried = lookAutoTried.filter { !match($0.key) }
     }
 
@@ -336,9 +333,15 @@ final class AppModel {
         startLook(itemId)
     }
 
+    /// One look per item at a time: a new one cancels any earlier one (running, waiting its turn, or
+    /// waiting to try again) and starts only once that one has ended, so no item ever has two looks
+    /// sending.
     private func startLook(_ itemId: String, after seconds: Double = 0) {
+        let earlier = lookTasks.values.filter { $0.itemId == itemId }.map(\.task)
+        earlier.forEach { $0.cancel() }
         let id = UUID()
         let task = Task { [weak self] in
+            for task in earlier { await task.value }
             if seconds > 0 { try? await Task.sleep(for: .seconds(seconds)) }
             if !Task.isCancelled { await self?.runSecondLook(itemId) }
             self?.lookTasks[id] = nil
@@ -371,7 +374,6 @@ final class AppModel {
         guard let look = pendingLooks[itemId], let reader, let box, let engine else { return }
         // An item removed from the box is never sent to the cloud again.
         guard box.items.contains(where: { $0.itemId == itemId }) else { pendingLooks[itemId] = nil; return }
-        guard !checkingAgain.contains(itemId) else { lookAgain.insert(itemId); return }
         refreshCloudGate()
         guard cloudAllowed, network.online else {
             if !network.online { waitingForOnline.insert(itemId) }
@@ -391,6 +393,8 @@ final class AppModel {
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
         let outcome = await live.secondLook(.photo(cropJPEG: look.crop), situation: situation)
         checkingAgain.remove(itemId)
+        // A look replaced by a newer one (it was cancelled) lands nothing and says nothing.
+        if Task.isCancelled { return }
         // A look forgotten while it ran lands nothing and says nothing.
         guard pendingLooks[itemId] != nil, box.items.contains(where: { $0.itemId == itemId }) else {
             pendingLooks[itemId] = nil
@@ -410,7 +414,6 @@ final class AppModel {
         } else {
             lookErrors[itemId] = Self.secondLookFailure(outcome.failure ?? .parseFailed)
         }
-        if lookAgain.remove(itemId) != nil, pendingLooks[itemId] != nil { await runSecondLook(itemId) }
     }
 
     /// The sender's answer to the cloud question; a waiting photo is read after it.

@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): one second look per item at a time, so retries never pass the cap
+- What: "Try again" started a new look beside a retry still waiting to run, and a look asked for
+  while one ran was queued to run right after it, even when that one failed for no connection and had
+  already scheduled its own retry. Sends could go past the three automatic tries. Now an item has one
+  look at a time: a new one cancels the earlier one (running, waiting its turn, or waiting to try
+  again) and starts once it has ended; a cancelled look makes no further call and lands nothing.
+- Source: review round 2 (Codex and Gemini, on the second-look PR).
+- Verified: two new tests ("Try again" replaces a retry waiting 30 seconds and lands at once;
+  "Try again" while a look runs gives exactly nine calls, the replaced look's one and the new
+  look's four tries of two, then the card asks) failed and pass; 213 unit tests pass.
+
 ### fix(ios): a look cancelled while it waits in line lets go at once
 - What: the reader's gates kept a cancelled waiter in line until its turn, so a removed item's or a
   revoked look's task, and the crop it carries, stayed in memory while slow looks ran ahead of it. A
