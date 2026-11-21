@@ -76,6 +76,19 @@ describe("destination editions", () => {
       ["PH", "PH-R-01", /two 500 g plastic bottles of powdered coffee.*FDA Philippines/],
       // USPS: "are subject to authentication by the Philippine Consulate", for a fee of U.S. $30.
       ["PH", "PH-O-01", /^A commercial invoice .* needs authentication by the Philippine Consulate, for a US\$30 fee\.$/],
+      // The person's desk pass: five lines whose wording changed the meaning.
+      ["CA", "CA-P-08", /altered or renovated butter/],
+      ["CA", "CA-P-20", /Canadian or British works under Canadian copyright/], // not any work under Canadian copyright
+      ["CA", "CA-R-03", /USDA vet.*State vet.*Newcastle disease, fowl pest and fowl typhoid/],
+      ["CA", "CA-R-08", /shelf-stable foods, treats and compound chews.*CFIA import permit.*USDA APHIS zoosanitary certificate.*outside of the box/],
+      ["PH", "PH-R-02", /Bureau of Plant Industry of the Philippines.*can be destroyed/],
+      ["CA", "CA-P-22", /motor vehicles or boats/], // not only cars
+      ["CA", "CA-R-09", /^Veterinary biological products, such as serums and vaccines,.*Veterinary Director General/],
+      // Cheap wording fixes from the same review.
+      ["CA", "CA-P-06", /66 mg\/g or more, by weight/],
+      ["CA", "CA-O-02", /postcards excepted/],
+      ["CA", "CA-R-02", /^Drugs and medicines must meet Canadian law\.$/],
+      ["PH", "PH-P-05", /^No lottery tickets, circulars or advertising\.$/],
     ];
     for (const [code, id, term] of terms) expect(wording(code, id), id).toMatch(term);
     // USPS says any publication, and an ad aimed mainly at Canada, in the wording and in the reasons alike.
@@ -90,7 +103,8 @@ describe("destination editions", () => {
     // Instruction 3C sits under Class 3), not empty ones. A photo can't show that a lighter is empty, so the app
     // takes every lighter out and says that is its own choice.
     const l = ed.destinations.CA?.lines.find((x) => x.lineId === "CA-P-02");
-    expect(l?.ourWording).toMatch(/Canada allows an empty new lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out/);
+    // Canada bars non-refillable lighters as a class, as well as any with fuel; only a new, empty one may go.
+    expect(l?.ourWording).toMatch(/^No non-refillable lighters and no lighter with fuel in it\. Canada allows a new, empty lighter, but a photo can't show that a lighter is empty, so the app takes every lighter out\.$/);
     expect(l?.ourWording).not.toMatch(/USPS takes no lighters/);
     expect(l?.matches).toEqual([{ tag: "lighter", effect: "take_out" }]);
     const usps = ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS");
@@ -119,6 +133,19 @@ describe("destination editions", () => {
     // Drug Facts and active-ingredient labels (hand sanitizer, sunscreen) carry the same tag, so the question
     // says when it applies.
     expect(l?.ourWording).toMatch(/If this is a medicine/);
+  });
+
+  it("gives reasons that hold for lines a photo can't settle", () => {
+    const line = (id: string) => ed.destinations.CA?.lines.find((l) => l.lineId === id);
+    // A family can mail a magazine as a gift, so "not a family gift item" was no reason for these two.
+    for (const id of ["CA-P-09", "CA-P-12"]) {
+      expect(line(id)?.noMatch?.decision, id).toBe("cannot_judge_from_photo");
+      expect(line(id)?.noMatch?.reason, id).not.toMatch(/family gift/);
+    }
+    expect(line("CA-P-12")?.noMatch?.reason).toBe("A photo can't show whether an ad appears in every edition distributed in the publication's home country.");
+    // Where down in clothing comes from is not something the app knows; it says what it does instead.
+    expect(line("CA-P-17")?.noMatch?.reason).toMatch(/does not treat down in clothing as wild bird plumage/);
+    expect(line("CA-P-17")?.noMatch?.reason).not.toMatch(/farmed/);
   });
 
   it("maps the food and gift lines that a sender could pack", () => {
