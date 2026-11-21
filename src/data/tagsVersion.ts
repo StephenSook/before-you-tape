@@ -29,9 +29,11 @@ export function labelWordsVersion(edition: RuleEdition): string {
 
 type Versioned = BoxItemInput & { tagsVersion?: string };
 
-// Its tags came from a label (they hold label_text), other words made them, and the sender has not typed it again.
+// Its tags came from a label (they hold label_text), other words made them, and no label with words in it has been
+// typed again. Only a reading with label text, or a typed label, releases it: a blank one never does.
 export function tagsAreStale(item: Versioned, version: string): boolean {
-  return item.labelTags.includes(LABEL_TEXT_TAG) && item.overrides.labelText === undefined && item.tagsVersion !== version;
+  const typedAgain = (item.overrides.labelText ?? "").trim() !== "";
+  return item.labelTags.includes(LABEL_TEXT_TAG) && !typedAgain && item.tagsVersion !== version;
 }
 
 // Never lowers a verdict: only an "OK to pack" is held, as the iPhone app does.

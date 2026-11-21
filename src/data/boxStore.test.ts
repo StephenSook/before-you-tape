@@ -206,6 +206,35 @@ describe("createBoxStore", () => {
     expect(s.getState().result.items[id]?.hits.map((h) => h.ruleId)).not.toContain("DATA-LABEL-AGAIN");
   });
 
+  it("keeps a held item held until a reading with label text, or a typed label, judges it again; a reload too", async () => {
+    // Saved by an older app: tags from a label, no label words version.
+    const toy: BoxItem = { ...phoneItem, itemId: "old-toy", read: { ...base, itemName: "Toy", category: "toy", labelText: "" }, labelTags: ["label_text"] };
+    delete (toy as { tagsVersion?: string }).tagsVersion;
+    const p = spyPersistence({ items: [toy], destinationCode: "CA" });
+    const s = store({ persistence: p });
+    await s.ready;
+    const held = () => s.getState().result.items["old-toy"]?.hits.some((h) => h.ruleId === "DATA-LABEL-AGAIN");
+    expect(held()).toBe(true);
+    // None of these is a reading of the label: a cloud second look with no label text, a blank or spaces-only typed
+    // label, and an edit of another field.
+    s.applySecondLook("old-toy", { ...toy.read }, 900, "The cloud looked again.", "");
+    expect(held()).toBe(true);
+    s.override("old-toy", { labelText: "" });
+    expect(held()).toBe(true);
+    s.override("old-toy", { labelText: "   " });
+    expect(held()).toBe(true);
+    s.override("old-toy", { retailBox: "sealed" });
+    expect(held()).toBe(true);
+    await s.settled();
+    // A reload of what was saved holds it still.
+    const back = store({ persistence: spyPersistence(p.saved()) });
+    await back.ready;
+    expect(back.getState().result.items["old-toy"]?.hits.some((h) => h.ruleId === "DATA-LABEL-AGAIN")).toBe(true);
+    // A typed label with words in it releases it.
+    back.override("old-toy", { labelText: "TEDDY BEAR" });
+    expect(back.getState().result.items["old-toy"]?.hits.some((h) => h.ruleId === "DATA-LABEL-AGAIN")).toBe(false);
+  });
+
   it("judges an item again after a second look under new label words, with no tag dispute against the old ones", () => {
     const s = store();
     s.setDestination("CA");

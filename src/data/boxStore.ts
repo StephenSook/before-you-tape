@@ -548,8 +548,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
           labelTags: i.overrides.labelText !== undefined ? i.labelTags
             : [...new Set([...i.labelTags, ...(cloudLabel === undefined ? tagsOf(merged.labelText) : cloudTags)])],
-          // Tags made just now carry the current words; a label the sender corrected keeps its own version.
-          ...(i.overrides.labelText !== undefined ? {} : { tagsVersion: now }),
+          // Tags made just now from label text carry the current words. A second look with no label text reads no
+          // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
+          ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
           identityConfirmedBy: i.identityConfirmedBy ?? (merged.category === i.read.category ? "second_look" : null),
         }, found);
       });
@@ -585,10 +586,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     override: (itemId, patch) => update(itemId, (i) => {
       const next: BoxItem = {
         ...i, overrides: { ...i.overrides, ...patch },
-        // A corrected label replaces the read one, so its tags must survive the label text not being saved.
-        labelTags: patch.labelText !== undefined ? tagsOf(patch.labelText) : i.labelTags,
+        // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
+        // label is no reading: an item held for older label words keeps its tags, and so stays held.
+        labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
+          ? i.labelTags : tagsOf(patch.labelText),
         // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
-        ...(patch.labelText !== undefined ? { tagsVersion: wordsVersion() } : {}),
+        ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
       };
       if (!i.disputes) return next;
       // The sender's own correction of a disputed fact settles that dispute.
