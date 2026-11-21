@@ -24,7 +24,7 @@ struct BoxView: View {
                         let id = row.item.itemId
                         ItemCardView(item: row.item, verdict: verdict, box: box,
                                      checkingAgain: model.isCheckingAgain(id), lookError: model.secondLookError(id),
-                                     onRetryLook: { model.retrySecondLook(id) },
+                                     onRetryLook: model.canRetryLook(id) ? { model.retrySecondLook(id) } : nil,
                                      onOfferLook: model.isLookOffered(id) ? { model.checkInTheCloud(id) } : nil)
                     } else {
                         UncheckedItemRow(item: row.item, box: box, remove: model.remove)

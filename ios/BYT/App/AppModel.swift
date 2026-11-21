@@ -326,6 +326,12 @@ final class AppModel {
     func isCheckingAgain(_ itemId: String) -> Bool { checkingAgain.contains(itemId) }
     func isLookOffered(_ itemId: String) -> Bool { offeredLooks.contains(itemId) && !checkingAgain.contains(itemId) }
 
+    /// Whether the card offers "Try again": a look failed and no try of it is running or coming by itself
+    /// (a wait before an automatic try, or the wait for the connection).
+    func canRetryLook(_ itemId: String) -> Bool {
+        lookErrors[itemId] != nil && !lookTasks.values.contains { $0.itemId == itemId } && !waitingForOnline.contains(itemId)
+    }
+
     /// The card's "Check it in the cloud": runs the offered look when cloud checks are allowed, and asks
     /// the cloud question first when they were never answered.
     func checkInTheCloud(_ itemId: String) {

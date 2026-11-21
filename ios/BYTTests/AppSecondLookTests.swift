@@ -112,6 +112,29 @@ import Testing
         await settle(m)
     }
 
+    /// While the look will be tried again by itself, the card offers no "Try again"; once the automatic
+    /// tries are used up it does.
+    @Test func tryAgainIsOfferedOnlyWhenNoRetryIsComing() async throws {
+        let j = FakeItemRunner.Journal()
+        let m = model(j, cloud: Array(repeating: .failure(ReadError(.network)), count: 8))
+        var gate = false
+        m.lookBackoff = { _ in gate ? 0 : 30 }
+        await m.readPhoto(jpeg)
+        let id = try #require(m.box?.items.first?.itemId)
+        while m.secondLookError(id) == nil { await Task.yield() }
+        #expect(!m.canRetryLook(id))
+        gate = true
+        m.remove(id)
+        await settle(m)
+        let k = FakeItemRunner.Journal()
+        let n = model(k, cloud: Array(repeating: .failure(ReadError(.network)), count: 8))
+        n.lookBackoff = { _ in 0 }
+        await n.readPhoto(jpeg)
+        await settle(n)
+        let id2 = try #require(n.box?.items.first?.itemId)
+        #expect(n.secondLookError(id2) == "The cloud step did not run. Try again." && n.canRetryLook(id2))
+    }
+
     /// "Try again" replaces a retry still waiting its turn: the look runs now, and the old wait sends
     /// nothing later.
     @Test func tryAgainReplacesAWaitingRetry() async throws {

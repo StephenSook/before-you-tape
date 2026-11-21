@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the card offers "Try again" only when no automatic try is coming
+- What: after a failure for no connection, the card showed "Try again" while the look was already
+  waiting to be tried again by itself, and a tap reset its tries and sent the crop once more. The card
+  now offers "Try again" only when no try of the look is running or coming by itself (a wait before an
+  automatic try, or the wait for the connection), so after the three automatic tries.
+- Source: review round 3 (Codex, on the second-look PR).
+- Verified: a new test (no "Try again" while a retry waits; offered once the tries are used up)
+  passes; the card reads the same check; 218 unit tests pass.
+
 ### fix(ios): a choice taken back whose record cannot be written still holds after a relaunch
 - What: when turning cloud checks off failed to write both the choice file and the box (a full disk,
   say), both still held the old "allowed", and a relaunch opened the cloud gate again. Now a choice
