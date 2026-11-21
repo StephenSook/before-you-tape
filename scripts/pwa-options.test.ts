@@ -20,35 +20,27 @@ describe("appRoutes", () => {
 });
 
 describe("pwaOptions", () => {
-  const o = pwaOptions({ kill: false, routes });
+  const o = pwaOptions({ kill: false });
 
-  it("caches only the app's own shell: the page, its built code (with the bundled rules), fonts and icons", () => {
-    expect(o.workbox?.globPatterns).toEqual(["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"]);
-    expect(o.workbox?.globIgnores).toEqual(["assets/extBridge-*"]);
+  it("builds the worker written in src/pwa/sw.ts, with only the app's own shell to cache", () => {
+    expect(o.strategies).toBe("injectManifest");
+    expect([o.srcDir, o.filename]).toEqual(["src/pwa", "sw.ts"]);
+    expect(o.injectManifest?.globPatterns).toEqual(["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"]);
+    expect(o.injectManifest?.globIgnores).toEqual(["assets/extBridge-*"]);
+    expect(o.injectManifest?.rollupFormat).toBe("iife");
   });
 
-  // Model, database, sign-in and App Check calls go to Google's hosts and are never answered from a cache.
-  it("caches nothing at run time", () => {
-    expect(o.workbox?.runtimeCaching).toEqual([]);
-  });
-
-  it("opens the cached page only for the app's own routes", () => {
-    expect(o.workbox?.navigateFallback).toBe("index.html");
-    expect(o.workbox?.navigateFallbackAllowlist).toBe(routes);
-  });
-
-  // A new version waits until the visitor asks for it, so an open page is never reloaded under them.
-  it("never takes over or reloads an open page by itself", () => {
-    expect(o.registerType).toBe("prompt");
-    expect(o.workbox?.skipWaiting).toBe(false);
-    expect(o.workbox?.clientsClaim).toBe(true);
-    expect(o.workbox?.cleanupOutdatedCaches).toBe(true);
+  // The page registers the worker itself (src/pwa/register.ts), so the plugin's own reload-on-update never runs.
+  it("injects no registration of its own", () => {
     expect(o.injectRegister).toBe(false);
-    expect(o.selfDestroying).toBe(false);
   });
 
-  it("builds a worker that removes itself when the kill switch is on", () => {
-    expect(pwaOptions({ kill: true, routes }).selfDestroying).toBe(true);
+  it("builds the same worker with no files to cache when the kill switch is on", () => {
+    const kill = pwaOptions({ kill: true });
+    expect([kill.strategies, kill.srcDir, kill.filename]).toEqual(["injectManifest", "src/pwa", "sw.ts"]);
+    expect(kill.injectManifest?.globPatterns).toEqual([]);
+    expect(kill.manifest).toBe(false);
+    expect(kill.includeManifestIcons).toBe(false);
   });
 
   // The app can be installed: a name, the page's own description, its colors and icons drawn from the favicon.

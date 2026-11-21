@@ -21,6 +21,18 @@ test("reloads offline and still checks by rules", async ({ page, context }) => {
   await expect(page.getByTestId("item-card").getByTestId("verdict-chip")).toHaveText("OK to pack");
 });
 
+// The hosting serves a route whatever its query string, so the worker does too: a shared link with tracking
+// parameters still opens offline.
+test("reloads a route with a query string offline", async ({ page, context }) => {
+  await page.goto("/judge?utm_source=demo");
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+  await context.setOffline(true);
+  const reloaded = await page.reload();
+  expect(reloaded?.fromServiceWorker()).toBe(true);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
 // A photo with no network: this browser has no built-in model, so a read needs the cloud. Offline the page says so,
 // asks nothing of the cloud and shows no answer from anywhere else.
 test("offline, a photo check says it needs the network, and shows no answer", async ({ page, context }) => {
@@ -53,6 +65,8 @@ test("never answers a model or database request from a cache", async ({ page, co
   expect(cached.length).toBeGreaterThan(0);
   for (const url of cached) expect(new URL(url).origin, url).toBe("http://localhost:4173");
   expect(cached.filter((u) => /\/eval\/|version\.json/.test(u))).toEqual([]);
+  // The manifest and icons are cached too, so the installed app opens with no network.
+  for (const path of ["/manifest.webmanifest", "/icons/icon-192.png", "/index.html"]) expect(cached, path).toContain(`http://localhost:4173${path}`);
   await context.setOffline(true);
   const reply = await page.evaluate(async () => {
     try { await fetch("https://firestore.googleapis.com/"); return "answered"; } catch { return "failed"; }

@@ -140,10 +140,6 @@
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       },
       {
-        "regex": "^/workbox-[A-Za-z0-9_-]+\\.js$",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
         "source": "/version.json",
         "headers": [
           {

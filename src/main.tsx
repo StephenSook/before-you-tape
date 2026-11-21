@@ -13,4 +13,5 @@ createRoot(root).render(
   </StrictMode>,
 );
 
-registerServiceWorker();
+// Only a production build has a worker to register; a browser without service workers just runs the page.
+if (import.meta.env.PROD && "serviceWorker" in navigator) void registerServiceWorker().catch(() => undefined);

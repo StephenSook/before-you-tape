@@ -1,22 +1,14 @@
-// The service worker's settings (vite-plugin-pwa), kept apart from vite.config.ts so a test can hold them.
-// It caches only the app's own shell, so the page opens and checks typed items by the bundled rules with no
-// network. It caches nothing at run time: model, database, sign-in and App Check calls go to Google's hosts and are
-// never answered from a cache. A new version waits until the visitor asks for it, so an open page is never reloaded
-// under them. With the kill switch on, the build ships a worker that unregisters itself and deletes its caches.
+// The service worker's build settings (vite-plugin-pwa, injectManifest), kept apart from vite.config.ts so a test
+// can hold them. The worker itself is src/pwa/sw.ts, written here rather than generated: it caches only the app's
+// own shell, so the page opens and checks typed items by the bundled rules with no network, and caches nothing at
+// run time, so model, database, sign-in and App Check calls go to Google's hosts and are never answered from a cache.
+// With the kill switch on, the same worker is built with no files to cache, and a worker with none removes itself
+// and every cache.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { VitePWAOptions } from "vite-plugin-pwa";
 
-export interface Rewrite { regex?: string; source?: string; destination: string }
-
-// The routes the hosting serves the app on (firebase.json rewrites to /index.html), so the worker opens the cached
-// page for exactly those and leaves every other page, such as /privacy/ or /support/, to the network.
-export function appRoutes(rewrites: readonly Rewrite[]): RegExp[] {
-  return rewrites.filter((r) => r.destination === "/index.html").map((r) => {
-    if (!r.regex) throw new Error(`the rewrite of ${r.source ?? "?"} to /index.html has no regex the worker can use`);
-    return new RegExp(r.regex);
-  });
-}
+export { appRoutes, type Rewrite } from "../src/pwa/routes";
 
 // The page's own description (index.html), so the installed app and the page describe it the same way. Read from
 // the package root, where npm runs the build and the tests.
@@ -26,13 +18,17 @@ function pageDescription(): string {
   return m[1]!;
 }
 
-export function pwaOptions(o: { kill: boolean; routes: RegExp[] }): Partial<VitePWAOptions> {
+export const SHELL = ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"];
+
+export function pwaOptions(o: { kill: boolean }): Partial<VitePWAOptions> {
   return {
-    registerType: "prompt",
+    strategies: "injectManifest",
+    srcDir: "src/pwa",
+    filename: "sw.ts",
+    // The page registers the worker itself (src/pwa/register.ts), so no tab ever reloads without its own tap.
     injectRegister: false,
-    selfDestroying: o.kill,
     // Icons drawn from public/favicon.svg (rsvg-convert at 192 and 512; the maskable one on the page color, inset).
-    manifest: {
+    manifest: o.kill ? false : {
       name: "Before You Tape", short_name: "Before You Tape", description: pageDescription(), start_url: "/", scope: "/",
       display: "standalone", background_color: "#fff3e6", theme_color: "#fff3e6",
       icons: [
@@ -41,15 +37,11 @@ export function pwaOptions(o: { kill: boolean; routes: RegExp[] }): Partial<Vite
         { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ],
     },
-    workbox: {
-      globPatterns: ["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png"],
+    includeManifestIcons: !o.kill,
+    injectManifest: {
+      globPatterns: o.kill ? [] : SHELL,
       globIgnores: ["assets/extBridge-*"],
-      runtimeCaching: [],
-      navigateFallback: "index.html",
-      navigateFallbackAllowlist: o.routes,
-      skipWaiting: false,
-      clientsClaim: true,
-      cleanupOutdatedCaches: true,
+      rollupFormat: "iife",
     },
   };
 }

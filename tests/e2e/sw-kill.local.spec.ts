@@ -25,9 +25,8 @@ const workers = (page: Page) => page.evaluate(async () => (await navigator.servi
 const cacheNames = (page: Page) => page.evaluate(async () => (await caches.keys()).length).catch(() => -1);
 
 test("the kill build's worker removes an installed worker and its caches", async ({ page, context }) => {
-  const sw = readFileSync(join(kill, "sw.js"), "utf8");
-  expect(sw).toContain("registration.unregister");
-  expect(sw).not.toContain("precacheAndRoute");
+  // The same worker built with no files to cache: a different file from the shipped one.
+  expect(readFileSync(join(kill, "sw.js"), "utf8")).not.toBe(readFileSync("dist/sw.js", "utf8"));
 
   await page.goto(`${server.url}/`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
