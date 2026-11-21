@@ -117,6 +117,13 @@ describe("firestorePersistence", () => {
     await expect(p.deleteBox("b8")).resolves.toBeUndefined();
   });
 
+  it("retires an id with no box on a device clock two days slow, and fails, retiring nothing, on one far off", async () => {
+    await firestorePersistence(db("alice"), "alice", "byt-test", () => Date.now() - 2 * DAY).deleteBox("b5");
+    expect(await at("retiredBoxes/b5")).toBeDefined();
+    await expect(firestorePersistence(db("alice"), "alice", "byt-test", () => Date.now() - 10 * DAY).deleteBox("b6")).rejects.toThrow();
+    expect(await at("retiredBoxes/b6")).toBeUndefined();
+  });
+
   it("deletes only from what the server holds: offline, it fails at once and deletes nothing", async () => {
     const alice = db("alice");
     const p = firestorePersistence(alice, "alice", "byt-test");

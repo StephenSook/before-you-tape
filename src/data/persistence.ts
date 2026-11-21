@@ -147,8 +147,10 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
           last.delete(box);
           await last.commit();
         },
-        // Retired anyway, so a first save still on its way from another tab cannot create the box after this.
+        // Retired anyway, so a first save still on its way from another tab cannot create the box after this. There is
+        // no box expiry to count from, so this device's clock counts, and the rules allow it a week either side.
         () => setDoc(doc(db, "retiredBoxes", boxId), { expiresAt: Timestamp.fromMillis(now() + (BOX_DAYS + 30) * DAY_MS) }),
+        async () => (await getDocFromServer(doc(db, "retiredBoxes", boxId))).exists(),
       );
       expiries.delete(boxId);
     },
@@ -182,14 +184,18 @@ function paired(item: BoxItem, saved: (Disputes & { itemRev?: string }) | undefi
 // reached the server, so a later visit that signs in sends it.
 // Deletes a box that is there, and retires the id of one that is not. A refused retire means the id was retired
 // already, or another tab's first save created the box since the read (a tombstone is refused while its box exists),
-// so the box is read once more and deleted if it is there now.
-export async function deleteOrRetire(exists: () => Promise<boolean>, deleteExisting: () => Promise<void>, retire: () => Promise<void>): Promise<void> {
+// or the tombstone itself was refused. So the box is read once more and deleted if it is there now; otherwise the id
+// must be retired, or the delete fails: a delete that did not happen is never reported.
+export async function deleteOrRetire(
+  exists: () => Promise<boolean>, deleteExisting: () => Promise<void>, retire: () => Promise<void>, retired: () => Promise<boolean>,
+): Promise<void> {
   if (await exists()) return deleteExisting();
   try {
     await retire();
   } catch (e) {
     if ((e as { code?: unknown } | null)?.code !== "permission-denied") throw e;
-    if (await exists()) await deleteExisting();
+    if (await exists()) return deleteExisting();
+    if (!(await retired())) throw new Error("the box's id is not retired: its tombstone was refused", { cause: e });
   }
 }
 

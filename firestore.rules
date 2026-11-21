@@ -306,14 +306,16 @@ service cloud.firestore {
     // ---------------------------------------------------------------
 
     // A tombstone holds only an expiry, 30 days after its box's, so TTL never removes it before an item or dispute
-    // the box left behind (those keep the box's expiry). An id with no box can be retired too, 67 days out (the box's
-    // 37 plus 30), so a first save still on its way from another tab cannot create the box after it was deleted.
+    // the box left behind (those keep the box's expiry). An id with no box can be retired too, about 67 days out (the
+    // box's 37 plus 30, a week either side for the device's clock), so a first save still on its way from another tab
+    // cannot create the box after it was deleted. A signed-in client may see whether an id is retired, so a delete can
+    // tell a tombstone that was refused from one that was there already.
     match /retiredBoxes/{boxId} {
       function retiring() {
         return get(/databases/$(database)/documents/boxes/$(boxId));
       }
       function unusedExpiry(t) {
-        return t is timestamp && t > request.time + duration.value(66, 'd') && t < request.time + duration.value(68, 'd');
+        return t is timestamp && t > request.time + duration.value(60, 'd') && t < request.time + duration.value(74, 'd');
       }
       allow create: if isAuthenticated()
         && !existsAfter(/databases/$(database)/documents/boxes/$(boxId))
@@ -322,7 +324,8 @@ service cloud.firestore {
           ? retiring().data.ownerUid == request.auth.uid
             && request.resource.data.get('expiresAt', null) == retiring().data.expiresAt + duration.value(30, 'd')
           : unusedExpiry(request.resource.data.get('expiresAt', null)));
-      allow read, update, delete: if false;
+      allow get: if isAuthenticated();
+      allow list, update, delete: if false;
     }
 
     // ---------------------------------------------------------------
