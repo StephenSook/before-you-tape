@@ -6,7 +6,7 @@ demo account is needed.
 
 ## Notes for the reviewer
 
-1. Screen recording (attached): an iPhone 17 Pro on iOS 27.2.1 in airplane mode, about 11 minutes, 22 label photos read on the iPhone. It is from an earlier build of this app (November 20) on the same iPhone and starts with the app already open on Ready check. This build adds the cloud second look with its Check it in the cloud button, Delete everything on this iPhone, and the app icon.
+1. Screen recording (attached, 70 s): this build on an iPhone 17 Pro with iOS 27.2.1, from the Home Screen: the app opens on Ready check, then label photos are read on the iPhone. The photo library thumbnails are blurred for privacy. An earlier build on the same iPhone also read 22 labels on the iPhone in airplane mode (an 11-minute recording, available on request).
 
 2. Purpose and audience: people in the US who mail gifts and personal items abroad with USPS. Batteries, liquids, sprays and flammable items have rules that differ by item and by country. You photograph an item's label, the app reads it, and a rules engine bundled with the app says OK to pack, Check this or Take it out, with the rule behind it. The model only reads the label. The rules decide every verdict.
 

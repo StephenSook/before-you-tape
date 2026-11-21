@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the review notes describe the attached recording of this build
+- What: item 1 of ios/app-store/review-notes.md now describes the attached 70-second recording of
+  this build on an iPhone 17 Pro (iOS 27.2.1), which starts at the Home Screen, and says the photo
+  library thumbnails in it are blurred for privacy. The earlier 11-minute airplane-mode run (22
+  reads on the iPhone) is mentioned as available on request, since App Review takes one attachment.
+- Source: App Review's request for a recording that starts with launching the app.
+- Verified: the recording was checked frame by frame (2 per second throughout, every frame at the
+  blurred edges, a blur measure on every frame); check_lengths.py gives 3965 / 4000; tone and
+  hygiene pass.
+
 ### docs(ios): the review notes answer App Review's six information-needed items
 - What: ios/app-store/review-notes.md now answers, in App Review's order, the six items its
   Guideline 2.1 "Information Needed" message asks for: the attached screen recording (an earlier
