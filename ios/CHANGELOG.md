@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a second look sends only if it is still wanted right before the upload
+- What: the check that a look's item is still in the box and its cloud checks still allowed ran
+  before sign-in; the last check before the upload read only the pause. A look whose item was
+  removed, or whose cloud checks were taken back and allowed again, during sign-in still uploaded.
+  The cloud runner now reads the caller's gate again together with the pause right before the
+  upload starts, and every look carries its own id, so a forgotten look can never pass as a later
+  one.
+- Source: review round 2 (Codex, on the second-look PR).
+- Verified: two new tests (the runner sends nothing when the read is no longer wanted after sign-in;
+  cloud checks taken back and allowed again while a look signs in send nothing) failed and pass;
+  208 unit tests pass.
+
 ### fix(ios-core): cancelling a timed model call cancels the call itself
 - What: `Timeout.run` ran the call in a task of its own, so cancelling the caller (a look whose item
   was removed, say) left the call running and its upload going. The caller's cancellation now

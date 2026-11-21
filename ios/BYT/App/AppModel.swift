@@ -266,6 +266,9 @@ final class AppModel {
         var reason: String
         var deviceRead: JSONValue
         var crop: Data
+        /// This look's own id: a send checks it is still the item's look, so a look forgotten (and any
+        /// call still on its way) can never send for a later one.
+        var token = UUID()
     }
     /// Looks still to land, by item: what to read again and why. Forgotten, crop and all, when the item
     /// is removed or cloud checks are taken back.
@@ -379,9 +382,11 @@ final class AppModel {
         var live = reader
         // Read at the moment of each send, also after waiting for another look's lane: the cloud allowed,
         // and this look not forgotten (its item still in the box, cloud checks not taken back).
+        let token = look.token
         live.cloudOpen = { [weak self] in
             guard let self else { return false }
-            return self.cloudAllowed && self.pendingLooks[itemId] != nil && self.box?.items.contains(where: { $0.itemId == itemId }) == true
+            return self.cloudAllowed && self.pendingLooks[itemId]?.token == token
+                && self.box?.items.contains(where: { $0.itemId == itemId }) == true
         }
         let situation = ReadSituation(status: onDevice, online: network.online, cloudConsent: box.cloudConsent, config: config)
         let outcome = await live.secondLook(.photo(cropJPEG: look.crop), situation: situation)

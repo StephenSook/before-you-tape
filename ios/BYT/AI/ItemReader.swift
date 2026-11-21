@@ -50,6 +50,14 @@ struct ReadError: Error, Equatable, Sendable {
 /// Runs one read on one path. The on-device and cloud runners live in `ModelSessionFactory`.
 protocol ItemModelRunner: Sendable {
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError>
+    /// The same read, sent only while `stillWanted` answers true right before the send.
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError>
+}
+
+extension ItemModelRunner {
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError> {
+        await read(input)
+    }
 }
 
 struct ReadSituation: Equatable, Sendable {
@@ -163,7 +171,12 @@ struct ItemReader: Sendable {
                 (runner, model, seconds) = (made, cloudModel, cloudSeconds)
             }
             let start = ContinuousClock.now
-            var result = await Timeout.run(seconds: seconds) { await runner.read(input) } ?? .failure(ReadError(.timeout))
+            // A cloud call reads the gate once more right before it sends (after sign-in, say).
+            let open = cloudOpen
+            let inCloud = path == .cloud
+            var result = await Timeout.run(seconds: seconds) {
+                inCloud ? await runner.read(input, stillWanted: open) : await runner.read(input)
+            } ?? .failure(ReadError(.timeout))
             if case let .success(reply) = result {
                 if let checked = parse(reply.read) {
                     result = .success(ItemReply(read: checked.read, tokens: reply.tokens, labelTags: checked.labelTags, wholeLabel: checked.wholeLabel))
@@ -236,9 +249,18 @@ struct SignedInCloudRunner: ItemModelRunner {
     let inner: any ItemModelRunner
 
     func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+        await read(input, stillWanted: { true })
+    }
+
+    /// What the caller wants is read again after sign-in, together with the pause, right before the
+    /// upload starts: a look whose item was removed, or whose cloud checks were taken back, sends nothing.
+    func read(_ input: ItemInput, stillWanted: @escaping @Sendable @MainActor () -> Bool) async -> Result<ItemReply, ReadError> {
         guard await ensureSignedIn() else { return .failure(ReadError(.notSignedIn)) }
+        guard !Task.isCancelled else { return .failure(ReadError(.cloudPaused)) }
         let inner = inner
-        guard let upload = await pause.startUnlessPaused({ await inner.read(input) }) else { return .failure(ReadError(.cloudPaused)) }
+        guard let upload = await pause.startUnlessPaused(allowed: stillWanted, { await inner.read(input) }) else {
+            return .failure(ReadError(.cloudPaused))
+        }
         // The upload runs apart from this read, so a read that is cancelled (its time limit) cancels it too.
         let result = await withTaskCancellationHandler { await upload.task.value } onCancel: { upload.task.cancel() }
         // The read's own record decides: a reply from a read the pause cancelled is dropped, even
@@ -269,10 +291,10 @@ final class PauseSwitch {
         let task: Task<T, Never>
     }
 
-    /// Starts the upload unless paused; nil when paused. Checking and starting happen together, so
-    /// a pause cannot slip between them.
-    func startUnlessPaused<T: Sendable>(_ work: @escaping @Sendable () async -> T) -> Upload<T>? {
-        guard !paused else { return nil }
+    /// Starts the upload unless paused or no longer `allowed`; nil then. Checking and starting happen
+    /// together, so neither can change between them.
+    func startUnlessPaused<T: Sendable>(allowed: @MainActor () -> Bool = { true }, _ work: @escaping @Sendable () async -> T) -> Upload<T>? {
+        guard !paused, allowed() else { return nil }
         let id = UUID()
         let task = Task.detached { await work() }
         running[id] = { task.cancel() }

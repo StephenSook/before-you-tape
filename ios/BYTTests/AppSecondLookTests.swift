@@ -91,6 +91,36 @@ import Testing
         #expect(m.pendingLookCount == 0 && m.secondLookError(second) == nil)
     }
 
+    /// Sign-in that does not answer until the test lets it.
+    @MainActor final class HeldSignIn {
+        private(set) var started = false
+        private var waiting: CheckedContinuation<Bool, Never>?
+        func wait() async -> Bool {
+            started = true
+            return await withCheckedContinuation { waiting = $0 }
+        }
+        func letGo() { waiting?.resume(returning: true); waiting = nil }
+    }
+
+    /// Cloud checks taken back and allowed again while the look signs in: the look was forgotten, so
+    /// nothing is sent for it when sign-in answers.
+    @Test func aLookTakenBackDuringSignInSendsNothing() async throws {
+        let j = FakeItemRunner.Journal()
+        let signIn = HeldSignIn()
+        let inner = FakeItemRunner("cloud", journal: j, results: [Self.ok(Self.powerBank)])
+        let cloud = SignedInCloudRunner(ensureSignedIn: { await signIn.wait() }, pause: PauseSwitch(), inner: inner)
+        let reader = ItemReader(device: FakeItemRunner("device", journal: j, results: [Self.ok(Self.powerBank)]),
+                                makeCloud: { _ in cloud }, parse: { ParsedRead(read: $0) })
+        let m = model(reader)
+        await m.readPhoto(jpeg)
+        while !signIn.started { await Task.yield() }
+        m.turnOffCloudChecks()
+        await m.answerConsent(true)
+        signIn.letGo()
+        await settle(m)
+        #expect(!j.events.contains("cloud start") && m.box?.items.first?.secondLook == nil)
+    }
+
     /// Turning cloud checks off forgets every look not landed, and its crop, so none is sent later.
     @Test func turningCloudChecksOffForgetsLooksNotLanded() async throws {
         let j = FakeItemRunner.Journal()
