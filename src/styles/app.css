@@ -62,10 +62,16 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .about .credits { font-size: 14px; }
 /* The sample box: three cards across on a laptop, the verdict on each photo's corner. */
 .sample-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
-.sample-card { margin: 0; }
+.sample-card, .sample-card + .sample-card { margin: 0; }
 .sample-photo { position: relative; }
 .sample-photo img { display: block; width: 100%; height: auto; border-radius: var(--radius-card); }
 .sample-photo .chip { position: absolute; top: var(--space-2); left: var(--space-2); }
+/* On a phone the cards sit two across, so the page is half as long and each photo matches its 480 px file. */
+@media (max-width: 700px) {
+  .sample-grid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .sample-card .sample-photo .chip { font-size: 0.8125rem; padding: 2px 6px; gap: var(--space-1); }
+  .sample-card .sample-photo .chip svg { width: 12px; height: 12px; }
+}
 .sample-more summary { cursor: pointer; font-size: 14px; padding-block: var(--space-2); }
 .count-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; margin: var(--space-2) 0; }
 .pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }

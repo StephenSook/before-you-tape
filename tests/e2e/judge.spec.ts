@@ -44,3 +44,22 @@ test("the page fits a 320 px screen even before the web fonts load", async ({ pa
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow, "no sideways page scroll").toBeLessThanOrEqual(0);
 });
+
+test("on a phone the sample cards sit two across, each verdict chip small and readable on its photo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/judge");
+  const cards = page.getByTestId("sample-card");
+  await expect(cards).toHaveCount(9);
+  const [first, second] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
+  expect(Math.round(first!.y)).toBe(Math.round(second!.y));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  for (let i = 0; i < 9; i++) {
+    const photo = cards.nth(i).locator(".sample-photo");
+    const img = await photo.locator("img").boundingBox();
+    const chip = await photo.getByTestId("verdict-chip").boundingBox();
+    // The chip covers at most a third of the photo, and its words stay at least 12 px.
+    expect(chip!.width * chip!.height).toBeLessThanOrEqual((img!.width * img!.height) / 3);
+    const fontPx = await photo.getByTestId("verdict-chip").evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(fontPx).toBeGreaterThanOrEqual(12);
+  }
+});
