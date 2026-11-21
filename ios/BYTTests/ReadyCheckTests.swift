@@ -17,6 +17,16 @@ import Testing
         #expect(ReadyCheck.modelLine(status(.modelNotReady)) == "The on-device model is still downloading. Keep the iPhone on Wi-Fi.")
     }
 
+    /// Whether label photos are read on this iPhone, and what to do when they are not.
+    @Test func saysWhetherLabelPhotosAreReadOnThisIPhone() {
+        #expect(ReadyCheck.photoLine(.wordsAndPhotos) == "Label photos are read on this iPhone, with no network.")
+        #expect(ReadyCheck.photoLine(.wordsOnly) == "This iPhone's model does not read photos. Type the label's words instead.")
+        for off in [status(.appleIntelligenceOff), status(.modelNotReady), status(.deviceNotEligible),
+                    OnDeviceStatus(unavailable: nil, localeSupported: false, contextSize: 4096, variant: "test", vision: true)] {
+            #expect(ReadyCheck.photoLine(off) == "Without Apple's on-device model, photos are checked only in the cloud, when you allow it.")
+        }
+    }
+
     @Test func anUnsupportedLanguageIsSaid() {
         let s = OnDeviceStatus(unavailable: nil, localeSupported: false, contextSize: 4096, variant: "test", vision: false)
         #expect(ReadyCheck.modelLine(s) == "Apple's on-device model does not support this iPhone's language yet.")

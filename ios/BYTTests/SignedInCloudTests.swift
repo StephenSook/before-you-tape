@@ -65,7 +65,7 @@ import Testing
         let inner = TokenThenSend(ItemReply(read: read, tokens: nil))
         let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: pause, inner: inner)
         let reading = Task { await runner.read(words) }
-        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        await inner.gate.untilWaiting()
         #expect(inner.gate.isWaiting)
         pause.paused = true
         inner.gate.release()
@@ -80,7 +80,7 @@ import Testing
         let inner = TokenThenSend(ItemReply(read: read, tokens: nil), ignoresCancellation: true)
         let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: pause, inner: inner)
         let reading = Task { await runner.read(words) }
-        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        await inner.gate.untilWaiting()
         pause.paused = true
         pause.paused = false
         inner.gate.release()
@@ -93,7 +93,7 @@ import Testing
         let inner = TokenThenSend(ItemReply(read: read, tokens: nil))
         let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: PauseSwitch(), inner: inner)
         let reading = Task { await runner.read(words) }
-        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        await inner.gate.untilWaiting()
         reading.cancel()
         inner.gate.release()
         _ = await reading.value
@@ -126,7 +126,7 @@ import Testing
         let inner = TokenThenSend(ItemReply(read: read, tokens: nil))
         let runner = SignedInCloudRunner(ensureSignedIn: { true }, pause: gate, inner: inner)
         let reading = Task { await runner.read(words) }
-        for _ in 0..<1000 where !inner.gate.isWaiting { await Task.yield() }
+        await inner.gate.untilWaiting()
         #expect(inner.gate.isWaiting)
         model.turnOffCloudChecks()
         inner.gate.release()

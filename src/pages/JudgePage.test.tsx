@@ -93,6 +93,7 @@ describe("JudgePage", () => {
   it("links the public source code", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
     expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
+    expect(screen.getByRole("link", { name: "Android app (APK)" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape/releases/tag/android-judge");
   });
 
   it("names the rule and its section behind each verdict", () => {
@@ -100,4 +101,24 @@ describe("JudgePage", () => {
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
+
+  it("shows matched pairs below the country picker, judged for the country picked", async () => {
+    const read = { itemName: "Phone", category: "phone" as const, labelText: "LI-ION 3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
+      wattHours: 15.4, lithiumGrams: 0, batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false,
+      glassContainer: false, powder: false, retailBox: "sealed" as const, evidence: "label_read" as const };
+    const side = (label: string, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
+      credit: "Photo by the project owner", read, answers: { device_condition: answer } });
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Same phone", left: side("New", "new_sealed"), right: side("Used", "used") }]} />);
+    const pair = screen.getByTestId("matched-pair");
+    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+    await userEvent.selectOptions(screen.getByTestId("destination-picker"), "CA");
+    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+  });
+
+  it("shows no matched pairs section when none is given", () => {
+    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[]} />);
+    expect(screen.queryByTestId("matched-pair")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Same item, one thing different" })).toBeNull();
+  });
 });
+

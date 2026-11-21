@@ -10,6 +10,7 @@ struct ReadyCheckView: View {
             if let notice = model.editionNotice { Label(notice, systemImage: "exclamationmark.triangle").accessibilityIdentifier("edition-notice") }
             Label(model.signedIn ? "Signed in" : "Not signed in yet. Check the network.", systemImage: "person.badge.key")
             Label(ReadyCheck.modelLine(model.onDevice), systemImage: "iphone")
+            Label(ReadyCheck.photoLine(model.onDevice), systemImage: "camera").accessibilityIdentifier("photo-line")
             Section {
                 NavigationLink("Your box") { BoxView(model: model) }
                 NavigationLink("Check an item") { CheckItemView(model: model) }
