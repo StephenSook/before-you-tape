@@ -25,8 +25,8 @@ export interface SetManifest {
 }
 
 export interface LabelRow { expected: Level; section: string; evidence?: string; note?: string }
-// typed: each item's category as a person would type it from the photo, for the rules-only baseline. It is
-// recorded with the labels, before the freeze.
+// typed: each item's category for the rules-only baseline, derived by a fixed table from the item's description
+// (src/eval/typedFromAlt.ts), not typed by a person. It is recorded with the labels, before the freeze.
 export interface SetLabels { setId: string; status: string; items: Record<string, Record<string, LabelRow>>; typed?: Record<string, { category: string }> }
 
 export function buildEvalSet(manifest: SetManifest, labels: SetLabels): EvalSet {
