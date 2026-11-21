@@ -1,8 +1,8 @@
 # App Store listing: Before You Tape (iPhone)
 
-Text for the App Store Connect record. Nothing here is created in App Store Connect yet: the app
-record and the upload wait until the airplane-mode check passes on a real iPhone
-(`docs/evidence/ios/DEVICE-CHECKLIST.md`). Field limits are Apple's; each field below is measured
+Text for the App Store Connect record, which exists and holds these fields. A build is installed
+from TestFlight for the airplane-mode check on a real iPhone (`docs/evidence/ios/DEVICE-CHECKLIST.md`)
+before any build is submitted for review. Field limits are Apple's; each field below is measured
 by `python3 -I ios/app-store/check_lengths.py`.
 
 ## App information
@@ -65,9 +65,13 @@ First release.
 
 ## Age rating
 
-Expected 4+. Answer "None" or "No" to every content question: the app shows no violence, sexual
-content, profanity, drugs, gambling, contests or horror, has no web browser and no chat, and shows
-nothing other people make.
+The app's rules name items the post will not take, among them alcohol, tobacco, e-cigarettes,
+drugs, firearms, knives and explosives. So the two questions whose wording covers references are
+answered Infrequent: "Alcohol, Tobacco, or Drug Use or References" and "Guns or Other Weapons".
+Every other content question is None, medical included (the app gives mailing limits, not medical
+guidance). Every capability is No: no advertising, chat, user-generated content, web browser,
+shared location, social media, dating, gambling or loot boxes. Apple's rating from these answers is
+13+ (12+ on devices before iOS 26).
 
 ## Version
 
