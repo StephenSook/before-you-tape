@@ -42,7 +42,9 @@ performance data (no Firebase Performance), and other data. Nothing in the box l
 3. **The box.** The iPhone app keeps its box on the phone (`Application Support/boxes`). If the
    box sync lands later, add User Content > Other User Content for the saved box (linked, App
    Functionality), and send the category name, never the read name, as the web and Android apps
-   do.
+   do. That folder is in the sender's own iPhone backup (iCloud Backup, if they use it). That is the
+   sender's own Apple service, not data Before You Tape collects, so it adds no row here; the public
+   privacy page says an iPhone backup can keep a copy.
 4. **The app's own privacy manifest.** `ios/BYT/PrivacyInfo.xcprivacy` (PR #127) declares the
    app's use of UserDefaults (reason CA92.1, the box ID and the cloud choice) and file metadata (reason C617.1, the saved
    box's size), and the three data types the app's own use sends: the two of a cloud check and the

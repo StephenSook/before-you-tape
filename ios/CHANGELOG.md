@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the App Privacy evidence says why an iPhone backup adds no row
+- What: note 3 now says the box folder is in the sender's own iPhone backup (iCloud Backup, if they
+  use it), which is the sender's own Apple service and not data Before You Tape collects, so it adds
+  no App Privacy row; the public privacy page already says a backup can keep a copy.
+- Source: review (Codex, on the second-look PR; optional note).
+- Verified: the privacy page's line on iPhone backups read on the live page; no answer changes.
+
 ### fix(ios): a look that failed for no connection is tried again, at most three times
 - What: a look that failed for no connection waited for the next reconnect. When the connection came
   back while the call was still failing, that reconnect had already passed, so the card promised a
