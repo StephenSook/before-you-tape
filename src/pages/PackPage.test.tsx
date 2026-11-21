@@ -833,6 +833,18 @@ describe("PackPage", () => {
       expect(afterDelete).not.toHaveBeenCalled();
     });
 
+    it("clears the earlier refusal when the question opens again, so a fresh question shows no old error", async () => {
+      const onDeleteBox = vi.fn(async () => ({ ok: false as const, offline: true as const }));
+      const { store } = setup({ onDeleteBox, afterDelete: vi.fn() });
+      await store.ready;
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      await screen.findByText("Connect to the internet to delete your saved box.");
+      await userEvent.click(screen.getByRole("button", { name: "Delete my saved box" }));
+      expect(screen.getByRole("button", { name: "Keep" })).toBeInTheDocument();
+      expect(screen.queryByText("Connect to the internet to delete your saved box.")).toBeNull();
+    });
+
     it("says once that the box was deleted, and when the sign-in was only signed out, that Firebase removes it later", () => {
       setup({ deletedNotice: "signed_out" });
       expect(screen.getByTestId("box-deleted")).toHaveTextContent(

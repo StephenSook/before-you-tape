@@ -31,7 +31,7 @@ export function DeleteBoxPanel({ onDelete, onDone }: { onDelete: (from?: DeleteS
       {left && (
         <p role="alert">{LEFT[left]} <button type="button" onClick={() => void run(left)}>Try deleting again</button></p>
       )}
-      {stage === "idle" && !left && <button type="button" onClick={() => setStage("asking")}>Delete my saved box</button>}
+      {stage === "idle" && !left && <button type="button" onClick={() => { setOffline(false); setStage("asking"); }}>Delete my saved box</button>}
       {stage === "asking" && (
         <div role="group" aria-labelledby="delete-box-text">
           <p id="delete-box-text">This deletes every item in this box from this device and from our database. It cannot be undone.</p>
