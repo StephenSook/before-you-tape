@@ -10,13 +10,13 @@ To see a model run, press **Run one live read** on the same page. It reads the s
 
 ## How it works
 
-1. Hold an item to the camera, add a photo, or type what the label says. With no camera or no item at hand, "Try a sample photo" sends one of our test photos through the same read and the same cloud choice.
+1. Hold an item to the camera, add a photo, or type what the label says. With no camera or no item at hand, "Try a sample photo" shows a recorded read of one of our test photos, made earlier by a laptop's own model and labelled "Sample, recorded read", so no model runs. "Run one live read" on the Judges page reads the same photo live.
 2. Firebase AI Logic reads the label. It runs on the device when the browser has a built-in model, and in the cloud only after the sender says yes to cloud checks. The item-read models are set up in `src/ai/firebaseModels.ts`. If a read fails or takes too long, nothing is guessed: the page says so, "Type an item" stays on the page, and the rules decide the typed item with no model call.
 3. A rules engine in the browser (`src/engine/`) gives each item "OK to pack", "Check this" or "Take it out" for the country picked. Each rule layer carries the date it was read, and a layer past its limit turns "OK to pack" into "Check this". The limits are listed in [`docs/LIMITS.md`](docs/LIMITS.md).
 4. The box is saved in Firestore, so it is still there when the page is opened again, for about 30 days. **Delete my saved box**, under the box, deletes it sooner, with its photos on this device and the anonymous sign-in.
 5. After one visit, the page opens with no connection: a service worker keeps the app's own files, with the rules inside them, so typed items and reads on the device still work offline. It keeps no answer from the cloud. A new version waits until you press **Reload**.
 
-The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge) (`before-you-tape-android-76acd04.apk`, SHA-256 `df64d580a71f9cd01ea9efc95df0542d4286a94ff8dc39494cf012f840ab4f71`). What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
+The same rules also run in an iPhone app that is not part of this entry ([`ios/README.md`](ios/README.md)) and in the Android app ([`android/RELEASE.md`](android/RELEASE.md)). The Android judge build is a signed APK on the [android-judge-2 release](https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-2) (`before-you-tape-android-59c5914.apk`, SHA-256 `8b9f332dc7f681caf8a9d23a8b57e8ce8310b50b1e66edfa6407f88a5e3cade9`), the build checked on a Samsung A16. What ran where, on which device and with which model, is in [`docs/TEST-MATRIX.md`](docs/TEST-MATRIX.md).
 
 ## Run it
 
