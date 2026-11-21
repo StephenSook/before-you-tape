@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The box summary shows its counts as chips in the verdict colors ("1 to take out", "2 to check", "6 OK to pack"), on the Pack page and on /judge. Source: UI review. Verified: a new BoxSummary test failed first and passes; the full unit suite passes.
+
 - /judge shows each sample card's photo from its small WebP copy, with its width, height, srcset and sizes, so the page loads fast and does not shift as photos arrive. Source: UI review. Verified: the JudgePage test (the copy, srcset, sizes, width and height) failed first and passes; the full unit suite passes.
 
 - `scripts/eval-thumbs.py` writes a 240 px and a 480 px wide WebP copy of each of the 40 published eval photos into `public/eval/thumbs/` (80 files, 1.2 MB, against 11 MB for the photos), with no Exif or XMP block, and `src/judge/thumbs.json` records each one's size and SHA-256. `src/judge/thumbs.ts` gives a page the small copy, its size and a srcset. The published photos and the manifest do not change. Source: UI review (/judge showed 2.8 MB of photos at 160 px). Verified: a new test (every photo, both widths, the same shape, the hashes, no Exif or XMP) failed first and passes.
