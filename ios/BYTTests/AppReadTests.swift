@@ -153,7 +153,7 @@ import Testing
     /// the rest is the web app's sentence.
     @Test func theConsentQuestionSaysThePhotoOrTheWordsGo() throws {
         let web = try String(contentsOf: BoxStoreTests.repo.appendingPathComponent("src/ui/ConsentNotice.tsx"), encoding: .utf8)
-        #expect(ConsentSheet.sentence == "To check items when this iPhone can't, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?")
+        #expect(ConsentSheet.sentence == "To check items this iPhone can't read, and to check a read again when the rules ask, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?")
         #expect(web.contains("\"To check items when this laptop can't, a cropped photo of the item and"))
         #expect(web.contains("go to Google's Gemini. Allow?\""))
         #expect(ConsentSheet.allowLabel == "Allow" && ConsentSheet.keepLabel == "Keep everything on this iPhone")

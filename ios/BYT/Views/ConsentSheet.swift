@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The one-time cloud question, asked before the first cloud call. The web app's sentence
-/// (src/ui/ConsentNotice.tsx), for this iPhone, which sends the photo or the label words typed or
-/// scanned, never both.
+/// The one-time cloud question, asked before the first cloud call. Built on the web app's sentence
+/// (src/ui/ConsentNotice.tsx), for this iPhone: it also names the second look of a read already made,
+/// and says the photo or the label words typed or scanned go, never both. Changing these words means
+/// raising `BoxStore.consentVersion`, so an earlier "allowed" is asked again.
 struct ConsentSheet: View {
-    static let sentence = "To check items when this iPhone can't, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?"
+    static let sentence = "To check items this iPhone can't read, and to check a read again when the rules ask, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?"
     static let allowLabel = "Allow"
     static let keepLabel = "Keep everything on this iPhone"
 

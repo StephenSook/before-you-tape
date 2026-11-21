@@ -72,6 +72,25 @@ import Testing
         }
     }
 
+    /// "Allowed" counts only for the question's current words: the earlier question did not mention
+    /// a second look of a read already made, so a sender who allowed it is asked again.
+    @Test func anAllowedChoiceUnderTheEarlierQuestionIsAskedAgain() throws {
+        let p = FlakyBox()
+        try relaunched(p).setConsent(true)
+        #expect(p.stored?.cloudConsentVersion == BoxStore.consentVersion && BoxStore.consentVersion == 2)
+        #expect(try relaunched(p).cloudConsent == true)
+        // A box file from the earlier question, with and without the earlier record.
+        p.stored?.cloudConsentVersion = nil
+        p.records = [:]
+        #expect(try relaunched(p).cloudConsent == nil)
+        p.records = ["id-1": "allowed"]
+        #expect(try relaunched(p).cloudConsent == nil)
+        // A choice of "off" needs no new words: it stays off.
+        try relaunched(p).setConsent(false)
+        p.stored?.cloudConsentVersion = nil
+        #expect(try relaunched(p).cloudConsent == false)
+    }
+
     /// A box saved before the separate record existed keeps its own choice.
     @Test func aBoxWithNoRecordKeepsItsFilesChoice() throws {
         let p = FlakyBox()

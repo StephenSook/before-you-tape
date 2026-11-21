@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the cloud question names the second look, and an earlier "allowed" is asked again
+- What: the question said Gemini checks items "this iPhone can't", but a second look sends a photo
+  the iPhone already read. It now reads "To check items this iPhone can't read, and to check a read
+  again when the rules ask, a cropped photo of the item, or the label words you typed or scanned,
+  goes to Google's Gemini. Allow?". The answer is versioned (`BoxStore.consentVersion` = 2, saved
+  with the box and in the separate record): an "allowed" given to the earlier words counts as
+  unasked, so that sender is asked again before any cloud call; "off" stays off. The review notes
+  quote the new sentence.
+- Source: review (Codex, on the second-look PR); wording from the privacy page review.
+- Verified: the consent sentence test and a new box test (an earlier "allowed" in the file or the
+  record is asked again; a current one comes back; "off" stays off) failed before and pass after;
+  one fixture that saved an "allowed" now saves it with the current version; 197 unit tests pass;
+  `check_lengths.py` exits 0.
+
 ### fix(ios): a cloud choice taken back holds after a relaunch even when its box save failed
 - What: the cloud choice was kept only in the box file. When turning cloud checks off failed to
   save, the next launch read the last good box and its "allowed", so a photo read on the iPhone
