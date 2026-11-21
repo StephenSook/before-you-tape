@@ -36,6 +36,19 @@ import Testing
         try BoxFiles(folder: folder()).deleteBox(boxId: "none")
     }
 
+    /// A delete that cannot see the folder (no permission, the iPhone locked) or is given an id that is not
+    /// a box id fails, so the app never says "deleted" while files may remain. Only a missing folder means
+    /// there is nothing to delete.
+    @Test func aDeleteThatCannotListTheFolderFails() throws {
+        let dir = folder()
+        let files = BoxFiles(folder: dir)
+        try files.save(BoxSnapshot(boxId: "b1", destinationCode: "CA", items: [], cloudConsent: nil, sources: BoxSources()))
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: dir.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path) }
+        #expect(throws: (any Error).self) { try files.deleteBox(boxId: "b1") }
+        #expect(throws: (any Error).self) { try files.deleteBox(boxId: "../b1") }
+    }
+
     /// The cloud choice is kept apart from the box file, per box, in a file of its own that is on disk
     /// when the call returns (an app that stops right after still has it), and read back by a later launch.
     @Test func theCloudChoiceIsWrittenToItsOwnFileAtOnce() throws {

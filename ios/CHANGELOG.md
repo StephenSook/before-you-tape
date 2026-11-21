@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): deleting a box fails when the folder cannot be listed
+- What: deleting a box treated any failure to list the boxes folder (no permission, the iPhone
+  locked), and an id that is not a box id, as "nothing to delete", so "Delete everything" could say
+  done while files remained. Only a missing folder now means nothing to delete; any other listing
+  error, and a bad id, fails the box step, which then says what is left.
+- Source: automated security review of the delete commit.
+- Verified: a new file test (a folder made unreadable, and an unsafe id) failed (no error) and
+  passes; 229 unit tests pass.
+
 ### docs(ios): the review notes say where to delete everything
 - What: the App Store review notes say the app has no account to make (it signs in anonymously),
   and that Delete everything on this iPhone, on the Ready check screen, deletes the box, the cloud
