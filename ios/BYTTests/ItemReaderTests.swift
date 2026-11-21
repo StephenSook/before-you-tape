@@ -22,8 +22,10 @@ final class FakeItemRunner: ItemModelRunner, @unchecked Sendable {
     let journal: Journal
     final class Journal: @unchecked Sendable {
         private let lock = NSLock()
-        private(set) var events: [String] = []
-        func add(_ e: String) { lock.lock(); events.append(e); lock.unlock() }
+        private var stored: [String] = []
+        /// A copy taken under the lock: a test reads this while runners add from other threads.
+        var events: [String] { lock.withLock { stored } }
+        func add(_ e: String) { lock.withLock { stored.append(e) } }
     }
 
     init(_ name: String, journal: Journal, results: [Result<ItemReply, ReadError>]) {

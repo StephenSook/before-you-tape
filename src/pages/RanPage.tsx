@@ -5,8 +5,8 @@ import { MeasuredSection } from "../ran/MeasuredSection";
 import { localDay } from "../shared/localDay";
 import { BOX_LIST_SAVED } from "../ui/boxListCopy";
 
-// Our own test, written by scripts/ran-eval.ts, and the visitor totals, written by scripts/measure-routes.ts. Until a
-// visitor totals file is committed there is none, and the page says so.
+// Our own test, written by scripts/ran-eval.ts, and the saved-box totals, written by scripts/measure-routes.ts. Until a
+// saved-box totals file is committed there is none, and the page says so.
 const FILE: unknown = Object.values(import.meta.glob("../ran/measured.json", { eager: true, import: "default" }))[0];
 
 const ROWS: { action: string; runs: string; leaves: string }[] = [
@@ -18,7 +18,7 @@ const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Turn off cloud checks", runs: "Every read that starts after it stays on this device. A read already running makes no further cloud call.", leaves: "Nothing more." },
 ];
 
-// ranEval and measured: the eval summary and the visitor totals to show (the committed ones unless a test passes its
+// ranEval and measured: the eval summary and the saved-box totals to show (the committed ones unless a test passes its
 // own); today: this device's date.
 export function RanPage(p: { ranEval?: unknown; measured?: unknown; today?: string }) {
   const file = "measured" in p ? p.measured : FILE;

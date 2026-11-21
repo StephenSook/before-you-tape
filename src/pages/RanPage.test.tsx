@@ -36,8 +36,12 @@ describe("RanPage", () => {
 
   it("says in few words what was measured, and when, with the detail behind a disclosure", () => {
     render(<RanPage measured={measured()} today="2026-11-21" />);
+    // Our own deploy checks and tests save boxes the same way a visitor does, with nothing that tells them apart,
+    // so the heading and the line say the totals include them rather than reading as usage.
+    expect(screen.getByRole("heading", { level: 3, name: "Saved boxes, our own checks included" })).toBeInTheDocument();
+    expect(screen.queryByText(/Visitors' saved boxes/)).toBeNull();
     expect(screen.getByTestId("measured")).toHaveTextContent(
-      "27 items read in the cloud and fewer than 5 on the device, in 269 saved boxes. The records don't say why a read went to the cloud. Measured November 21, 2026.");
+      "27 items read in the cloud and fewer than 5 on the device, in 269 saved boxes, our own test runs included, so these show where reads ran, not how many people used the app. The records don't say why a read went to the cloud. Measured November 21, 2026.");
     const detail = screen.getByText("How this was measured").closest("details")!;
     expect(detail).not.toHaveAttribute("open");
     for (const line of [
@@ -73,7 +77,7 @@ describe("RanPage", () => {
     p50Ms: 4868, p90Ms: 7735,
   });
 
-  it("leads with our own test, before the visitor totals, with its detail behind a disclosure", () => {
+  it("leads with our own test, before the saved-box totals, with its detail behind a disclosure", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} today="2026-11-21" />);
     const ours = screen.getByTestId("eval-measured");
     expect(ours).toHaveTextContent(

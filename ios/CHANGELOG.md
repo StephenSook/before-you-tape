@@ -5,6 +5,68 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### docs(ios): the review notes answer App Review's six information-needed items
+- What: ios/app-store/review-notes.md now answers, in App Review's order, the six items its
+  Guideline 2.1 "Information Needed" message asks for: the attached screen recording (an earlier
+  build on the same iPhone, and what this build adds), purpose and audience, setup (no account or
+  login; any label photo works), every external service, regional differences, and regulated
+  material (none). It stays under 4000 characters (3986).
+- Source: App Review's information-needed list.
+- Verified: each external service matches what the app links and calls at ba1e88a (Firebase AI
+  Logic, App Check, Authentication, Remote Config, Firestore for one rule-edition read, Apple
+  Foundation Models; no other network call); the recording's facts match its evidence folder and
+  its first frames; the quote left matches the code; tone and hygiene pass.
+
+### docs(ios): App Store screenshots captured again from the build uploaded as 1.0.0 (1)
+- What: the five 6.9-inch screenshots were taken again from the Release build of ba1e88a. The old
+  ones came from earlier commits and lacked Delete everything on this iPhone (01) and the Check it
+  in the cloud offer on the power bank (03), and every file had an alpha channel. The new files are
+  RGB with no alpha. The README says what was done by hand, including turning off a wrong "spray or
+  under pressure" switch on the lotion's read in Fix this reading.
+- Source: a check that the screenshots show the uploaded build.
+- Verified: each file is 1320 by 2868, PNG color type 2 (no alpha); stripping the opaque alpha
+  changed 0 pixels; each capture was viewed. The app build is unchanged.
+
+### docs(ios): the review notes cover the cloud offer and the Canada suspension
+- What: ios/app-store/review-notes.md now says that an item the rules want read again shows Check it
+  in the cloud when the cloud question was never answered, and asks first; and that USPS stops taking
+  mail to Canada on November 29, 2026, quoting what a Canada box says before and from that day, and
+  that the Philippines is not affected.
+- Source: a check of every claim in the notes against the app at the commit uploaded as 1.0.0 (1).
+- Verified: every quote matches the app's code or its bundled engine (the Canada lines with the name
+  and date filled in); the output line is assembled as "name: verdict. Read on this iPhone." in
+  AppModel; check_lengths.py gives 3759 / 4000; tone and hygiene pass.
+
+### docs(ios): the listing matches the App Store Connect record and its age rating
+- What: ios/app-store/listing.md no longer says the record is not created yet; it says a TestFlight
+  build is checked on a real iPhone before any build goes to review. The age rating section now
+  gives the answers set: Infrequent for "Alcohol, Tobacco, or Drug Use or References" and "Guns or
+  Other Weapons" (the rules name such items), None or No for everything else, rated 13+ (12+ before
+  iOS 26).
+- Source: the App Store Connect record, set through its API.
+- Verified: check_lengths.py passes; tone and hygiene pass. The app build is unchanged.
+
+### fix(ios): the app has an icon, so App Store Connect accepts the build
+- What: App Store Connect refused the first upload (error 90022, no 120 by 120 iPhone icon; error
+  90713, no CFBundleIconName). The app now has an asset catalog with one 1024 by 1024 opaque icon,
+  drawn from the web app's public/favicon.svg as the web app's maskable icon is (rsvg-convert at 640
+  px, centered on #fff3e6), set as the app icon in ios/project.yml, with CFBundleIconName in the
+  Info.plist.
+- Source: the App Store Connect upload's errors.
+- Verified: two new tests (the built app names its icon, at the top level and as its primary icon;
+  the source is a 1024 by 1024 PNG with no alpha) failed and pass; the built app holds
+  AppIcon60x60@2x.png (120 by 120); 236 unit tests pass.
+
+### fix(test): the test journal is read under its lock
+- What: the fake runners' journal added events under a lock but handed out its array without one.
+  A test waiting for "cloud start" read it while the fake cloud added from another thread, and the
+  test host crashed with "Index out of range" (crash report: a `contains` over the journal inside
+  aLookThatFailedForNoConnectionRunsWhenBackOnline). The journal now copies its events under the lock.
+- Source: a local test run that crashed the test host.
+- Verified: a new stress test (eight tasks add while one reads) crashed the old journal with the same
+  error on 2 of 3 runs at its first size and 1 of 3 at the size kept (a race test catches it only
+  sometimes); with the fix it passes every run, and 236 unit tests pass twice in a row.
+
 ### docs(ios): a known limit for a sign-in deleted on the server but left in the keychain
 - What: docs/LIMITS.md says that when Firebase has deleted the anonymous sign-in on its servers and
   the iPhone then cannot remove it from its keychain, a copy can stay on the iPhone, and it no longer

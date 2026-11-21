@@ -5,7 +5,7 @@ name: Live probe
 # loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
 # shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
 # The read job, with the CI App Check debug token: one real read through the live app comes back as a read,
-# once a UTC day. The fresh job fails when no scheduled run before this one passed in the last 26 hours.
+# once a UTC day. The fresh job fails when no scheduled run before this one finished in the last 26 hours.
 # The probe reports itself retired after 2026-12-17; delete this file then.
 # A manual run can probe another site, so a wrong URL proves the probe fails.
 on:
@@ -77,11 +77,11 @@ jobs:
       - name: Rules stay fresh through judging
         run: npm run fresh
 
-  # A cron is no liveness guarantee: this fails when the newest successful scheduled run before this one started 26
-  # hours ago or more (scripts/probe-schedule.ts), so a stopped, throttled or failing schedule shows red on the next
-  # run, and GitHub's failure email goes out. Counting only passing runs keeps it red for one more run after a bad
-  # day; that is the price of catching a schedule that runs but keeps failing. It cannot alarm when no run starts at
-  # all: an outside uptime check covers that.
+  # A cron is no liveness guarantee: this fails when no scheduled run before this one finished, with any result, in
+  # the last 26 hours (scripts/probe-schedule.ts), so a stopped or throttled schedule shows red on the next run, and
+  # GitHub's failure email goes out. A scheduled run that failed still shows the schedule is alive; the other jobs
+  # in each run say whether the site is up. It cannot alarm when no run starts at all: an outside uptime check
+  # covers that.
   fresh:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -99,7 +99,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: A scheduled run passed under 26 hours ago
+      - name: A scheduled run finished under 26 hours ago
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

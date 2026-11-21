@@ -6,29 +6,26 @@ demo account is needed.
 
 ## Notes for the reviewer
 
-Before You Tape needs no account. It signs in anonymously by itself.
+1. Screen recording (attached): an iPhone 17 Pro on iOS 27.2.1 in airplane mode, about 11 minutes, 22 label photos read on the iPhone. It is from an earlier build of this app (November 20) on the same iPhone and starts with the app already open on Ready check. This build adds the cloud second look with its Check it in the cloud button, Delete everything on this iPhone, and the app icon.
 
-What it does: you photograph an item's label, the app reads it, and a rules engine bundled with the app says whether the item can go in a box mailed abroad with USPS: OK to pack, Check this or Take it out. The model only reads the label. The rules decide every verdict.
+2. Purpose and audience: people in the US who mail gifts and personal items abroad with USPS. Batteries, liquids, sprays and flammable items have rules that differ by item and by country. You photograph an item's label, the app reads it, and a rules engine bundled with the app says OK to pack, Check this or Take it out, with the rule behind it. The model only reads the label. The rules decide every verdict.
 
-To try it (about 2 minutes):
-1. Open the app. The first screen, Ready check, says whether this iPhone reads label photos on the device.
-2. Tap Check an item. Hold a product label (a lotion, a perfume or a power bank) inside the white frame and tap Check now. Or tap Add a photo and pick a photo of a label.
-3. The line under the photo gives the item, its verdict and where it was read, for example "Body lotion: OK to pack. Read on this iPhone."
-4. Go back and tap Your box to see every item and why it got its verdict. Under What we checked, each rule layer shows the date it was checked. The country picker checks the whole box again by the rules alone.
+3. Setup: no account, no login and no demo account; the app signs in anonymously by itself. No real items or box are needed: Check an item > Add a photo works with any photo of a product label.
+- Open the app. Ready check says whether this iPhone reads label photos on the device.
+- Tap Check an item. Hold a label (a lotion, a perfume or a power bank) inside the white frame and tap Check now, or tap Add a photo.
+- The line under the photo gives the item, its verdict and where it was read.
+- Tap Your box to see each item and why. Under What we checked, each rule layer shows the date it was checked. The country picker checks the whole box again by the rules alone.
+With Apple Intelligence on, photos and typed label words are read on the iPhone, also in airplane mode, and nothing goes to the cloud unless cloud checks are allowed. Once they are, a photo the iPhone read can be checked again in the cloud when the rules ask, for example for a power bank's battery numbers, and the item says why. If the cloud question was never answered, that item shows Check it in the cloud, which asks first. Without Apple Intelligence, the app asks once, before any cloud check, whether a cropped photo or the typed label words may go to Google's Gemini. Allow sends the cropped photo, or typed words (never both), and the line ends "Read in the cloud." Keep everything on this iPhone sends nothing; Your box > Type it adds an item by hand. Only the part of the photo inside the white frame is read or sent. On Ready check, Delete everything on this iPhone deletes the box, the cloud choice and the anonymous sign-in, after asking.
 
-If this iPhone has Apple Intelligence on: photos and typed label words are read on the iPhone by Apple's on-device model, also in airplane mode. Nothing goes to the cloud unless cloud checks were allowed. Once they are, a photo the iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a power bank's battery numbers again; the item then says why ("Battery numbers decide what may be mailed, so the cloud read them again.").
+4. External services:
+- Apple Foundation Models: reads labels on the iPhone.
+- Firebase AI Logic with Google Gemini: the cloud check, only after Allow.
+- Firebase Authentication: an anonymous sign-in.
+- Firebase App Check with App Attest: the cloud calls are accepted only from this app.
+- Firebase Remote Config: settings such as the cloud model and a switch that pauses all cloud calls.
+- Cloud Firestore: reads a newer rule edition only when Remote Config names one; none is named now.
+The rules engine and the rule edition are bundled in the app. No payments, ads or user accounts.
 
-If it does not (Apple Intelligence off or not supported, or its model still downloading): Ready check and the Check an item screen say so. A photo then needs a cloud check, and the app asks once: "To check items this iPhone can't read, and to check a read again when the rules ask, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?"
-- Tap Allow: the cropped photo goes to Gemini through Firebase AI Logic (for label words typed in, those words go instead, never both), and the line ends "Read in the cloud."
-- Tap Keep everything on this iPhone: nothing is sent. You can still add an item by hand in Your box > Type it, and the rules give its verdict.
-After either answer, the Check an item screen shows the choice and a button to change it (Turn off cloud checks, or Turn on cloud checks, which asks again).
+5. Regional differences: available in every country and region except France and China mainland. France: the TLS library in the Firebase SDK is exempt from export documentation everywhere but France. China mainland: cloud checks use generative AI, which there needs filings this app does not have. Reading on the iPhone needs Apple Intelligence, which only some iPhones, languages and regions support; elsewhere a photo needs the cloud check, asked first. The rules are the same in every region. Destinations in this edition: Canada and the Philippines. USPS stops taking mail to Canada on November 29, 2026; a Canada box says so before that day and from it says nothing can go. Pick the Philippines to see items marked OK to pack.
 
-Camera: used only to photograph the label you choose to check. Only the part of the photo inside the white frame is read or sent.
-
-Deleting data: the app has no account to make; it signs in anonymously. On the Ready check screen, Delete everything on this iPhone deletes the box, the cloud choice and the anonymous sign-in, after asking first.
-
-Countries in this rule edition: Canada and the Philippines.
-
-Availability: every country and region except France and China mainland. The app declares only exempt encryption (ITSAppUsesNonExemptEncryption is false): HTTPS, plus a standard TLS library bundled by the Firebase SDK, which is exempt from export documentation everywhere but France. China mainland is left out because cloud checks use generative AI, which there needs filings this app does not have.
-
-Not affiliated with or approved by the US Postal Service.
+6. Regulated material: none. The rules come from USPS's public International Mail Manual and service alerts. The app gives guidance, not legal or customs advice, and mails nothing. Not affiliated with or approved by the US Postal Service.
