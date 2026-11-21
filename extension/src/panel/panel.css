@@ -1,0 +1,123 @@
+:root {
+  color: #182e2c;
+  background: #f6f4ec;
+  font: 16px/1.45 system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  box-sizing: border-box;
+  max-width: 34rem;
+  margin: auto;
+  padding: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+  padding: 0.4rem 0.75rem;
+}
+
+.item-form, .item-form details[open] {
+  display: grid;
+  gap: 0.8rem;
+}
+
+label {
+  display: block;
+}
+
+input:not([type="checkbox"], [type="radio"]), select, textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.2rem;
+  padding: 0.45rem;
+  border: 1px solid #7e8c80;
+  border-radius: 0.25rem;
+  font: inherit;
+}
+
+.product-text { margin-bottom: 1rem; }
+
+.product-text button { margin-top: 0.5rem; }
+
+summary {
+  cursor: pointer;
+}
+
+.item-form button[type="submit"] {
+  justify-self: start;
+  background: #234641;
+  color: white;
+  border: 1px solid #234641;
+  border-radius: 0.25rem;
+  padding-inline: 1.2rem;
+}
+
+.verdict {
+  margin-top: 1rem;
+  border: 1px solid #879087;
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  background: white;
+}
+
+.verdict h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.verdict-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35em;
+  height: 1.35em;
+  margin-right: 0.25em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.verdict--take_out h2 { color: #892f21; }
+.verdict--check h2 { color: #775208; }
+.verdict--ok h2 { color: #245745; }
+
+fieldset {
+  min-width: 0;
+  padding: 0.65rem;
+}
+
+.verdict-meta {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.panel-actions [aria-pressed="true"] {
+  border: 2px solid #234641;
+  background: #e1ede7;
+}
+
+footer {
+  margin-top: 1.75rem;
+  border-top: 1px solid #c9cbc0;
+  padding-top: 0.8rem;
+  font-size: 0.8rem;
+}

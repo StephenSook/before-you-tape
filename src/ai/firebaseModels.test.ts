@@ -9,9 +9,10 @@ import { getAI, getGenerativeModel, GoogleAIBackend, type AI, type HybridParams 
 import { initializeApp } from "firebase/app";
 import { itemReadJsonSchema } from "../shared/itemRead";
 import { itemReadCloudSchema } from "./cloudSchema";
-import { createItemModels, deviceDownloadModel } from "./firebaseModels";
+import { createItemModels, createProductCloudPort, createProductDevicePort, deviceDownloadModel, PRODUCT_CREATE_OPTIONS } from "./firebaseModels";
 import { DEVICE_CREATE_OPTIONS } from "./gate";
 import type { ImagePart } from "./port";
+import { PRODUCT_TEXT_SYSTEM } from "./productText";
 import { ITEM_READ_SYSTEM } from "./prompts";
 
 let n = 0;
@@ -133,3 +134,46 @@ describe("createItemModels", () => {
   });
 });
 
+describe("createProductDevicePort", () => {
+  beforeEach(() => { spy.mockClear(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("makes no SDK call when the model is missing", async () => {
+    const port = createProductDevicePort(fakeAi(), undefined);
+    await expect(port.generate("x")).rejects.toMatchObject({ kind: "device_failed" });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("uses the guarded text-only Firebase model and an inert fallback host", async () => {
+    const model = fakeModel({ text: "{}", inferenceSource: "on_device" });
+    spy.mockReturnValueOnce(model);
+    const availability = vi.fn().mockResolvedValueOnce("unavailable").mockResolvedValueOnce("available");
+    const lm = { availability };
+    vi.stubGlobal("LanguageModel", lm);
+    const port = createProductDevicePort(fakeAi(), lm);
+    expect(spy).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+      mode: "only_on_device",
+      onDeviceParams: { createOptions: PRODUCT_CREATE_OPTIONS, promptOptions: { responseConstraint: itemReadJsonSchema() } },
+    }, { baseUrl: "https://on-device-only.invalid" });
+    expect(PRODUCT_CREATE_OPTIONS.expectedInputs).toEqual([{ type: "text", languages: ["en"] }]);
+    await expect(port.generate("x")).rejects.toMatchObject({ kind: "device_failed" });
+    expect(model.generateContent).not.toHaveBeenCalled();
+    await expect(port.generate("x", img)).resolves.toMatchObject({ source: "on_device" });
+    expect(availability).toHaveBeenLastCalledWith(PRODUCT_CREATE_OPTIONS);
+    expect(model.generateContent).toHaveBeenCalledExactlyOnceWith(["x"]);
+    vi.stubGlobal("LanguageModel", undefined);
+    await expect(port.generate("x")).rejects.toMatchObject({ kind: "device_failed" });
+  });
+});
+
+it("uses the cloud-only text port with the product prompt and shared schema", async () => {
+  spy.mockClear();
+  const model = fakeModel({ text: "{}", inferenceSource: "in_cloud" });
+  spy.mockReturnValueOnce(model);
+  const port = createProductCloudPort(fakeAi(), "gemini-3.5-flash-lite");
+  expect(params(0).mode).toBe("only_in_cloud");
+  expect(params(0).inCloudParams?.systemInstruction).toBe(PRODUCT_TEXT_SYSTEM);
+  expect(params(0).inCloudParams?.generationConfig?.responseSchema).toEqual(itemReadCloudSchema());
+  await port.generate("x", img);
+  expect(model.generateContent).toHaveBeenCalledExactlyOnceWith(["x"]);
+});

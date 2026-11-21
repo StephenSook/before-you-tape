@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { versionInfo } from "./scripts/version-info";
@@ -16,6 +18,11 @@ function versionFile(): Plugin {
       if (sha === "unknown") this.warn("no git history: dist/version.json records the commit as unknown");
       this.emitFile({
         type: "asset",
+        fileName: "edition.json",
+        source: readFileSync(new URL("./rules/edition.json", import.meta.url)),
+      });
+      this.emitFile({
+        type: "asset",
         fileName: "version.json",
         source: JSON.stringify({ sha, dirty, builtAt: new Date().toISOString() }) + "\n",
       });
@@ -25,4 +32,12 @@ function versionFile(): Plugin {
 
 export default defineConfig({
   plugins: [react(), versionFile()],
+  build: {
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL("./index.html", import.meta.url)),
+        extBridge: fileURLToPath(new URL("./ext-bridge.html", import.meta.url)),
+      },
+    },
+  },
 });

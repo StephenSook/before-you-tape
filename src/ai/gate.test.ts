@@ -18,6 +18,13 @@ describe("checkGate", () => {
     expect(availability).toHaveBeenCalledWith(DEVICE_CREATE_OPTIONS);
   });
 
+  it("asks availability with the supplied text-only options", async () => {
+    const options = { ...DEVICE_CREATE_OPTIONS, expectedInputs: DEVICE_CREATE_OPTIONS.expectedInputs?.slice(0, 1) };
+    const availability = vi.fn(async () => "available");
+    await checkGate({ availability }, options);
+    expect(availability).toHaveBeenCalledWith(options);
+  });
+
   it("sets the on-device input and output languages", () => {
     expect(DEVICE_CREATE_OPTIONS.expectedInputs).toEqual([{ type: "text", languages: ["en"] }, { type: "image" }]);
     expect(DEVICE_CREATE_OPTIONS.expectedOutputs).toEqual([{ type: "text", languages: ["en"] }]);
