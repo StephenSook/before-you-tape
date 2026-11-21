@@ -148,10 +148,14 @@ import Testing
         #expect(fakeModel(j, status: .wordsOnly).photoNotice == "This iPhone's model does not read photos. Type the label's words instead.")
     }
 
-    @Test func theConsentQuestionIsTheWebAppsSentenceForThisIPhone() throws {
+    /// The web app sends only photos, so its sentence names the photo. The iPhone also sends label words
+    /// typed or scanned, never with the photo (CloudOutbound), so its sentence names one or the other;
+    /// the rest is the web app's sentence.
+    @Test func theConsentQuestionSaysThePhotoOrTheWordsGo() throws {
         let web = try String(contentsOf: BoxStoreTests.repo.appendingPathComponent("src/ui/ConsentNotice.tsx"), encoding: .utf8)
-        #expect(ConsentSheet.sentence == "To check items when this iPhone can't, a cropped photo of the item and the words on its label go to Google's Gemini. Allow?")
-        #expect(web.contains("\"" + ConsentSheet.sentence.replacingOccurrences(of: "this iPhone", with: "this laptop") + "\""))
+        #expect(ConsentSheet.sentence == "To check items when this iPhone can't, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?")
+        #expect(web.contains("\"To check items when this laptop can't, a cropped photo of the item and"))
+        #expect(web.contains("go to Google's Gemini. Allow?\""))
         #expect(ConsentSheet.allowLabel == "Allow" && ConsentSheet.keepLabel == "Keep everything on this iPhone")
     }
 

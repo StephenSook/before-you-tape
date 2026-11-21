@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): the cloud question says the photo or the typed words go, not both
+- What: the one-time cloud question said "a cropped photo of the item and the words on its label
+  go to Google's Gemini", which reads as both being sent. A cloud request carries the crop or the
+  label words typed or scanned, never both, so it now says "a cropped photo of the item, or the
+  label words you typed or scanned, goes to Google's Gemini". The web app's sentence stays as it
+  is (the web sends photos only); the test now checks the shared start and end of the sentence
+  against the web's. The review notes quote the new sentence.
+- Source: the privacy page review.
+- Verified: the renamed consent test failed on the old sentence and passes on the new one; 189
+  unit tests pass; `check_lengths.py` exits 0 (review notes 2552 of 4000).
+
 ### docs(ios): the App Store notes say a cloud check sends the photo or the words, never both
 - What: the App Privacy evidence, the description and the review notes said the label's words go
   with the crop. A cloud request carries the crop or the words, never both

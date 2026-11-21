@@ -18,7 +18,7 @@ To try it (about 2 minutes):
 
 If this iPhone has Apple Intelligence on: photos and typed label words are read on the iPhone by Apple's on-device model, also in airplane mode. Nothing goes to the cloud unless cloud checks were allowed. Once they are, a photo the iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a power bank's battery numbers again; the item then says why ("Battery numbers decide what may be mailed, so the cloud read them again.").
 
-If it does not (Apple Intelligence off or not supported, or its model still downloading): Ready check and the Check an item screen say so. A photo then needs a cloud check, and the app asks once: "To check items when this iPhone can't, a cropped photo of the item and the words on its label go to Google's Gemini. Allow?"
+If it does not (Apple Intelligence off or not supported, or its model still downloading): Ready check and the Check an item screen say so. A photo then needs a cloud check, and the app asks once: "To check items when this iPhone can't, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?"
 - Tap Allow: the cropped photo goes to Gemini through Firebase AI Logic (for label words typed in, those words go instead, never both), and the line ends "Read in the cloud."
 - Tap Keep everything on this iPhone: nothing is sent. You can still add an item by hand in Your box > Type it, and the rules give its verdict.
 After either answer, the Check an item screen shows the choice and a button to change it (Turn off cloud checks, or Turn on cloud checks, which asks again).
