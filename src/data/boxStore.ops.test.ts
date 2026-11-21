@@ -73,6 +73,22 @@ describe("saving by explicit operations", () => {
     expect(s.getState().items).toHaveLength(2);
   });
 
+  it("after a delete that failed, reopens without writing anything when no edit was made meanwhile", async () => {
+    const p = ops(found([savedItem("a")]));
+    const journal = memoryJournal();
+    const write = vi.spyOn(journal, "write");
+    const s = make(p.o, journal);
+    p.answer();
+    await s.ready;
+    await s.close();
+    write.mockClear();
+    // Another tab's unsent edit in the journal both tabs share stays as it is.
+    s.reopen();
+    await s.settled();
+    expect(write).not.toHaveBeenCalled();
+    expect(writes(p.o)).toBe(0);
+  });
+
   it("after a delete that failed, reopens and sends the edits made while it was closed", async () => {
     const p = ops(found([savedItem("a")]));
     const s = make(p.o);

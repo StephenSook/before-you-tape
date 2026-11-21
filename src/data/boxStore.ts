@@ -231,6 +231,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const inFlight = new Set<string>();
   // Set by close(): the box is being deleted, so nothing more is kept or sent.
   let closed = false;
+  // An edit was made while closed, so reopen() has something to keep and send.
+  let editedWhileClosed = false;
   const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
   const storedJson = (i: BoxItem) => stableJson(forStorage(i));
   const keepJournal = () => deps.journal?.write(boxId, journal);
@@ -334,7 +336,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   // edit: the change came from the sender (or a read), so it is journaled and sent; a load or a notice is not.
   const commit = (result: BoxResult = evaluate(), edit = true) => {
     state = snapshot(result);
-    if (closed) { publish(); return; }
+    if (closed) { if (edit) editedWhileClosed = true; publish(); return; }
     deps.deviceNames?.remember(boxId, Object.fromEntries(items.map((i) => [i.itemId, namesOf(i)])));
     if (edit) {
       recordEdits();
@@ -586,10 +588,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       closed = true;
       while (flushing) await flushing;
     },
+    // Writes only when an edit was made while closed: the journal is shared by this browser's tabs, so writing this
+    // page's copy without one would overwrite another tab's unsent edits.
     reopen() {
       if (!closed) return;
       closed = false;
-      commit();
+      if (editedWhileClosed) { editedWhileClosed = false; commit(); }
     },
     setConsent(v) {
       deps.consent?.set(v);

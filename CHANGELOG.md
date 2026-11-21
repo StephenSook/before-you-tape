@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- After a delete that failed, the box store reopens without writing anything unless an edit was made while it was closed: the journal is shared by this browser's tabs, so writing this page's copy would overwrite another tab's unsent edits. Source: review. Verified: a new store test (reopen with no edit meanwhile writes neither the journal nor the server) failed first and passes; full suite passes.
+
 - When the box step of Delete my saved box fails, the box is still there, so the page saves again: the store reopens and sends the edits made while it was closed (an edit made while closed now shows on the page, but is neither kept nor sent until then). The panel says "The saved box could not be fully deleted. Try again." instead of "Nothing was deleted", which was false after a sweep that had deleted some items. Source: review. Verified: new store and deleteSavedBox tests failed first and pass; all 49 emulator tests and the full suite pass.
 
 - A tab whose box another tab deleted removes the box's keys from this browser again after its store has closed (leaveDeletedBox), then reloads: a local write still on its way when the delete reached it could otherwise put the old box or its journal back. Source: review. Verified: a new test (a write that lands while the store closes is removed before the reload) failed first and passes; typecheck, build, the full suite and the home-page browser check pass.
