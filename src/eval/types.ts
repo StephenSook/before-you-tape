@@ -33,10 +33,11 @@ export interface EvalRow {
   shipped: ShippedResult;
 }
 
-// The route the app ships. read and msRuns are there when it gave a verdict: the read its card shows (after any
-// second look) and the time of each timed read.
-export interface ShippedResult { level: Level; source: string; secondLook: boolean; read?: ItemRead; msRuns?: number[] }
-export interface PublicShippedResult { level: Level; source: string; secondLook: boolean; numbersExact?: boolean | null; msRuns?: number[] }
+// The route the app ships. read and msRuns are there when the route answered: the read its card shows (after any
+// second look), or a read of no item, and the time of each timed read. secondLookMs: the second look's own time, so
+// the time to the final verdict is msRuns plus it.
+export interface ShippedResult { level: Level; source: string; secondLook: boolean; read?: ItemRead; msRuns?: number[]; secondLookMs?: number }
+export interface PublicShippedResult { level: Level; source: string; secondLook: boolean; numbersExact?: boolean | null; msRuns?: number[]; secondLookMs?: number }
 
 // Shipped sources that mean the Pack page shows no verdict at all (it adds no card): the read failed, was not run,
 // found no item, or ran past the page's time limit. Such a row is never agreement and never "Check this".

@@ -141,12 +141,30 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
     const device = paths.has("device") ? await path("device", "device_only") : null;
     const cloud = paths.has("cloud") ? await path("cloud", "cloud_only") : null;
 
-    let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean; read: ItemRead; msRuns: number[] } | null = null;
+    let shipped: { levels: Record<string, Level>; source: string; secondLook: boolean; read: ItemRead; msRuns: number[]; secondLookMs?: number } | null = null;
     let noVerdict = paths.has("shipped") ? "failed" : "not_run";
+    // A read of no item gets no verdict, but its numbers and its times still count.
+    let noItemRead: { read: ItemRead; msRuns: number[] } | null = null;
     if (paths.has("shipped")) try {
       const outcome: ReadOutcome = await read("hybrid");
-      if (isNoItem(outcome.read)) throw new NoItem();
+      // The first shipped read is the one judged; the others only time the route, as on the other paths.
+      const timed = async () => {
+        const ms = [outcome.ms];
+        for (let k = 1; k < repeat; k++) {
+          try {
+            ms.push((await read("hybrid")).ms);
+          } catch (e) {
+            failures.push({ itemId: item.itemId, path: "shipped", error: `timing run ${k + 1}: ${message(e)}` });
+          }
+        }
+        return ms.map((v) => Math.round(v));
+      };
+      if (isNoItem(outcome.read)) {
+        noItemRead = { read: outcome.read, msRuns: await timed() };
+        throw new NoItem();
+      }
       let looked = false;
+      let lookMs: number | undefined;
       const result = await judged(i.edition, i.date, i.set.destinations, outcome, async (store, itemId) => {
         const added = store.getState().items.find((x) => x.itemId === itemId);
         const reason = added ? needsSecondLook(deriveFacts(added, i.edition), outcome, policy) : null;
@@ -156,20 +174,12 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
           const out = await within(limit, (signal) => runSecondLook(i.models.cloud, image, outcome.read, i.now, i.models.fallback, undefined, signal));
           store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[reason], out.cloudLabel, out.disputes);
           looked = true;
+          lookMs = Math.round(out.ms);
         } catch (e) {
           failures.push({ itemId: item.itemId, path: "second_look", error: message(e) });
         }
       });
-      // The first shipped read is the one judged; the others only time the route, as on the other paths.
-      const ms = [outcome.ms];
-      for (let k = 1; k < repeat; k++) {
-        try {
-          ms.push((await read("hybrid")).ms);
-        } catch (e) {
-          failures.push({ itemId: item.itemId, path: "shipped", error: `timing run ${k + 1}: ${message(e)}` });
-        }
-      }
-      shipped = { levels: result.levels, source: outcome.source, secondLook: looked, read: result.read, msRuns: ms.map((v) => Math.round(v)) };
+      shipped = { levels: result.levels, source: outcome.source, secondLook: looked, read: result.read, msRuns: await timed(), ...(lookMs !== undefined ? { secondLookMs: lookMs } : {}) };
     } catch (e) {
       if (e instanceof NoItem) noVerdict = "no_item";
       else {
@@ -183,8 +193,10 @@ export async function evalRows(i: RunnerInput): Promise<RunnerResult> {
         (p ? { read: p.read, msRuns: p.msRuns, level: p.levels[destination]!, ...(p.noItem ? { noItem: true as const } : {}) } : null);
       rows.push({
         itemId: item.itemId, destination, device: pathResult(device), cloud: pathResult(cloud),
-        shipped: shipped ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook, read: shipped.read, msRuns: shipped.msRuns }
-          : { level: "check", source: noVerdict, secondLook: false },
+        shipped: shipped
+          ? { level: shipped.levels[destination]!, source: shipped.source, secondLook: shipped.secondLook, read: shipped.read, msRuns: shipped.msRuns,
+            ...(shipped.secondLookMs !== undefined ? { secondLookMs: shipped.secondLookMs } : {}) }
+          : { level: "check", source: noVerdict, secondLook: false, ...(noItemRead ?? {}) },
       });
     }
   }

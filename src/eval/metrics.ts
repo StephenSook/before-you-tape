@@ -103,14 +103,14 @@ export function computeEvalMetrics(set: EvalSet, run: AnyRun) {
       exact[name].n++;
       if (e) exact[name].k++;
     }
-    if (hasVerdict(r)) {
-      const e = shippedExactOf(item, r.shipped);
-      if (e !== null) {
-        exact.shipped.n++;
-        if (e) exact.shipped.k++;
-      }
-      if (r.shipped.msRuns?.length) shippedMs.push(median(r.shipped.msRuns));
+    // Any shipped read counts here, a read of no item too; only a route that never answered has none.
+    const e = shippedExactOf(item, r.shipped);
+    if (e !== null) {
+      exact.shipped.n++;
+      if (e) exact.shipped.k++;
     }
+    // The time to the final verdict: the read, then the second look when one ran.
+    if (r.shipped.msRuns?.length) shippedMs.push(median(r.shipped.msRuns) + (r.shipped.secondLookMs ?? 0));
     if (r.device && exactOf(item, r.device) === false) {
       misreads++;
       if (rows.every((x) => x.itemId !== itemId || (hasVerdict(x) && x.shipped.level !== "ok"))) caught++;

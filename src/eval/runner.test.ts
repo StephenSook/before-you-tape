@@ -57,6 +57,8 @@ describe("evalRows", () => {
     // The read the shipped route shows, after its second look, and its time.
     expect(out.rows[0]!.shipped.read?.category).toBe("phone");
     expect(out.rows[0]!.shipped.msRuns).toHaveLength(1);
+    // The second look's own time, so the route's time to its final verdict can be told.
+    expect(out.rows[0]!.shipped.secondLookMs).toBeGreaterThan(0);
     // The cloud path's own read plus the second look on the shipped route.
     expect(models.cloud.generate).toHaveBeenCalledTimes(2);
   });
@@ -115,6 +117,9 @@ describe("evalRows", () => {
     expect(out.rows[0]!.device!.msRuns).toHaveLength(2);
     expect(out.rows[0]!.cloud).toMatchObject({ noItem: true });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "no_item", secondLook: false });
+    // The shipped read of no item is kept too, with its times, so it still counts.
+    expect(out.rows[0]!.shipped.read?.category).toBe("other");
+    expect(out.rows[0]!.shipped.msRuns).toHaveLength(2);
     expect(out.failures.map((f) => `${f.path}:${f.error}`)).toEqual(["device:no item found", "cloud:no item found"]);
   });
 

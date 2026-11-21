@@ -95,6 +95,17 @@ describe("computeEvalMetrics", () => {
     expect(computeEvalMetrics(set([pb]), pub)).toEqual(m);
   });
 
+  it("times the shipped route to its final verdict, with its second look, and counts its read of no item", () => {
+    const pb = item("pb", true, { CA: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
+    const looked = { level: "take_out" as Level, source: "on_device", secondLook: true, read: read({ volts: 3.7, milliampHours: 10000, wattHours: 37 }), msRuns: [1000, 1000, 1000], secondLookMs: 9000 };
+    expect(computeEvalMetrics(set([pb]), run([row("pb", "CA", "take_out", { shipped: looked })])).latency.shipped).toMatchObject({ p50: 10000, n: 1 });
+    const empty = { level: "check" as Level, source: "no_item", secondLook: false, read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [800] };
+    const m = computeEvalMetrics(set([pb]), run([row("pb", "CA", "check", { shipped: empty })]));
+    expect(m.numbersExact.shipped).toEqual({ k: 0, n: 1 });
+    expect(m.latency.shipped.n).toBe(1);
+    expect(m.noVerdict).toEqual({ k: 1, n: 1 });
+  });
+
   it("counts a read of no item against exact numbers, since the model gave its numbers", () => {
     const pb = item("pb", true, { CA: "take_out", PH: "take_out" }, { volts: 3.7, milliampHours: 10000, wattHours: 37 });
     const empty = { read: read({ category: "other", labelText: "", evidence: "not_sure" }), msRuns: [5], level: "check" as Level, noItem: true as const };
