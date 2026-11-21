@@ -1,7 +1,8 @@
 // The two baselines of eval/PROTOCOL.md, on the same rows as every model path and with no model call.
-// Always "Check this": every row is "Check this". Rules only: each item typed as a person would type it from
-// the photo (its category and the printed battery numbers, nothing read from the label), entered through the
-// app's own add-by-hand path, and judged alone, one item per box, by the rule edition.
+// Always "Check this": every row is "Check this". Rules only: each item entered as a person would enter it by
+// hand (its category, from a fixed table over the item's description, and the printed battery numbers; nothing
+// read from the label), through the app's own add-by-hand path, and judged alone, one item per box, by the rule
+// edition.
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import type { RuleEdition } from "../engine/types";
