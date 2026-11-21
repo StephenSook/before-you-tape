@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- scripts/ran-eval.ts writes what /ran says about our own test from the newest public model run in eval/runs: it prints the summary, and with --write puts it in src/ran/eval.json. Source: review (lead /ran with the controlled measurement). Verified: two new newestRun tests (latest public model run, baselines and private runs ignored, none when absent) failed first and pass; a dry run printed 13 of 40 items with a second look, 69 of 80, 0 of 28 and 14 of 80, as in eval/runs/README.md.
+
 - summarizeEval turns a public model run from eval/runs into what /ran says about our own test: where the shipped route read each check, how many items got a cloud second look, hazards called OK, agreement with our draft labels (not accuracy), Check this, and the median and 90th percentile time to a verdict. A run it cannot read is refused, never summarized in part. Not used yet. Source: review (lead /ran with the controlled measurement). Verified: two new tests failed first and pass; full suite passes.
 
 - Privacy page: "We publish totals across all saved boxes, such as how many items were read on the device or in the cloud and how long reads took. We never publish anything about one box." It lands with the first published totals on /ran. Source: per-read telemetry plan (approved wording). Verified: npm run legal regenerated the served page, which holds the sentence once; the page tests, the tone check and the full suite pass.
