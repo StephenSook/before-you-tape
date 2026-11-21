@@ -53,6 +53,8 @@ export interface PackPageProps {
   openCamera: typeof openCameraFn;
   index: readonly DestinationIndexEntry[];
   saveCrop: (key: string, part: ImagePart, labelText: string) => Promise<void>;
+  // Deletes a saved crop and its label words from this device.
+  deleteCrop: (key: string) => Promise<void>;
   online: boolean;
   phoneReady?: boolean;
   // On a phone: the back camera, and the photo picker opens the camera.
@@ -162,6 +164,14 @@ export function PackPage(p: PackPageProps) {
   // After a removal: what was removed, said in a live region that stays mounted, and where focus goes next.
   const [removed, setRemoved] = useState("");
   const focusAfterRemove = useRef<string | null>(null);
+  // An item's crop and label words stay on this device only while the box holds the item: they are deleted when
+  // it leaves, removed here or on another device. A delete that fails is retried when the box next opens.
+  const cropOf = useRef(new Map<string, string>());
+  useEffect(() => {
+    const kept = new Map(state.items.flatMap((i) => (i.cropKey ? [[i.itemId, i.cropKey] as const] : [])));
+    for (const [itemId, key] of cropOf.current) if (!kept.has(itemId)) void p.deleteCrop(key).catch(() => {});
+    cropOf.current = kept;
+  }, [state.items, p]);
   const removeItem = (itemId: string) => {
     const at = state.items.findIndex((i) => i.itemId === itemId);
     const removedItem = state.items[at];

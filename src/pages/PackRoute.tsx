@@ -18,7 +18,7 @@ import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
 import { firestoreEditionFetcher, followEditionPin } from "../data/editionSource";
 import { firestorePersistence, persistenceAfterSignIn } from "../data/persistence";
-import { saveCrop } from "../data/crops";
+import { deleteCrop, saveCrop } from "../data/crops";
 import { currentBoxId, localJournal, localPersistence } from "../data/localPersistence";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
@@ -139,6 +139,6 @@ export function PackRoute() {
 
   return (
     <LivePack source={deps.source} makeModels={deps.makeModels} store={deps.store} gate={gate} openCamera={openCamera} sampleRead={SAMPLE_READ} phone={PHONE}
-      index={destinationIndex} saveCrop={saveCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
+      index={destinationIndex} saveCrop={saveCrop} deleteCrop={deleteCrop} online={online} downloadProgress={progress} onGetReady={getReady} editionNotice={editionNotice} />
   );
 }
