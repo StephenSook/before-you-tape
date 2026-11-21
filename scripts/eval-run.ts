@@ -79,6 +79,21 @@ function waitForLine(child: ChildProcess, pattern: RegExp, ms: number): Promise<
   });
 }
 
+// A Google API response, for the private run record: host, path, status and the error message, never the query,
+// the body or a token.
+export interface ResponseNote { host: string; path: string; status: number; error: string | null }
+export function responseNote(url: string, status: number, body: string): ResponseNote {
+  const u = new URL(url);
+  let error: string | null = null;
+  try {
+    const e = (JSON.parse(body) as { error?: { message?: unknown; status?: unknown } }).error;
+    if (e && typeof e.message === "string") error = `${typeof e.status === "string" ? `${e.status}: ` : ""}${e.message}`.slice(0, 300);
+  } catch {
+    error = status >= 400 ? "(no JSON error body)" : null;
+  }
+  return { host: u.hostname, path: u.pathname, status, error };
+}
+
 const KEYCHAIN_ITEM = "byt-eval-appcheck-debug-token";
 
 // The eval project's App Check debug token: from the environment, or else from its Keychain item. Never printed.
@@ -145,6 +160,12 @@ async function main(): Promise<void> {
     const page = await context.newPage();
     let cloudRequests = 0;
     page.on("request", (r) => { if (new URL(r.url()).hostname === AI_LOGIC_HOST) cloudRequests++; });
+    const responses: ResponseNote[] = [];
+    page.on("response", (r) => {
+      const host = new URL(r.url()).hostname;
+      if (host !== AI_LOGIC_HOST && host !== "firebaseappcheck.googleapis.com") return;
+      void r.text().then((body) => { responses.push(responseNote(r.url(), r.status(), body)); }, () => { responses.push(responseNote(r.url(), r.status(), "")); });
+    });
     // The eval project's debug token, only on the local harness page.
     const origin = `http://localhost:${VITE_PORT}`;
     await page.addInitScript(({ t, o }) => { if (location.origin === o) (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = t; }, { t: token, o: origin });
@@ -170,9 +191,9 @@ async function main(): Promise<void> {
     };
     const metrics = computeEvalMetrics(set, run);
     mkdirSync(join("eval", "runs", "private"), { recursive: true });
-    writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, failures: result.failures, cloudRequests, project }, null, 2) + "\n");
+    writeFileSync(join("eval", "runs", "private", `${run.runId}.json`), JSON.stringify({ ...run, failures: result.failures, cloudRequests, responses, project }, null, 2) + "\n");
     if (paths.length === ALL_PATHS.length) writeFileSync(join("eval", "runs", `${run.runId}.public.json`), JSON.stringify({ ...redactRun(run, set), metrics }, null, 2) + "\n");
-    console.log(JSON.stringify({ runId: run.runId, failures: result.failures.length, cloudRequests, metrics }, null, 2));
+    console.log(JSON.stringify({ runId: run.runId, failures: result.failures.length, cloudRequests, responses, metrics }, null, 2));
   } finally {
     if (chrome && chrome.exitCode === null && chrome.signalCode === null) chrome.kill();
     vite?.kill();

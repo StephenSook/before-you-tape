@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import template from "../remoteconfig.template.json";
 import pkg from "../package.json";
-import { evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight } from "./eval-run";
+import { evalEnv, evalProjectId, evalToken, liveModels, parseEnvFile, preflight, responseNote } from "./eval-run";
 
 describe("eval-run", () => {
   it("runs only against an eval project, never the live one, and never with no project named", () => {
@@ -55,5 +55,16 @@ describe("eval-run", () => {
 
   it("chains no npm script with ';', so a failed step always stops the next", () => {
     expect(Object.entries(pkg.scripts).filter(([, v]) => v.includes(";")).map(([k]) => k)).toEqual([]);
+  });
+
+  it("notes a Google API response by host, path, status and error message, with no query, body or token", () => {
+    const body = JSON.stringify({ error: { code: 403, message: "Firebase App Check token is invalid.", status: "PERMISSION_DENIED" } });
+    expect(responseNote("https://firebasevertexai.googleapis.com/v1beta/projects/p/models/m:generateContent?key=AIzaSECRET", 403, body)).toEqual({
+      host: "firebasevertexai.googleapis.com", path: "/v1beta/projects/p/models/m:generateContent", status: 403,
+      error: "PERMISSION_DENIED: Firebase App Check token is invalid.",
+    });
+    expect(responseNote("https://firebaseappcheck.googleapis.com/v1/projects/p/apps/a:exchangeDebugToken", 200, '{"token":"secret-token","ttl":"3600s"}'))
+      .toEqual({ host: "firebaseappcheck.googleapis.com", path: "/v1/projects/p/apps/a:exchangeDebugToken", status: 200, error: null });
+    expect(JSON.stringify(responseNote("https://x.googleapis.com/a?key=AIzaSECRET", 200, '{"token":"secret-token"}'))).not.toMatch(/SECRET|secret-token/);
   });
 });

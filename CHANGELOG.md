@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The eval run's private record notes each App Check and AI Logic response by host, path, status and error message, never the query, the body or a token, so a failed cloud read says why. Source: a wiring check whose one cloud call failed with only "FirebaseError". Verified: a new test (an error response, a token exchange, and that no key or token is kept) failed first and passes; lint and typecheck pass.
+
 - The eval run can be limited to some of its paths (`--paths cloud`, for one): the others are marked as not run, never guessed, and such a partial run gets its own run id and no public copy, so a wiring check can never be taken for the eval. Source: a wiring check before the freeze. Verified: new runner and preflight tests failed first and pass; lint, typecheck and guard pass.
 
 - The eval run checks every precondition before it starts anything, and stops at the first that fails: a real --date, --repeat from 1 to 5, the eval project's own settings, the Chrome profile, and the eval App Check debug token, taken from APPCHECK_DEBUG_TOKEN or else the Keychain item byt-eval-appcheck-debug-token (an empty item counts as missing, since `security` exits 0 on it) and never printed. A test also holds that no npm script chains commands with ";", so a failed step always stops the next. Source: review of a wiring run. Verified: new tests failed first and pass; run with no token, the script stops before starting Vite or Chrome; lint and typecheck pass.
