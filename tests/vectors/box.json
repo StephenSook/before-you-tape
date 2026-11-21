@@ -192,5 +192,23 @@
     "code": "CA", "today": "2026-11-20",
     "items": [{ "itemId": "bear", "read": { "category": "toy", "labelText": "TEDDY BEAR" } }],
     "expect": { "bear": "ok" }, "notRules": { "bear": ["USPS-INTL-REPLICA-EXPLOSIVE", "CA-P-05"] }
+  },
+  {
+    "name": "sunscreen_stick_ph", "source": "Philippines PH-P-06: Drug Facts and Active ingredients on a solid's label mark a medicine",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "stick", "read": { "category": "makeup", "labelText": "SPF 50 SUNSCREEN STICK DRUG FACTS Active ingredients: Zinc oxide 20%" } }],
+    "expect": { "stick": "check" }, "expectRules": { "stick": ["PH-P-06"] }, "notRules": { "stick": ["DATA-UNSURE"] }
+  },
+  {
+    "name": "sunscreen_stick_ca", "source": "Canada CA-R-02: the same stick to Canada is checked as a medicine",
+    "code": "CA", "today": "2026-11-20",
+    "items": [{ "itemId": "stick", "read": { "category": "makeup", "labelText": "SPF 50 SUNSCREEN STICK DRUG FACTS Active ingredients: Zinc oxide 20%" } }],
+    "expect": { "stick": "check" }, "expectRules": { "stick": ["CA-R-02"] }
+  },
+  {
+    "name": "sanitizer_drug_facts_ph", "source": "Philippines PH-P-01 and PH-P-06: a liquid sanitizer is taken out, and also carries the medicine check",
+    "code": "PH", "today": "2026-11-20",
+    "items": [{ "itemId": "gel", "read": { "category": "hand_sanitizer", "labelText": "HAND SANITIZER DRUG FACTS Active ingredient: Ethyl alcohol 70%", "liquid": true, "alcoholOnLabel": true } }],
+    "expect": { "gel": "take_out" }, "expectRules": { "gel": ["PH-P-01", "PH-P-06"] }
   }
 ]
