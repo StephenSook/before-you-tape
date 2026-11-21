@@ -76,6 +76,8 @@ export interface PackPageProps {
   today?: string;
   // How long the phone's newest-item sheet stays before it goes by itself (it can also be closed).
   newestSheetMs?: number;
+  // Reloads the page, for a page older than what the server now accepts (the browser's own reload unless a test sets it).
+  onReload?: () => void;
   // How long the cloud settings may be missing before the page says so.
   settingsNoticeMs?: number;
 }
@@ -563,6 +565,12 @@ export function PackPage(p: PackPageProps) {
       <div className="pack-top">
         <DestinationPicker index={index} readBy={readBy} value={state.destinationKnown === false ? "" : state.destinationCode}
           onChange={(code) => store.setDestination(code)} badges={destinationBadges(edition, index.map((d) => d.code), p.today ?? localDay())} />
+        {state.outOfDate && (
+          <p data-testid="out-of-date" role="alert">
+            Saving stopped because this page is out of date. Reload to keep saving.{" "}
+            <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload</button>
+          </p>
+        )}
         {state.loadState === "failed" && (
           <p role="alert">
             Your saved box could not be opened. New items stay on this device until it opens.{" "}
@@ -614,7 +622,7 @@ export function PackPage(p: PackPageProps) {
           {removedUnsaved > 0 && (
             <p data-testid="removal-unsaved" className="banner" role="alert">
               {removedUnsaved === 1 ? "A removal is not saved yet." : `${removedUnsaved} removals are not saved yet.`}{" "}
-              <button type="button" onClick={() => store.retrySave()}>Try saving again</button>
+              {!state.outOfDate && <button type="button" onClick={() => store.retrySave()}>Try saving again</button>}
             </p>
           )}
           <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
@@ -626,7 +634,7 @@ export function PackPage(p: PackPageProps) {
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
-                unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={() => store.retrySave()}
+                unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={state.outOfDate ? undefined : () => store.retrySave()}
                 onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}
                 checking={checking[item.itemId] ?? false} error={state.errors[item.itemId]}
                 onRetry={(id) => void secondLook(id)}

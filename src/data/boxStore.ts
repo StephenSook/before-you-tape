@@ -58,6 +58,9 @@ export interface BoxState {
   unsaved?: readonly string[];
   // Whether the saved box has been read: until it has, nothing is written; a read that failed writes nothing.
   loadState?: "loading" | "ready" | "failed";
+  // The server refused a save to a box this visit could open: the page was loaded before a change to what the
+  // server accepts, so saving goes on only after a reload.
+  outOfDate?: boolean;
   // Whether the country is known: the saved box has been read, or the sender chose one. Until then the picker
   // shows no country, so even a first pick of the default counts.
   destinationKnown?: boolean;
@@ -207,11 +210,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
+  let outOfDate = false;
   // A country the sender chose before the saved box was read: it stands over the saved one.
   let chosenDestination: string | null = null;
   const snapshot = (result: BoxResult): BoxState => ({
     boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
-    destinationKnown: loadState === "ready" || chosenDestination !== null,
+    destinationKnown: loadState === "ready" || chosenDestination !== null, ...(outOfDate ? { outOfDate } : {}),
   });
   let state: BoxState = snapshot(evaluate());
 
@@ -229,6 +233,14 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const keepJournal = () => deps.journal?.write(boxId, journal);
 
   const publish = () => { for (const l of listeners) l(state); };
+  // A refusal is the server saying no, unlike a failed connection. For a box this visit opened, that means the
+  // page is older than what the server now accepts. A box that could not be opened keeps its own notice.
+  const noteRefusal = (e: unknown) => {
+    if (outOfDate || loadState !== "ready" || (e as { code?: unknown } | null)?.code !== "permission-denied") return;
+    outOfDate = true;
+    state = { ...state, outOfDate };
+    publish();
+  };
   const refreshUnsaved = () => {
     const pending = Object.keys(journal.items);
     const blocked = loadState === "failed" || (failed.has("meta") && !boxExists) || deps.persistence.localOnly?.() === true;
@@ -280,7 +292,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               serverMeta = stableJson(meta);
               if (journal.meta === sent) journal.meta = null;
             }
-          } catch {
+          } catch (e) {
+            noteRefusal(e);
             failed.add("meta");
           }
         }
@@ -301,7 +314,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
                 const now = journal.items[id];
                 if (now === item || (now && item && stableJson(now) === stableJson(item))) delete journal.items[id];
               }
-            } catch {
+            } catch (e) {
+              noteRefusal(e);
               // The item was removed while its first write was out, and that write did not land: the server never
               // had it, so there is nothing to delete.
               if (item && journal.items[id] === null && !server.has(id)) {
