@@ -3,6 +3,20 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-20
+
+### test(ios): the stale-check test reads its days from the bundled edition
+- What: `AppBoxTests.aStaleRuleCheckIsCaughtOnReturnAndAtMidnight` used fixed days (Dec 8 fresh,
+  Dec 9 stale) that matched the edition of Nov 17. The Nov 20 edition moved the suspensions check
+  to Nov 20 (stale from Dec 12) and suspends Canada, the box's default country, from Nov 29, so
+  Dec 8 read "check" and the test failed. The code was right. The test now takes its days from
+  rules/edition.json the way the engine's layers do: the newest layer check is a day every layer
+  is fresh, and the day after the first window ends is a day one layer is stale.
+- Source: the full app test run on main (76acd04) failed this test on the simulator.
+- Verified: it failed at 76acd04 (3 issues, "check" where "ok" was expected) and passes after the
+  change (4 of 4 in AppBoxTests). It still needs the app's re-check: the verdict stays "ok" on the
+  stale day until the app comes back, then reads "check".
+
 ## 2026-11-19
 
 ### docs(ios): list the app tests that fail on this Mac's simulator
