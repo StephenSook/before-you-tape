@@ -30,4 +30,15 @@ describe("rules fresh through judging", () => {
   it("reads the bundled edition without throwing", () => {
     expect(() => freshness(parseEdition(edition), "2026-11-21")).not.toThrow();
   });
+
+  // The customs authority lines on the Rules page follow the same rule, by the edition's customs limit.
+  it("names a customs authority line that would read stale before the last judging day", () => {
+    const line = { code: "CA", authority: "Canada Border Services Agency", url: "https://www.cbsa-asfc.gc.ca/x", checkedOn: "2026-10-01", source: "rules/sources-text/x.txt", lines: [{ label: "Gifts", quote: "q" }] };
+    const bundled = parseEdition(edition);
+    const r = freshness(bundled, "2026-11-28", "2026-12-16", [line]);
+    expect(r.exit).toBe(1);
+    expect(r.lines.join("\n")).toContain(`CA customs_authority (last read 2026-10-01) reads stale from 2026-12-01, before judging ends on 2026-12-16`);
+    expect(freshness(bundled, "2026-11-28", "2026-12-16", [{ ...line, checkedOn: "2026-11-21" }]).lines.join("\n")).not.toContain("customs_authority");
+  });
 });
+
