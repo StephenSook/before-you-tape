@@ -16,7 +16,7 @@ To try it (about 2 minutes):
 3. The line under the photo gives the item, its verdict and where it was read, for example "Body lotion: OK to pack. Read on this iPhone."
 4. Go back and tap Your box to see every item and why it got its verdict. Under What we checked, each rule layer shows the date it was checked. The country picker checks the whole box again by the rules alone.
 
-If this iPhone has Apple Intelligence on: photos and typed label words are read on the iPhone by Apple's on-device model, also in airplane mode. Nothing goes to the cloud unless cloud checks were allowed. Once they are, a photo the iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a power bank's battery numbers again; the item then says why ("Battery numbers decide what may be mailed, so the cloud read them again.").
+If this iPhone has Apple Intelligence on: photos and typed label words are read on the iPhone by Apple's on-device model, also in airplane mode. Nothing goes to the cloud unless cloud checks were allowed. Once they are, a photo the iPhone already read can also be checked again in the cloud when the rules ask for a second look, for example to read a power bank's battery numbers again; the item then says why ("Battery numbers decide what may be mailed, so the cloud read them again."). If the cloud question was never answered, that item shows a Check it in the cloud button instead, which asks the question first; nothing is sent unless you tap Allow.
 
 If it does not (Apple Intelligence off or not supported, or its model still downloading): Ready check and the Check an item screen say so. A photo then needs a cloud check, and the app asks once: "To check items this iPhone can't read, and to check a read again when the rules ask, a cropped photo of the item, or the label words you typed or scanned, goes to Google's Gemini. Allow?"
 - Tap Allow: the cropped photo goes to Gemini through Firebase AI Logic (for label words typed in, those words go instead, never both), and the line ends "Read in the cloud."
@@ -27,7 +27,7 @@ Camera: used only to photograph the label you choose to check. Only the part of 
 
 Deleting data: the app has no account to make; it signs in anonymously. On the Ready check screen, Delete everything on this iPhone deletes the box, the cloud choice and the anonymous sign-in, after asking first.
 
-Countries in this rule edition: Canada and the Philippines.
+Countries in this rule edition: Canada and the Philippines. USPS stops taking mail to Canada on November 29, 2026. Before that day a box for Canada says "The post office stops taking mail to Canada on November 29, 2026. Mail this box before then."; from that day it says "Mail to Canada is suspended right now. Nothing in this box can go until service returns." The Philippines is not affected, so pick it to see items marked OK to pack.
 
 Availability: every country and region except France and China mainland. The app declares only exempt encryption (ITSAppUsesNonExemptEncryption is false): HTTPS, plus a standard TLS library bundled by the Firebase SDK, which is exempt from export documentation everywhere but France. China mainland is left out because cloud checks use generative AI, which there needs filings this app does not have.
 
