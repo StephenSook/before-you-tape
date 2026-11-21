@@ -49,7 +49,9 @@ export function guardStaleTags(result: BoxResult, items: readonly Versioned[], v
   };
   for (const i of stale) hold(i.itemId, i.tagsVersion === undefined ? LABEL_UNKNOWN : LABEL_AGAIN);
   // The lithium total is box-wide, and an item read again may add to it: no lithium item is OK on it meanwhile.
-  if (out.lithium.status === "ok" || out.lithium.status === "none") {
+  // An item at "Take it out" is out of that count already, so it holds nothing.
+  const inCount = stale.some((i) => result.items[i.itemId]?.level !== "take_out");
+  if (inCount && (out.lithium.status === "ok" || out.lithium.status === "none")) {
     out.lithium = { ...out.lithium, status: "depends", text: LITHIUM_BOX_WAITS };
     for (const id of out.lithium.itemIds) hold(id, LITHIUM_WAITS);
   }

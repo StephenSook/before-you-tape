@@ -56,6 +56,19 @@ describe("guardStaleTags", () => {
     expect(r.items.spray?.level).toBe("take_out");
   });
 
+  it("lets an item already at Take it out, out of the lithium count, hold nothing else", () => {
+    const phone = item({
+      itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" },
+      read: { ...item({ itemId: "x" }).read, category: "phone", volts: 3.85, milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" },
+    });
+    const spray = item({ itemId: "spray", tagsVersion: labelWordsVersion(older), read: { ...item({ itemId: "x" }).read, category: "aerosol_spray", pressurized: true } });
+    const r = judge([phone, spray]);
+    expect(r.items.spray?.level).toBe("take_out");
+    expect(r.lithium.status).toBe("ok");
+    expect(r.items.phone?.level).toBe("ok");
+    expect(r.items.phone?.hits.map((h) => h.ruleId)).not.toContain("DATA-LABEL-AGAIN");
+  });
+
   it("makes the box's lithium total wait while an item's label must be read again", () => {
     const phone = item({
       itemId: "phone", tagsVersion: labelWordsVersion(ed), answers: { device_condition: "new_sealed" },
