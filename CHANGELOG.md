@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- summarizeEval turns a public model run from eval/runs into what /ran says about our own test: where the shipped route read each check, how many items got a cloud second look, hazards called OK, agreement with our draft labels (not accuracy), Check this, and the median and 90th percentile time to a verdict. A run it cannot read is refused, never summarized in part. Not used yet. Source: review (lead /ran with the controlled measurement). Verified: two new tests failed first and pass; full suite passes.
+
 - Privacy page: "We publish totals across all saved boxes, such as how many items were read on the device or in the cloud and how long reads took. We never publish anything about one box." It lands with the first published totals on /ran. Source: per-read telemetry plan (approved wording). Verified: npm run legal regenerated the served page, which holds the sentence once; the page tests, the tone check and the full suite pass.
 
 - First measured totals for /ran (src/ran/measured.json, written by scripts/measure-routes.ts at 2026-11-21 11:11 UTC from the route records in the saved boxes): 27 items read in the cloud (median 0.9 s, 90th percentile 2.3 s), fewer than 5 on the device, in 269 saved boxes; second looks and fallbacks fewer than 5; 131 typed by hand, our own deploy checks included. Source: per-read telemetry plan. Verified: written by the script, not by hand; it holds only counts, times, the window and the source, and its smallest published count is 27.
