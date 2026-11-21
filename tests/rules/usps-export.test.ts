@@ -101,19 +101,22 @@ describe("USPS export rule data", () => {
     expect(hit(sealedLaptopFacts)).toEqual([]);
   });
 
-  it("holds a lithium battery whose numbers come from one read, until a second look or the sender stands behind them", () => {
+  it("holds a battery whose numbers came from a read until a matching second look, whatever the identity or chemistry", () => {
     const ONE = "USPS-INTL-LI-ONE-READ:check";
     const phone = device("phone", { whStatus: "printed_matches", wh: 15.4, countAs: "cell" });
     expect(hit(phone)).toEqual([ONE]);
     expect(hit({ ...phone, identity: "unconfirmed" })).toContain(ONE);
     expect(hit(device("laptop", { whStatus: "printed_only", whPrinted: 12, wh: 12, countAs: "unknown" }))).toEqual([ONE]);
     expect(hit({ ...phone, identity: "second_look" })).toEqual([]);
-    expect(hit({ ...phone, identity: "sender" })).toEqual([]);
+    // Confirming what the item is (a tap or a category pick) is not confirming its numbers, and typed numbers can't
+    // be told from read ones yet: both are "sender" and both stay held.
+    expect(hit({ ...phone, identity: "sender" })).toEqual([ONE]);
     // A lithium metal reading is a number from the read too.
     const coin = f({ category: "battery_toy", tags: ["toy", "li_metal"], condition: "new_sealed",
       battery: { presence: "installed", chemistry: "li_metal", lithiumGrams: 0.1 } });
     expect(hit(coin)).toEqual([ONE]);
-    expect(hit({ ...coin, identity: "sender" })).toEqual([]);
+    expect(hit({ ...coin, identity: "sender" })).toEqual([ONE]);
+    expect(hit({ ...coin, identity: "second_look" })).toEqual([]);
     // Numbers that disagree, or are missing, already have their own check.
     expect(hit(mismatchPhone)).not.toContain(ONE);
     expect(hit(noWhPhone)).not.toContain(ONE);

@@ -332,11 +332,11 @@
     "section": "Pub 52 622.52",
     "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
     "basis": "summarized",
-    "ourWording": "Check the battery numbers on the label. We read them once from the photo, and a misread can hide a battery too big to mail.",
+    "ourWording": "Check the battery numbers on the label. Only a second look that reads the same numbers confirms them, because a misread can hide a battery too big to mail.",
     "when": {
       "all": [
         { "fact": "battery.presence", "op": "eq", "value": "installed" },
-        { "fact": "identity", "op": "in", "value": ["label", "unconfirmed"] },
+        { "not": { "fact": "identity", "op": "eq", "value": "second_look" } },
         {
           "any": [
             { "fact": "battery.whStatus", "op": "in", "value": ["printed_matches", "printed_only"] },

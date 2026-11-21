@@ -140,9 +140,11 @@ describe("evaluateBox", () => {
       "sender_ticked_alcohol_settles_it", "replica_grenade_ca", "replica_grenade_ph", "plain_toy_ca",
       "sunscreen_stick_ph", "sunscreen_stick_ca", "sanitizer_drug_facts_ph",
       "replica_words_ca", "toy_and_brand_words_ca", "replica_props_ca", "replica_props_ph", "extra_questions_ca",
-      "phone_numbers_matched_by_a_second_look_is_ok", "typed_phone_is_ok", "battery_185_wh_true_numbers_is_take_out",
+      "phone_numbers_matched_by_a_second_look_is_ok", "typed_phone_numbers_are_held_for_now", "battery_185_wh_true_numbers_is_take_out",
       "battery_185_wh_read_as_18_5_is_check", "battery_185_wh_read_ten_times_low_throughout_is_check", "laptop_120_wh_read_as_12_is_check",
       "coin_cell_grams_read_once_is_check", "not_lithium_answer_keeps_one_read_numbers_held",
+      "identity_tap_does_not_clear_read_numbers", "category_pick_does_not_clear_read_numbers",
+      "typed_laptop_without_label_text_is_held_for_now", "second_look_that_disagrees_on_the_numbers_is_check",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

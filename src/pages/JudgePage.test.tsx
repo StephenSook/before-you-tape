@@ -136,10 +136,11 @@ describe("JudgePage", () => {
     const side = (label: string, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
       credit: "Photo by the project owner", read, answers: { device_condition: answer } });
     render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Same phone", left: side("New", "new_sealed"), right: side("Used", "used") }]} />);
+    // The new phone's typed numbers wait for a second look (USPS-INTL-LI-ONE-READ); the used one is out either way.
     const pair = screen.getByTestId("matched-pair");
-    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+    expect(within(pair).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["Check this", "Take it out"]);
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
-    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["OK to pack", "Take it out"]);
+    expect(within(screen.getByTestId("matched-pair")).getAllByTestId("verdict-chip").map((c) => c.textContent)).toEqual(["Check this", "Take it out"]);
   });
 
   it("shows no matched pairs section when none is given", () => {
