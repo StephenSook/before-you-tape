@@ -38,10 +38,6 @@ Last updated: [date of publishing].
 5. **Settings and rules.** The app downloads its settings (Firebase Remote Config) and the
    published rule editions. To pick the settings, Remote Config receives your country code,
    language, time zone and operating system version.
-6. **Performance data, iPhone app only.** The iPhone app includes Firebase Performance
-   Monitoring. It sends how long the app takes to start, how long its network requests take, its
-   CPU and memory use, information about the device, iOS and app version, and your IP address,
-   which Firebase uses to group results by region.
 
 ## What we do not do
 

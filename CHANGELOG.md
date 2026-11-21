@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Draft privacy page: item 6 (Firebase Performance data, iPhone app only) is removed, because the iPhone app no longer includes Firebase Performance Monitoring or Functions (merged in c5f15b2; the release binary holds no symbol of either). Source: the iPhone lane. Verified: `gh pr view 127` reads MERGED at c5f15b2; the page test holds the served page to its source.
+
 - Draft privacy page, item 1: Firebase records how many cloud checks run and how long they take, for up to six weeks, without the photo or the words, which matches the AI monitoring setting read through the APIs (metrics kept six weeks, traces 30 days, prompt and response storage excluded). Source: the AI monitoring reading. Verified: the page test holds the served page to its source.
 
 - Draft privacy and support pages: the contact route is the repo's GitHub issues, with "Don't post personal details in an issue"; a deletion request asks people not to post their box link either, since the issues are public. Only the publish date is still to fill. Source: the owner's chosen contact route. Verified: the page test holds both served pages to their sources; the placeholder gate now names only the date.
