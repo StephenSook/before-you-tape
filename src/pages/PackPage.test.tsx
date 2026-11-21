@@ -262,6 +262,18 @@ describe("PackPage", () => {
     localStorage.clear();
   });
 
+  it("clears a read's failure alert once a typed item goes in the box", async () => {
+    const failing = { generate: vi.fn(async () => { throw new Error("the model failed"); }) };
+    setup({ models: { device: failing, hybrid: failing, cloud: failing } });
+    await addPhoto();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Type an item" }));
+    await userEvent.selectOptions(screen.getByLabelText("What is it?"), "clothing");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByTestId("newest-sheet");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("opens the back camera on a phone, and the front one on a laptop", async () => {
     const openCamera = vi.fn(okCamera);
     setup({ openCamera, phone: true });

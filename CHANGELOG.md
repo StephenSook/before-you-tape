@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Adding a typed item clears an older read's failure alert ("The cloud check was refused" and the rest) and the blocked line, as a new photo press already did, so a stale alert no longer sits above a box that has just taken an item. Source: UI review. Verified: a new PackPage test failed first and passes; the full unit suite passes.
+
 - The crop step is smaller and clearer:
   - The photo is at most min(60vh, 560px) tall, with its shape kept.
   - Outside the box it is dimmed, since that part stays on the device.
