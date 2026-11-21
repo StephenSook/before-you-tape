@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Delete my saved box deletes every crop on this device again, not only those of the items this page last saw: no other box can start on this device before the delete ends (the pointer to the box goes last), so each crop is this box's, and a photo another tab added since was left behind until the next box opened. Source: review. Verified: the changed savedBoxDeleter test failed first and passes; full suite passes.
+
 - Delete my saved box now deletes the anonymous sign-in before this browser's box keys. Taking away the pointer to the box tells other tabs to start again, and a tab that did so before the sign-in was gone could save a new box under it, which the sign-in delete (or a retry of it) then stranded. Clearing the keys can no longer stop the delete: storage this browser refuses holds nothing of the box. Source: review. Verified: new and changed deleteSavedBox tests (the order; the keys stay while the sign-in step fails; a refused storage still finishes) failed first and pass; full suite passes.
 
 - deleteBox refuses a box with no expiry before touching any of its items: its tombstone takes its time from the box's expiry, so the last batch would have been refused after the items were already gone. Every box has an expiry since the backfill. Source: review. Verified: a new emulator test (the delete is refused and the item stays) failed first and passes; all 49 emulator tests pass.

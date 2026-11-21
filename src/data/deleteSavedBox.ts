@@ -51,7 +51,7 @@ export function clearLocalBox(storage: Storage, boxId: string): void {
 
 // The live page's parts for a delete.
 export interface DeleterParts {
-  store: { getState(): { boxId: string; items: ReadonlyArray<{ cropKey: string | null }> }; close(): Promise<void> };
+  store: { getState(): { boxId: string }; close(): Promise<void> };
   // Settles once this page's own sign-in has finished, whether it worked or not.
   signedIn: Promise<unknown>;
   // Whoever is signed in now: another tab may have signed in after this page's own sign-in failed.
@@ -64,20 +64,18 @@ export interface DeleterParts {
 }
 
 // The box in Firestore is deleted under whoever is signed in when the delete runs, not through this page's own
-// saving, which may have fallen back to this browser. Only the crops this box's items use are deleted; any other
-// crop is removed when the next box opens (cropSweep).
+// saving, which may have fallen back to this browser. Every crop on this device goes: no other box can start here
+// before the delete ends (the pointer goes last), so each is this box's, a photo another tab added since included.
 export function savedBoxDeleter(p: DeleterParts): (from?: DeleteStep) => Promise<DeleteResult> {
   return (from) => {
-    const { boxId, items } = p.store.getState();
-    const crops = new Set(items.flatMap((i) => (i.cropKey ? [i.cropKey] : [])));
-    return deleteSavedBox(boxId, {
+    return deleteSavedBox(p.store.getState().boxId, {
       stopSaving: () => p.store.close(),
       deleteBox: async (id) => {
         await p.signedIn.catch(() => {});
         const uid = p.currentUid();
         if (uid) await p.deleteFirestoreBox(uid, id);
       },
-      deleteCrops: () => p.deleteCropsExcept((key) => !crops.has(key)),
+      deleteCrops: () => p.deleteCropsExcept(() => false),
       clearLocal: (id) => clearLocalBox(p.storage, id),
       deleteSignIn: p.deleteSignIn,
       signOut: p.signOut,

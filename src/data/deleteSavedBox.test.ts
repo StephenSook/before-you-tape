@@ -135,12 +135,14 @@ describe("savedBoxDeleter", () => {
     expect(p.deleteFirestoreBox).not.toHaveBeenCalled();
   });
 
-  it("deletes only the crops this box's items use", async () => {
+  // No other box can start on this device before the delete ends (the pointer goes last), so every crop here is
+  // this box's, a photo another tab added since this page last looked included.
+  it("deletes every crop on this device", async () => {
     const p = parts();
     await savedBoxDeleter(p)();
     const keep = vi.mocked(p.deleteCropsExcept).mock.calls[0]![0];
     expect(keep("c1")).toBe(false);
-    expect(keep("another-box-crop")).toBe(true);
+    expect(keep("added-in-another-tab")).toBe(false);
   });
 });
 
