@@ -87,6 +87,15 @@ describe("destination editions", () => {
     expect(ed.rules.find((r) => r.id === "USPS-INTL-MATCHES-LIGHTERS")?.outcome).toBe("take_out");
   });
 
+  it("checks a toy gun to Canada under the firearms line, not the replica munitions line", () => {
+    const line = (id: string) => ed.destinations.CA?.lines.find((l) => l.lineId === id);
+    expect(line("CA-P-04")?.matches).toEqual([{ tag: "toy_gun", effect: "check" }]);
+    expect(line("CA-P-04")?.ourWording).toMatch(/doesn't name toy guns/);
+    // IMM 136.2 bars replica grenades and munitions, and exempts toys that don't look real.
+    expect(line("CA-P-05")?.matches).toEqual([]);
+    expect(line("CA-P-05")?.noMatch?.reason).toMatch(/IMM 136\.2/);
+  });
+
   it("maps the food and gift lines that a sender could pack", () => {
     const tagsOf = (code: string, id: string) => ed.destinations[code]?.lines.find((l) => l.lineId === id)?.matches.map((m) => m.tag);
     expect(tagsOf("CA", "CA-P-08")).toContain("margarine");

@@ -49,24 +49,24 @@
       "lineId": "CA-P-04",
       "section": "prohibitions",
       "lineSha256": "7d57cafd49ca5a58497e51700f38baf56bf052ed49d1b94ec8bae2675d5380e6",
-      "ourWording": "No firearms.",
-      "matches": [],
-      "noMatch": {
-        "decision": "not_a_gift_item",
-        "reason": "Real firearms; toy and replica weapons are matched under CA-P-05."
-      }
-    },
-    {
-      "lineId": "CA-P-05",
-      "section": "prohibitions",
-      "lineSha256": "c3fe8e9b45376fe534386fa1923d20988dc930f03386ca59333a24af7f477619",
-      "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
+      "ourWording": "No firearms. The listing doesn't name toy guns, but the app asks you to check that a toy gun doesn't look real.",
       "matches": [
         {
           "tag": "toy_gun",
           "effect": "check"
         }
       ]
+    },
+    {
+      "lineId": "CA-P-05",
+      "section": "prohibitions",
+      "lineSha256": "c3fe8e9b45376fe534386fa1923d20988dc930f03386ca59333a24af7f477619",
+      "ourWording": "No fake or inert munitions, or anything made to look like an explosive.",
+      "matches": [],
+      "noMatch": {
+        "decision": "not_a_gift_item",
+        "reason": "Replica grenades and military munitions; not a family gift item. USPS exempts toys that don't look real (IMM 136.2)."
+      }
     },
     {
       "lineId": "CA-P-06",
