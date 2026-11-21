@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a rule update keeps the label words of the read the sender picked
+- What: a new rule edition tags again the label still in memory. After a second look, that was
+  only the first read's whole label, so a warning word only the cloud read saw (for example
+  FLAMMABLE) was dropped by the update, whether the words were still merged or the sender had
+  picked the cloud's, and "Take it out" could become "OK to pack". The cloud's whole label now stays
+  in memory with the item (never saved): a new edition tags both labels while their words count
+  together, and only the picked read's label once the sender picks one.
+- Source: review (Codex, on the second-look PR).
+- Verified: a new test (merged, cloud picked, first read picked; then a new edition) failed for the
+  merged and cloud-picked cases (tags and verdict changed) and passes for all three; 198 unit tests
+  pass.
+
 ### fix(ios): the cloud question names the second look, and an earlier "allowed" is asked again
 - What: the question said Gemini checks items "this iPhone can't", but a second look sends a photo
   the iPhone already read. It now reads "To check items this iPhone can't read, and to check a read

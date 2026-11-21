@@ -69,6 +69,32 @@ import Testing
         }
     }
 
+    /// A rule update tags again the labels still in memory: both reads' labels while their words are
+    /// merged, and only the picked read's label once the sender picked one. A warning only the cloud
+    /// read saw is never dropped by a rule update.
+    @Test func aRuleUpdateKeepsTheLabelWordsOfThePickedRead() throws {
+        let plainText = "SHEA BUTTER MOISTURE BODY LOTION FOR DRY SKIN 8 FL OZ"
+        let plain = Self.with(Self.lotion, ["labelText": .string(plainText)])
+        let flammable = Self.with(Self.lotion, ["labelText": .string("FLAMMABLE BODY LOTION")])
+        for pick in [nil, DisputeSide.cloud, .device] {
+            let engine = try BoxStoreTests.bundledEngine()
+            let s = try t.store(engine: engine)
+            var device = t.outcome(plain, .onDevice)
+            device.wholeLabel = plainText
+            let id = try #require(s.addRead(device, cropFile: nil))
+            let m = try engine.mergeSecondLook(device: plain, cloud: flammable)
+            s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(flammable), disputes: m.disputes)
+            if let pick { s.settleDispute(id, field: "labelTags", side: pick) }
+            let tags = Set(s.items[0].labelTags), before = level(s, id)
+            #expect(tags.contains("flammable") == (pick != .device), "pick \(String(describing: pick))")
+            _ = try engine.setEdition(BoxStoreTests.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
+            s.reevaluate()
+            #expect(s.items[0].tagsEdition == "byt-more-words")
+            #expect(Set(s.items[0].labelTags) == tags, "pick \(String(describing: pick))")
+            #expect(level(s, id) == before, "pick \(String(describing: pick))")
+        }
+    }
+
     @Test func aLabelCorrectionMadeWhileTheLookRanIsKeptAcrossAReload() throws {
         let flammable = Self.with(BoxStoreTests.lotion, ["labelText": .string("FLAMMABLE BODY LOTION")])
         let p = MemoryBoxPersistence()

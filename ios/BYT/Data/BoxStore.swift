@@ -63,6 +63,9 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The whole label a photo read returned, before the read's text was clipped: in memory only, so a
     /// new edition can tag it again. Never saved.
     var wholeLabel: String?
+    /// The cloud second look's whole label while its words count with the first read's (merged, or
+    /// disputed and not settled): a new edition tags both labels again. In memory only, never saved.
+    var cloudWholeLabel: String?
     /// Set once a cloud second look landed on this item.
     var secondLook: SecondLookNote?
     /// The facts the device read and the second look disagreed on, in the web app's shape
@@ -89,6 +92,7 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
         }
         copy.overrides["labelText"] = nil
         copy.wholeLabel = nil
+        copy.cloudWholeLabel = nil
         return copy
     }
 }
@@ -369,6 +373,10 @@ final class BoxStore {
                 let added = cloudLabel == nil ? tags(merged["labelText"]) : cloudTags
                 for tag in added where !item.labelTags.contains(tag) { item.labelTags.append(tag) }
                 if !added.isEmpty { item.tagsEdition = engine.editionId }
+                // Both labels stay in memory, so a new edition tags both again: the first read's before
+                // the merged read replaces its text, and the cloud's.
+                if item.wholeLabel == nil { item.wholeLabel = Self.text(item.read["labelText"]) }
+                item.cloudWholeLabel = cloudLabel ?? Self.text(merged["labelText"])
             }
             item.read = merged
             item.secondLook = SecondLookNote(ms: ms, reason: reason)
@@ -394,6 +402,9 @@ final class BoxStore {
             case "labelTags":
                 if case let .array(values) = value { item.labelTags = values.compactMap { if case let .string(s) = $0 { s } else { nil } } }
                 if let words = lookLabels[itemId] { read["labelText"] = .string(side == .device ? words.device : words.cloud) }
+                // Only the picked read's label is tagged again by a new edition.
+                if side == .cloud { item.wholeLabel = item.cloudWholeLabel }
+                item.cloudWholeLabel = nil
             default:
                 read[field] = value
                 if field == "category" {
@@ -523,12 +534,25 @@ final class BoxStore {
     private func refreshStaleTags() -> Bool {
         var changed = false
         for i in items.indices where isStale(items[i]) {
-            guard let label = labelInMemory(items[i]) else { continue }
-            items[i].labelTags = tags(.string(label))
+            let labels = labelsInMemory(items[i])
+            guard !labels.isEmpty else { continue }
+            var found: [String] = []
+            for label in labels { for tag in tags(.string(label)) where !found.contains(tag) { found.append(tag) } }
+            items[i].labelTags = found
             items[i].tagsEdition = engine.editionId
             changed = true
         }
         return changed
+    }
+
+    /// Every label this iPhone still holds for an item, which a new edition tags again: a corrected label
+    /// alone; otherwise the read's label and, while a second look's words still count, the cloud's.
+    private func labelsInMemory(_ item: BoxItem) -> [String] {
+        if case let .string(text)? = item.overrides["labelText"], hasWords(.string(text)) { return [text] }
+        let first = item.wholeLabel.map { JSONValue.string($0) } ?? item.read["labelText"]
+        return [first, item.cloudWholeLabel.map { .string($0) }].compactMap { label in
+            if case let .string(text)? = label, hasWords(label) { text } else { nil }
+        }
     }
 
     /// A saved item whose tags another edition found, with its label gone, is never OK: the sender
