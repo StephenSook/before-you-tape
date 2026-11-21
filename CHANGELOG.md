@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item's card no longer says its question twice: a first reason that starts with the question's own words (such as "Is it new? Answer to finish this check." above the question "Is it new?") is left out, and the next reason shows instead; a reason that adds to the question is kept. The Android card does the same. Source: the Android lane's UI pass. Verified: a new ItemCard test failed first and passes; the full unit suite passes.
+
 - On a phone the page links stay on one row that scrolls sideways, and a link inside a sentence gets a tap area at least 24 px tall (3 px of inline padding above and below, which leaves the lines where they are). Source: UI review (links were 17 to 19 px tall). Verified: lint and the build pass; the layout is to be checked live at 390 px once deployed.
 
 - On a phone the newest-item sheet has a Close button and goes by itself after 8 seconds, so it no longer sits over the stage's buttons (such as "Try a sample photo"); a newer item shows it again. While it shows, the footer ends below it. Source: UI review (at 390 px the sheet covered the sample button). Verified: a new PackPage test (close, then a newer item's sheet goes by itself) failed first and passes; the full unit suite passes.
