@@ -28,10 +28,12 @@ Last updated: [date of publishing].
    and reCAPTCHA Enterprise on the web. This proof holds nothing you typed or photographed.
 4. **Your saved box list, on the web and on Android.** Your box list is saved in Cloud Firestore,
    so it is still there after a reload and can be opened on a phone you add. For each item it
-   holds the item's name, its category, how many, its battery numbers, the yes-or-no facts the read
-   found (for example liquid or flammable), your answers, and the rule words found on its label.
-   It never holds the photo or the label text: the database rules refuse any item that carries
-   label text. The iPhone app keeps its box on the iPhone only.
+   holds the kind of item (its category, which is also saved as its name; the name read from the
+   label stays on your device), how many, its battery numbers, the yes-or-no facts the read found
+   (for example liquid or flammable), your answers, the rule words found on its label, and whether
+   it was read on the device or in the cloud. It never holds the photo, the label text or a name
+   you typed: the database rules refuse any item that carries label text. The iPhone app keeps its
+   box on the iPhone only.
 5. **Settings and rules.** The app downloads its settings (Firebase Remote Config) and the
    published rule editions. To pick the settings, Remote Config receives your country code,
    language, time zone and operating system version.
