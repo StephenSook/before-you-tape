@@ -274,6 +274,18 @@ describe("PackPage", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("opens the back camera on a phone, and the front one on a laptop", async () => {
+    const openCamera = vi.fn(okCamera);
+    setup({ openCamera, phone: true });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(openCamera).toHaveBeenCalledWith("environment"));
+    cleanup();
+    const laptop = vi.fn(okCamera);
+    setup({ openCamera: laptop });
+    await userEvent.click(screen.getByRole("button", { name: "Start camera" }));
+    await waitFor(() => expect(laptop).toHaveBeenCalledWith("user"));
+  });
+
   it("shows the sample photo's recorded read, labelled, with no model call and no cloud answer needed", async () => {
     const { models, store } = setup({ loadSample, sampleRead: { read: liquidLotionLabelRead, ms: 3997 } }, null);
     await tryRecordedSample();

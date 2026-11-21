@@ -83,8 +83,26 @@ object Copy {
         FailReason.CLOUD_ERROR -> "The check did not go through."
     }
 
+    /** Shown instead of the app when this build is older than Remote Config's minimum_version_android. */
+    const val UPDATE_NEEDED = "This app needs an update."
+    const val UPDATE_HOW = "Install the newest version from the download page, then open it again."
+    const val OPEN_DOWNLOADS = "Open the download page"
+    const val DOWNLOAD_PAGE = "https://github.com/StephenSook/before-you-tape/releases/latest"
+
+    /**
+     * Where an item's read ran and how long it took ("Read on this phone in 1.2 s."). A typed item, or a read
+     * whose time was never recorded, shows the place alone.
+     */
+    fun readLine(readSource: String, readMs: Double): String {
+        val where = source(readSource)
+        if (readSource == "manual" || readMs <= 0.0 || where == source("unknown")) return where
+        val took = String.format(java.util.Locale.US, "%.1f s", readMs / 1000.0)
+        return if ("," in where) "$where, in $took." else "$where in $took."
+    }
+
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, howMany(3),
+        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, CHOOSE_DESTINATION_FIRST, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
         sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
-        listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source)
+        listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source) +
+        listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud").map { readLine(it, 1234.0) }
 }

@@ -13,6 +13,8 @@ struct OnDeviceStatus: Equatable, Sendable {
     var vision: Bool
 
     var available: Bool { unavailable == nil && localeSupported }
+    /// Whether a label photo is read on this iPhone.
+    var readsPhotos: Bool { available && vision }
 }
 
 /// The Ready check's words, from the status alone.
@@ -27,5 +29,13 @@ enum ReadyCheck {
             return s.localeSupported ? "This iPhone can check items with no network."
                                      : "Apple's on-device model does not support this iPhone's language yet."
         }
+    }
+
+    /// Whether label photos are read on this iPhone, and what to do when they are not. When the model
+    /// itself is not ready, the model line says why.
+    static func photoLine(_ s: OnDeviceStatus) -> String {
+        if s.readsPhotos { return "Label photos are read on this iPhone, with no network." }
+        if s.available { return "This iPhone's model does not read photos. Type the label's words instead." }
+        return "Without Apple's on-device model, photos are checked only in the cloud, when you allow it."
     }
 }
