@@ -6,6 +6,16 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/TEST-MATRIX.md cites `src/ai/firebaseModels.ts` lines 69 and 71, where the on-device and cloud model modes now sit after the dead text model was removed. Source: the test-matrix check in CI. Verified: `scripts/test-matrix.test.ts` failed with the old lines and passes; the full unit suite passes.
+
+- The Android judge build is linked: /judge has an "Android app (APK)" link to the android-judge release, and the README names the APK and its SHA-256 instead of saying it will be linked when it ships. Source: the APK release. Verified: the release page and the APK answer HTTP 200 signed out (the APK is 27,277,603 bytes); a JudgePage test failed first and passes.
+
+- Removed `createTextCloudModel` and its test: no code called it, and the header of `src/ai/firebaseModels.ts` no longer promises a text-only cloud model. The `cloud_model_text` Remote Config value stays, now described as read by no web code. Source: doc review. Verified: no caller in src or scripts; lint, typecheck, the model guard and the ai and config tests pass.
+
+- SECURITY row 1c: the Android provider is Play Integrity, VERIFIED by the 2026-11-18 run of the release-signed app on a Samsung A16 (a 1037-character Play Integrity token, sign-in, a cloud read), not PENDING. Source: doc review. Verified: against `docs/evidence/android/a16-2026-11-18/README.md`.
+
+- README: the release-gate note says the USPS service alerts were last read on 2026-11-20 (as `rules/suspensions.json` records), so that layer reads stale from 2026-12-12; it said 2026-11-17. Source: doc review. Verified: the layer state computed for 2026-12-11 (checked) and 2026-12-12 (stale).
+
 - Check now keeps its own count, so a press drops only a pending sample, never a photo the sender added that is still decoding. Source: review. Verified: a new CameraStage test (a failed Check now while the photo decodes) failed first and passes; CameraStage and PackPage tests pass.
 
 - A pending sample is dropped once the sender presses Check now, a sample that a newer photo or press replaced shows no error over it, and the decoded sample is closed even when it cannot be encoded. One crop-step test waits up to 5 s for its preview, which can take over a second when the whole suite runs. Source: review. Verified: three new CameraStage tests failed first and pass; CameraStage and PackPage tests pass twice in a row.

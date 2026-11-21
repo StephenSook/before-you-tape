@@ -14,7 +14,7 @@ import type { RecordedReads } from "../judge/recordedReads";
 import { SAMPLE_BOX } from "../judge/sampleBox";
 import type { ItemCategory } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
-import { SOURCE_URL } from "../ui/sourceLink";
+import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
 import { BoxSummary } from "../ui/BoxSummary";
 import { DestinationPicker, type DestinationIndexEntry } from "../ui/DestinationPicker";
 import { QuestionRow } from "../ui/QuestionRow";
@@ -72,6 +72,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
       </p>
       <p>
         <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
+        {" · "}<a href={ANDROID_RELEASE_URL} target="_blank" rel="noreferrer">Android app (APK)</a>
       </p>
       <p data-testid="cloud-settings-note">If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.</p>
       {examples.map((text) => <p key={text} data-testid="suspension-example">{text}</p>)}

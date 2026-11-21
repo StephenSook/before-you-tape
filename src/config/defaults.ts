@@ -8,7 +8,7 @@ export const CONFIG_DEFAULTS = {
   // cloud_model_item_fallback: tried once when the item model still answers 500 or 503 after its retry;
   // an empty value turns it off.
   cloudModelItemFallback: "gemini-3.8-flash",
-  // cloud_model_text: the cloud model for descriptions and listing reads.
+  // cloud_model_text: a cloud model for text-only reads, kept in Remote Config; no web code reads it today.
   cloudModelText: "gemini-3.5-flash-lite",
   // kill_cloud: pause every cloud call; checks on the device still work.
   killCloud: false,
