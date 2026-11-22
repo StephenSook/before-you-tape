@@ -532,7 +532,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     // Only a match with the model's own reading confirms the numbers read with it; matching a number the sender
     // typed earlier confirms nothing more. The sender's number is the one kept, so a limit still applies to it.
     const read = i.overrides[field] === undefined ? i.read[field] : 0;
-    const matches = read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
+    // While the two reads dispute the numbers, a match confirms only the number typed, never the disputed others.
+    const matches = !numbersDisputed(i.disputes) && read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
     const shown = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).filter((f) => f !== field && now[f] > 0);
     overrideItem(itemId, matches ? { ...Object.fromEntries(shown.map((f) => [f, now[f]])), [field]: value } as Partial<ItemRead> : { [field]: value });
   };

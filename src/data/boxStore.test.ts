@@ -657,6 +657,17 @@ describe("createBoxStore", () => {
           expect(level(s, id)).toBe("take_out");
         });
 
+        it("saves only the typed number while the two reads dispute the numbers", () => {
+          const first: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "50V 98Wh", volts: 50, milliampHours: 0, wattHours: 98 };
+          const cloud: ItemRead = { ...first, labelText: "22V 99Wh", volts: 22, wattHours: 99 };
+          const { s, id } = look(first, cloud);
+          expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+          s.confirmLabelNumber(id, "wattHours", 99);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 99 });
+          expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+          expect(level(s, id)).not.toBe("ok");
+        });
+
         it("checks lithium grams the same way for a lithium metal cell", () => {
           const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
           const s = store();

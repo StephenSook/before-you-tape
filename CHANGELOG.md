@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- While two reads dispute an item's battery numbers or lithium grams, the label number check saves only the number typed, never the disputed others: typing 99 Wh over reads of 50 V / 98 Wh and 22 V / 99 Wh no longer copies 22 V into the sender's numbers and settles the dispute. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.
+
 - The Firestore rules tests now write an item exactly as android-judge-3 writes it (no tagsVersion, numbersFrom or labelFigures) and check it is still accepted, so old phones keep saving after the labelFigures change. The iPhone app writes no box or item documents. Source: the revision 7 rules change. Verified: the Firestore rules tests (51 of 51), full gate.
 
 - Two tests pin what earlier ones only assumed: a shared vector where the sender typed grams that differ from a coin cell's read, whose only hold is the mixed-numbers one (no Wh rule masks it), and an extension test that a form filled in from a read is held while the same details typed by hand are judged on the Wh rules. Source: second-model review of revision 7. Verified: the vector's only hit is USPS-INTL-LI-ONE-READ, full gate.
