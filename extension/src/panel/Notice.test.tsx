@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { bundledEdition } from "../edition";
@@ -196,17 +196,27 @@ it("stays off when the stored choice is Not now", () => {
 });
 
 it("shows cloud off when the bridge does not answer", async () => {
-  const user = userEvent.setup();
-  const connectCloud = (signal: AbortSignal) => openBridge(document, "https://bridge.example/", 150, signal);
-  render(<Panel {...props()} agreed connectCloud={connectCloud} />);
-  await user.click(screen.getByText("Cloud settings"));
-  await user.click(screen.getByRole("button", { name: "Allow" }));
-  expect(screen.getByText("Opening cloud checks.")).toBeVisible();
-  expect(document.querySelector("iframe")).not.toBeNull();
-  expect(await screen.findByText("Cloud checks are off in this panel.")).toBeVisible();
-  expect(document.querySelector("iframe")).toBeNull();
-  expect(screen.getByRole("link", { name: "Open the full app" })).toBeVisible();
-  expect(screen.getByLabelText("What is it?")).toBeVisible();
+  // Fake time: the bridge's own wait, and nothing else, decides when it gives up. With real time a slow machine
+  // took longer than the wait to finish the clicks, and the bridge gave up before the first check.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const connectCloud = (signal: AbortSignal) => openBridge(document, "https://bridge.example/", 150, signal);
+    render(<Panel {...props()} agreed connectCloud={connectCloud} />);
+    // Clicks that use no timers of their own, so fake time stands still through them.
+    fireEvent.click(screen.getByText("Cloud settings"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Allow" })); });
+    expect(screen.getByText("Opening cloud checks.")).toBeVisible();
+    expect(document.querySelector("iframe")).not.toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(149); });
+    expect(screen.getByText("Opening cloud checks.")).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByText("Cloud checks are off in this panel.")).toBeVisible();
+    expect(document.querySelector("iframe")).toBeNull();
+    expect(screen.getByRole("link", { name: "Open the full app" })).toBeVisible();
+    expect(screen.getByLabelText("What is it?")).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("drops a cloud reply that arrives after consent is withdrawn", async () => {
