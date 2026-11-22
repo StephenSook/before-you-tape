@@ -11,13 +11,13 @@ const phoneRead: ItemRead = {
 };
 
 describe("FixReading", () => {
-  it("saves only changed fields", async () => {
+  it("saves every battery number the form shows once the sender changes one, so all of them are the sender's", async () => {
     const onSave = vi.fn();
     render(<FixReading read={phoneRead} onSave={onSave} />);
     await userEvent.clear(screen.getByLabelText("Watt-hours (Wh)"));
     await userEvent.type(screen.getByLabelText("Watt-hours (Wh)"), "15.4");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ wattHours: 15.4 });
+    expect(onSave).toHaveBeenCalledWith({ volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
   });
 
   it("rejects a negative number", async () => {
@@ -32,7 +32,7 @@ describe("FixReading", () => {
     render(<FixReading read={phoneRead} onSave={onSave} />);
     await userEvent.clear(screen.getByLabelText("Volts (V)"));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ volts: 0 });
+    expect(onSave).toHaveBeenCalledWith({ volts: 0, milliampHours: 4000 });
   });
 
   it("saves a changed kind of item, label text and yes-or-no facts", async () => {

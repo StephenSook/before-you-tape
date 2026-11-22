@@ -1,4 +1,5 @@
-// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read.
+// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read; a
+// changed battery number brings the other battery numbers the form shows with it.
 // A second look can land while the form is open: an untouched field then shows the new reading, and a field
 // the sender had edited is reset to it with a note, so no choice made against the old reading is saved.
 import { useState } from "react";
@@ -13,6 +14,14 @@ export function changedFields(read: ItemRead, d: ReadDraft): Partial<ItemRead> {
   for (const [f] of NUMBER_FIELDS) {
     const n = parseNumber(d.numbers[f]);
     if (n !== null && n !== read[f]) patch[f] = n;
+  }
+  // Once the sender changes one battery number, every one the form shows is saved: they all become the sender's
+  // own (typed), never part typed and part read, which the rules hold (rule edition revision 7).
+  if (NUMBER_FIELDS.some(([f]) => f in patch)) {
+    for (const [f] of NUMBER_FIELDS) {
+      const n = parseNumber(d.numbers[f]);
+      if (!(f in patch) && n !== null && n > 0) patch[f] = n;
+    }
   }
   for (const [f] of FLAG_FIELDS) if (d.flags[f] !== read[f]) patch[f] = d.flags[f];
   if (d.retailBox !== read.retailBox) patch.retailBox = d.retailBox;
@@ -76,7 +85,10 @@ export function FixReading({ read, onSave, focusField, labelTags = [] }: {
   };
   const save = () => {
     const all = changedFields(base, draft);
-    const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field))) as Partial<ItemRead>;
+    // A battery number the sender changed brings every battery number the form shows (changedFields adds them).
+    const typedNumber = NUMBER_FIELDS.some(([f]) => touched.has(f) && f in all);
+    const numberField = (f: string) => NUMBER_FIELDS.some(([n]) => n === f);
+    const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field) || (typedNumber && numberField(f)))) as Partial<ItemRead>;
     onSave(patch);
   };
   return (
