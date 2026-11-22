@@ -54,12 +54,88 @@ function presenceOf(
   return hasEvidence ? "unknown" : "none";
 }
 
+// The battery numbers, and the ones the sender typed (in Fix this reading, or a typed item).
+export const BATTERY_NUMBER_FIELDS = ["volts", "milliampHours", "wattHours", "lithiumGrams"] as const;
+export type BatteryNumberField = (typeof BATTERY_NUMBER_FIELDS)[number];
+
+// Where the numbers present came from. With none present it is "read": no rule then turns on it.
+export function numbersFromOf(read: ItemRead, typed: ReadonlySet<BatteryNumberField>): BatteryFacts["numbersFrom"] {
+  const present = BATTERY_NUMBER_FIELDS.filter((f) => printed(read[f]) !== null);
+  const typedCount = present.filter((f) => typed.has(f)).length;
+  return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
+}
+
+// Wh and lithium grams a label names, such as "185Wh", "15,4 Wh", "1.0g" or ".5g". Grams take a lower-case g, so
+// "5G" (a phone network) is no figure, and a weight ("NET WT 80g", "DEVICE WEIGHT: 80g", "N.W. (80g)") is no
+// lithium figure unless it says lithium or metal: "LITHIUM METAL WEIGHT: 1.2g" is the lithium content.
+const WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
+const GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
+const A_WEIGHT = /(?:\b(?:wt|weight)|\b[ng]\.\s?w)\.?\s*:?\s*\(?\s*$/i;
+const A_LITHIUM_WEIGHT = /\b(?:lithium|li|metal)\s+(?:metal\s+)?(?:wt|weight)\.?\s*:?\s*\(?\s*$/i;
+const aWeight = (before: string) => A_WEIGHT.test(before) && !A_LITHIUM_WEIGHT.test(before);
+const figures = (text: string, re: RegExp, skip?: (before: string) => boolean) => [...text.matchAll(re)]
+  .filter((m) => !skip?.(text.slice(Math.max(0, m.index - 32), m.index)))
+  .map((m) => Number(m[1]!.replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+export interface LabelFigures { wh: number[]; grams: number[] }
+export function labelFiguresOf(text: string): LabelFigures {
+  return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, aWeight) };
+}
+// The figures an item keeps from its labels, decided only here (the web store, and the phone apps through the
+// bridge's labelFiguresJson): every figure the labels name and any kept before, without repeats, each capped at
+// 99999 (Firestore takes figures below 100000), largest first, and over 8 of a kind the 7 largest and the smallest.
+// A number agrees with every figure exactly when it agrees with the smallest and the largest, and is at least every
+// figure when it is at least the largest, so the figures left out never change a verdict. None at all gives null.
+export function keptLabelFigures(texts: readonly string[], kept?: LabelFigures): LabelFigures | null {
+  const read = texts.map(labelFiguresOf);
+  const pick = (k: keyof LabelFigures) => {
+    const all = [...new Set([...(kept?.[k] ?? []), ...read.flatMap((f) => f[k])].map((n) => Math.min(n, 99999)))].sort((a, b) => b - a);
+    return all.length <= 8 ? all : [...all.slice(0, 7), all[all.length - 1]!];
+  };
+  const wh = pick("wh");
+  const grams = pick("grams");
+  return wh.length + grams.length > 0 ? { wh, grams } : null;
+}
+const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) / b) * 100 <= tolerancePct;
+
+// A figure the label names that the number in use disagrees with. A read number must agree with every figure: one
+// that matches does not hide another, such as a module's rating beside the pack's. A typed number must be at least
+// every figure, so typing the module's rating still holds while typing the pack's, the larger, settles it. Either
+// way any figure above the number holds, never within the tolerance or a rounding margin: 100.4 Wh beside 100 Wh is
+// over the 100 Wh limit. Typing the larger figure settles it.
+const above = (f: number, n: number) => f > n + 1e-9;
+// With no printed Wh, a Wh figure is checked against volts times capacity, and with neither it holds. A grams
+// figure with no lithium grams holds when the grams were cleared or the label says lithium metal (a device label's
+// weight in grams is no reason to hold an item with no grams).
+function labelMismatchOf(figs: LabelFigures, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
+  whComputed: number | null, lithiumGrams: number | null, metalLabel: boolean, tolerancePct: number): BatteryFacts["labelMismatch"] {
+  const off = (list: number[], n: number, byHand: boolean) => list.find((f) => above(f, n) || (!byHand && !agrees(f, n, tolerancePct)));
+  if (figs.wh.length > 0) {
+    const n = whPrinted ?? whComputed;
+    const byHand = whPrinted !== null ? typed.has("wattHours") : typed.has("volts") && typed.has("milliampHours");
+    if (n === null) return { kind: "wh", label: Math.max(...figs.wh), read: null, typed: false };
+    const label = off(figs.wh, n, byHand);
+    if (label !== undefined) return { kind: "wh", label, read: n, typed: byHand };
+  }
+  if (figs.grams.length > 0) {
+    const byHand = typed.has("lithiumGrams");
+    if (lithiumGrams === null) {
+      if (byHand || metalLabel) return { kind: "grams", label: Math.max(...figs.grams), read: null, typed: byHand };
+    } else {
+      const label = off(figs.grams, lithiumGrams, byHand);
+      if (label !== undefined) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+    }
+  }
+  return null;
+}
+
 export function deriveBattery(
   read: ItemRead,
   answers: ItemAnswers,
   quantity: number,
   limits: LithiumLimits,
   tags: string[],
+  typed: ReadonlySet<BatteryNumberField> = new Set(),
+  figs: LabelFigures = labelFiguresOf(read.labelText),
 ): BatteryFacts {
   const volts = printed(read.volts);
   const milliampHours = printed(read.milliampHours);
@@ -67,8 +143,9 @@ export function deriveBattery(
   const whComputed = volts !== null && milliampHours !== null ? round2((volts * milliampHours) / 1000) : null;
   // Printed lithium grams are a lithium metal rating, checked against the per-cell and per-battery limits.
   const lithiumGrams = printed(read.lithiumGrams);
-  const liMetal = tags.includes("li_metal") || lithiumGrams !== null;
   const liIon = tags.includes("li_ion");
+  // Printed grams mean lithium metal, unless the label itself says lithium-ion: then the Wh checks still apply.
+  const liMetal = tags.includes("li_metal") || (lithiumGrams !== null && !liIon);
   const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null || lithiumGrams !== null;
   // Label words count as battery evidence even when the model's batteryWords flag is false.
   const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
@@ -111,5 +188,9 @@ export function deriveBattery(
   else if (answers.battery_installed === "not_lithium" && !BATTERY_DEVICES.has(read.category)) chemistry = "not_lithium";
   else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
 
-  return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
+  return {
+    presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity,
+    numbersFrom: numbersFromOf(read, typed),
+    labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, tags.includes("li_metal"), limits.whTolerancePct),
+  };
 }

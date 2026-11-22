@@ -1,0 +1,137 @@
+[
+  {
+    "name": "a_5G_network_is_no_figure",
+    "texts": [
+      "LTE 5G PHONE LI-ION 3.85V 15.4Wh"
+    ],
+    "expect": {
+      "wh": [
+        15.4
+      ],
+      "grams": []
+    }
+  },
+  {
+    "name": "a_leading_point_reads_as_written",
+    "texts": [
+      "CR1220 LITHIUM .5g"
+    ],
+    "expect": {
+      "wh": [],
+      "grams": [
+        0.5
+      ]
+    }
+  },
+  {
+    "name": "a_comma_is_a_decimal_point",
+    "texts": [
+      "LITHIUM CONTENT 1,5 g"
+    ],
+    "expect": {
+      "wh": [],
+      "grams": [
+        1.5
+      ]
+    }
+  },
+  {
+    "name": "a_module_and_a_pack_figure_are_both_kept",
+    "texts": [
+      "99Wh MODULE / PACK 101Wh"
+    ],
+    "expect": {
+      "wh": [
+        101,
+        99
+      ],
+      "grams": []
+    }
+  },
+  {
+    "name": "net_and_device_weights_are_skipped",
+    "texts": [
+      "CR2032 3V 0.1g / NET WT (80g) / DEVICE WEIGHT: 80g / N.W. 75g"
+    ],
+    "expect": {
+      "wh": [],
+      "grams": [
+        0.1
+      ]
+    }
+  },
+  {
+    "name": "a_lithium_metal_weight_is_lithium",
+    "texts": [
+      "CR2 3V LITHIUM METAL WEIGHT: 1.2g"
+    ],
+    "expect": {
+      "wh": [],
+      "grams": [
+        1.2
+      ]
+    }
+  },
+  {
+    "name": "nine_figures_keep_the_seven_largest_and_the_smallest",
+    "texts": [
+      "40Wh 98Wh 98.01Wh 98.02Wh 98.03Wh 98.04Wh 98.05Wh 98.06Wh 98.07Wh"
+    ],
+    "expect": {
+      "wh": [
+        98.07,
+        98.06,
+        98.05,
+        98.04,
+        98.03,
+        98.02,
+        98.01,
+        40
+      ],
+      "grams": []
+    }
+  },
+  {
+    "name": "a_figure_too_big_to_save_is_kept_as_99999",
+    "texts": [
+      "98Wh 1000000Wh"
+    ],
+    "expect": {
+      "wh": [
+        99999,
+        98
+      ],
+      "grams": []
+    }
+  },
+  {
+    "name": "kept_figures_and_new_labels_merge_without_repeats",
+    "kept": {
+      "wh": [
+        185,
+        98
+      ],
+      "grams": []
+    },
+    "texts": [
+      "98Wh",
+      "PACK 185 Wh 2g"
+    ],
+    "expect": {
+      "wh": [
+        185,
+        98
+      ],
+      "grams": [
+        2
+      ]
+    }
+  },
+  {
+    "name": "a_label_with_no_figures_gives_none",
+    "texts": [
+      "PHONE BATTERY 5G"
+    ],
+    "expect": null
+  }
+]

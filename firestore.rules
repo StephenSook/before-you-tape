@@ -280,14 +280,30 @@ service cloud.firestore {
         && (c.get('upc', null) == null || isShortString(c.upc, 20));
     }
 
+    // A label figure: a number above 0 and below 100000. Rules cannot loop, so a list of up to 8 is checked by index.
+    function isFigure(n) {
+      return n is number && n > 0 && n < 100000;
+    }
+    function isFigureList(l) {
+      return l is list && l.size() <= 8
+        && (l.size() < 1 || isFigure(l[0])) && (l.size() < 2 || isFigure(l[1])) && (l.size() < 3 || isFigure(l[2]))
+        && (l.size() < 4 || isFigure(l[3])) && (l.size() < 5 || isFigure(l[4])) && (l.size() < 6 || isFigure(l[5]))
+        && (l.size() < 7 || isFigure(l[6])) && (l.size() < 8 || isFigure(l[7]));
+    }
+    function isValidLabelFigures(f) {
+      return f is map && f.keys().hasAll(['wh', 'grams']) && f.keys().hasOnly(['wh', 'grams']) && isFigureList(f.wh) && isFigureList(f.grams);
+    }
+
     function isValidItem(d) {
       return d.keys().hasAll(['read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags', 'readSource'])
         && d.keys().hasOnly(['itemId', 'read', 'overrides', 'answers', 'quantity', 'identityConfirmedBy', 'labelTags',
                              'readSource', 'readMs', 'secondLook', 'readFallback', 'cropKey', 'customs', 'addedAt', 'expiresAt',
-                             'tagsVersion'])
+                             'tagsVersion', 'labelFigures'])
         && (!('itemId' in d) || isShortString(d.itemId, 64))
         // Which label words made labelTags (src/data/tagsVersion.ts); an item saved before it was kept has none.
         && (!('tagsVersion' in d) || (d.tagsVersion is string && d.tagsVersion.matches('^[0-9a-f]{8}$')))
+        // The Wh and lithium-grams figures the label named when it was read (the label text itself is never kept).
+        && (!('labelFigures' in d) || isValidLabelFigures(d.labelFigures))
         && isValidRead(d.read)
         && isValidOverrides(d.overrides)
         && isValidAnswers(d.answers)

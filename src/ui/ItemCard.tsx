@@ -20,6 +20,8 @@ export interface ItemCardProps {
   onConfirm?: (itemId: string) => void;
   onAnswer?: (itemId: string, questionId: string, answerId: string) => void;
   onFix?: (itemId: string, patch: Partial<ItemRead>) => void;
+  // The Wh (or lithium grams) printed on the label, typed by the sender, for an item whose read numbers are held.
+  onConfirmNumber?: (itemId: string, field: "wattHours" | "lithiumGrams", value: number) => void;
   // A cloud second look in progress, or the message from one that failed.
   checking?: boolean;
   error?: string;
@@ -143,7 +145,24 @@ function batteryLine(item: BoxItem): string | null {
 // The section the engine gives its own checks (identity, reading, disagreeing reads, item count, rule layers).
 const OWN_CHECK = "Before You Tape: ";
 
-export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave, onQuantity, onRemove }: ItemCardProps) {
+// Battery numbers read from a photo are held until the sender reads the label: they type the Wh (or, for a lithium
+// metal cell with no Wh, the lithium grams) into an empty field, never a value filled in for them.
+const labelNumberField = (read: ItemRead) => (read.wattHours > 0 ? "wattHours" : "lithiumGrams");
+function LabelNumberCheck({ read, onCheck }: { read: ItemRead; onCheck: (field: "wattHours" | "lithiumGrams", value: number) => void }) {
+  const field = labelNumberField(read);
+  const [text, setText] = useState("");
+  const value = Number(text.replace(",", "."));
+  const usable = text.trim() !== "" && Number.isFinite(value) && value > 0;
+  const label = field === "wattHours" ? "Type the Wh printed on the label" : "Type the lithium grams printed on the label";
+  return (
+    <form className="label-number" onSubmit={(e) => { e.preventDefault(); if (usable) { onCheck(field, value); setText(""); } }}>
+      <label>{label} <input type="text" inputMode="decimal" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} /></label>{" "}
+      <button type="submit" disabled={!usable}>Check the number</button>
+    </form>
+  );
+}
+
+export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, onConfirmNumber, checking, error, onRetry, onCloudLook, newest, onSettle, unsaved, onRetrySave, onQuantity, onRemove }: ItemCardProps) {
   const [fixOpen, setFixOpen] = useState(false);
   const [focusField, setFocusField] = useState<keyof ItemRead | undefined>(undefined);
   // The first reason, but not one that only restates the item's question, which the card asks just below.
@@ -209,6 +228,11 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, chec
       {needsIdentity && <button type="button" data-testid="confirm-identity" onClick={() => onConfirm?.(item.itemId)}>Yes, this is {name}</button>}
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}
       {needsLithium && <button type="button" onClick={() => { setFocusField("lithiumGrams"); setFixOpen(true); }}>Type the lithium amount</button>}
+      {onConfirmNumber && verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-ONE-READ") && (
+        // Keyed on the number asked for: a second look that changes it starts the field again, empty.
+        <LabelNumberCheck key={labelNumberField({ ...item.read, ...item.overrides })} read={{ ...item.read, ...item.overrides }}
+          onCheck={(field, value) => onConfirmNumber(item.itemId, field, value)} />
+      )}
       {(onQuantity || onRemove) && (
         <p className="item-controls">
           {onQuantity && <HowMany itemId={item.itemId} quantity={item.quantity} onChange={(n) => onQuantity(item.itemId, n)} />}{" "}

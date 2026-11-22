@@ -468,7 +468,8 @@ describe("createBoxStore", () => {
 
     describe("battery numbers stand only when a second look read the same ones", () => {
       const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000, wattHours: 15.4 };
-      const big: ItemRead = { ...phone, labelText: "3.85V 40000mAh 154Wh", milliampHours: 40000, wattHours: 154 };
+      // The label text names no Wh, so a typed Wh is judged on the Wh rules alone (a label figure above it holds).
+      const big: ItemRead = { ...phone, labelText: "3.85V 40000mAh", milliampHours: 40000, wattHours: 154 };
       const ruleIds = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.hits.map((h) => h.ruleId) ?? [];
 
       it("is OK when both reads gave the same numbers", () => {
@@ -503,15 +504,15 @@ describe("createBoxStore", () => {
         expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
       });
 
-      it("holds numbers the sender typed over two reads that agreed, one number or all of them", () => {
-        // All three numbers typed lower than both reads: held for them, never OK.
+      it("judges numbers the sender typed over two reads on the rules for them, and holds a partly typed set", () => {
+        // All three numbers typed: they are the sender's, and the Wh rules judge them (rule edition revision 7).
         const all = look(big, big);
         expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
         all.s.override(all.id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
         expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
-        expect(level(all.s, all.id)).toBe("check");
-        expect(ruleIds(all.s, all.id)).toContain("USPS-INTL-LI-ONE-READ");
-        // One number typed is enough to make them the sender's (here it no longer agrees with the others).
+        expect(level(all.s, all.id)).toBe("ok");
+        expect(ruleIds(all.s, all.id)).not.toContain("USPS-INTL-LI-ONE-READ");
+        // One number typed makes the identity the sender's, and the set is part typed, part read: never OK.
         for (const patch of [{ volts: 3.7 }, { milliampHours: 4000 }, { wattHours: 15.4 }, { lithiumGrams: 0.1 }]) {
           const one = look(big, big);
           one.s.override(one.id, patch);
@@ -520,7 +521,7 @@ describe("createBoxStore", () => {
         }
       });
 
-      it("holds numbers the sender typed while the cloud read ran", () => {
+      it("judges numbers the sender typed while the cloud read ran as the sender's", () => {
         const s = store();
         s.setDestination("CA");
         const id = s.addRead(outcome(big, "on_device"), "k");
@@ -529,8 +530,8 @@ describe("createBoxStore", () => {
         s.override(id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
         s.applySecondLook(id, mergeReads(big, big), 900, "reason", big.labelText, readDisputes(big, big));
         expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
-        expect(level(s, id)).toBe("check");
-        expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+        expect(level(s, id)).toBe("ok");
+        expect(ruleIds(s, id)).not.toContain("USPS-INTL-LI-ONE-READ");
       });
 
       it("releases an item the sender confirmed while its second look ran, once both reads gave the same numbers", () => {
@@ -545,7 +546,7 @@ describe("createBoxStore", () => {
         expect(level(s, id)).toBe("ok");
       });
 
-      it("holds a saved item whose numbers the sender typed or picked under an earlier version, without writing on open", async () => {
+      it("judges a saved item by who gave its numbers under an earlier version, without writing on open", async () => {
         const savedAs = (extra: Partial<BoxItem>): BoxItem => ({
           itemId: "saved-n", read: { ...phone }, overrides: {}, answers: { device_condition: "new_sealed", cell_count: "one" }, quantity: 1,
           identityConfirmedBy: "second_look", labelTags: [], readSource: "on_device", readMs: 900, secondLook: { ms: 900, reason: "battery_numbers" },
@@ -553,12 +554,13 @@ describe("createBoxStore", () => {
         });
         const typed = savedAs({ read: { ...big }, overrides: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 } });
         const picked = savedAs({ disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 }, cloud: { volts: 3.85, milliampHours: 40000, wattHours: 154 }, resolved: true } } });
-        for (const item of [typed, picked]) {
+        // Typed in full: the sender's numbers, judged on the Wh rules. Picked between two readings: still read, so held.
+        for (const [item, want] of [[typed, "ok"], [picked, "check"]] as const) {
           const p = spyPersistence({ destinationCode: "CA", items: [item] });
           const s = store({ persistence: p });
           await s.ready;
-          expect(level(s, "saved-n"), JSON.stringify(item.overrides)).toBe("check");
-          expect(ruleIds(s, "saved-n")).toContain("USPS-INTL-LI-ONE-READ");
+          expect(level(s, "saved-n"), JSON.stringify(item.overrides)).toBe(want);
+          if (want === "check") expect(ruleIds(s, "saved-n")).toContain("USPS-INTL-LI-ONE-READ");
           expect(writes(p)).toBe(0);
         }
       });
@@ -583,6 +585,252 @@ describe("createBoxStore", () => {
         s.applySecondLook(id, mergeReads(bank, bank), 900, "reason", bank.labelText, readDisputes(bank, bank));
         expect(s.getState().items[0]?.identityConfirmedBy).not.toBe("second_look");
         expect(level(s, id)).not.toBe("ok");
+      });
+
+      it("judges a typed item's numbers on the rules for them, and still holds one read from a photo", () => {
+        const typed = store();
+        typed.setDestination("CA");
+        const t = typed.addManual({ ...phone });
+        typed.answer(t, "device_condition", "new_sealed");
+        typed.answer(t, "cell_count", "one");
+        expect(level(typed, t)).toBe("ok");
+        const read = store();
+        read.setDestination("CA");
+        const r = read.addRead(outcome(phone, "on_device"), "k");
+        read.answer(r, "device_condition", "new_sealed");
+        read.answer(r, "cell_count", "one");
+        expect(level(read, r)).toBe("check");
+        expect(ruleIds(read, r)).toContain("USPS-INTL-LI-ONE-READ");
+      });
+
+      describe("the sender types the number printed on the label", () => {
+        const held = () => {
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(phone, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+          return { s, id };
+        };
+
+        it("makes every number the sender's when it matches the read", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 15.4);
+          expect(s.getState().items[0]?.overrides).toMatchObject({ volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
+          expect(level(s, id)).toBe("ok");
+        });
+
+        it("counts a match within the tolerance the rules allow", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 15.5);
+          expect(level(s, id)).toBe("ok");
+        });
+
+        it("replaces the read number when it does not match, and judges the item again", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 154);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 154 });
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("never makes the read numbers the sender's by matching a number the sender typed before", () => {
+          const read: ItemRead = { ...phone, volts: 3.925, milliampHours: 4000, wattHours: 15.4, labelText: "3.925V 4000mAh 15.4Wh" };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(read, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          s.confirmLabelNumber(id, "wattHours", 16);
+          s.confirmLabelNumber(id, "wattHours", 16);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 16 });
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("keeps the number the sender typed when it matches within the tolerance, so a limit still applies", () => {
+          const laptop: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "11V 9000mAh 99Wh", volts: 11, milliampHours: 9000, wattHours: 99 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(laptop, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.confirmLabelNumber(id, "wattHours", 101);
+          expect(s.getState().items[0]?.overrides).toMatchObject({ wattHours: 101 });
+          expect(level(s, id)).toBe("take_out");
+        });
+
+        it("keeps a figure too big for the saved list as the largest one it can hold, still disagreeing", () => {
+          const read: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "98Wh", volts: 14, milliampHours: 7000, wattHours: 98 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh 1000000Wh" }, "k");
+          const wh = s.getState().items[0]?.labelFigures?.wh ?? [];
+          expect(Math.max(...wh)).toBeLessThan(100000);
+          expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        });
+
+        it("a typed Wh matching the read does not settle a larger figure the label names", () => {
+          const read: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "98Wh", volts: 14, milliampHours: 7000, wattHours: 98 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh MODULE / PACK 185Wh" }, "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "more_than_one");
+          s.confirmLabelNumber(id, "wattHours", 98);
+          expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("a Wh typed in Fix this reading brings the volts and capacity shown, never the grams", () => {
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome({ ...phone, lithiumGrams: 0.3 }, "on_device"), "k");
+          s.override(id, { wattHours: 15.4 });
+          expect(s.getState().items[0]?.overrides).toEqual({ volts: phone.volts, milliampHours: phone.milliampHours, wattHours: 15.4 });
+          // The label check's match brings the same, never the grams either.
+          const t = store();
+          t.setDestination("CA");
+          const tid = t.addRead(outcome({ ...phone, lithiumGrams: 0.3 }, "on_device"), "k");
+          t.confirmLabelNumber(tid, "wattHours", phone.wattHours);
+          expect(t.getState().items[0]?.overrides).toEqual({ volts: phone.volts, milliampHours: phone.milliampHours, wattHours: phone.wattHours });
+        });
+
+        it("a typed Wh brings nothing while the reads dispute the numbers, or when a number is cleared", () => {
+          const first: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "50V 98Wh", volts: 50, milliampHours: 0, wattHours: 98 };
+          const cloud: ItemRead = { ...first, labelText: "22V 99Wh", volts: 22, wattHours: 99 };
+          const { s, id } = look(first, cloud);
+          s.override(id, { wattHours: 99 });
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 99 });
+          const t = store();
+          t.setDestination("CA");
+          const tid = t.addRead(outcome({ ...phone, category: "laptop", labelText: "14V 8600mAh 98Wh", volts: 14, milliampHours: 8600, wattHours: 98 }, "on_device"), "k");
+          t.override(tid, { milliampHours: 0, wattHours: 98 });
+          expect(t.getState().items[0]?.overrides).toEqual({ milliampHours: 0, wattHours: 98 });
+          expect(level(t, tid)).not.toBe("ok");
+        });
+
+        it("saves only the typed number while the two reads dispute the numbers", () => {
+          const first: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "50V 98Wh", volts: 50, milliampHours: 0, wattHours: 98 };
+          const cloud: ItemRead = { ...first, labelText: "22V 99Wh", volts: 22, wattHours: 99 };
+          const { s, id } = look(first, cloud);
+          expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+          s.confirmLabelNumber(id, "wattHours", 99);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 99 });
+          expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("checks lithium grams the same way for a lithium metal cell", () => {
+          const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(coin, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+          s.confirmLabelNumber(id, "lithiumGrams", 0.1);
+          expect(ruleIds(s, id)).not.toContain("USPS-INTL-LI-ONE-READ");
+          const other = store();
+          other.setDestination("CA");
+          const o = other.addRead(outcome(coin, "on_device"), "k");
+          other.confirmLabelNumber(o, "lithiumGrams", 1.2);
+          expect(other.getState().items[0]?.overrides).toEqual({ lithiumGrams: 1.2 });
+        });
+      });
+
+      it("settles a battery dispute once the sender typed every number either read gave", () => {
+        const whOnly: ItemRead = { ...phone, labelText: "15.4Wh", volts: 0, milliampHours: 0, wattHours: 15.4 };
+        const { s, id } = look(whOnly, { ...whOnly, wattHours: 16 });
+        expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+        s.override(id, { wattHours: 16 });
+        expect(ruleIds(s, id)).not.toContain("DATA-DISPUTE");
+        expect(level(s, id)).toBe("ok");
+      });
+
+      it("keeps a label figure that disagrees after a reload, and after the label words are cleared", async () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "LI-ION 98Wh MODULE", volts: 0, milliampHours: 0, wattHours: 98 };
+        const p = spyPersistence();
+        const s = store({ persistence: p });
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "LI-ION 98Wh MODULE, PACK 185Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", read.labelText, readDisputes(read, read));
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        s.override(id, { labelText: "" });
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        await s.ready;
+        await vi.waitFor(() => expect(p.saved()?.items?.[0]).toBeDefined());
+        const again = store({ persistence: spyPersistence(p.saved()) });
+        await again.ready;
+        expect(ruleIds(again, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
+      it("keeps the smallest figure too when the list is full, so a read disagreeing with it still holds", () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "40Wh 98Wh 98.01Wh 98.02Wh 98.03Wh 98.04Wh 98.05Wh 98.06Wh 98.07Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", "98Wh", readDisputes(read, read));
+        const wh = s.getState().items[0]?.labelFigures?.wh ?? [];
+        expect(wh).toContain(40);
+        expect(wh).toContain(98.07);
+        expect(wh.length).toBeLessThanOrEqual(8);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
+      it("keeps the largest figures when the list is full, so a newly seen larger one is never dropped", () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const many = "98Wh 98.1Wh 98.2Wh 98.3Wh 98.4Wh 98.5Wh 98.6Wh 98.7Wh";
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: many }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", "PACK 185 Wh", readDisputes(read, read));
+        expect(s.getState().items[0]?.labelFigures?.wh).toContain(185);
+        expect(s.getState().items[0]?.labelFigures?.wh.length).toBeLessThanOrEqual(8);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
+      it("never lets a second look's figures push out a kept one, and keeps figures in a label the sender typed", async () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh MODULE, PACK 185Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        const many = "98Wh 98.1Wh 98.2Wh 98.3Wh 98.4Wh 98.5Wh 98.6Wh 98.7Wh";
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", many, readDisputes(read, read));
+        expect(s.getState().items[0]?.labelFigures?.wh).toContain(185);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        // A label the sender typed: its figures are kept with the item, so a reload still holds.
+        const p = spyPersistence();
+        const t = store({ persistence: p });
+        t.setDestination("CA");
+        const tid = t.addRead(outcome(read, "on_device"), "k");
+        t.answer(tid, "device_condition", "new_sealed");
+        t.override(tid, { labelText: "98Wh MODULE, PACK 185Wh" });
+        await t.ready;
+        await vi.waitFor(() => expect(p.saved()?.items?.[0]?.labelFigures?.wh).toContain(185));
+        const again = store({ persistence: spyPersistence(p.saved()) });
+        await again.ready;
+        expect(ruleIds(again, tid)).toContain("DATA-LABEL-NUMBERS");
+      });
+
+      it("never lets clearing a number hide a mismatch both reads agreed on", () => {
+        const odd: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "14V 8600mAh 98Wh", volts: 14, milliampHours: 8600, wattHours: 98 };
+        const { s, id } = look(odd, odd);
+        s.answer(id, "cell_count", "more_than_one");
+        expect(level(s, id)).not.toBe("ok");
+        s.override(id, { milliampHours: 0 });
+        expect(level(s, id)).not.toBe("ok");
+      });
+
+      it("holds the rest when the sender clears a number both reads agreed on, until they type them", () => {
+        const { s, id } = look(phone, phone);
+        s.override(id, { milliampHours: 0 });
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(s, id)).not.toBe("ok");
+        s.override(id, { volts: 3.85, wattHours: 15.4 });
+        expect(level(s, id)).toBe("ok");
       });
 
       it("keeps the second look for corrections of anything but the numbers", () => {

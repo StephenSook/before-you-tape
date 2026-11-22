@@ -21,10 +21,13 @@ export function typedRead(details: TypedDetails): ItemRead {
 
 const itemId = "product";
 
-export function toBoxItem(read: ItemRead, options: { confirmed: boolean; answers: ItemAnswers; quantity: number }): BoxItemInput {
+// typedByHand: the sender typed every detail, with no read to start from, so its battery numbers are theirs. A form
+// filled in from a read is not: numbers left as the read gave them still need checking.
+export function toBoxItem(read: ItemRead, options: { confirmed: boolean; answers: ItemAnswers; quantity: number; typedByHand?: boolean }): BoxItemInput {
   return {
     itemId, read, overrides: {}, answers: options.answers, quantity: options.quantity,
     labelTags: [], identityConfirmedBy: options.confirmed ? "sender" : null,
+    ...(options.typedByHand ? { numbersFrom: "typed" as const } : {}),
   };
 }
 

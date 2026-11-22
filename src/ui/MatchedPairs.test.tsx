@@ -51,8 +51,8 @@ describe("MatchedPairs", () => {
     const sides = within(screen.getByTestId("matched-pair")).getAllByTestId("pair-side");
     expect(sides).toHaveLength(2);
     expect(within(sides[0]!).getByText("New, in its sealed box")).toBeInTheDocument();
-    // Typed numbers wait for a second look (USPS-INTL-LI-ONE-READ), so the new phone is Check this, not OK.
-    expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    // A pair's label numbers are typed in, so the Wh rules judge them: the new phone is OK to pack.
+    expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     expect(within(sides[1]!).getByTestId("verdict-chip")).toHaveTextContent("Take it out");
     expect(within(sides[1]!).getByTestId("pair-reason")).toHaveTextContent("Used devices with lithium batteries can't go by international mail.");
     expect(within(sides[1]!).getByRole("img", { name: "A phone" })).toHaveAttribute("width");
@@ -65,6 +65,7 @@ describe("MatchedPairs", () => {
     render(<MatchedPairs pairs={[answers]} edition={ed} destinationCode="CA" today="2026-11-21" />);
     const sides = within(screen.getByTestId("matched-pair")).getAllByTestId("pair-side");
     expect(within(sides[0]!).getByTestId("pair-reason")).toHaveTextContent("Pack this one back in its own box.");
-    expect(within(sides[1]!).getByTestId("pair-reason")).toHaveTextContent("Check the battery numbers on the label.");
+    expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    expect(within(sides[1]!).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
   });
 });

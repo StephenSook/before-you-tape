@@ -8,7 +8,7 @@ const ed = parseEdition(bundled);
 
 const noBattery: BatteryFacts = {
   presence: "none", chemistry: "unknown", volts: null, milliampHours: null, whPrinted: null, whComputed: null,
-  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1,
+  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1, numbersFrom: "read", labelMismatch: null,
 };
 const f = (patch: Omit<Partial<ItemFacts>, "battery"> & { battery?: Partial<BatteryFacts> }): ItemFacts => ({
   category: "other", tags: [], evidence: "label_read", identity: "label", condition: "unknown", alcohol: "unknown",

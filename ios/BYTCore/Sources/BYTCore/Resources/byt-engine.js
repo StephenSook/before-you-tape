@@ -30,6 +30,7 @@ var BYT = (() => {
     evaluateBoxJson: () => evaluateBoxJson,
     isNoItemJson: () => isNoItemJson,
     itemReadContract: () => itemReadContract,
+    labelFiguresJson: () => labelFiguresJson,
     labelTagsJson: () => labelTagsJson,
     mergeSecondLookJson: () => mergeSecondLookJson,
     parseItemReadJson: () => parseItemReadJson,
@@ -191,14 +192,61 @@ var BYT = (() => {
     if (MAYBE_BATTERY_DEVICES.has(read.category)) return lithiumEvidence ? "installed" : "unknown";
     return hasEvidence ? "unknown" : "none";
   }
-  function deriveBattery(read, answers, quantity, limits, tags) {
+  var BATTERY_NUMBER_FIELDS = ["volts", "milliampHours", "wattHours", "lithiumGrams"];
+  function numbersFromOf(read, typed) {
+    const present = BATTERY_NUMBER_FIELDS.filter((f) => printed(read[f]) !== null);
+    const typedCount = present.filter((f) => typed.has(f)).length;
+    return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
+  }
+  var WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
+  var GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
+  var A_WEIGHT = /(?:\b(?:wt|weight)|\b[ng]\.\s?w)\.?\s*:?\s*\(?\s*$/i;
+  var A_LITHIUM_WEIGHT = /\b(?:lithium|li|metal)\s+(?:metal\s+)?(?:wt|weight)\.?\s*:?\s*\(?\s*$/i;
+  var aWeight = (before) => A_WEIGHT.test(before) && !A_LITHIUM_WEIGHT.test(before);
+  var figures = (text, re, skip) => [...text.matchAll(re)].filter((m) => !skip?.(text.slice(Math.max(0, m.index - 32), m.index))).map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+  function labelFiguresOf(text) {
+    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, aWeight) };
+  }
+  function keptLabelFigures(texts, kept) {
+    const read = texts.map(labelFiguresOf);
+    const pick = (k) => {
+      const all = [...new Set([...kept?.[k] ?? [], ...read.flatMap((f) => f[k])].map((n) => Math.min(n, 99999)))].sort((a, b) => b - a);
+      return all.length <= 8 ? all : [...all.slice(0, 7), all[all.length - 1]];
+    };
+    const wh = pick("wh");
+    const grams = pick("grams");
+    return wh.length + grams.length > 0 ? { wh, grams } : null;
+  }
+  var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
+  var above = (f, n) => f > n + 1e-9;
+  function labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, metalLabel, tolerancePct) {
+    const off = (list2, n, byHand) => list2.find((f) => above(f, n) || !byHand && !agrees(f, n, tolerancePct));
+    if (figs.wh.length > 0) {
+      const n = whPrinted ?? whComputed;
+      const byHand = whPrinted !== null ? typed.has("wattHours") : typed.has("volts") && typed.has("milliampHours");
+      if (n === null) return { kind: "wh", label: Math.max(...figs.wh), read: null, typed: false };
+      const label = off(figs.wh, n, byHand);
+      if (label !== void 0) return { kind: "wh", label, read: n, typed: byHand };
+    }
+    if (figs.grams.length > 0) {
+      const byHand = typed.has("lithiumGrams");
+      if (lithiumGrams === null) {
+        if (byHand || metalLabel) return { kind: "grams", label: Math.max(...figs.grams), read: null, typed: byHand };
+      } else {
+        const label = off(figs.grams, lithiumGrams, byHand);
+        if (label !== void 0) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+      }
+    }
+    return null;
+  }
+  function deriveBattery(read, answers, quantity, limits, tags, typed = /* @__PURE__ */ new Set(), figs = labelFiguresOf(read.labelText)) {
     const volts = printed(read.volts);
     const milliampHours = printed(read.milliampHours);
     const whPrinted = printed(read.wattHours);
     const whComputed = volts !== null && milliampHours !== null ? round2(volts * milliampHours / 1e3) : null;
     const lithiumGrams = printed(read.lithiumGrams);
-    const liMetal = tags.includes("li_metal") || lithiumGrams !== null;
     const liIon = tags.includes("li_ion");
+    const liMetal = tags.includes("li_metal") || lithiumGrams !== null && !liIon;
     const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null || lithiumGrams !== null;
     const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
     const badNumber = [read.volts, read.milliampHours, read.wattHours, read.lithiumGrams].some((n) => !isNumber(n));
@@ -233,7 +281,21 @@ var BYT = (() => {
     else if (liIon) chemistry = "li_ion";
     else if (answers.battery_installed === "not_lithium" && !BATTERY_DEVICES.has(read.category)) chemistry = "not_lithium";
     else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
-    return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
+    return {
+      presence,
+      chemistry,
+      volts,
+      milliampHours,
+      whPrinted,
+      whComputed,
+      whStatus,
+      wh,
+      lithiumGrams,
+      countAs,
+      units: quantity,
+      numbersFrom: numbersFromOf(read, typed),
+      labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, tags.includes("li_metal"), limits.whTolerancePct)
+    };
   }
 
   // src/engine/facts.ts
@@ -295,6 +357,14 @@ var BYT = (() => {
   function conditionOf(answer) {
     return answer === "new_sealed" || answer === "new_opened" || answer === "used" || answer === "refurbished_certified" ? answer : "unknown";
   }
+  function typedNumbers(input) {
+    return new Set(BATTERY_NUMBER_FIELDS.filter((f) => input.numbersFrom === "typed" || input.overrides[f] !== void 0));
+  }
+  function labelFigures(input) {
+    const kept = input.labelFigures ?? labelFiguresOf(input.read.labelText);
+    const typed = labelFiguresOf(input.overrides.labelText ?? "");
+    return { wh: [...kept.wh, ...typed.wh], grams: [...kept.grams, ...typed.grams] };
+  }
   function deriveFacts(input, edition2) {
     const read = { ...input.read, ...input.overrides };
     const tags = new Set(edition2.categoryTags[read.category]);
@@ -313,12 +383,13 @@ var BYT = (() => {
     let identity = "unconfirmed";
     if (input.identityConfirmedBy) identity = input.identityConfirmedBy;
     else if (read.evidence === "label_read" && tags.has(LABEL_TEXT_TAG)) identity = "label";
+    if (identity === "second_look" && (input.disputes?.battery !== void 0 || input.disputes?.lithiumGrams !== void 0)) identity = "sender";
     return {
       category: read.category,
       tags: tagList,
       evidence: read.evidence,
       identity,
-      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList),
+      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList, typedNumbers(input), labelFigures(input)),
       // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
       // the box reading (an override to "sealed") is how the sender clears it.
       condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none" ? "new_opened" : conditionOf(input.answers.device_condition),
@@ -401,7 +472,8 @@ var BYT = (() => {
     "battery.wh",
     "battery.lithiumGrams",
     "battery.countAs",
-    "battery.units"
+    "battery.units",
+    "battery.numbersFrom"
   ]);
   function checkPredicate(v, where, producible) {
     const p = obj(v, where);
@@ -945,6 +1017,19 @@ var BYT = (() => {
     url: RULES_PAGE,
     text: "The two reads of this item disagree. Choose the reading that matches it."
   };
+  var shown = (n) => String(Math.round(n * 100) / 100);
+  function labelNumbersHit(m) {
+    const source = m.typed ? "the number typed is" : "the read says";
+    const said = m.read === null ? m.kind === "wh" ? `${shown(m.label)} Wh but the reading has no Wh` : `${shown(m.label)} g of lithium but no lithium grams are given` : m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
+    return {
+      ruleId: "DATA-LABEL-NUMBERS",
+      layer: "data",
+      level: "check",
+      section: "Before You Tape: label and reading disagree",
+      url: RULES_PAGE,
+      text: `The label text says ${said}. Type the numbers from the label in Fix this reading.`
+    };
+  }
   var BAD_QUANTITY_HIT = {
     ruleId: "DATA-BAD-QUANTITY",
     layer: "data",
@@ -987,6 +1072,7 @@ var BYT = (() => {
       if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
       if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
       if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
+      if (facts.battery.labelMismatch) hits.push(labelNumbersHit(facts.battery.labelMismatch));
       hits.push(...evaluateItemRules(facts, edition2.rules));
       hits.push(...evaluateDestination(facts, input.answers, dest));
       if (layerHit) hits.push(layerHit);
@@ -1200,6 +1286,10 @@ var BYT = (() => {
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
       }
+      if (o.labelFigures !== void 0) checkLabelFigures(o.labelFigures, `${id}.labelFigures`);
+      if (o.numbersFrom !== void 0 && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
+        throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);
+      }
       if (o.disputes !== void 0) {
         for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {
           if (!DISPUTE_FIELDS.includes(k)) throw new BadInputError(`${id}.disputes.${k} is not a fact two reads can dispute`);
@@ -1254,6 +1344,26 @@ var BYT = (() => {
         if (typeof v !== "string") throw new BadInputError(`answers.${k} must be a string`);
       }
       return evaluateDestination(facts, answers, resolveDestination(e, str2(input, "code")));
+    });
+  }
+  function checkLabelFigures(v, path) {
+    const f = plain(v, path);
+    if (Object.keys(f).sort().join(",") !== "grams,wh") throw new BadInputError(`${path} must have exactly wh and grams`);
+    for (const k of ["wh", "grams"]) {
+      const list2 = f[k];
+      if (!Array.isArray(list2) || list2.length > 8 || !list2.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
+        throw new BadInputError(`${path}.${k} must be up to 8 numbers above 0`);
+      }
+    }
+    return f;
+  }
+  function labelFiguresJson(inputJson) {
+    return reply(() => {
+      const input = object(inputJson);
+      const texts = input.texts;
+      if (!Array.isArray(texts) || !texts.every((t) => typeof t === "string")) throw new BadInputError("texts must be a list of strings");
+      const kept = input.kept === void 0 ? void 0 : checkLabelFigures(input.kept, "kept");
+      return { labelFigures: keptLabelFigures(texts, kept) };
     });
   }
   function labelTagsJson(labelText) {

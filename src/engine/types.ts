@@ -15,6 +15,11 @@ export interface BatteryFacts {
   lithiumGrams: number | null; // printed lithium content (lithium metal), null when not printed
   countAs: "cell" | "battery" | "unknown";
   units: number;
+  // Where the battery numbers present came from: all typed by the sender, all from a model read, or both.
+  numbersFrom: "read" | "typed" | "mixed";
+  // A Wh or lithium-grams figure the label text names that a read number it was not typed over disagrees with.
+  // read is the number in use (null when there is none); typed says the sender typed it.
+  labelMismatch: { kind: "wh" | "grams"; label: number; read: number | null; typed: boolean } | null;
 }
 
 export interface LithiumLimits {
@@ -139,6 +144,11 @@ export interface BoxItemInput {
   labelTags: string[];
   // Facts the two reads of a second look disagreed on. While one is open the item is at least "Check this".
   disputes?: ReadDisputes;
+  // "typed" when the whole read is the sender's own (a typed item). Left out, the read is a model's: the safe side.
+  numbersFrom?: "typed" | "read";
+  // The Wh and lithium-grams figures the label named when it was read, kept because the label text is not. Left
+  // out, they are taken from the read's label text.
+  labelFigures?: { wh: number[]; grams: number[] };
 }
 
 // The facts two reads can disagree on, each of which can change a verdict, with the value type of each.

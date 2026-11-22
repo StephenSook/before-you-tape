@@ -298,7 +298,8 @@ import Testing
     // sender picked between two readings, or typed, are the sender's (the web app's tests of the same name).
     static let phone = with(powerBank, ["itemName": .string("Phone"), "category": .string("phone"), "labelText": .string("3.85V 4000mAh 15.4Wh"),
                                         "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
-    static let bigPhone = with(phone, ["labelText": .string("3.85V 40000mAh 154Wh"), "milliampHours": .number(40000), "wattHours": .number(154)])
+    /// No Wh on its label, like the web test's: a label figure above a typed number holds it (rule edition revision 7).
+    static let bigPhone = with(phone, ["labelText": .string("3.85V 40000mAh"), "milliampHours": .number(40000), "wattHours": .number(154)])
     func ruleIds(_ s: BoxStore, _ id: String) -> [String] { s.result?.items[id]?.hits.map(\.ruleId) ?? [] }
 
     @Test func numbersBothReadsAgreedOnAreOK() throws {
@@ -362,15 +363,15 @@ import Testing
         #expect(ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
     }
 
-    @Test func numbersTypedOverTwoReadsThatAgreedAreHeld() throws {
-        // All three numbers typed lower than both reads: held for them, never OK.
+    @Test func numbersTypedInFullAreJudgedOnTheirRulesAndAPartlyTypedSetIsHeld() throws {
+        // All three numbers typed: they are the sender's, and the Wh rules judge them (rule edition revision 7).
         let all = try look(Self.bigPhone, Self.bigPhone)
         #expect(all.0.items[0].identityConfirmedBy == "second_look")
         all.0.override(all.1, patch: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
         #expect(all.0.items[0].identityConfirmedBy == "sender")
-        #expect(level(all.0, all.1) == "check")
-        #expect(ruleIds(all.0, all.1).contains("USPS-INTL-LI-ONE-READ"))
-        // One number typed is enough to make them the sender's (here it no longer agrees with the others).
+        #expect(level(all.0, all.1) == "ok")
+        #expect(!ruleIds(all.0, all.1).contains("USPS-INTL-LI-ONE-READ"))
+        // One number typed makes the identity the sender's, and the set is part typed, part read: never OK.
         for patch: [String: JSONValue] in [["volts": .number(3.7)], ["milliampHours": .number(4000)], ["wattHours": .number(15.4)],
                                            ["lithiumGrams": .number(0.1)]] {
             let one = try look(Self.bigPhone, Self.bigPhone)
@@ -380,7 +381,7 @@ import Testing
         }
     }
 
-    @Test func numbersTypedWhileTheCloudReadRanAreHeld() throws {
+    @Test func numbersTypedWhileTheCloudReadRanAreJudgedAsTheSenders() throws {
         let s = try t.store(engine: engine)
         s.setDestination("CA")
         let id = try #require(s.addRead(t.outcome(Self.bigPhone, .onDevice), cropFile: nil))
@@ -390,8 +391,8 @@ import Testing
         let m = try engine.mergeSecondLook(device: Self.bigPhone, cloud: Self.bigPhone)
         s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(Self.bigPhone), disputes: m.disputes)
         #expect(s.items[0].identityConfirmedBy == "sender")
-        #expect(level(s, id) == "check")
-        #expect(ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
+        #expect(level(s, id) == "ok")
+        #expect(!ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
     }
 
     @Test func anItemTheSenderConfirmedWhileItsLookRanIsReleasedOnceBothReadsAgree() throws {
@@ -408,8 +409,10 @@ import Testing
     }
 
     /// A box saved by an earlier build, with numbers the sender typed or picked under a second look, is
-    /// held when it opens; what is saved still says second_look, and a recheck writes nothing.
-    @Test func aSavedItemWithTypedOrPickedNumbersIsHeldAndItsSavedIdentityIsKept() throws {
+    /// judged by who gave its numbers when it opens: typed in full, the Wh rules judge them; picked between
+    /// two readings, they are still read, so held. What is saved still says second_look, and a recheck
+    /// writes nothing.
+    @Test func aSavedItemIsJudgedByWhoGaveItsNumbersAndItsSavedIdentityIsKept() throws {
         func saved(_ read: JSONValue, overrides: [String: JSONValue] = [:], disputes: JSONValue? = nil) -> BoxSnapshot {
             let item = BoxItem(itemId: "saved-n", read: Self.with(read, ["labelText": .string("")]), overrides: overrides,
                                answers: ["device_condition": "new_sealed", "cell_count": "one"], identityConfirmedBy: "second_look",
@@ -423,7 +426,7 @@ import Testing
             "resolved": .bool(true)])])
         let cases: [(String, BoxSnapshot, String)] = [
             ("control", saved(Self.phone), "ok"),
-            ("typed", saved(Self.bigPhone, overrides: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)]), "check"),
+            ("typed", saved(Self.bigPhone, overrides: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)]), "ok"),
             ("picked", saved(Self.phone, disputes: pickedDispute), "check"),
         ]
         for (name, snapshot, want) in cases {

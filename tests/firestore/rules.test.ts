@@ -278,6 +278,31 @@ describe("schema", () => {
     for (const tagsVersion of [1, "", "1A2B3C4D", "1a2b3c4", "1a2b3c4d5", "label words"]) {
       await assertFails(updateDoc(doc(alice, "boxes/b1/items/i4"), { tagsVersion }));
     }
+    // An item exactly as android-judge-3 writes it (android/app/.../data/BoxDocs.kt itemToDoc, plus the box's expiry):
+    // no tagsVersion, numbersFrom or labelFigures. Old phones keep saving through these rules. (The iPhone app writes
+    // no box or item documents; it only reads ruleEditions.)
+    const androidJudge3Item = {
+      itemId: "a1",
+      read: {
+        itemName: "Phone", category: "phone", labelText: "", volts: 3.85, milliampHours: 4000, wattHours: 15.4, lithiumGrams: 0,
+        batteryWords: true, liquid: false, pressurized: false, alcoholOnLabel: false, flammableOnLabel: false, glassContainer: false,
+        powder: false, retailBox: "sealed", evidence: "label_read",
+      },
+      overrides: {}, answers: { device_condition: "new_sealed" }, quantity: 1, identityConfirmedBy: null, labelTags: ["label_text"],
+      readSource: "phone_on_device", readMs: 1200, secondLook: null, cropKey: null,
+      customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null },
+      expiresAt: EXPIRES,
+    };
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/a1"), androidJudge3Item));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/a1"), { overrides: { wattHours: 15.4 }, quantity: 2 }));
+    // The Wh and lithium-grams figures the label named: up to 8 of each, numbers above 0, and nothing else.
+    await assertSucceeds(setDoc(doc(alice, "boxes/b1/items/i5"), { ...itemDoc, labelFigures: { wh: [98, 185], grams: [] } }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i5"), { labelFigures: { wh: [], grams: [0.1, 1.2] } }));
+    await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i5"), { labelFigures: { wh: [1, 2, 3, 4, 5, 6, 7, 8], grams: [] } }));
+    for (const labelFigures of [{ wh: ["185"], grams: [] }, { wh: [0], grams: [] }, { wh: [-1], grams: [] }, { wh: [1, 2, 3, 4, 5, 6, 7, 8, 9], grams: [] },
+      { wh: [185] }, { wh: [], grams: [], text: "185Wh" }, { wh: [185], grams: [100000] }, "185Wh"]) {
+      await assertFails(updateDoc(doc(alice, "boxes/b1/items/i5"), { labelFigures }));
+    }
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { read: { ...itemDoc.read, category: "phonex" } }));
     await assertFails(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "spaceship" } }));
     await assertSucceeds(updateDoc(doc(alice, "boxes/b1/items/i1"), { overrides: { category: "toy_gun" } }));

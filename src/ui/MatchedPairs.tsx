@@ -10,7 +10,8 @@ import { VerdictChip } from "./VerdictChip";
 export interface MatchedPairsProps { pairs: readonly MatchedPair[]; edition: RuleEdition; destinationCode: string; today: string }
 
 function Side({ side, edition, destinationCode, today }: { side: PairSide } & Omit<MatchedPairsProps, "pairs">) {
-  const item = { itemId: "pair", read: side.read, overrides: {}, answers: side.answers, quantity: 1, identityConfirmedBy: "sender" as const,
+  // What each side's label says is typed in by us, so its battery numbers count as typed.
+  const item = { itemId: "pair", read: side.read, overrides: {}, answers: side.answers, quantity: 1, identityConfirmedBy: "sender" as const, numbersFrom: "typed" as const,
     labelTags: labelTagsOf(side.read.labelText, edition) };
   const code = side.destination ?? destinationCode;
   const verdict = evaluateBox([item], edition, resolveDestination(edition, code, undefined, today), today).items.pair!;

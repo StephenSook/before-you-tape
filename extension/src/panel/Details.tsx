@@ -69,7 +69,7 @@ export function Details({ edition, today, itemName, onItemName, draft }: Details
     // Shop words are shown for review. They never enter the rules engine as label evidence.
     const confirmed = read.itemName !== "" && (!draft || form.has("confirmed"));
     if (draft?.read.evidence === "not_sure" && !confirmed) read.evidence = "not_sure";
-    setChecked({ item: toBoxItem(read, { confirmed, answers: {}, quantity: 1 }), revision });
+    setChecked({ item: toBoxItem(read, { confirmed, answers: {}, quantity: 1, typedByHand: !draft }), revision });
   }
 
   function answer(questionId: string, answerId: string) {

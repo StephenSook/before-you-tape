@@ -1,6 +1,6 @@
 {
-  "editionId": "byt-08f3b8c7ff31",
-  "revision": 6,
+  "editionId": "byt-56273cd51d25",
+  "revision": 7,
   "service": "Priority Mail International",
   "sources": [
     {
@@ -1260,20 +1260,13 @@
       "section": "Pub 52 622.52",
       "url": "https://pe.usps.com/text/pub52/pub52c6_005.htm",
       "basis": "summarized",
-      "ourWording": "Check the battery numbers on the label. Only a second look that reads the same numbers confirms them, because a misread can hide a battery too big to mail.",
+      "ourWording": "Check the battery numbers on the label. Type the Wh printed on it, or a second look that reads the same numbers confirms them, because a misread can hide a battery too big to mail.",
       "when": {
         "all": [
           {
             "fact": "battery.presence",
             "op": "eq",
             "value": "installed"
-          },
-          {
-            "not": {
-              "fact": "identity",
-              "op": "eq",
-              "value": "second_look"
-            }
           },
           {
             "any": [
@@ -1289,6 +1282,31 @@
                 "fact": "battery.lithiumGrams",
                 "op": "gt",
                 "value": 0
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact": "battery.numbersFrom",
+                "op": "eq",
+                "value": "mixed"
+              },
+              {
+                "all": [
+                  {
+                    "fact": "battery.numbersFrom",
+                    "op": "eq",
+                    "value": "read"
+                  },
+                  {
+                    "not": {
+                      "fact": "identity",
+                      "op": "eq",
+                      "value": "second_look"
+                    }
+                  }
+                ]
               }
             ]
           }

@@ -662,6 +662,7 @@ export function PackPage(p: PackPageProps) {
               <ItemCard key={item.itemId} item={item} verdict={verdict} crop={crops[item.itemId] ?? null}
                 onConfirm={(id) => store.confirmIdentity(id)} onAnswer={(id, q, a) => store.answer(id, q, a)}
                 onFix={(id, patch) => store.override(id, patch)}
+                onConfirmNumber={(id, field, value) => store.confirmLabelNumber(id, field, value)}
                 onSettle={(id, field, side) => store.settleDispute(id, field, side)}
                 unsaved={state.unsaved?.includes(item.itemId) ?? false} onRetrySave={state.outOfDate ? undefined : () => store.retrySave()}
                 onQuantity={(id, n) => store.setQuantity(id, n)} onRemove={removeItem}

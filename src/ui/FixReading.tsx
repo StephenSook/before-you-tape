@@ -1,4 +1,5 @@
-// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read.
+// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read; the
+// box decides which other battery numbers come with a typed one.
 // A second look can land while the form is open: an untouched field then shows the new reading, and a field
 // the sender had edited is reset to it with a note, so no choice made against the old reading is saved.
 import { useState } from "react";
@@ -77,6 +78,11 @@ export function FixReading({ read, onSave, focusField, labelTags = [] }: {
   const save = () => {
     const all = changedFields(base, draft);
     const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field))) as Partial<ItemRead>;
+    // A battery number the sender typed again as it was shown is theirs too. Untouched numbers are never saved here.
+    for (const [f] of NUMBER_FIELDS) {
+      const n = parseNumber(draft.numbers[f]);
+      if (touched.has(f) && !(f in patch) && n !== null && n > 0) patch[f] = n;
+    }
     onSave(patch);
   };
   return (

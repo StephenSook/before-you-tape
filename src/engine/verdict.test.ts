@@ -140,11 +140,24 @@ describe("evaluateBox", () => {
       "sender_ticked_alcohol_settles_it", "replica_grenade_ca", "replica_grenade_ph", "plain_toy_ca",
       "sunscreen_stick_ph", "sunscreen_stick_ca", "sanitizer_drug_facts_ph",
       "replica_words_ca", "toy_and_brand_words_ca", "replica_props_ca", "replica_props_ph", "extra_questions_ca",
-      "phone_numbers_matched_by_a_second_look_is_ok", "typed_phone_numbers_are_held_for_now", "battery_185_wh_true_numbers_is_take_out",
+      "phone_numbers_matched_by_a_second_look_is_ok", "typed_item_that_sends_no_numbers_from_is_held", "battery_185_wh_true_numbers_is_take_out",
       "battery_185_wh_read_as_18_5_is_check", "battery_185_wh_read_ten_times_low_throughout_is_check", "laptop_120_wh_read_as_12_is_check",
       "coin_cell_grams_read_once_is_check", "not_lithium_answer_keeps_one_read_numbers_held",
       "identity_tap_does_not_clear_read_numbers", "category_pick_does_not_clear_read_numbers",
-      "typed_laptop_without_label_text_is_held_for_now",
+      "typed_laptop_without_label_text_is_ok",
+      "typed_numbers_over_a_read_release_the_hold", "one_typed_number_over_a_read_is_mixed_and_held",
+      "mixed_numbers_are_held_even_after_a_second_look", "typed_item_numbers_go_through_the_wh_rules", "typed_120_wh_laptop_is_take_out",
+      "label_text_wh_that_disagrees_with_the_read_is_check", "label_text_grams_that_disagree_with_the_read_are_check",
+      "typed_numbers_settle_a_label_text_mismatch", "typed_numbers_below_the_label_text_figure_hold", "label_text_wh_with_a_comma_that_agrees_is_ok",
+      "label_number_typed_and_matched_makes_every_number_typed", "label_number_typed_and_different_replaces_the_read_and_holds",
+      "blanking_one_number_does_not_make_the_rest_typed", "lithium_grams_on_a_li_ion_label_keep_the_wh_check",
+      "a_label_naming_two_wh_figures_holds_when_one_disagrees", "a_figure_written_with_a_leading_point_reads_as_written",
+      "a_5G_model_name_is_not_a_lithium_figure", "label_grams_typed_and_different_leave_mixed_numbers_held",
+      "a_typed_wh_below_another_label_figure_still_holds", "a_typed_wh_at_the_largest_label_figure_settles_it",
+      "a_net_weight_is_not_a_lithium_figure", "a_label_figure_just_over_the_limit_is_not_hidden_by_the_tolerance",
+      "clearing_the_grams_keeps_the_label_lithium_figure", "a_label_wh_with_no_printed_wh_read_is_checked_against_volts_times_capacity",
+      "a_lithium_metal_weight_is_a_lithium_figure", "a_net_weight_in_brackets_is_not_a_lithium_figure",
+      "a_label_figure_a_little_over_the_limit_holds_both_reads", "a_device_weight_is_not_a_lithium_figure",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
@@ -152,12 +165,30 @@ describe("evaluateBox", () => {
       for (const [id, ids] of Object.entries((v as { expectRules?: Record<string, string[]> }).expectRules ?? {})) {
         expect(r.items[id]?.hits.map((h) => h.ruleId), `${v.name} ${id}`).toEqual(expect.arrayContaining(ids));
       }
+      for (const [id, ids] of Object.entries((v as { notRules?: Record<string, string[]> }).notRules ?? {})) {
+        for (const ruleId of ids) expect(r.items[id]?.hits.map((h) => h.ruleId), `${v.name} ${id}`).not.toContain(ruleId);
+      }
       const lithium = (v as { expectLithium?: string }).expectLithium;
       if (lithium) expect(r.lithium.status, v.name).toBe(lithium);
       for (const [id, q] of Object.entries((v as { expectQuestion?: Record<string, string> }).expectQuestion ?? {})) {
         expect(r.items[id]?.question?.id, `${v.name} ${id}`).toBe(q);
       }
     }
+  });
+
+  it("never takes a second look as agreeing on numbers the two reads disputed, even once the dispute is settled", () => {
+    // Not a shared vector: Android's engine input carries no disputes.
+    const phone = { ...sealedPhoneOneCell, identityConfirmedBy: "second_look" as const };
+    const settled = { ...phone, disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 },
+      cloud: { volts: 3.85, milliampHours: 4000, wattHours: 15.8 }, resolved: true } } };
+    const v = run([settled], "CA").items.phone!;
+    expect(v.level).toBe("check");
+    expect(v.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+    const grams = { ...phone, disputes: { lithiumGrams: { device: 0, cloud: 0, resolved: true } } };
+    expect(run([grams], "CA").items.phone?.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+    // A settled dispute about something else leaves the second look standing.
+    const box = { ...phone, disputes: { retailBox: { device: "sealed" as const, cloud: "cannot_tell" as const, resolved: true } } };
+    expect(run([box], "CA").items.phone?.level).toBe("ok");
   });
 
   it("holds a second look whose numbers disagree with the first read on the open dispute, not on the second look", () => {

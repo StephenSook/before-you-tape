@@ -60,9 +60,12 @@ data class ItemReadWire(
 data class TaggedRead(val read: ItemReadWire, val labelTags: List<String>)
 
 /**
- * One item in the box, as the engine takes it. Every field is given except [numbersFrom], the one optional
- * field in the engine's input: "typed" when the sender typed the item's battery numbers. It is left out of
- * the JSON unless it is set, and the engine then counts the numbers as read, the safe side.
+ * One item in the box, as the engine takes it. Every field is given except the two optional ones, each left out
+ * of the JSON unless it is set:
+ * - [numbersFrom]: "typed" when the sender typed the item's battery numbers. Left out, the engine counts the
+ *   numbers as read, the safe side.
+ * - [labelFigures]: the Wh and lithium-gram figures the label named when it was read, kept because the label text
+ *   is not. Left out, the engine takes the figures from the read's label text.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -76,7 +79,12 @@ data class BoxItemInput(
     val identityConfirmedBy: String?,
     val labelTags: List<String>,
     @EncodeDefault(EncodeDefault.Mode.NEVER) val numbersFrom: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val labelFigures: LabelFigures? = null,
 )
+
+/** The figures a label named, as the engine takes them: both lists given, each up to 8 numbers above 0. */
+@Serializable
+data class LabelFigures(val wh: List<Double>, val grams: List<Double>)
 
 @Serializable
 data class RuleHit(

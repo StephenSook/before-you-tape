@@ -83,9 +83,9 @@ describe("PackPage", () => {
     const laptop: ItemRead = { ...liquidLotionLabelRead, itemName: "Laptop", category: "laptop", labelText: "11.55V 4380mAh 50.6Wh", liquid: false,
       volts: 11.55, milliampHours: 4380, wattHours: 50.6, batteryWords: true };
     act(() => { const id = store.addManual(laptop); store.answer(id, "device_condition", "new_sealed"); });
-    // Typed numbers wait for a second look (USPS-INTL-LI-ONE-READ), so one laptop is Check this, not OK.
+    // A typed item's numbers are the sender's own, so the Wh rules judge them: one laptop is OK to pack.
     const card = await screen.findByTestId("item-card");
-    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
     const howMany = within(card).getByLabelText("How many");
     await userEvent.clear(howMany);
     await userEvent.type(howMany, "3");
@@ -95,10 +95,28 @@ describe("PackPage", () => {
     await userEvent.clear(within(screen.getByTestId("item-card")).getByLabelText("How many"));
     await userEvent.type(within(screen.getByTestId("item-card")).getByLabelText("How many"), "1");
     await userEvent.tab();
-    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("Check this"));
+    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
     await userEvent.click(within(screen.getByTestId("item-card")).getByRole("button", { name: /^Remove / }));
     expect(screen.queryByTestId("item-card")).toBeNull();
     expect(store.getState().items).toHaveLength(0);
+  });
+
+  it("asks for the Wh printed on the label of a held photo read, and judges the item on the sender's number", async () => {
+    const { store } = setup();
+    await store.ready;
+    const phone: ItemRead = { ...liquidLotionLabelRead, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", liquid: false,
+      volts: 3.85, milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" };
+    act(() => {
+      store.setDestination("CA");
+      const id = store.addRead({ read: phone, source: "on_device", ms: 1200, route: "device_only", recoveredFrom: null }, "k");
+      store.answer(id, "device_condition", "new_sealed");
+      store.answer(id, "cell_count", "one");
+    });
+    const card = await screen.findByTestId("item-card");
+    expect(within(card).getByTestId("verdict-chip")).toHaveTextContent("Check this");
+    await userEvent.type(within(card).getByLabelText("Type the Wh printed on the label"), "15.4");
+    await userEvent.click(within(card).getByRole("button", { name: "Check the number" }));
+    await waitFor(() => expect(within(screen.getByTestId("item-card")).getByTestId("verdict-chip")).toHaveTextContent("OK to pack"));
   });
 
   it("ends a read that takes too long with a plain notice, and drops its reply if it comes later", async () => {

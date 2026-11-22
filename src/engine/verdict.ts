@@ -7,7 +7,7 @@ import { deriveFacts } from "./facts";
 import { evaluateItemRules } from "./itemRules";
 import { layerStatuses } from "./layers";
 import { evaluateLithiumBox, type LithiumBoxResult } from "./lithiumBox";
-import { openDisputes, type BoxItemInput, type DestinationContext, type ItemVerdict, type RuleEdition, type RuleHit, type VerdictLevel } from "./types";
+import { openDisputes, type BoxItemInput, type DestinationContext, type ItemFacts, type ItemVerdict, type RuleEdition, type RuleHit, type VerdictLevel } from "./types";
 
 export interface BoxResult {
   items: Record<string, ItemVerdict>;
@@ -40,6 +40,19 @@ const DISPUTE_HIT: RuleHit = {
   ruleId: "DATA-DISPUTE", layer: "data", level: "check", section: "Before You Tape: two reads disagree", url: RULES_PAGE,
   text: "The two reads of this item disagree. Choose the reading that matches it.",
 };
+
+// A read's label text names a Wh or lithium-grams figure its own number disagrees with. In code, like the hits above.
+const shown = (n: number) => String(Math.round(n * 100) / 100);
+function labelNumbersHit(m: NonNullable<ItemFacts["battery"]["labelMismatch"]>): RuleHit {
+  const source = m.typed ? "the number typed is" : "the read says";
+  const said = m.read === null
+    ? (m.kind === "wh" ? `${shown(m.label)} Wh but the reading has no Wh` : `${shown(m.label)} g of lithium but no lithium grams are given`)
+    : m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
+  return {
+    ruleId: "DATA-LABEL-NUMBERS", layer: "data", level: "check", section: "Before You Tape: label and reading disagree", url: RULES_PAGE,
+    text: `The label text says ${said}. Type the numbers from the label in Fix this reading.`,
+  };
+}
 
 const BAD_QUANTITY_HIT: RuleHit = {
   ruleId: "DATA-BAD-QUANTITY", layer: "data", level: "check", section: "Before You Tape: item count", url: RULES_PAGE,
@@ -80,6 +93,7 @@ export function evaluateBox(items: BoxItemInput[], edition: RuleEdition, dest: D
     if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
     if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
     if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
+    if (facts.battery.labelMismatch) hits.push(labelNumbersHit(facts.battery.labelMismatch));
     hits.push(...evaluateItemRules(facts, edition.rules));
     hits.push(...evaluateDestination(facts, input.answers, dest));
     if (layerHit) hits.push(layerHit);

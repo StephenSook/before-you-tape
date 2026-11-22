@@ -4,6 +4,7 @@
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
+import { keptLabelFigures } from "../engine/battery";
 import { resolveDestination } from "../engine/edition";
 import { LABEL_TEXT_TAG, labelTagsOf } from "../engine/facts";
 import {
@@ -111,6 +112,8 @@ export interface BoxStore {
   setError(itemId: string, text: string): void;
   answer(itemId: string, questionId: string, answerId: string): void;
   override(itemId: string, patch: Partial<ItemRead>): void;
+  // The number printed on the label, typed into an empty field by the sender (rule edition revision 7).
+  confirmLabelNumber(itemId: string, field: "wattHours" | "lithiumGrams", value: number): void;
   setQuantity(itemId: string, n: number): void;
   setCustoms(itemId: string, patch: Partial<CustomsLine>): void;
   remove(itemId: string): void;
@@ -184,23 +187,47 @@ function forStorage(item: BoxItem): BoxItem {
 
 // Whether a sender's correction covers a disputed fact: their own word settles it. Battery numbers are one
 // fact: only a whole corrected set (all three numbers) settles them, never one edited number.
-const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
-  field === "battery" ? patch.volts !== undefined && patch.milliampHours !== undefined && patch.wattHours !== undefined
-  : field === "labelTags" ? patch.labelText !== undefined
-  : patch[field] !== undefined;
+// A battery dispute is settled by the sender's own numbers: every one that either read gave (all three when the
+// dispute's readings are not known).
+const BATTERY_DISPUTE_FIELDS = ["volts", "milliampHours", "wattHours"] as const;
+const corrects = (patch: Partial<ItemRead>, field: DisputeField, d?: { device: unknown; cloud: unknown }): boolean => {
+  if (field === "labelTags") return patch.labelText !== undefined;
+  if (field !== "battery") return patch[field] !== undefined;
+  const given = (side: unknown, f: (typeof BATTERY_DISPUTE_FIELDS)[number]) => ((side as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0) > 0;
+  const needed = d ? BATTERY_DISPUTE_FIELDS.filter((f) => given(d.device, f) || given(d.cloud, f)) : [...BATTERY_DISPUTE_FIELDS];
+  return (needed.length > 0 ? needed : [...BATTERY_DISPUTE_FIELDS]).every((f) => patch[f] !== undefined);
+};
 
 // Battery numbers the sender typed (any of them), or picked between two readings, are theirs and not a second look's:
 // the rules let only a second look that read the same numbers stand behind them (USPS-INTL-LI-ONE-READ).
+// A cleared number counts too: the numbers left are no longer the set the second look read, and clearing one can
+// hide a disagreement between them (volts times capacity against the printed Wh).
 const typesNumbers = (patch: Partial<ItemRead>): boolean =>
   patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined || patch.lithiumGrams !== undefined;
 const numbersByHand = (i: BoxItem): BoxItem => (i.identityConfirmedBy === "second_look" ? { ...i, identityConfirmedBy: "sender" } : i);
 // The disputes that are about the numbers: while either is recorded, open or settled, the reads did not agree on them.
 const NUMBER_DISPUTES = ["battery", "lithiumGrams"] as const;
 const numbersDisputed = (d: ReadDisputes | undefined): boolean => NUMBER_DISPUTES.some((f) => d?.[f] !== undefined);
+// The numbers that come with a typed deciding number, as the sender's own: with a Wh, the volts and capacity shown
+// (the Wh rules check them against it); with a lithium metal cell's grams, the volts. Never the other deciding
+// number, never while the two reads dispute the numbers, and never when the sender cleared one (a cleared number
+// can hide a disagreement between the others).
+const RIDE_ALONG = { wattHours: ["volts", "milliampHours"], lithiumGrams: ["volts"] } as const;
+function withShownNumbers(i: BoxItem, patch: Partial<ItemRead>): Partial<ItemRead> {
+  const deciding = (["wattHours", "lithiumGrams"] as const).filter((f) => (patch[f] ?? 0) > 0);
+  const clears = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).some((f) => patch[f] === 0);
+  if (deciding.length === 0 || clears || numbersDisputed(i.disputes)) return patch;
+  const now = { ...i.read, ...i.overrides };
+  const along = deciding.flatMap((f) => RIDE_ALONG[f]).filter((f) => patch[f] === undefined && now[f] > 0);
+  return { ...Object.fromEntries(along.map((f) => [f, now[f]])), ...patch };
+}
 // What the rules are told: a second look stands behind the numbers only when no one typed or picked them. This holds
 // for an item saved by an earlier version too, and changes nothing that is saved.
-const forRules = (i: BoxItem): BoxItem =>
-  i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" } : i;
+const forRules = (i: BoxItem): BoxItem => {
+  const who = i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" as const } : i;
+  // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine counts them read).
+  return i.readSource === "manual" ? { ...who, numbersFrom: "typed" } : who;
+};
 
 // Who stands behind an item once a second look lands. Same kind of item, numbers that agree and none typed: the second
 // look, even over an earlier tap of "Yes, this is". Numbers typed while it ran: the sender. Numbers the two reads gave
@@ -212,6 +239,13 @@ function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes):
   if (numbersDisputed(found)) return i.identityConfirmedBy === "second_look" ? null : i.identityConfirmedBy;
   return "second_look";
 }
+
+// The Wh and lithium-grams figures the item's labels name, kept with the item (the label text is not), by the
+// engine's keptLabelFigures. Left out when there are none.
+const figuresOf = (labels: string[], kept?: BoxItem["labelFigures"]): Pick<BoxItem, "labelFigures"> => {
+  const f = keptLabelFigures(labels, kept);
+  return f ? { labelFigures: f } : {};
+};
 
 // The label words that can change a verdict: every tag except the one that only says a label was read.
 const wordsOf = (tags: readonly string[]) => [...new Set(tags.filter((t) => t !== LABEL_TEXT_TAG))].sort().join(",");
@@ -479,6 +513,50 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     commit(evaluate(), false);
     await flush();
   };
+  const overrideItem = (itemId: string, patch: Partial<ItemRead>) => update(itemId, (i) => {
+    let next: BoxItem = {
+      ...i, overrides: { ...i.overrides, ...patch },
+      // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
+      // label is no reading: an item held for older label words keeps its tags, and so stays held.
+      labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
+        ? i.labelTags : tagsOf(patch.labelText),
+      // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
+      ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
+      // A label the sender typed adds its figures to the kept ones (the label text itself is not kept).
+      ...(patch.labelText === undefined ? {} : figuresOf(i.labelFigures ? [patch.labelText] : [i.read.labelText, patch.labelText], i.labelFigures)),
+    };
+    if (typesNumbers(patch)) next = numbersByHand(next);
+    if (!i.disputes) return next;
+    // The sender's own correction of a disputed fact settles that dispute.
+    const settled: ReadDisputes = { ...i.disputes };
+    for (const f of DISPUTE_FIELDS) {
+      const d = settled[f];
+      if (d && corrects(patch, f, d)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
+    }
+    return withDisputes(next, settled);
+  });
+
+  // Fix this reading: the numbers the sender typed, and the ones that come with a typed deciding number.
+  const overrideTyped = (itemId: string, patch: Partial<ItemRead>) => {
+    const i = items.find((x) => x.itemId === itemId);
+    overrideItem(itemId, i ? withShownNumbers(i, patch) : patch);
+  };
+
+  // The sender typed the Wh (or lithium grams) printed on the label into an empty field. A match within the rules'
+  // tolerance makes every battery number shown the sender's own; a different number replaces the read one only, and the
+  // item is judged again. Either way the sender has read the label.
+  const confirmLabelNumber = (itemId: string, field: "wattHours" | "lithiumGrams", value: number) => {
+    const i = items.find((x) => x.itemId === itemId);
+    if (!i || !Number.isFinite(value) || value <= 0) return;
+    const now = { ...i.read, ...i.overrides };
+    // Only a match with the model's own reading confirms the numbers read with it; matching a number the sender
+    // typed earlier confirms nothing more. The sender's number is the one kept, so a limit still applies to it.
+    const read = i.overrides[field] === undefined ? i.read[field] : 0;
+    // While the two reads dispute the numbers, a match confirms only the number typed, never the disputed others.
+    const matches = !numbersDisputed(i.disputes) && read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
+    const typed = { [field]: value } as Partial<ItemRead>;
+    overrideItem(itemId, matches ? { ...Object.fromEntries(RIDE_ALONG[field].filter((f) => now[f] > 0).map((f) => [f, now[f]])), ...typed } : typed);
+  };
   const ready = load();
 
   return {
@@ -498,7 +576,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
         labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), tagsVersion: wordsVersion(), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
-        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
+        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(), ...figuresOf([outcome.fullLabelText ?? outcome.read.labelText]),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
       items = [...items, item];
@@ -528,7 +606,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     addRecorded(read, ms, cropKey) {
       const itemId = deps.newId();
       items = [...items, {
-        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(),
+        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), ...figuresOf([read.labelText]),
         readSource: "sample_recorded", readMs: ms, secondLook: null, cropKey, customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       }];
       lastRecheckMs = null;
@@ -566,7 +644,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           found.labelTags = { device: [...i.labelTags], cloud: cloudTags, resolved: false };
         }
         // A fact the sender corrected while the cloud read ran is theirs: no dispute stands on it.
-        for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f)) delete found[f];
+        for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f, found[f])) delete found[f];
         return withDisputes({
           ...i, read: merged, secondLook: { ms, reason },
           // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
@@ -575,6 +653,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
+          // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named counts.
+          ...figuresOf(i.labelFigures ? [cloudLabel ?? ""] : [i.read.labelText, cloudLabel ?? ""], i.labelFigures),
           // The kind of item the box has now, with the sender's own correction over the read.
           identityConfirmedBy: secondLookIdentity(i, merged.category === (i.overrides.category ?? i.read.category), found),
         }, found);
@@ -609,26 +689,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit(state.result, false);
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
-    override: (itemId, patch) => update(itemId, (i) => {
-      let next: BoxItem = {
-        ...i, overrides: { ...i.overrides, ...patch },
-        // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
-        // label is no reading: an item held for older label words keeps its tags, and so stays held.
-        labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
-          ? i.labelTags : tagsOf(patch.labelText),
-        // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
-        ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
-      };
-      if (typesNumbers(patch)) next = numbersByHand(next);
-      if (!i.disputes) return next;
-      // The sender's own correction of a disputed fact settles that dispute.
-      const settled: ReadDisputes = { ...i.disputes };
-      for (const f of DISPUTE_FIELDS) {
-        const d = settled[f];
-        if (d && corrects(patch, f)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
-      }
-      return withDisputes(next, settled);
-    }),
+    override: overrideTyped,
+    confirmLabelNumber,
     setQuantity: (itemId, n) => update(itemId, (i) => ({ ...i, quantity: clampQuantity(n) })),
     setCustoms: (itemId, patch) => update(itemId, (i) => ({ ...i, customs: { ...i.customs, ...patch } })),
     remove(itemId) {
