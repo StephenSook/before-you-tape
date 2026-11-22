@@ -12,7 +12,7 @@ import {
 } from "../engine/types";
 import { evaluateBox, type BoxResult } from "../engine/verdict";
 import { LABEL_TEXT_MAX, type ItemRead } from "../shared/itemRead";
-import { stableJson, type BoxMeta, type BoxOps } from "./boxOps";
+import { stableJson, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { DeviceConsent } from "./deviceConsent";
 import { guardStaleTags, labelWordsVersion, tagsAreStale } from "./tagsVersion";
 
@@ -294,11 +294,19 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
   let outOfDate = false;
   let unverified = false;
+  // A save has landed this visit, so the server has taken this browser's requests.
+  let saveLanded = false;
   // A country the sender chose before the saved box was read: it stands over the saved one.
   let chosenDestination: string | null = null;
+  // While the server refuses a browser App Check cannot verify, the copy this browser kept of the box is shown:
+  // each copied item's stored form (never this visit's edit unless the sender changes it), and whether the copy
+  // gave the country.
+  const cachedBase = new Map<string, string>();
+  let cachedRead = false;
+  let cachedDestination = false;
   const snapshot = (result: BoxResult): BoxState => ({
     boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
-    destinationKnown: loadState === "ready" || chosenDestination !== null, ...(outOfDate ? { outOfDate } : {}),
+    destinationKnown: loadState === "ready" || chosenDestination !== null || cachedDestination, ...(outOfDate ? { outOfDate } : {}),
     ...(unverified ? { unverified } : {}),
   });
   let state: BoxState = snapshot(evaluate());
@@ -327,20 +335,25 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const noteRefusal = (e: unknown) => {
     if (outOfDate || loadState !== "ready" || (e as { code?: unknown } | null)?.code !== "permission-denied") return;
     void (deps.verified ? deps.verified().catch(() => false) : Promise.resolve(true)).then((ok) => {
-      if (!ok) {
-        if (unverified) return;
-        unverified = true;
-        state = { ...state, unverified };
-      } else {
-        if (outOfDate) return;
-        outOfDate = true;
-        state = { ...state, outOfDate };
-      }
+      if (!ok) { markUnverified(); return; }
+      if (outOfDate) return;
+      outOfDate = true;
+      state = { ...state, outOfDate };
       publish();
     });
   };
+  // App Check could not verify this browser: the page says so, and a box the server refused shows this
+  // browser's copy of it.
+  const markUnverified = () => {
+    if (unverified || closed) return;
+    unverified = true;
+    state = { ...state, unverified };
+    publish();
+    void showCached();
+  };
   // A save that landed: whatever stopped this browser being verified has passed.
   const landed = () => {
+    saveLanded = true;
     if (!unverified) return;
     unverified = false;
     const { unverified: _gone, ...rest } = state;
@@ -361,6 +374,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const now = new Set(items.map((i) => i.itemId));
     for (const i of items) {
       const j = storedJson(i);
+      // A copy shown while the server refused the box is not an edit: only a change the sender makes to it is.
+      if (cachedBase.get(i.itemId) === j) { delete journal.items[i.itemId]; continue; }
       // While a write of this item is out, the server's copy is about to change: a copy equal to the old one is
       // kept in the journal too, so it is sent after that write lands (a change and back, such as 1 to 3 to 1).
       if (server.get(i.itemId) === j && !inFlight.has(i.itemId)) delete journal.items[i.itemId];
@@ -485,6 +500,25 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     return { ...i, read: { ...i.read, itemName: n.read }, overrides };
   };
 
+  // App Check could not verify this browser and the server refused the box: the copy this browser's cache kept is
+  // shown (the page marks it not synced) until a read from the server replaces it. Nothing of it is sent unless the
+  // sender changes it.
+  const showCached = async () => {
+    if (cachedRead || !unverified || loadState !== "failed" || !deps.persistence.loadCached) return;
+    cachedRead = true;
+    const r = await deps.persistence.loadCached(boxId).catch((e: unknown): LoadResult => ({ status: "failed", error: String(e) }));
+    if (r.status !== "found" || loadState !== "failed" || closed) return;
+    const inMemory = new Set(items.map((i) => i.itemId));
+    const copies = (r.box.items ?? []).filter((i) => !inMemory.has(i.itemId) && journal.items[i.itemId] !== null);
+    for (const i of copies) cachedBase.set(i.itemId, storedJson(withNames(i)));
+    items = [...inAddedOrder(copies.map((i) => withNames(journal.items[i.itemId] ?? i))), ...items];
+    if (chosenDestination === null && r.box.destinationCode) {
+      destinationCode = journal.meta?.destinationCode ?? r.box.destinationCode;
+      cachedDestination = true;
+    }
+    commit(evaluate(), false);
+  };
+
   // Reads the saved box. Nothing is written by a read: edits made meanwhile and an earlier visit's unsaved edits
   // are merged over it and then sent. A read that failed leaves everything held.
   const load = async () => {
@@ -494,8 +528,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       loadState = "failed";
       refreshUnsaved();
       commit(evaluate(), false);
+      void showCached();
       return;
     }
+    // The server's box replaces any copy shown while it refused the box; an edit to a copy waits in the journal.
+    items = items.filter((i) => !cachedBase.has(i.itemId));
+    cachedBase.clear();
+    cachedDestination = false;
     const inMemory = new Set(items.map((i) => i.itemId));
     const saved = r.status === "found" ? r.box : {};
     boxExists = r.status === "found";
@@ -566,6 +605,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     overrideItem(itemId, matches ? { ...Object.fromEntries(RIDE_ALONG[field].filter((f) => now[f] > 0).map((f) => [f, now[f]])), ...typed } : typed);
   };
   const ready = load();
+  // Asked once at the start: with reCAPTCHA blocked nothing is ever refused, so only this can say why nothing saves.
+  void deps.verified?.().catch(() => false).then((ok) => { if (!ok && !saveLanded) markUnverified(); });
 
   return {
     ready,

@@ -1066,15 +1066,16 @@ describe("createBoxStore", () => {
       expect(s.getState().unverified ?? false).toBe(false);
     });
 
-    it("asks App Check nothing about a save that failed for no connection", async () => {
+    it("asks App Check nothing more about a save that failed for no connection", async () => {
       const p = spyPersistence();
       p.putMeta.mockRejectedValue(Object.assign(new Error("offline"), { code: "unavailable" }));
-      const verified = vi.fn(async () => false);
+      // The one check at the start passes; any later answer would say no.
+      const verified = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(true).mockResolvedValue(false);
       const s = store({ persistence: p, verified });
       await s.ready;
       s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
       await s.settled();
-      expect(verified).not.toHaveBeenCalled();
+      expect(verified).toHaveBeenCalledTimes(1);
       expect(s.getState().unverified ?? false).toBe(false);
     });
 
@@ -1088,6 +1089,80 @@ describe("createBoxStore", () => {
       await s.settled();
       expect(s.getState().loadState).toBe("failed");
       expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+  });
+
+  // With reCAPTCHA blocked the server is never reached, so nothing is ever refused; with the exchange refused,
+  // the server refuses the box. Either way the page must say why, and never show the box as new or empty.
+  describe("a browser App Check cannot verify", () => {
+    const refusedBox = (): LoadResult => ({ status: "failed", error: "Missing or insufficient permissions." });
+    const cachedItem: BoxItem = { ...phoneItem, itemId: "cached-1" };
+    const withCache = (p: ReturnType<typeof spyPersistence>, cached: LoadResult) =>
+      Object.assign(p, { loadCached: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => cached) });
+
+    it("asks App Check once at the start, and says so even when the box never loads and nothing is refused", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockReturnValue(new Promise<LoadResult>(() => {}));
+      const verified = vi.fn(async () => false);
+      const s = store({ persistence: p, verified });
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+      expect(verified).toHaveBeenCalledTimes(1);
+      expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+
+    it("says nothing when App Check passes at the start", async () => {
+      const s = store({ verified: async () => true });
+      await s.ready;
+      await s.settled();
+      expect(s.getState().unverified ?? false).toBe(false);
+    });
+
+    it("shows this browser's copy of a box the server refused, never as the saved box, and never writes it back", async () => {
+      const p = withCache(spyPersistence(), { status: "found", box: { destinationCode: "CA", items: [cachedItem] } });
+      p.loadBox.mockResolvedValueOnce(refusedBox());
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      await vi.waitFor(() => expect(s.getState().items.map((i) => i.itemId)).toEqual(["cached-1"]));
+      expect(s.getState().loadState).toBe("failed");
+      expect(s.getState().destinationCode).toBe("CA");
+      expect(s.getState().destinationKnown).toBe(true);
+      // A new item while the box is refused is kept for the server; the copy is not.
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(writes(p)).toBe(0);
+      // Once the box opens, the server's box replaces the copy (the item was removed there meanwhile).
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "CA", items: [] } });
+      await s.retryLoad();
+      await s.settled();
+      expect(s.getState().loadState).toBe("ready");
+      expect(s.getState().items.map((i) => i.read.itemName)).toEqual(["Lotion"]);
+      expect(p.putItem.mock.calls.map(([, i]) => i.itemId)).not.toContain("cached-1");
+    });
+
+    it("keeps a change the sender made to a copy, and sends it once the box opens", async () => {
+      const p = withCache(spyPersistence(), { status: "found", box: { destinationCode: "CA", items: [cachedItem] } });
+      p.loadBox.mockResolvedValueOnce(refusedBox());
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      await vi.waitFor(() => expect(s.getState().items.map((i) => i.itemId)).toEqual(["cached-1"]));
+      s.setQuantity("cached-1", 3);
+      await s.settled();
+      expect(writes(p)).toBe(0);
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "CA", items: [cachedItem] } });
+      await s.retryLoad();
+      await s.settled();
+      expect(s.getState().items.map((i) => [i.itemId, i.quantity])).toEqual([["cached-1", 3]]);
+      expect(p.putItem.mock.calls.map(([, i]) => [i.itemId, i.quantity])).toEqual([["cached-1", 3]]);
+    });
+
+    it("reads no copy when the server refused the box for another reason", async () => {
+      const p = withCache(spyPersistence(), { status: "found", box: { items: [cachedItem] } });
+      p.loadBox.mockResolvedValue(refusedBox());
+      const s = store({ persistence: p, verified: async () => true });
+      await s.ready;
+      await s.settled();
+      expect(p.loadCached).not.toHaveBeenCalled();
+      expect(s.getState().items).toEqual([]);
     });
   });
 });
