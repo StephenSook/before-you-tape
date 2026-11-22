@@ -136,7 +136,7 @@ describe("PackPage", () => {
   it("makes no model call when the cloud is paused", async () => {
     const { models } = setup({ config: { killCloud: true }, gate: "available" });
     await addPhoto();
-    await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this laptop still work."));
+    await waitFor(() => expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused. Checks on this device still work."));
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
   });
@@ -305,10 +305,10 @@ describe("PackPage", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
-  it("keeps a photo on this laptop when the sender says so at the ask, and says why it cannot be read", async () => {
+  it("keeps a photo on this device when the sender says so at the ask, and says why it cannot be read", async () => {
     const { store, models } = setup({}, null);
     await addPhoto();
-    await userEvent.click(await screen.findByRole("button", { name: "Check on this laptop only" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check on this device only" }));
     expect(store.getState().cloudConsent).toBe(false);
     expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off. Type the item instead.");
     expect(models.cloud.generate).not.toHaveBeenCalled();
@@ -488,17 +488,17 @@ describe("PackPage", () => {
     expect(screen.queryByTestId("item-card")).toBeNull();
   });
 
-  it("reads the sample photo on this laptop only, with cloud checks off, and never sends it to the cloud", async () => {
+  it("reads the sample photo on this device only, with cloud checks off, and never sends it to the cloud", async () => {
     const { models } = setup({ loadSample, gate: "available" }, false);
     await trySample();
     const card = await screen.findByTestId("item-card");
-    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read on this laptop");
+    expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read on this device");
     expect(models.cloud.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
     expect(models.device.generate).toHaveBeenCalledTimes(1);
   });
 
-  it("reads the sample photo in the cloud after Allow when this laptop has no model of its own", async () => {
+  it("reads the sample photo in the cloud after Allow when this device has no model of its own", async () => {
     const { models } = setup({ loadSample, gate: "no_api" }, null);
     await trySample();
     await userEvent.click(await screen.findByRole("button", { name: "Allow" }));
@@ -507,7 +507,7 @@ describe("PackPage", () => {
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
-  describe("a press before the page knows whether this laptop has its own model", () => {
+  describe("a press before the page knows whether this device has its own model", () => {
     const page = (store: ReturnType<typeof newStore>, models: ReturnType<typeof spyModels>, gate: PackPageProps["gate"], settingsWaitMs = 10_000,
       online = true, config: PackPageProps["config"] = { killCloud: false }) => (
       <PackPage store={store} models={models} gate={gate} config={config} openCamera={okCamera} index={index}
@@ -523,7 +523,7 @@ describe("PackPage", () => {
       await screen.findByTestId("getting-ready");
       act(() => { store.setConsent(false); store.setConsent(true); });
       view.rerender(page(store, models, "no_api"));
-      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this laptop was getting ready. Add the photo again.");
+      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this device was getting ready. Add the photo again.");
       expect(models.cloud.generate).not.toHaveBeenCalled();
       expect(models.hybrid.generate).not.toHaveBeenCalled();
       expect(models.device.generate).not.toHaveBeenCalled();
@@ -543,7 +543,7 @@ describe("PackPage", () => {
         window.dispatchEvent(new StorageEvent("storage", { key: "byt.cloudConsent.v2", newValue: "true" }));
       });
       view.rerender(page(store, models, "no_api"));
-      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this laptop was getting ready.");
+      expect(await screen.findByRole("alert")).toHaveTextContent("Your cloud choice changed while this device was getting ready.");
       expect(models.cloud.generate).not.toHaveBeenCalled();
       localStorage.clear();
     });
@@ -588,7 +588,7 @@ describe("PackPage", () => {
       expect(call).toBe(2);
     });
 
-    it("says nothing about checks on this laptop while it is not known whether it has a model", () => {
+    it("says nothing about checks on this device while it is not known whether it has a model", () => {
       render(page(newStore(), spyModels(), "checking", 10_000, true, { killCloud: true }));
       expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks are paused.");
       expect(screen.getByTestId("paused-banner")).not.toHaveTextContent("still work");
@@ -600,17 +600,17 @@ describe("PackPage", () => {
       const models = spyModels();
       render(page(store, models, "checking", 50));
       await trySample();
-      expect(await screen.findByRole("alert")).toHaveTextContent("This laptop is still checking whether it can read photos itself.");
+      expect(await screen.findByRole("alert")).toHaveTextContent("This device is still checking whether it can read photos itself.");
       expect(models.cloud.generate).not.toHaveBeenCalled();
       expect(models.hybrid.generate).not.toHaveBeenCalled();
     });
 
-    it("waits, then reads on this laptop when it has a model and cloud checks are off", async () => {
+    it("waits, then reads on this device when it has a model and cloud checks are off", async () => {
       const store = newStore();
       store.setConsent(false);
       const models = spyModels();
       const view = render(page(store, models, "checking"));
-      // While it checks, nothing on the page says this laptop cannot read photos.
+      // While it checks, nothing on the page says this device cannot read photos.
       expect(screen.getByTestId("cloud-chip")).toHaveTextContent("Cloud: off");
       expect(screen.queryByText(/can't read photos/)).toBeNull();
       await trySample();
@@ -618,14 +618,14 @@ describe("PackPage", () => {
       expect(models.device.generate).not.toHaveBeenCalled();
       view.rerender(page(store, models, "available"));
       const card = await screen.findByTestId("item-card");
-      expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read on this laptop");
+      expect(within(card).getByTestId("source-glyph")).toHaveAccessibleName("Read on this device");
       expect(models.device.generate).toHaveBeenCalledTimes(1);
       expect(models.cloud.generate).not.toHaveBeenCalled();
       expect(models.hybrid.generate).not.toHaveBeenCalled();
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
-    it("waits, then uses this laptop first when cloud checks are on, never the cloud-only route", async () => {
+    it("waits, then uses this device first when cloud checks are on, never the cloud-only route", async () => {
       const store = newStore();
       store.setConsent(true);
       const models = spyModels();
@@ -644,16 +644,16 @@ describe("PackPage", () => {
       const models = spyModels();
       render(page(store, models, "checking", 50));
       await trySample();
-      expect(await screen.findByRole("alert")).toHaveTextContent("This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.");
+      expect(await screen.findByRole("alert")).toHaveTextContent("This device is still checking whether it can read photos itself. Try again in a moment, or type the item.");
       expect(models.device.generate).not.toHaveBeenCalled();
       expect(models.cloud.generate).not.toHaveBeenCalled();
       expect(screen.queryByTestId("item-card")).toBeNull();
     });
   });
 
-  it("says photos and label text stay on this laptop when cloud checks are off and it reads on its own", () => {
+  it("says photos and label text stay on this device when cloud checks are off and it reads on its own", () => {
     setup({ gate: "available" }, false);
-    expect(screen.getByText("This laptop checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
+    expect(screen.getByText("This device checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
   });
 
   it("shows cloud checks as one chip that turns them off, and asks again before turning them on", async () => {
@@ -749,7 +749,7 @@ describe("PackPage", () => {
     const props = { store, models, gate: "no_api" as const, config: { killCloud: false }, openCamera: okCamera, index, saveCrop: async () => {}, deleteCrop: async () => {} };
     const { rerender } = render(<PackPage {...props} online={false} />);
     await addPhoto();
-    expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("You're offline, and this device can't read photos on its own. Type the item, or try again when you're back online.");
     rerender(<PackPage {...props} online />);
     expect(screen.queryByRole("alert")).toBeNull();
   });

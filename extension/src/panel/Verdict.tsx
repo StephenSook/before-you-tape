@@ -5,7 +5,7 @@ const icons: Record<VerdictLevel, string> = { ok: "\u2713", check: "?", take_out
 
 const routes: Record<Route, { glyph: string; text: string }> = {
   typed: { glyph: "T", text: "Typed by you" },
-  on_device: { glyph: "D", text: "Read on this laptop" },
+  on_device: { glyph: "D", text: "Read on this device" },
   in_cloud: { glyph: "C", text: "Read in the cloud" },
 };
 

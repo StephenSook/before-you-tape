@@ -76,9 +76,9 @@ export function ProductText({ device, cloud, onRead }: { device?: DeviceProductR
         </label>
       )}
       {truncated && <p role="status">Only the first 2,000 characters will be read.</p>}
-      {gate === "checking" && <p role="status">Checking this laptop for the built-in model.</p>}
-      {(gate === "no_api" || gate === "unavailable") && <p>This laptop has no built-in model. Type the details.</p>}
-      {gate === "downloadable" && <button type="button" onClick={() => void download()}>Get this laptop ready</button>}
+      {gate === "checking" && <p role="status">Checking this device for the built-in model.</p>}
+      {(gate === "no_api" || gate === "unavailable") && <p>This device has no built-in model. Type the details.</p>}
+      {gate === "downloadable" && <button type="button" onClick={() => void download()}>Get this device ready</button>}
       {gate === "downloading" && (
         <div role="status">
           Downloading the built-in model.
@@ -88,7 +88,7 @@ export function ProductText({ device, cloud, onRead }: { device?: DeviceProductR
         </div>
       )}
       {deviceReady && (
-        <button type="button" disabled={reading || !text.trim()} onClick={() => void read(device.read)}>Read on this laptop</button>
+        <button type="button" disabled={reading || !text.trim()} onClick={() => void read(device.read)}>Read on this device</button>
       )}
       {cloud && <button type="button" disabled={reading || !text.trim()} onClick={() => void read(cloud)}>Read in the cloud</button>}
       {reading && <p role="status">Reading the product details.</p>}

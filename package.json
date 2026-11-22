@@ -2,7 +2,7 @@
   "name": "before-you-tape",
   "version": "0.1.0",
   "private": true,
-  "description": "Hold each gift up to your laptop and see what the post office won't take, before you tape the box.",
+  "description": "Hold each gift up to your camera and see what the post office won't take, before you tape the box.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

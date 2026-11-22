@@ -1,7 +1,7 @@
 {
   "name": "Before You Tape",
   "short_name": "Before You Tape",
-  "description": "Hold each gift up to your laptop and see what the post office won't take, before you tape the box.",
+  "description": "Hold each gift up to your camera and see what the post office won't take, before you tape the box.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

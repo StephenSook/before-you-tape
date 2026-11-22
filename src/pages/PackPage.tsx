@@ -102,8 +102,8 @@ const SETTINGS_NOTICE_MS = 8_000;
 // A cloud read takes about 2 s and an on-device one under 10 s; anything far past that is not coming back.
 const GETTING_READY = "Getting ready to check. One moment.";
 const SETTINGS_SLOW = "Cloud checks are still waiting for their settings. Try again in a moment, or type the item.";
-const GATE_SLOW = "This laptop is still checking whether it can read photos itself. Try again in a moment, or type the item.";
-const CHOICE_CHANGED = "Your cloud choice changed while this laptop was getting ready. Add the photo again.";
+const GATE_SLOW = "This device is still checking whether it can read photos itself. Try again in a moment, or type the item.";
+const CHOICE_CHANGED = "Your cloud choice changed while this device was getting ready. Add the photo again.";
 const ASK_CHANGED = "Your cloud choice changed in another tab. Add the photo again.";
 type AskFor = { kind: "chip" } | { kind: "photo"; part: ImagePart; how: ImageHow } | { kind: "look"; itemId: string };
 // at: the choice when the question opened; an answer given after it changed elsewhere is not taken.
@@ -122,17 +122,17 @@ const BLOCKED = "This device can't read photos on its own, and cloud checks are 
 
 // Why a photo cannot be read right now, in the sender's situation.
 function blockedText(i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }, pauseUnknown = false): string {
-  if (!i.online) return "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.";
-  if (i.killCloud && pauseUnknown) return "Cloud checks are waiting for their settings, and this laptop can't read photos on its own. Type the item, or try again in a moment.";
-  if (i.killCloud) return "Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead.";
-  if (i.cloudConsent === null) return "This laptop can't read photos on its own. Turn on cloud checks, or type the item.";
+  if (!i.online) return "You're offline, and this device can't read photos on its own. Type the item, or try again when you're back online.";
+  if (i.killCloud && pauseUnknown) return "Cloud checks are waiting for their settings, and this device can't read photos on its own. Type the item, or try again in a moment.";
+  if (i.killCloud) return "Cloud checks are paused, and this device can't read photos on its own. Type the item instead.";
+  if (i.cloudConsent === null) return "This device can't read photos on its own. Turn on cloud checks, or type the item.";
   return BLOCKED;
 }
 const situationOf = (i: { cloudConsent: boolean | null; killCloud: boolean; online: boolean }) => `${String(i.cloudConsent)}|${String(i.killCloud)}|${String(i.online)}`;
 const FAILURE: Record<ReadFailureKind, string> = {
   blocked: BLOCKED,
-  device_failed: "This laptop couldn't read that one. Try again, or type the item.",
-  leak_guard: "That read came back from the cloud when it had to stay on this laptop, so it was thrown away. Try again.",
+  device_failed: "This device couldn't read that one. Try again, or type the item.",
+  leak_guard: "That read came back from the cloud when it had to stay on this device, so it was thrown away. Try again.",
   cloud_refused: "The cloud check was refused. Try again in a minute, or type the item.",
   cloud_unreachable: "The cloud check could not connect. Check the internet and try again, or type the item.",
   invalid_output: "That read did not make sense. Try again with the label facing the camera.",
@@ -473,7 +473,7 @@ export function PackPage(p: PackPageProps) {
     const owner = press ?? presses.current;
     // Notices and the blocked line after a wait belong to the newest press only: an older one never covers it.
     const say = (text: string | null) => { if (presses.current === owner) setNotice(text); };
-    // A press before the page knows whether this laptop has its own model waits for that answer, with a limit,
+    // A press before the page knows whether this device has its own model waits for that answer, with a limit,
     // instead of being routed as if there were none: refused with cloud checks off, or sent to the cloud with
     // them on. A camera frame is never read then (it needs the model), so only a press waits.
     // A change to the cloud choice during the wait (off, or off and back on) ends it: the photo is dropped, so
@@ -669,7 +669,7 @@ export function PackPage(p: PackPageProps) {
       {config.killCloud && (!config.pauseUnknown || settingsLate) && (
         <p data-testid="paused-banner" className="banner" role="status">
           {config.pauseUnknown ? "Cloud checks start once their settings load." : "Cloud checks are paused."}
-          {gate === "available" ? " Checks on this laptop still work." : ""}
+          {gate === "available" ? " Checks on this device still work." : ""}
           {config.pauseUnknown && p.onRetryConfig && <> <button type="button" onClick={p.onRetryConfig}>Try again</button></>}
         </p>
       )}

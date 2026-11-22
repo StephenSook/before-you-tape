@@ -1,4 +1,4 @@
-// The on-device model's state. "Get this laptop ready" starts the download, which Chrome only allows from a
+// The on-device model's state. "Get this device ready" starts the download, which Chrome only allows from a
 // click; the progress bar shows the real download, never a made-up one.
 import type { GateState } from "../ai/port";
 
@@ -7,11 +7,11 @@ import type { GateState } from "../ai/port";
 // says why when it is added.
 export function ReadyButton({ gate, progress, onReady, cloudOn }: { gate: GateState; progress: number | null; onReady: () => void; cloudOn: boolean }) {
   if (gate === "checking") return null;
-  if (gate === "downloadable") return <button type="button" data-testid="ready-button" onClick={onReady}>Get this laptop ready</button>;
+  if (gate === "downloadable") return <button type="button" data-testid="ready-button" onClick={onReady}>Get this device ready</button>;
   if (gate === "downloading") {
     const pct = Math.round((progress ?? 0) * 100);
-    return <div role="progressbar" aria-label="Getting this laptop ready" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>Getting this laptop ready: {pct}%</div>;
+    return <div role="progressbar" aria-label="Getting this device ready" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>Getting this device ready: {pct}%</div>;
   }
-  if (gate === "available") return <p>{cloudOn ? "This laptop checks items itself." : "This laptop checks items itself. Photos and label text stay on it."}</p>;
+  if (gate === "available") return <p>{cloudOn ? "This device checks items itself." : "This device checks items itself. Photos and label text stay on it."}</p>;
   return cloudOn ? <p>This device checks items in the cloud.</p> : null;
 }

@@ -1,5 +1,5 @@
 // One live read of the sample photo through the app's real read path, for a judge who wants to see a model run
-// rather than the typed sample box. Nothing loads until the button is pressed. It reads on this laptop when it
+// rather than the typed sample box. Nothing loads until the button is pressed. It reads on this device when it
 // can, and otherwise in the cloud, only after Allow. The time shown runs from the press that starts the read
 // (the button, or Allow when the question was asked) to the verdict on screen.
 import { useEffect, useRef, useState } from "react";
@@ -27,13 +27,13 @@ export class SampleMismatch extends Error {
   constructor() { super("the sample photo's bytes do not match its record"); }
 }
 
-const LAPTOP_ONLY = "This laptop can't read photos on its own, and cloud checks are off. Nothing was read.";
-const PAUSED = "Cloud checks are paused right now, and this laptop can't read photos on its own. Nothing was read.";
+const DEVICE_ONLY = "This device can't read photos on its own, and cloud checks are off. Nothing was read.";
+const PAUSED = "Cloud checks are paused right now, and this device can't read photos on its own. Nothing was read.";
 const SAMPLE = "The sample photo did not match its record, so it was not read.";
 const WHY: Record<ReadFailureKind, string> = {
   blocked: "it was stopped before it was sent",
-  device_failed: "this laptop could not read it",
-  leak_guard: "a laptop-only read came back from the cloud, so it was thrown away",
+  device_failed: "this device could not read it",
+  leak_guard: "a device-only read came back from the cloud, so it was thrown away",
   cloud_refused: "the cloud refused it",
   cloud_unreachable: "the cloud could not be reached",
   invalid_output: "the reply did not make sense",
@@ -112,7 +112,7 @@ export function LiveReadPanel({ load, judge, country, now = () => performance.no
     if (view.kind !== "asking") return;
     const d = view.deps;
     d.consent.set(allow);
-    if (!allow) { finish({ kind: "failed", text: LAPTOP_ONLY }); return; }
+    if (!allow) { finish({ kind: "failed", text: DEVICE_ONLY }); return; }
     setView({ kind: "busy" });
     void read(d, true, now());
   };
@@ -121,14 +121,14 @@ export function LiveReadPanel({ load, judge, country, now = () => performance.no
   return (
     <section id="live-read" data-testid="live-read" aria-labelledby="live-read-heading">
       <h2 id="live-read-heading">One live read</h2>
-      <p>Reads the sample lotion photo with the app's real models: on this laptop when it can, otherwise in the cloud, after you allow it.</p>
+      <p>Reads the sample lotion photo with the app's real models: on this device when it can, otherwise in the cloud, after you allow it.</p>
       <button type="button" onClick={() => void press()} disabled={busy || cooling}>Run one live read</button>
       {view.kind === "busy" && <p role="status">Reading the sample photo.</p>}
       {view.kind === "asking" && <ConsentNotice onChoice={answer} />}
       {view.kind === "failed" && <p role="alert">{view.text}</p>}
       {view.kind === "done" && (
         <div data-testid="live-read-result">
-          <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this laptop"}, {seconds(view.ms)} s</p>
+          <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this device"}, {seconds(view.ms)} s</p>
           <p data-testid="live-read-verdict"><VerdictChip level={judge(view.read)} /> for {inCountry(country)}</p>
           <p data-testid="live-read-name">The model read: {view.read.itemName}</p>
           <details>

@@ -2,7 +2,7 @@
 import type { ReadSource } from "../data/boxStore";
 
 export const SOURCE_TEXT: Record<ReadSource, string> = {
-  on_device: "Read on this laptop",
+  on_device: "Read on this device",
   in_cloud: "Read in the cloud",
   cloud_unreported: "Route not reported",
   manual: "Typed by you",

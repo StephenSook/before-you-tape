@@ -5,7 +5,7 @@ export function PrivacyLink() {
 export function Notice({ onAgree, busy = false }: { onAgree(): void; busy?: boolean }) {
   return (
     <>
-      <p>This panel reads what you type or paste here. When you click the toolbar button, it also reads this tab's title and link. Everything stays on this laptop unless you allow a cloud check. It downloads our current rule list from our site.</p>
+      <p>This panel reads what you type or paste here. When you click the toolbar button, it also reads this tab's title and link. Everything stays on this device unless you allow a cloud check. It downloads our current rule list from our site.</p>
       <div className="panel-actions">
         <button type="button" onClick={onAgree} disabled={busy}>OK, start</button>
         <PrivacyLink />

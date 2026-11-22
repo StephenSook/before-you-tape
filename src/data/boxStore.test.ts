@@ -1010,7 +1010,7 @@ describe("createBoxStore", () => {
 
   it("gives the edition its verdicts come from, for its limits and reviewed countries", () => expect(store().edition()).toBe(ed));
 
-  it("adds a sample's recorded read under its own source, and counts it as no read made on this laptop", async () => {
+  it("adds a sample's recorded read under its own source, and counts it as no read made on this device", async () => {
     let k = 0;
     const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `r-${k++}` });
     await s.ready;

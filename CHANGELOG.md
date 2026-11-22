@@ -6,6 +6,9 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The Android app's copy test reads the web's consent sentence and its keep-it-here button as this device, matching the web wording change; the phone's own words (this phone) are unchanged. Source: CI (the Android job failed on the web wording change). Verified: CopyTest passes locally, 10 tests, through Gradle.
+
+- The site and the Chrome extension say device instead of laptop (Get this device ready, This device can't read photos on its own, Read on this device, and the rest), since visitors open the site on phones too, where This laptop was wrong. The tagline now reads Hold each gift up to your camera and see what the post office won't take, before you tape the box. The item category Laptop is unchanged, and records of past runs keep what they showed. Source: review. Verified: every test that matches these words was updated with them; typecheck, lint and the full suite pass.
 - Without BroadcastChannel, the value a tab writes to tell the others now carries a random part (src/data/boxChanges.ts): two tabs writing in the same millisecond wrote the same value, so the second fired no storage event and the first tab missed it. Source: review (round 1 on the cross-tab change). Verified: a new boxChanges test with a fixed clock failed first and passes.
 
 - The box store also tells this browser's other tabs when a save lands, edit or not, and when the box is being deleted (src/data/boxStore.ts). A country saved as the box loaded, an earlier visit's edits sent after a reload, and a delete whose sign-in cleanup failed (which leaves the box pointer) used to go unheard, so another tab could still say Ready to tape. Source: review (round 1 on the cross-tab change). Verified: two new store tests failed first and pass.
