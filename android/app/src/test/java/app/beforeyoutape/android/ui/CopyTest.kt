@@ -14,13 +14,13 @@ class CopyTest {
      * second look left out: Android runs no second look, so its question must not offer one.
      */
     @Test fun theConsentSentenceIsTheDesignSentenceForAPhone() {
-        val sentence = Regex("\"(To read items this laptop[^\"]+)\"").find(web)!!.groupValues[1]
+        val sentence = Regex("\"(To read items this device[^\"]+)\"").find(web)!!.groupValues[1]
         val secondLook = ", and to check a read again when the rules ask"
         assertTrue("the web sentence names the second look: $sentence", sentence.contains(secondLook))
-        assertEquals(sentence.replace("this laptop", "this phone").replace(secondLook, ""), Copy.CONSENT)
+        assertEquals(sentence.replace("this device", "this phone").replace(secondLook, ""), Copy.CONSENT)
         assertTrue(web.contains(">Allow<"))
         assertEquals("Allow", Copy.ALLOW)
-        assertTrue(web.contains(">Check on this laptop only<"))
+        assertTrue(web.contains(">Check on this device only<"))
         assertEquals("Check on this phone only", Copy.KEEP_ON_PHONE)
     }
 
