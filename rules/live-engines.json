@@ -3,6 +3,7 @@
   "builds": [
     "android-judge-3",
     "android-judge-4",
+    "android-judge-5",
     "iPhone build 2"
   ],
   "facts": [
