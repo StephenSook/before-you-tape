@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The no-on-device-model test waits for Remote Config's settings, or for their fetch to fail, before turning cloud checks down and adding the photo: the page's message is for the situation it was written in, and in CI the settings arrived after the press and hid it, failing the message check while the check of zero model requests passed. Source: the first CI run of the test. Verified: passes locally, full gate; the verify job runs it.
+
+- A new local end-to-end test checks that a browser with no on-device model, with cloud checks turned down, sends nothing to any model when given a photo: no request to Firebase AI Logic or any other Gemini host, and none to the on-device-only address. It watches every request the page makes. The SDK's on-device-only mode was seen sending a read to the cloud when a browser had no model API. Source: a review of the Firebase AI Logic SDK's on-device mode. Verified: passes against the local build; its cloud requests can only happen with the App Check debug token, so a red proof runs in CI.
+
 - The judge page's Android app link, and the README's, now point at the android-judge-4 release (before-you-tape-android-3708cf1.apk, SHA-256 fe218b21323179b904bd0b3765cd38af0f5426f194b7b4857458f6ec235dca73, built with rule edition revision 7 and checked on a Samsung A16). The judge page's Android battery note now says numbers read from a photo stay at Check this until the sender types them from the label, which judge-4 counts. rules/live-engines.json lists android-judge-4 beside android-judge-3, whose installs still refuse unknown facts, so the facts every live build knows are unchanged. Source: the android-judge-4 release. Verified: the judge page test failed first, full gate.
 
 - The second-look test waits for Remote Config's fetch before adding the photo: its stand-in model answers at once, and cloud checks stay off until those settings arrive, so without the wait the card had no second look to offer. Source: the first CI run of the test. Verified: full gate; the verify job runs the spec.

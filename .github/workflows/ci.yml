@@ -113,7 +113,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
-        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/leaves.local.spec.ts tests/e2e/judge-live.local.spec.ts tests/e2e/token-origin.spec.ts
+        run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/leaves.local.spec.ts tests/e2e/no-device-model.local.spec.ts tests/e2e/judge-live.local.spec.ts tests/e2e/token-origin.spec.ts
 
       - name: Tone check
         run: npm run tone
