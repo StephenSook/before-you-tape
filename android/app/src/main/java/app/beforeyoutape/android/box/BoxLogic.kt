@@ -32,14 +32,24 @@ object BoxLogic {
         )
     }
 
-    /** A typed item: the sender's own, so its identity is confirmed by the sender. */
+    /** A typed item: the sender's own, so its identity is confirmed by the sender, and so are its numbers. */
     fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String): BoxState {
         // A typed item is the sender's own word: a ticked alcohol line is kept as theirs, so the
         // rules treat it like an answer of yes and do not ask again (as the web app does).
         val overrides = if (read.alcoholOnLabel) mapOf("alcoholOnLabel" to kotlinx.serialization.json.JsonPrimitive(true)) else emptyMap()
-        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags)
-        return s.copy(items = s.items + BoxItem(input, "manual", 0.0, null))
+        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags, numbersFrom = TYPED)
+        return s.copy(items = s.items + BoxItem(input, MANUAL, 0.0, null))
     }
+
+    /**
+     * A loaded item's input with numbersFrom put back: a typed item (read source "manual") says "typed". The synced
+     * document has no such key, and a box saved on this phone before it was kept has none either.
+     */
+    fun withNumbersFrom(input: BoxItemInput, readSource: String): BoxItemInput =
+        if (readSource == MANUAL && input.numbersFrom == null) input.copy(numbersFrom = TYPED) else input
+
+    private const val MANUAL = "manual"
+    private const val TYPED = "typed"
 
     /**
      * Fields the sender corrected, kept as overrides on top of the read. A corrected label brings its

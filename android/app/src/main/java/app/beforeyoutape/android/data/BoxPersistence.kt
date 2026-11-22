@@ -1,6 +1,7 @@
 package app.beforeyoutape.android.data
 
 import app.beforeyoutape.android.box.BoxItem
+import app.beforeyoutape.android.box.BoxLogic
 import app.beforeyoutape.android.box.BoxState
 import app.beforeyoutape.engine.BoxItemInput
 import kotlinx.serialization.json.Json
@@ -61,9 +62,11 @@ class BoxPersistence(private val prefs: Prefs) {
             destinationCode = o.getValue("destinationCode").jsonPrimitive.content,
             items = o.getValue("items").jsonArray.map { e ->
                 val i = e.jsonObject
+                val readSource = i.getValue("readSource").jsonPrimitive.content
                 BoxItem(
-                    input = Json.decodeFromJsonElement(BoxItemInput.serializer(), i.getValue("input")),
-                    readSource = i.getValue("readSource").jsonPrimitive.content,
+                    // A box saved before numbersFrom was kept: a typed item says "typed" again.
+                    input = BoxLogic.withNumbersFrom(Json.decodeFromJsonElement(BoxItemInput.serializer(), i.getValue("input")), readSource),
+                    readSource = readSource,
                     readMs = i.getValue("readMs").jsonPrimitive.double,
                     cropFile = (i["cropFile"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
                     extras = (BoxDocs.fromJson(i.getValue("extras")) as? Map<String, Any?>) ?: emptyMap(),

@@ -36,7 +36,15 @@ class OverridesTest {
         assertEquals("manual", item.readSource)
         assertEquals("sender", item.input.identityConfirmedBy)
         assertEquals(listOf("lithium_ion"), item.input.labelTags)
+        // The sender typed its numbers, and the engine is told so.
+        assertEquals("typed", item.input.numbersFrom)
+        assertEquals("typed", e.seen.single().single().numbersFrom)
         assertEquals(1, e.seen.size)
+    }
+
+    /** A read item says nothing about where its numbers came from: left out, the engine counts them as read. */
+    @Test fun aReadItemLeavesNumbersFromOut() {
+        assertEquals(null, withBank(Recorder(result)).state.items.single().input.numbersFrom)
     }
 
     @Test fun aFixedNumberReplacesTheReadOneAndRechecks() {

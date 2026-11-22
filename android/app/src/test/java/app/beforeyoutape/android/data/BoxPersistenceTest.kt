@@ -57,6 +57,17 @@ class BoxPersistenceTest {
         assertEquals(listOf(null, null, null), BoxPersistence(prefs).load()!!.items.map { it.tagsEdition })
     }
 
+    /** A typed item stays typed on the phone, and a typed item saved before numbersFrom was kept loads as typed. */
+    @Test fun aTypedItemStaysTyped() {
+        val s = BoxLogic.addManual(BoxLogic.empty("CA"), read.copy(evidence = EvidenceWire.item_seen), emptyList(), "t")
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(s)
+        assertEquals("typed", BoxPersistence(prefs).load()!!.items.single().input.numbersFrom)
+        prefs.values["active_box"] = prefs.values.getValue("active_box").replace(Regex(",?\"numbersFrom\":\"typed\""), "")
+        assertEquals(false, prefs.values.getValue("active_box").contains("numbersFrom"))
+        assertEquals("typed", BoxPersistence(prefs).load()!!.items.single().input.numbersFrom)
+    }
+
     @Test fun nothingSavedMeansNoBox() {
         assertNull(BoxPersistence(MapPrefs()).load())
     }

@@ -135,7 +135,9 @@ object BoxDocs {
             labelTags = (doc["labelTags"] as List<*>).map { it as String },
         )
         val extras = EXTRA_KEYS.filter { it in doc }.associateWith { doc[it] }
-        return BoxItem(input, doc["readSource"] as String, (doc["readMs"] as? Number)?.toDouble() ?: 0.0, null, extras)
+        val readSource = doc["readSource"] as String
+        // The document has no numbersFrom key (the Firestore rules allow none): a typed item is known by its read source.
+        return BoxItem(BoxLogic.withNumbersFrom(input, readSource), readSource, (doc["readMs"] as? Number)?.toDouble() ?: 0.0, null, extras)
     }
 
     /**
