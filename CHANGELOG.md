@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The site and the Chrome extension say device instead of laptop (Get this device ready, This device can't read photos on its own, Read on this device, and the rest), since visitors open the site on phones too, where This laptop was wrong. The tagline now reads Hold each gift up to your camera and see what the post office won't take, before you tape the box. The item category Laptop is unchanged, and records of past runs keep what they showed. Source: review. Verified: every test that matches these words was updated with them; typecheck, lint and the full suite pass.
+
 - A box is also not whole once saving stops because the page is out of date, or while it is being deleted (src/data/boxStore.ts), so neither shows Ready to tape; close, reopen and the out-of-date notice now refresh the state, so the flag never goes stale. An edit of the sender's own that has not reached the server yet still counts as the box they packed. Source: review (round 1 on the Ready to tape change). Verified: two new store tests failed first and pass.
 
 - A box read counts as from the server only when the box and both of its queries, items and disputes, came from the server (src/data/persistence.ts): the connection can drop between them, and items read from the cache could miss one, so the page could have called a box whole that was not. Source: review (round 1 on the Ready to tape change). Verified: a new loadBox test with items, then disputes, from the cache failed first and passes.

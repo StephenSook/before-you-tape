@@ -1,6 +1,6 @@
 # Before You Tape
 
-> Hold each gift up to your laptop and see what the post office won't take, before you tape the box.
+> Hold each gift up to your camera and see what the post office won't take, before you tape the box.
 
 Before You Tape is a web app, in development, for people mailing gifts abroad from the United States. It checks each item in a box against US Postal Service international mail rules and the destination country's rules, and answers "OK to pack", "Check this" or "Take it out" before the box is taped. Not affiliated with or approved by the US Postal Service.
 

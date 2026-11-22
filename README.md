@@ -1,12 +1,12 @@
 # Before You Tape
 
-Hold each gift up to your laptop and see what the post office won't take, before you tape the box.
+Hold each gift up to your camera and see what the post office won't take, before you tape the box.
 
 **Live:** https://before-you-tape-2026.web.app
 
 **Judges, start here:** https://before-you-tape-2026.web.app/judge. A ready sample box of nine real items. It needs no camera, no built-in model and no sign-in. Pick a country and the whole box is checked again by the app's own rules, with no model call. The box starts in the Philippines. USPS suspends mail to Canada from November 29, 2026, so pick Canada to see the app follow it.
 
-To see a model run, press **Run one live read** on the same page. It reads the sample lotion photo with the app's real models: on your laptop when Chrome's built-in model is ready, otherwise in the cloud after you allow it. It shows where the read ran and the time from the press that started the read (the button, or Allow) to the verdict on screen. One read at a time, then a 10 s wait.
+To see a model run, press **Run one live read** on the same page. It reads the sample lotion photo with the app's real models: on your device when Chrome's built-in model is ready, otherwise in the cloud after you allow it. It shows where the read ran and the time from the press that started the read (the button, or Allow) to the verdict on screen. One read at a time, then a 10 s wait.
 
 ## How it works
 

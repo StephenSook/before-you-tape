@@ -32,18 +32,18 @@ describe("LiveReadPanel", () => {
     expect(load).not.toHaveBeenCalled();
   });
 
-  it("reads the sample on this laptop when it can, and says where and how long from the press", async () => {
+  it("reads the sample on this device when it can, and says where and how long from the press", async () => {
     const { load, m } = deps({ gate: "available" });
     render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(1000, 1100, 1200, 2500)} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
-    expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this laptop, 1.5 s");
+    expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this device, 1.5 s");
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
     expect(screen.getByTestId("live-read-name")).toHaveTextContent(SAMPLE_READ.read.itemName);
     expect(m.device.generate).toHaveBeenCalledTimes(1);
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
-  it("reads in the cloud when this laptop cannot and cloud checks are on", async () => {
+  it("reads in the cloud when this device cannot and cloud checks are on", async () => {
     const { load, m } = deps({ consent: true });
     render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(1000, 1100, 1200, 2500)} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
@@ -62,13 +62,13 @@ describe("LiveReadPanel", () => {
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read in the cloud");
   });
 
-  it("reads nothing when the judge keeps it on this laptop and the laptop cannot read", async () => {
+  it("reads nothing when the judge keeps it on this device and the laptop cannot read", async () => {
     const { load, m, consent } = deps({ consent: null });
     render(<LiveReadPanel load={load} judge={judge} country="Philippines" />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Check on this laptop only" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check on this device only" }));
     expect(consent()).toBe(false);
-    expect(await screen.findByRole("alert")).toHaveTextContent("This laptop can't read photos on its own, and cloud checks are off.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This device can't read photos on its own, and cloud checks are off.");
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
@@ -125,7 +125,7 @@ describe("LiveReadPanel", () => {
     const { load } = deps({ gate: "available" });
     render(<LiveReadPanel load={load} judge={judge} country="Philippines" now={ticks(0, 400, 600, 30_000)} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
-    expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this laptop, 30.0 s");
+    expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this device, 30.0 s");
     expect(screen.getByTestId("live-read-verdict")).toHaveTextContent("Take it out for the Philippines");
     const details = screen.getByText("Details").closest("details")!;
     expect(details).not.toHaveAttribute("open");

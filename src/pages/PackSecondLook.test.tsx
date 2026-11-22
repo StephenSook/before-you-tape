@@ -76,14 +76,14 @@ describe("Pack page second look", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
-  it("takes back every card's cloud look offer when the sender chooses this laptop only", async () => {
+  it("takes back every card's cloud look offer when the sender chooses this device only", async () => {
     const { models } = setup({ consent: null });
     await upload();
     await upload();
     const cards = await screen.findAllByTestId("item-card");
     expect(cards).toHaveLength(2);
     await userEvent.click(within(cards[0]!).getByRole("button", { name: "Check it in the cloud" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Check on this laptop only" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Check on this device only" }));
     for (const c of screen.getAllByTestId("item-card")) expect(within(c).queryByRole("button", { name: "Check it in the cloud" })).toBeNull();
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
@@ -102,7 +102,7 @@ describe("Pack page second look", () => {
     expect(models.cloud.generate).not.toHaveBeenCalled();
   });
 
-  it("offers no cloud look to a sender who chose this laptop only", async () => {
+  it("offers no cloud look to a sender who chose this device only", async () => {
     const { models } = setup({ consent: false });
     await upload();
     const card = await screen.findByTestId("item-card");

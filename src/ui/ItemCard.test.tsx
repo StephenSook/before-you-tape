@@ -60,7 +60,7 @@ describe("ItemCard", () => {
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
     expect(screen.getByTestId("crop-image")).toHaveAttribute("src", expect.stringMatching(/^data:image\/jpeg/));
     expect(screen.getByText(takeOut.hits[0]!.text)).toBeInTheDocument();
-    expect(screen.getByTestId("source-glyph")).toHaveAccessibleName("Read on this laptop");
+    expect(screen.getByTestId("source-glyph")).toHaveAccessibleName("Read on this device");
     expect(within(screen.getByTestId("layer-list")).getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
   });

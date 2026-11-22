@@ -21,9 +21,9 @@ test("with no on-device model and the cloud declined, a photo sends nothing to a
   await settings;
   await page.waitForTimeout(1000);
   expect(await page.evaluate(() => (window as unknown as { LanguageModel?: unknown }).LanguageModel)).toBeUndefined();
-  // The sender keeps everything on this laptop first, through the cloud chip.
+  // The sender keeps everything on this device first, through the cloud chip.
   await page.getByRole("button", { name: "Cloud: off" }).click();
-  await page.getByRole("button", { name: "Check on this laptop only" }).click();
+  await page.getByRole("button", { name: "Check on this device only" }).click();
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
   const send = page.getByRole("button", { name: "Check this part" });
   await expect(send).toBeEnabled();

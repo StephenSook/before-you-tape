@@ -46,7 +46,7 @@ test("offline, a photo check says it needs the network, and shows no answer", as
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
   await page.getByRole("button", { name: "Check this part" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "You're offline" })).toHaveText(
-    "You're offline, and this laptop can't read photos on its own. Type the item, or try again when you're back online.");
+    "You're offline, and this device can't read photos on its own. Type the item, or try again when you're back online.");
   await expect(page.getByRole("button", { name: "Allow" })).toHaveCount(0);
   await expect(page.getByTestId("item-card")).toHaveCount(0);
   expect(modelRequests).toEqual([]);

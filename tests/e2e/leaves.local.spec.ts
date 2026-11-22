@@ -75,7 +75,7 @@ test("a read on the device sends nothing to a model in the cloud", async ({ page
   await send.click();
   const card = page.getByTestId("item-card");
   await expect(card.getByTestId("verdict-chip")).toHaveText("Take it out");
-  await expect(card).toContainText("Read on this laptop");
+  await expect(card).toContainText("Read on this device");
   await expect(page.getByRole("button", { name: "Allow" })).toHaveCount(0);
   expect(await page.evaluate(() => (window as unknown as { __devicePrompts: number }).__devicePrompts)).toBe(1);
   expect(cloudRequests).toEqual([]);
@@ -110,7 +110,7 @@ test("a cloud second look sends the same part the page showed, with no text but 
   const shownSha = await send.getAttribute("data-part-sha256");
   await send.click();
   const card = page.getByTestId("item-card");
-  await expect(card).toContainText("Read on this laptop");
+  await expect(card).toContainText("Read on this device");
   expect(bodies).toHaveLength(0);
   // Not asked yet: the card offers the look, and asks before anything is sent.
   await card.getByTestId("cloud-look").click();

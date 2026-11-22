@@ -9,20 +9,20 @@ describe("ReadyButton", () => {
     render(<ReadyButton gate="downloadable" progress={null} onReady={onReady} cloudOn={false} />);
     await userEvent.click(screen.getByTestId("ready-button"));
     expect(onReady).toHaveBeenCalled();
-    expect(screen.getByTestId("ready-button")).toHaveTextContent("Get this laptop ready");
+    expect(screen.getByTestId("ready-button")).toHaveTextContent("Get this device ready");
   });
 
   it("shows real download progress while it downloads", () => {
     render(<ReadyButton gate="downloading" progress={0.42} onReady={() => {}} cloudOn={false} />);
-    expect(screen.getByRole("progressbar", { name: "Getting this laptop ready" })).toHaveAttribute("aria-valuenow", "42");
+    expect(screen.getByRole("progressbar", { name: "Getting this device ready" })).toHaveAttribute("aria-valuenow", "42");
   });
 
   it("says the laptop is ready, or that this device checks in the cloud only while the cloud is on", () => {
     const { rerender, container } = render(<ReadyButton gate="available" progress={null} onReady={() => {}} cloudOn={false} />);
     // With cloud checks off, photos and label text never leave a laptop that reads on its own.
-    expect(screen.getByText("This laptop checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
+    expect(screen.getByText("This device checks items itself. Photos and label text stay on it.")).toBeInTheDocument();
     rerender(<ReadyButton gate="available" progress={null} onReady={() => {}} cloudOn />);
-    expect(screen.getByText("This laptop checks items itself.")).toBeInTheDocument();
+    expect(screen.getByText("This device checks items itself.")).toBeInTheDocument();
     rerender(<ReadyButton gate="no_api" progress={null} onReady={() => {}} cloudOn />);
     expect(screen.getByText("This device checks items in the cloud.")).toBeInTheDocument();
     expect(screen.queryByTestId("ready-button")).toBeNull();

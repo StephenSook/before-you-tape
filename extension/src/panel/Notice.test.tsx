@@ -98,9 +98,9 @@ it("shows the download button when the model is downloadable", async () => {
     read: vi.fn(),
   };
   render(<Panel {...props()} agreed device={device} />);
-  await user.click(await screen.findByRole("button", { name: "Get this laptop ready" }));
+  await user.click(await screen.findByRole("button", { name: "Get this device ready" }));
   expect(device.prepare).toHaveBeenCalledOnce();
-  expect(await screen.findByRole("button", { name: "Read on this laptop" })).toBeVisible();
+  expect(await screen.findByRole("button", { name: "Read on this device" })).toBeVisible();
 });
 
 it("gives a verdict from typed details with no model", async () => {
@@ -138,7 +138,7 @@ it("lets the sender edit the laptop read and confirm its identity before the eng
     render(<Panel {...panelProps} agreed device={device} />);
     await user.selectOptions(screen.getByLabelText("Sending to"), "CA");
     await user.type(await screen.findByLabelText("Paste the product details from the shop page"), "Cotton scarf");
-    await user.click(screen.getByRole("button", { name: "Read on this laptop" }));
+    await user.click(screen.getByRole("button", { name: "Read on this device" }));
     expect(device.read).toHaveBeenCalledOnce();
     expect(screen.getByLabelText("What is it?")).toHaveValue("Scarf");
     expect(screen.getByLabelText("Sending to")).toHaveValue("CA");
@@ -149,7 +149,7 @@ it("lets the sender edit the laptop read and confirm its identity before the eng
     expect(screen.getByRole("checkbox", { name: "Is the item type power bank? Yes" })).not.toBeChecked();
     await user.click(screen.getByRole("button", { name: "Check" }));
     expect(screen.getByRole("heading", { name: "Take it out" })).toBeVisible();
-    expect(screen.getByText("Read on this laptop", { selector: ".verdict-meta div" })).toBeVisible();
+    expect(screen.getByText("Read on this device", { selector: ".verdict-meta div" })).toBeVisible();
   } finally {
     vi.useRealTimers();
   }

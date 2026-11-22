@@ -108,7 +108,7 @@ describe("LivePack", () => {
     const { models, push } = setup({}, "no_api", { settingsWaitMs: 50, settingsNoticeMs: 0 });
     act(() => push({ killCloud: true, pauseUnknown: true }));
     expect(screen.getByTestId("paused-banner")).toHaveTextContent("Cloud checks start once their settings load.");
-    // This laptop has no model of its own, so the banner does not say checks on it still work.
+    // This device has no model of its own, so the banner does not say checks on it still work.
     expect(screen.getByTestId("paused-banner")).not.toHaveTextContent("still work");
     await addPhoto();
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are still waiting for their settings"));
@@ -161,7 +161,7 @@ describe("LivePack", () => {
     await addPhoto();
     expect(await screen.findByTestId("getting-ready")).toBeInTheDocument();
     act(() => push({ killCloud: true, pauseUnknown: undefined }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are paused, and this laptop can't read photos on its own. Type the item instead."));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cloud checks are paused, and this device can't read photos on its own. Type the item instead."));
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
@@ -169,7 +169,7 @@ describe("LivePack", () => {
     const { models, push } = setup({}, "no_api", { settingsWaitMs: 50, online: false });
     act(() => push({ killCloud: true, pauseUnknown: true }));
     await addPhoto();
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("You're offline, and this laptop can't read photos on its own."));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("You're offline, and this device can't read photos on its own."));
     for (const m of Object.values(models)) expect(m.cloud.generate).not.toHaveBeenCalled();
   });
 
@@ -238,7 +238,7 @@ describe("LivePack", () => {
     const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const m = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     expect(m.cloud.generate).not.toHaveBeenCalled();
     act(() => push({ killCloud: false, pauseUnknown: undefined }));
     await screen.findByTestId("second-look");
@@ -248,7 +248,7 @@ describe("LivePack", () => {
     const { models, push } = setup({ killCloud: true }, "available");
     const m = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     expect(m.cloud.generate).not.toHaveBeenCalled();
     act(() => push({ killCloud: false }));
     await screen.findByTestId("second-look");
@@ -258,7 +258,7 @@ describe("LivePack", () => {
     const { models, push, store } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const m = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     // A no, then a yes again, before cloud checks come on: only the no dropping the look keeps it from going.
     act(() => store.setConsent(false));
     act(() => store.setConsent(true));
@@ -277,7 +277,7 @@ describe("LivePack", () => {
     act(() => store.setConsent(false));
     act(() => store.setConsent(true));
     await act(async () => { finish({ text: JSON.stringify(phoneOnDevice), source: "on_device" }); });
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     act(() => push({ killCloud: false, pauseUnknown: undefined }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
     expect(m.cloud.generate).not.toHaveBeenCalled();
@@ -286,7 +286,7 @@ describe("LivePack", () => {
     const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const old = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     act(() => push({ killCloud: false, pauseUnknown: undefined, cloudModelItem: "gemini-3.8-flash" }));
     await screen.findByTestId("second-look");
     expect(old.cloud.generate).not.toHaveBeenCalled();
@@ -302,7 +302,7 @@ describe("LivePack", () => {
       const m = deviceReadsPhone(models);
       if (hold === "offline") rerender({ online: false });
       await addPhoto();
-      await screen.findByText("Read on this laptop");
+      await screen.findByText("Read on this device");
       const otherTab = deviceConsent(localStorage);
       otherTab.set(false);
       otherTab.set(true);
@@ -348,7 +348,7 @@ describe("LivePack", () => {
     const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const m = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     act(() => push({ killCloud: false, pauseUnknown: undefined,
       secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
@@ -358,7 +358,7 @@ describe("LivePack", () => {
     const { models, push, rerender } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const m = deviceReadsPhone(models);
     await addPhoto();
-    await screen.findByText("Read on this laptop");
+    await screen.findByText("Read on this device");
     rerender({ online: false });
     act(() => push({ killCloud: false, pauseUnknown: undefined }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });

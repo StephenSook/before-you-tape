@@ -12,7 +12,7 @@ export function AboutPage() {
   return (
     <div className="about">
       <h1>About Before You Tape</h1>
-      <p>Hold each gift up to your laptop and see what the post office won't take, before you tape the box.</p>
+      <p>Hold each gift up to your camera and see what the post office won't take, before you tape the box.</p>
 
       <h2>What it checks</h2>
       <p>
