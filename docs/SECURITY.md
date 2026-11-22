@@ -64,6 +64,8 @@ Every cloud model call, all through Firebase AI Logic with App Check, all paused
 
 No page asks for customs-form descriptions yet. Their prompt (`describePrompt` in `src/ai/prompts.ts`) is written, but nothing calls it, so it makes no cloud call today. If a page starts to use it, that call is added to the table above. The cloud text model in `src/ai/firebaseModels.ts` (`createTextCloudModel`) is in use: it is the model behind the product-text read.
 
+A cloud-only item read or second look that fails with a network error, a 429 or a 5xx is retried once, while cloud checks stay allowed (`src/ai/itemRead.ts`). A hybrid read whose device step fails may already have tried the cloud inside the SDK, then takes this same cloud-only path, so it can reach the cloud up to three times. The status is the SDK's own error field (`customErrorData.status`) whenever that field is set; only without it is the number in the error message read, with any URL taken out first. A "Failed to fetch" carries no status at all, so after its one retry the call fails as "cloud unreachable" and the fallback model is not tried: the fallback is only for a model that is overloaded (500 or 503) or gone (a 404 that says so). For a first read, the page then says the cloud check could not connect, and the sender can try again or type the item. A second look that fails this way keeps the device read and its verdict, says on the card that there is no connection, and runs again the next time the browser comes back online if cloud checks are still allowed then.
+
 ### What opens a cloud call
 
 Each call above starts only when all three hold, checked right before it:
