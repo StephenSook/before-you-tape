@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The extension panel test for a cloud bridge that does not answer no longer depends on how fast the machine is: it gave the bridge a real 150 ms wait and then checked for "Opening cloud checks." after two clicks, and under a full test run the clicks could take longer than the wait, so the bridge had already given up and the test failed. It now runs on fake time, with clicks that use no timers, so the bridge's wait is the only thing that moves the clock. Source: the test failing twice under load. Verified: with a 1 ms wait the old test failed every time and the new one passes; 3 runs of the file pass, full gate.
+
 - The judge page's Android app link, and the README's, now point at the android-judge-4 release (before-you-tape-android-3708cf1.apk, SHA-256 fe218b21323179b904bd0b3765cd38af0f5426f194b7b4857458f6ec235dca73, built with rule edition revision 7 and checked on a Samsung A16). The judge page's Android battery note now says numbers read from a photo stay at Check this until the sender types them from the label, which judge-4 counts. rules/live-engines.json lists android-judge-4 beside android-judge-3, whose installs still refuse unknown facts, so the facts every live build knows are unchanged. Source: the android-judge-4 release. Verified: the judge page test failed first, full gate.
 
 - The second-look test waits for Remote Config's fetch before adding the photo: its stand-in model answers at once, and cloud checks stay off until those settings arrive, so without the wait the card had no second look to offer. Source: the first CI run of the test. Verified: full gate; the verify job runs the spec.
