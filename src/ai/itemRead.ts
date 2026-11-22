@@ -1,7 +1,8 @@
 // Reads one item photo by the chosen route (spec 5.3). On "hybrid" a failed or unreadable on-device answer
 // is retried in the cloud; on "device_only" the cloud is never called and a reply that came from the cloud
 // is thrown away. Cloud network errors, 429 and 5xx get one automatic retry; a 500 or 503 after that
-// retry, or a 404 saying the model is gone, gets one try on the fallback model when there is one.
+// retry, or a 404 saying the model is gone, gets one try on the fallback model when there is one. The status
+// is the SDK's own customErrorData.status, and the number in the error message only when that is missing.
 import { parseItemReadWithLabel, type ItemRead } from "../shared/itemRead";
 import type { CallOptions, GateState, ImagePart, InferenceSourceName, ItemModels, ModelPort, ModelReply, ReadRoute } from "./port";
 import { ITEM_READ_PROMPT } from "./prompts";
@@ -46,9 +47,19 @@ function errorName(e: unknown): string {
 
 type CloudErrorClass = { kind: "cloud_refused" | "cloud_unreachable"; retry: boolean };
 
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+// The HTTP status of a failed cloud call: the SDK's AIError carries it in customErrorData.status, so that comes
+// first; the first 4xx or 5xx in the message is read only when the field is missing. A network failure has neither.
+function httpStatus(e: unknown): string | undefined {
+  const field = (e as { customErrorData?: { status?: unknown } } | null | undefined)?.customErrorData?.status;
+  if (typeof field === "number" && Number.isInteger(field) && field >= 400 && field <= 599) return String(field);
+  return /\b(4\d\d|5\d\d)\b/.exec(messageOf(e))?.[1];
+}
+
 function classifyCloudError(e: unknown): CloudErrorClass {
-  const msg = e instanceof Error ? e.message : String(e);
-  const status = /\b(4\d\d|5\d\d)\b/.exec(msg)?.[1];
+  const msg = messageOf(e);
+  const status = httpStatus(e);
   if (status === "429") return { kind: "cloud_refused", retry: true };
   if (status === "400" || status === "401" || status === "403") return { kind: "cloud_refused", retry: false };
   if (status?.startsWith("5")) return { kind: "cloud_unreachable", retry: true };
@@ -63,9 +74,8 @@ const MODEL_GONE = /no longer available|is not found for API version|not support
 export type FallbackAfter = "500" | "503" | "404";
 
 function fallbackStatus(e: unknown): FallbackAfter | null {
-  const msg = e instanceof Error ? e.message : String(e);
-  if (/\b404\b/.test(msg) && MODEL_GONE.test(msg)) return "404";
-  const status = /\b(5\d\d)\b/.exec(msg)?.[1];
+  const status = httpStatus(e);
+  if (status === "404" && MODEL_GONE.test(messageOf(e))) return "404";
   return status && FALLBACK_STATUSES.has(status) ? (status as "500" | "503") : null;
 }
 

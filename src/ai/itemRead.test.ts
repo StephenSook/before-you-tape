@@ -1,3 +1,4 @@
+import { AIError, AIErrorCode } from "firebase/ai";
 import { describe, expect, it, vi } from "vitest";
 import type { ItemRead } from "../shared/itemRead";
 import { guardDevicePort, readItem } from "./itemRead";
@@ -20,6 +21,10 @@ const fails = (what: string): MockPort => ({
     if (/^[A-Z][A-Za-z]+Error$/.test(what)) e.name = what;
     throw e;
   }),
+});
+// The SDK's own error, with the HTTP status in customErrorData and a message that need not carry it.
+const sdkFails = (status: number, message = "Error fetching from the model"): MockPort => ({
+  generate: vi.fn(async () => { throw new AIError(AIErrorCode.FETCH_ERROR, message, { status, statusText: "" }); }),
 });
 const never = (): MockPort => ({ generate: vi.fn(async () => { throw new Error("this port must not be called"); }) });
 const models = (m: Partial<Record<keyof ItemModels, MockPort>>) => ({ device: never(), hybrid: never(), cloud: never(), ...m }) as ItemModels & Record<keyof ItemModels, MockPort>;
@@ -194,6 +199,35 @@ describe("readItem", () => {
   it("does not use the fallback for a 404 that does not say the model is gone", async () => {
     const m = models({ cloud: fails("fetch-error 404 Not Found"), fallback: never() });
     await expect(readItem(m, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(m.fallback.generate).not.toHaveBeenCalled();
+  });
+
+  it("reads the status from the SDK's customErrorData first, and from the message only when it is missing", async () => {
+    // A 503 carried only in customErrorData is retried once, then reaches the fallback model.
+    const m = models({ cloud: sdkFails(503), fallback: ok("in_cloud") });
+    expect(await readItem(m, img, "cloud_only", clock(0, 9))).toMatchObject({ fallbackAfter: "503", read: validRead });
+    expect(m.cloud.generate).toHaveBeenCalledTimes(2);
+    expect(m.fallback.generate).toHaveBeenCalledTimes(1);
+    // The field wins over a number in the message: a 429 whose text says 503 is retried, with no fallback.
+    const busy = models({ cloud: sdkFails(429, "the server said 503 before"), fallback: never() });
+    await expect(readItem(busy, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_refused" });
+    expect(busy.cloud.generate).toHaveBeenCalledTimes(2);
+    expect(busy.fallback.generate).not.toHaveBeenCalled();
+    // A refusal in the field alone is not retried.
+    const refused = models({ cloud: sdkFails(403), fallback: never() });
+    await expect(readItem(refused, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_refused" });
+    expect(refused.cloud.generate).toHaveBeenCalledTimes(1);
+    // A gone model: the 404 in the field, the words in the message.
+    const gone = models({ cloud: sdkFails(404, "models/gemini-x is no longer available to new users"), fallback: ok("in_cloud") });
+    expect(await readItem(gone, img, "cloud_only", clock(0, 9))).toMatchObject({ fallbackAfter: "404" });
+    expect(gone.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives a network failure with no status, as the SDK wraps a Failed to fetch, one retry and no fallback model", async () => {
+    const lost = (): MockPort => ({ generate: vi.fn(async () => { throw new AIError(AIErrorCode.ERROR, "Error fetching from https://firebasevertexai.googleapis.com/v1beta/x: Failed to fetch"); }) });
+    const m = models({ cloud: lost(), fallback: never() });
+    await expect(readItem(m, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(m.cloud.generate).toHaveBeenCalledTimes(2);
     expect(m.fallback.generate).not.toHaveBeenCalled();
   });
 
