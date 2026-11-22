@@ -5,6 +5,21 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the item card asks for the Wh or lithium grams printed on the label
+- What: while USPS-INTL-LI-ONE-READ holds an item's numbers, the card shows an empty field, "Type the
+  Wh printed on the label" (or "Type the lithium grams printed on the label" when no Wh is shown), and
+  a "Check the number" button, as the web card does. It takes a number above 0, with a comma read as a
+  decimal point, and passes it to BoxStore.confirmLabelNumber. It never fills in a value. The field
+  starts again, empty, after a check, and when the number it asks for changes, since it is keyed on
+  that number. DATA-LABEL-NUMBERS shows on the card like any other check. A debug-only UI test scene
+  (-uiTestPhoneRead) reads a phone on this iPhone with cloud checks off.
+- Source: the revision 7 phone-mirror spec, B6 (the web app's LabelNumberCheck).
+- Verified: helper tests failed first (no helper), then pass: when it is asked, which number, the
+  number shown with the sender's own on top, and the numbers it accepts. A new UI test passes: the
+  field asks for the Wh, then for the grams, empty, after the sender says the label prints grams, then
+  starts empty after a check. With the reset key removed it failed (the half-typed "7" stayed), and
+  the card file was put back byte for byte. The second-look and loop UI tests still pass.
+
 ### feat(ios): the store checks a Wh or lithium-grams number typed from the label
 - What: BoxStore.confirmLabelNumber takes the Wh (or lithium grams) the sender typed from the label. It
   compares it only with the model's own reading, never with a number the sender typed earlier. A match

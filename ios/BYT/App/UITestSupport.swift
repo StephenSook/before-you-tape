@@ -11,12 +11,26 @@ enum UITestSupport {
     /// on the device as a power bank, with cloud checks allowed, and the cloud reads other numbers,
     /// so the app runs its real second look and the card shows the disputes.
     static var secondLook: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestSecondLook") }
+    /// With `-uiTestPhoneRead` instead: the on-device model reads photos, and at start one photo is read on
+    /// the device as a phone, with cloud checks off, so the card holds the numbers the model read until the
+    /// sender types the Wh printed on the label.
+    static var phoneRead: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestPhoneRead") }
 
     static var onDevice: OnDeviceStatus {
-        OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "UI test", vision: secondLook)
+        OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "UI test", vision: secondLook || phoneRead)
     }
 
     static func reader() -> ItemReader {
+        if phoneRead {
+            var phone = FixedRunner().read
+            if case var .object(o) = phone {
+                for (k, v) in ["itemName": JSONValue.string("Phone"), "category": .string("phone"), "labelText": .string("3.85V 4000mAh 15.4Wh"),
+                               "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4), "liquid": .bool(false),
+                               "batteryWords": .bool(true), "retailBox": .string("sealed")] { o[k] = v }
+                phone = .object(o)
+            }
+            return ItemReader(device: FixedRunner(read: phone), makeCloud: { _ in FixedRunner() }, parse: { ParsedRead(read: $0) })
+        }
         if secondLook {
             return ItemReader(device: FixedRunner(read: powerBank(milliampHours: 5000, wattHours: 18.5, batteryWords: false)),
                               makeCloud: { _ in FixedRunner(read: powerBank(milliampHours: 10000, wattHours: 37, batteryWords: true)) },
@@ -39,6 +53,13 @@ enum UITestSupport {
     @MainActor static func readPhotoForSecondLook(_ m: AppModel) async {
         m.network.pathChanged(satisfied: true)
         m.box?.setConsent(true)
+        await m.readPhoto(Data([0xFF, 0xD8, 0xFF, 0xD9]))
+    }
+
+    /// The phone scene: online, cloud checks off, then one photo read on the device.
+    @MainActor static func readPhotoOfAPhone(_ m: AppModel) async {
+        m.network.pathChanged(satisfied: true)
+        m.box?.setConsent(false)
         await m.readPhoto(Data([0xFF, 0xD8, 0xFF, 0xD9]))
     }
 

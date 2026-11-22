@@ -47,6 +47,12 @@ struct ItemCardView: View {
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("confirm-identity")
             }
+            if LabelNumber.asked(verdict) {
+                // Keyed on the number asked for: a change of it starts the field again, empty.
+                let field = LabelNumber.field(for: FixReadingView.current(item))
+                LabelNumberCheckView(field: field) { f, value in box.confirmLabelNumber(item.itemId, field: f, value: value) }
+                    .id(field)
+            }
             Button("Fix this reading") { fixing = true }
                 .buttonStyle(.borderless)
             DisclosureGroup("What we checked") { LayerList(layers: verdict.layers) }
