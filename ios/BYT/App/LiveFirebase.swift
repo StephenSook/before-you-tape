@@ -12,9 +12,13 @@ struct LiveFirebase: Sendable {
     /// The launch argument that lets a Debug build call the live project.
     static let optIn = "-liveFirebase"
 
+    /// A UI test's own launch argument: its app runs in a process of its own, which may carry no XCTest
+    /// marker, so this keeps it off even with the opt-in.
+    static let uiTest = "-uiTestFakeReader"
+
     static func decide(debug: Bool, arguments: [String], hostedByXCTest: Bool) -> Bool {
         guard debug else { return true }
-        return arguments.contains(optIn) && !hostedByXCTest
+        return arguments.contains(optIn) && !arguments.contains(uiTest) && !hostedByXCTest
     }
 
     /// True when XCTest runs inside this process: a unit test launch hosted by the app.

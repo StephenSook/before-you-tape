@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### fix(ios): a UI test's app stays off Firebase even when launched with -liveFirebase
+- What: a UI test's app runs in a process of its own, which may carry no XCTest marker. Its launch
+  argument `-uiTestFakeReader` now keeps it off the live project even with `-liveFirebase`.
+- Source: second-model review of this change set.
+- Verified: a new test failed against the old rule (decide returned true for both flags), then passed;
+  LiveFirebaseTests 9 passed. The full local CI on the finished set exit 0.
+
 ### fix(ios): the app's cloud reader sends nothing in a launch that may not call Firebase
 - What: in a Debug or test launch without `-liveFirebase`, the runner behind the sign-in is now
   OfflineCloudRunner: every cloud read fails at once as a paused cloud does, with no call to Firebase

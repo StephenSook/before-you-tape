@@ -20,6 +20,12 @@ import Testing
         #expect(!LiveFirebase.decide(debug: true, arguments: [LiveFirebase.optIn], hostedByXCTest: true))
     }
 
+    /// A UI test's app runs in its own process, which may carry no XCTest marker: its launch argument
+    /// keeps it off even with -liveFirebase.
+    @Test func aUITestLaunchIsOffEvenWhenOptedIn() {
+        #expect(!LiveFirebase.decide(debug: true, arguments: [LiveFirebase.optIn, "-uiTestFakeReader"], hostedByXCTest: false))
+    }
+
     @Test func thisTestLaunchIsHostedAndOff() {
         #expect(LiveFirebase.hostedByXCTest(environment: ProcessInfo.processInfo.environment))
         #expect(!LiveFirebase.thisLaunch.allowed)
