@@ -13,8 +13,13 @@ test("with no on-device model and the cloud declined, a photo sends nothing to a
   });
   const modelRequests: string[] = [];
   page.on("request", (r) => { if (MODEL_CALL.test(r.url())) modelRequests.push(`${r.method()} ${new URL(r.url()).host}`); });
+  // The page's message is for the situation it was written in, and Remote Config's settings change that situation
+  // when they arrive: the photo waits for them (or for their fetch to fail, without App Check), so its message stays.
+  const settings = page.waitForResponse((r) => r.url().includes("firebaseremoteconfig.googleapis.com") && r.url().includes(":fetch"), { timeout: 15_000 }).catch(() => null);
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Type an item" })).toBeVisible();
+  await settings;
+  await page.waitForTimeout(1000);
   expect(await page.evaluate(() => (window as unknown as { LanguageModel?: unknown }).LanguageModel)).toBeUndefined();
   // The sender keeps everything on this laptop first, through the cloud chip.
   await page.getByRole("button", { name: "Cloud: off" }).click();
