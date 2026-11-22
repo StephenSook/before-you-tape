@@ -98,8 +98,14 @@ jobs:
       # The built app in a real browser: it starts, every camera-stage control is readable, /judge works with no
       # request to a Google API, and after one visit it reloads and checks a typed item with no network; the
       # service worker kill switch build removes an installed worker; a new deploy waits for the visitor's Reload.
-      # These need no App Check token.
+      # The local build has the live project's settings, so these carry the CI App Check debug token too, which the
+      # Playwright config requires with BYT_E2E_LIVE_PROJECT (scripts/e2e-live-opt-in.ts). A fork gets no secrets and
+      # skips them.
       - name: Browser checks on the built app
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          BYT_E2E_LIVE_PROJECT: "1"
+          APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
         run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts tests/e2e/offline.local.spec.ts tests/e2e/sw-kill.local.spec.ts tests/e2e/sw-update.local.spec.ts
 
       # The specs that need App Check get it from a debug token kept for CI only ("ci-2026-11", revoke by
@@ -112,6 +118,7 @@ jobs:
       - name: Browser checks that need App Check
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         env:
+          BYT_E2E_LIVE_PROJECT: "1"
           APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
         run: npx playwright test --project=local tests/e2e/a11y.spec.ts tests/e2e/smoke.spec.ts tests/e2e/pack.local.spec.ts tests/e2e/leaves.local.spec.ts tests/e2e/no-device-model.local.spec.ts tests/e2e/judge-live.local.spec.ts tests/e2e/token-origin.spec.ts
 

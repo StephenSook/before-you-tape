@@ -1,8 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import { localLiveOptIn } from "./scripts/e2e-live-opt-in";
 
 // Two projects: "local" runs against `vite preview` of the current build, "live" against the
 // deployed site. BYT_LIVE=1 skips starting the preview server for live runs.
 const live = process.env.BYT_LIVE === "1";
+// The local build has the live project's settings, so a local run starts only with an explicit opt-in and a
+// registered App Check debug token (scripts/e2e-live-opt-in.ts). Every CI step that runs it sets both.
+if (!live) localLiveOptIn(process.env);
 
 export default defineConfig({
   testDir: "tests/e2e",
