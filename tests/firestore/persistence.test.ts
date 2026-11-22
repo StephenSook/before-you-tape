@@ -267,7 +267,7 @@ describe("firestorePersistence", () => {
     // Two tabs, both of which found no box: one creates it, the other's details merge into it.
     const a = firestorePersistence(db("alice"), "alice", "byt-test");
     const b = firestorePersistence(db("alice"), "alice", "byt-test");
-    expect(await Promise.all([a.loadBox("b5"), b.loadBox("b5")])).toEqual([{ status: "missing" }, { status: "missing" }]);
+    expect(await Promise.all([a.loadBox("b5"), b.loadBox("b5")])).toEqual([{ status: "missing", fromServer: true }, { status: "missing", fromServer: true }]);
     await Promise.all([a.putMeta("b5", meta({ destinationCode: "PH" })), b.putMeta("b5", meta())]);
     await a.putItem("b5", item("first"));
     await b.putItem("b5", item("late"));
@@ -281,11 +281,13 @@ describe("firestorePersistence", () => {
 
     it("tells a missing box from a found one and from a read that failed", async () => {
       const p = firestorePersistence(db("alice"), "alice", "byt-test");
-      expect(await p.loadBox("b1")).toEqual({ status: "missing" });
+      // Each read reached the server (the emulator), so none is only the cache's.
+      expect(await p.loadBox("b1")).toEqual({ status: "missing", fromServer: true });
       await p.putMeta("b1", meta);
       await p.putItem("b1", item("i1"));
       const found = await p.loadBox("b1");
       expect(found.status).toBe("found");
+      expect(found.status === "found" && found.fromServer).toBe(true);
       expect(found.status === "found" && found.box.destinationCode).toBe("PH");
       expect(found.status === "found" && found.box.items?.map((i) => i.itemId)).toEqual(["i1"]);
       // Another user's box: the read is refused, which is a failure, never an empty box.
