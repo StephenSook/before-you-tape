@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Clearing a battery number after a matching second look counts as the sender's change again, so the second look no longer stands behind the numbers left: both reads agreeing on 14 V, 8600 mAh and 98 Wh (held, as volts times capacity is 120 Wh) no longer turns OK when the sender clears the mAh. The earlier change that kept the second look is undone; typing the numbers left clears the hold. Source: second-model review of revision 7 (round 3). Verified: the store test failed first, full gate.
+
 - Known limits now say the verdict trusts what the sender's own device saves: items, typed numbers, label figures and answers are written by the sender's own browser or phone, the server rules check only their shape, and a changed client changes only its own sender's verdict. Source: second-model review of revision 7 (round 2). Verified: hygiene and tone, full gate.
 
 - The rc-publish pin guard now checks every pin the template would publish, in a default value, a conditional value or a parameter group, since clients read all three. A pin left exactly as it is live is not checked, and the new --keep-live-pin copies the live pin into the template, so a kill_cloud flip from a checkout holding revision 7 keeps the phones pinned to revision 6 instead of dropping the pin or being refused. The production checklist's kill_cloud step uses it. Source: second-model review of revision 7 (round 2), and the kill_cloud path found while fixing it. Verified: the guard and rc-publish tests failed first, full gate.

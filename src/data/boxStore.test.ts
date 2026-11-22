@@ -760,10 +760,21 @@ describe("createBoxStore", () => {
         expect(ruleIds(again, tid)).toContain("DATA-LABEL-NUMBERS");
       });
 
-      it("keeps the second look when the sender clears a number both reads agreed on", () => {
+      it("never lets clearing a number hide a mismatch both reads agreed on", () => {
+        const odd: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "14V 8600mAh 98Wh", volts: 14, milliampHours: 8600, wattHours: 98 };
+        const { s, id } = look(odd, odd);
+        s.answer(id, "cell_count", "more_than_one");
+        expect(level(s, id)).not.toBe("ok");
+        s.override(id, { milliampHours: 0 });
+        expect(level(s, id)).not.toBe("ok");
+      });
+
+      it("holds the rest when the sender clears a number both reads agreed on, until they type them", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { milliampHours: 0 });
-        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
+        expect(level(s, id)).not.toBe("ok");
+        s.override(id, { volts: 3.85, wattHours: 15.4 });
         expect(level(s, id)).toBe("ok");
       });
 
