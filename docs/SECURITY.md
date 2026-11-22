@@ -81,3 +81,7 @@ Each call above starts only when all three hold, checked right before it:
 ### What Firestore keeps
 
 A box and its items, for its members only. Never label text, never consent, and never an item's own name: each item carries the label of its category (for example "Perfume or cologne"), and the model's name or the sender's own words for it stay on the device (`src/data/deviceNames.ts`).
+
+### Browser tests and the live project
+
+The local browser tests (`playwright test --project=local`) build the app with the live project's settings, so they reach the live database and Remote Config. They start only with `BYT_E2E_LIVE_PROJECT=1` and a registered App Check debug token: in CI the CI token from the repository secret (`APPCHECK_DEBUG_TOKEN_CI`), elsewhere that or a developer's own registered token (`APPCHECK_DEBUG_TOKEN`). Without both, `playwright.config.ts` refuses to start (`scripts/e2e-live-opt-in.ts`), because without a token App Check fails on localhost and every read reaches Firestore as a refused request. CI's two browser steps and the deploy gate's built-app check set both; a fork gets no secrets and skips them. The one named exception is `tests/e2e/sw-kill.local.spec.ts` and `tests/e2e/sw-update.local.spec.ts`: they serve the build from their own server on a random port, where the token is never given, so their few reads are expected App Check denials. Moving these tests onto the emulators is planned in `docs/e2e-emulators-plan.md`.

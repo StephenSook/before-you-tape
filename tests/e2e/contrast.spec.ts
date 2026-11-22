@@ -1,8 +1,10 @@
 // Every control on the camera stage must be readable: its text at least 4.5:1 against its own background
 // (WCAG 2.2 AA). The stage is dark with light text, so a button that inherits that light text on its
 // light background disappears; it did, at 1:1. Checked before and after the camera starts; a fake camera
-// stands in for a webcam. Plain Playwright: it needs no App Check token, so CI runs it.
-import { expect, test, type Locator } from "@playwright/test";
+// stands in for a webcam. It carries the App Check debug token (./fixtures), since the local build has the live
+// project's settings.
+import type { Locator } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test.use({
   permissions: ["camera"],

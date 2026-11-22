@@ -1,7 +1,10 @@
-// Whether the app started, as a visitor sees it. It needs no App Check token, so it uses the plain
-// Playwright test rather than the fixtures that inject one: the deploy gate and the daily probe run it in
-// CI, where no token is set.
+// Whether the app started, as a visitor sees it. The deploy gate and the daily probe also run it on the live site,
+// where no token is set, so it takes the App Check debug token only when one is: the local build has the live
+// project's settings, and without a token its reads reach the live database as refused requests.
 import { expect, test } from "@playwright/test";
+import { giveAppCheckToken, optionalAppCheckToken } from "./fixtures";
+
+test.beforeEach(async ({ page }) => { await giveAppCheckToken(page, optionalAppCheckToken()); });
 
 // The title and version.json can be right while the app itself failed to start; only the started screen shows it.
 test("the checker starts: no error banner, and a visitor can type an item", async ({ page }) => {

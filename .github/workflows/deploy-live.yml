@@ -127,9 +127,14 @@ jobs:
         run: npx playwright install chromium
 
       # A matching version.json does not show the app starts; only the started screen does. No deploy otherwise.
+      # The local build has the live project's settings, so this opts in with the CI App Check debug token
+      # (scripts/e2e-live-opt-in.ts).
       - name: The built app starts
         if: steps.head.outputs.current == 'true'
         timeout-minutes: 6
+        env:
+          BYT_E2E_LIVE_PROJECT: "1"
+          APPCHECK_DEBUG_TOKEN_CI: ${{ secrets.APPCHECK_DEBUG_TOKEN_CI }}
         run: npx playwright test --project=local tests/e2e/starts.spec.ts
 
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
