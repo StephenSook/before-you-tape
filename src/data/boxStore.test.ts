@@ -1092,6 +1092,59 @@ describe("createBoxStore", () => {
     });
   });
 
+  // A box that is not the whole saved box may hide items, hazards among them, so the page must never call it ready.
+  describe("whether the box shown is the whole saved box", () => {
+    const refused = () => Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+
+    it("is whole once read from the server, or as a box the server never had", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "missing", fromServer: true });
+      const s = store({ persistence: p });
+      await s.ready;
+      expect(s.getState().incomplete ?? false).toBe(false);
+      // A store that keeps nothing (the sample box) is whole too.
+      const t = store();
+      await t.ready;
+      expect(t.getState().incomplete ?? false).toBe(false);
+    });
+
+    it("is not whole while it loads, after a read that failed, or when read only from the cache", async () => {
+      const loading = spyPersistence();
+      loading.loadBox.mockReturnValue(new Promise<LoadResult>(() => {}));
+      expect(store({ persistence: loading }).getState().incomplete).toBe(true);
+      const failed = spyPersistence();
+      failed.loadBox.mockResolvedValueOnce({ status: "failed", error: "offline" });
+      const f = store({ persistence: failed });
+      await f.ready;
+      expect(f.getState().incomplete).toBe(true);
+      const cached = spyPersistence();
+      cached.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: false });
+      const c = store({ persistence: cached });
+      await c.ready;
+      expect(c.getState().incomplete).toBe(true);
+    });
+
+    it("is not whole when kept only in this browser, or when App Check refuses this browser", async () => {
+      const local = Object.assign(spyPersistence(), { localOnly: () => true });
+      const l = store({ persistence: local });
+      await l.ready;
+      expect(l.getState().incomplete).toBe(true);
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: true });
+      p.putMeta.mockRejectedValue(refused());
+      p.putItem.mockRejectedValue(refused());
+      let ok = true;
+      const s = store({ persistence: p, verified: async () => ok });
+      await s.ready;
+      expect(s.getState().incomplete ?? false).toBe(false);
+      ok = false;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+      expect(s.getState().incomplete).toBe(true);
+    });
+  });
+
   // With reCAPTCHA blocked the server is never reached, so nothing is ever refused; with the exchange refused,
   // the server refuses the box. Either way the page must say why, and never show the box as new or empty.
   describe("a browser App Check cannot verify", () => {

@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The box store says when the box shown may not be the whole saved box (BoxState.incomplete): while it loads, after a read that failed, when read only from this browser's cache, when kept only in this browser, or while App Check refuses this browser. Hidden items may be hazards. Source: review (a green Ready to tape showed over a box that was not synced). Verified: three new store tests failed first and pass: a box read from the server, one the server never had, and the sample box are whole; each other state is not.
+
 - A save kept only in this browser no longer counts as the server answering (src/data/boxStore.ts). On the live site with reCAPTCHA blocked, a first visit never signs in, so its saves go to this browser's storage; the first such save hid the 30-second App Check check, and the page showed no security-check message. Source: the live check after the App Check change deployed. Verified: a new store test (a local-only save, then the check answers no) failed first and passes.
 
 - The emulator tests of the box's Firestore persistence (tests/firestore/persistence.test.ts, tests/firestore/contract.test.ts) expect fromServer on each read, and check that a found box read from the emulator says it came from the server. Source: CI (the rules job failed on the new field). Verified: npm run test:rules passes, 51 tests, against the local emulator.

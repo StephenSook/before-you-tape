@@ -78,6 +78,10 @@ export interface BoxState {
   // The box was read only from this browser's cache (Firestore could not reach the server): whether the cache held
   // it. A box the cache did not hold may still be on the server, so it is not a new box.
   readFromCache?: "found" | "missing";
+  // The box shown may not be the whole saved box: it is still loading, its read failed, it was read only from this
+  // browser's cache, it is kept only in this browser, or App Check refuses this browser. Hidden items may be hazards,
+  // so the page never calls such a box ready to tape.
+  incomplete?: true;
 }
 
 // Edits not yet acknowledged by the server: each item's latest stored copy (null: removed) and the box's
@@ -317,6 +321,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     ...(unverified ? { unverified } : {}),
     ...(cachedCopy ? { cachedCopy: { ...cachedCopy, result: evaluateFor(cachedCopy.items, cachedCopy.destinationCode) } } : {}),
     ...(readFromCache ? { readFromCache } : {}),
+    ...(loadState !== "ready" || readFromCache !== undefined || unverified || deps.persistence.localOnly?.() === true
+      ? { incomplete: true as const } : {}),
   });
   let state: BoxState = snapshot(evaluate());
 
@@ -357,7 +363,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const markUnverified = () => {
     if (unverified || closed) return;
     unverified = true;
-    state = { ...state, unverified };
+    state = snapshot(state.result);
     publish();
     void showCached();
   };
@@ -367,9 +373,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     serverAnswers += 1;
     if (!unverified) return;
     unverified = false;
-    const { unverified: _gone, ...rest } = state;
-    void _gone;
-    state = rest;
+    state = snapshot(state.result);
     publish();
   };
   const refreshUnsaved = () => {
