@@ -13,7 +13,8 @@ const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Type an item", runs: "No model. The rules run in your browser.", leaves: "Nothing goes to a model. The box list is saved, as the line below the table says." },
   { action: "Hold an item still in front of the camera", runs: "The built-in model on this device, if it has one. Otherwise nothing runs until you press Check now.", leaves: "Nothing: a read the camera starts by itself uses this device, never the cloud." },
   { action: "Check now, or add a photo and press Check this part", runs: "The built-in model on this device first. Without one, Gemini in the cloud through Firebase AI Logic, only if you allowed cloud checks.", leaves: "Only if it goes to the cloud: the part inside the box and the words on its label." },
-  { action: "Check it in the cloud (a second look)", runs: "Gemini in the cloud, only when you press it, and only if cloud checks are on.", leaves: "The same cropped part, again." },
+  { action: "A second look in the cloud", runs: "Gemini in the cloud, only if cloud checks are on, after a photo read on this device when the rules ask for one: by itself once you allowed cloud checks, or when you press Check it in the cloud.", leaves: "The same cropped part, again." },
+  { action: "Fix this reading, or type the Wh printed on the label", runs: "No model. The rules run in your browser.", leaves: "Nothing goes to a model. The numbers you type are saved with the box list, as the line below the table says." },
   { action: "Change the country", runs: "The rules again, in your browser: 0 model calls.", leaves: "Nothing goes to a model. The new country is saved with the box list." },
   { action: "Turn off cloud checks", runs: "Every read that starts after it stays on this device. A read already running makes no further cloud call.", leaves: "Nothing more." },
 ];
