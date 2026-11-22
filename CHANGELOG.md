@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Clearing a battery number in Fix this reading no longer makes the other battery numbers the sender's: only a number above zero the sender typed brings the rest with it, so blanking the mAh of a read whose numbers disagree no longer turns it OK. A shared box vector pins it. Source: second-model review of revision 7. Verified: the form test failed first, full gate.
+
 - The label number field on a held item starts again, empty, when a second look changes which number it asks for (lithium grams to Wh), so text typed for one number is never sent as the other. Source: second-model review of revision 7. Verified: the card test failed first, full gate.
 
 - The label number check on a held item now compares the typed number with the model's own reading only, and keeps the typed number: typing the same different number twice no longer makes the read volts and mAh the sender's, and 101 Wh typed against a read of 99 Wh is judged as 101 Wh, over the limit. Source: second-model review of revision 7. Verified: two store tests failed first, full gate.

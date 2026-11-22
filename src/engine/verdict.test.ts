@@ -150,6 +150,7 @@ describe("evaluateBox", () => {
       "label_text_wh_that_disagrees_with_the_read_is_check", "label_text_grams_that_disagree_with_the_read_are_check",
       "typed_numbers_settle_a_label_text_mismatch", "label_text_wh_with_a_comma_that_agrees_is_ok",
       "label_number_typed_and_matched_makes_every_number_typed", "label_number_typed_and_different_replaces_the_read_and_holds",
+      "blanking_one_number_does_not_make_the_rest_typed",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

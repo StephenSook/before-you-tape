@@ -32,7 +32,8 @@ describe("FixReading", () => {
     render(<FixReading read={phoneRead} onSave={onSave} />);
     await userEvent.clear(screen.getByLabelText("Volts (V)"));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ volts: 0, milliampHours: 4000 });
+    // A blank is no number the sender gave, so it does not make the others theirs.
+    expect(onSave).toHaveBeenCalledWith({ volts: 0 });
   });
 
   it("saves a changed kind of item, label text and yes-or-no facts", async () => {
