@@ -53,6 +53,9 @@ final class AppModel {
     /// be installed is tried again when it arrives again, back in the foreground, and when the
     /// network returns.
     @ObservationIgnored private var installedPin = AppModel.pinKey(RemoteConfigValues.defaults)
+    /// A checked remote edition in force, nil while the built-in one is: a pin never brings back an
+    /// edition older than it.
+    @ObservationIgnored private var activeEditionText: String?
     /// The retry started by the foreground or the network, for anyone who must wait for it.
     @ObservationIgnored private(set) var editionRetry: Task<Void, Never>?
     /// Set when the engine would not load or refused the shipped edition: then nothing is checked.
@@ -629,7 +632,7 @@ final class AppModel {
         editionRequest += 1
         let request = editionRequest
         guard want != installedPin, let engine, let bundledEditionText else { return }
-        let choice = await EditionSource.choose(bundledText: bundledEditionText, wantId: config.rulesEditionId,
+        let choice = await EditionSource.choose(bundledText: bundledEditionText, activeText: activeEditionText, wantId: config.rulesEditionId,
                                                 wantSha: config.rulesEditionSha256, fetchRemote: fetchEdition)
         // A newer request may have started while this one was checked: only the latest installs
         // anything, and only for the pin still wanted.
@@ -637,9 +640,11 @@ final class AppModel {
         var installed = choice.text
         if (try? engine.setEdition(choice.text)) != nil {
             editionNotice = choice.notice
+            activeEditionText = choice.from == "remote" ? choice.text : nil
         } else {
             _ = try? engine.setEdition(bundledEditionText)
             installed = bundledEditionText
+            activeEditionText = nil
             editionNotice = EditionSource.notRead
         }
         // The picker and the verdicts move to the new edition in the same step.

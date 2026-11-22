@@ -5,6 +5,24 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a pinned rule edition is used only when it is newer than the one in use
+- What: the iPhone installed any pinned edition whose id and hash checked out, even an older one. A
+  build with revision 7 built in, under a pin that still names revision 6 for older builds, would have
+  gone back to revision 6. The edition choice now follows the web app's chooseEdition step for step: no
+  pin, or the built-in id and hash, gives the built-in edition; a pin naming the edition in use keeps it
+  without fetching; a fetched, checked pin whose revision is not above the edition in use is kept out
+  (a missing revision counts as 0). Under the built-in edition nothing is said. Under a newer remote
+  edition the notice is "The pinned rule edition is older than the one in use. Keeping the one in
+  use." The app now remembers the remote edition it installed, and a refused pin keeps that one, not
+  the built-in. One test changes on purpose: the id of the edition in use with another hash now keeps
+  it silently, as on the web.
+- Source: the web app's edition choice (8c98263, and #200 for the silent older pin); found while
+  checking the iPhone for the older-pin notice.
+- Verified: new edition tests (older, same and missing revisions under the built-in edition; the
+  edition in use against older, equal and newer pins; a failed pin) and two app tests failed first,
+  with the older pin installed over the built-in. Two test editions now carry a later revision.
+  EditionSourceTests, AppConfigTests and AppRulesTests: 23 of 23.
+
 ### feat(ios): numbers on an item typed by hand count as typed
 - What: an item the sender typed by hand (no photo read) now tells the engine numbersFrom "typed"
   when the box is judged, so revision 7 judges its battery numbers on the Wh rules instead of holding
