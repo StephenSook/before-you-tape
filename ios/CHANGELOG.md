@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### docs(ios): the README says tests and Debug builds call no Firebase service
+- What: the iPhone README now says that tests and Debug builds make no Firebase network call (no
+  sign-in, no Remote Config fetch, no Firestore read, so no cloud read), that each skip is logged, and
+  that a Debug run reaches the live project only with `-liveFirebase` and a registered App Check debug
+  token. Release builds always call it.
+- Source: the two entries below.
+- Verified: docs only; the tone and hygiene checks pass, and the full local CI on this text passed
+  (exit 0, with the entry below).
+
 ### fix(ios): a launch that may not call Firebase gives App Check a provider that sends nothing
 - What: App Check fetches a token by itself at launch, with nothing else asking. In a Debug or test
   launch without `-liveFirebase`, BYTAppCheckFactory now returns OfflineAppCheckProvider, which
