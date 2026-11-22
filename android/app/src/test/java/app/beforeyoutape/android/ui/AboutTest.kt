@@ -30,7 +30,7 @@ class AboutTest {
             listOf(
                 Copy.modelSentence(DeviceModelStatus.UNAVAILABLE),
                 "Cloud model: gemini-3.5-flash-lite",
-                "App Check: play_integrity",
+                "App Check provider: Play Integrity",
                 "Cloud reads: not chosen yet",
                 "Rules edition: byt-e1710fc2f032",
                 "Rules bundle: 0123456 (abababababab)",
@@ -56,6 +56,13 @@ class AboutTest {
     @Test fun theCloudConsentIsShown() {
         assertEquals(true, About.rows(info.copy(cloudConsent = true)).contains("Cloud reads: allowed"))
         assertEquals(true, About.rows(info.copy(cloudConsent = false)).contains("Cloud reads: off"))
+    }
+
+    /** The App Check row names the provider in words, and as a provider, not as a passed check. */
+    @Test fun theAppCheckRowNamesTheProvider() {
+        assertEquals(true, About.rows(info).contains("App Check provider: Play Integrity"))
+        assertEquals(true, About.rows(info.copy(appCheckProvider = "debug")).contains("App Check provider: debug"))
+        assertFalse(About.rows(info).any { it.startsWith("App Check: ") })
     }
 
     @Test fun theRulesLinkIsTheWebAppsRulesPage() {
