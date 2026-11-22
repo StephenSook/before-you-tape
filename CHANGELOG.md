@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/LIMITS.md says what revision 7 does with battery numbers read from a photo: they count once the sender types them (Fix this reading saves all of them when one changes, or the Wh, or a lithium metal cell's grams, typed into the empty field on the card), a different typed number replaces the read one, a matching cloud second look confirms them, part-typed sets stay held, confirming the item or picking its category does not clear them, a label text that names another Wh or grams figure is shown and settled by typing, and phone builds made before this still hold typed numbers. Source: the revision 7 plan. Verified: hygiene, tone and the full gate.
+
 - An item whose battery numbers are held for one read (USPS-INTL-LI-ONE-READ) now has an empty field on its card, Type the Wh printed on the label (lithium grams for a lithium metal cell with no Wh). A number within the rules' Wh tolerance of the read makes every battery number shown the sender's own (typed); a different number replaces the read one only, and the item is judged again. Nothing is filled in for the sender. Two shared box vectors pin both sides. Source: the revision 7 plan. Verified: the store, card and pack page tests failed first, full gate.
 
 - Fix this reading saves every battery number the form shows (volts, mAh, Wh, lithium grams) once the sender changes one, so a corrected set counts as the sender's own (typed) and is never part typed and part read, which revision 7 holds. Corrections of other fields save only what was changed. Source: the revision 7 plan. Verified: the two form tests failed first, full gate.
