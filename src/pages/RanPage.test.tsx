@@ -30,7 +30,7 @@ describe("RanPage", () => {
 
   it("says what the saved box list holds, and that it never holds the photo or the label text", () => {
     render(<RanPage />);
-    expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
+    expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, the Wh and lithium-grams figures its label names, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
   });
 
   const measured = (): Measured => ({
