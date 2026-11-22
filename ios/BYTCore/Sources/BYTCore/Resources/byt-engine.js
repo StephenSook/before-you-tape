@@ -199,10 +199,12 @@ var BYT = (() => {
   }
   var WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
   var GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
-  var A_WEIGHT = /(?:\b(?:net|gross)\s*(?:wt|weight)|\b[ng]\.\s?w)\.?\s*:?\s*\(?\s*$/i;
-  var figures = (text, re, skip) => [...text.matchAll(re)].filter((m) => !skip?.test(text.slice(Math.max(0, m.index - 16), m.index))).map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+  var A_WEIGHT = /(?:\b(?:wt|weight)|\b[ng]\.\s?w)\.?\s*:?\s*\(?\s*$/i;
+  var A_LITHIUM_WEIGHT = /\b(?:lithium|li|metal)\s+(?:metal\s+)?(?:wt|weight)\.?\s*:?\s*\(?\s*$/i;
+  var aWeight = (before) => A_WEIGHT.test(before) && !A_LITHIUM_WEIGHT.test(before);
+  var figures = (text, re, skip) => [...text.matchAll(re)].filter((m) => !skip?.(text.slice(Math.max(0, m.index - 32), m.index))).map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
   function labelFiguresOf(text) {
-    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, A_WEIGHT) };
+    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, aWeight) };
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
   var above = (f, n) => f > n + 1e-9;

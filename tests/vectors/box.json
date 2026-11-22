@@ -538,5 +538,13 @@
       "read": { "category": "laptop", "labelText": "LI-ION 11.1V 9009mAh 100.4Wh", "volts": 11.1, "milliampHours": 9009, "wattHours": 100, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed", "cell_count": "more_than_one" } }],
     "expect": { "laptop": "check" }, "expectRules": { "laptop": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_device_weight_is_not_a_lithium_figure", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed the coin cell's 3 V and 0.1 g; the label's DEVICE WEIGHT: 80g is the device, not lithium, and must not hold it",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "sender", "overrides": { "volts": 3, "lithiumGrams": 0.1 },
+      "read": { "category": "battery_toy", "labelText": "CR2032 3V / LITHIUM CONTENT: 0.1g / DEVICE WEIGHT: 80g", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": {}, "notRules": { "toy": ["DATA-LABEL-NUMBERS"] }
   }
 ]

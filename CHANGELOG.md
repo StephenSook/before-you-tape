@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A weight on a label is now skipped as a lithium-grams figure unless it says lithium or metal: "DEVICE WEIGHT: 80g" no longer holds a coin cell whose sender typed its 3 V and 0.1 g, while "LITHIUM METAL WEIGHT: 1.2g" still counts as the lithium content. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 4). Verified: the vector failed first, full gate.
+
 - A full list of label figures now keeps the smallest along with the 7 largest, so a read that disagrees with a small figure the label names (98 Wh read twice under a label also saying 40 Wh) still holds; a number agrees with every figure exactly when it agrees with the smallest and the largest, so the figures left out never change a verdict. Source: second-model review of revision 7 (round 4). Verified: the store test failed first, full gate.
 
 - Any label figure above the number in use now holds, with no rounding margin: two reads agreeing on 100 Wh under a label saying 100.4Wh, or 1 g under 1.004 g, no longer read OK under the limit. Typing the larger figure settles it. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 4). Verified: the vector failed first, full gate.
