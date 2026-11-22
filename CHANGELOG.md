@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/SECURITY.md's retry paragraph now says the retry happens only while cloud checks stay allowed, that a hybrid read can reach the cloud up to three times (the SDK's own cloud step, then the cloud-only path and its retry), that the field status wins whenever it is set and URLs are taken out of the message, that a failed first read shows the message on the page rather than a card, and that a waiting second look runs on reconnect only if cloud checks are still allowed. Source: review. Verified: each sentence traced to src/ai/itemRead.ts and src/pages/PackPage.tsx.
+
 - A cloud error's status in the SDK's customErrorData field is now the status whenever the field is set, so a 302 whose body mentions 503 no longer reaches the fallback model, and URLs are taken out of the error message before it is read, so a project ID in the request URL is never read as a status or a network word (src/ai/itemRead.ts). Source: review. Verified: a new itemRead test failed first (the 302 case reached the fallback) and passes; with the URL stripping removed, its URL cases fail; the src/ai suite passes.
 
 - docs/SECURITY.md says what a cloud item read or second look does after a failure: one retry for a network error, a 429 or a 5xx; the status read from customErrorData.status first; a Failed to fetch, which carries no status, fails as cloud unreachable after its retry with no fallback model; the card says the check could not connect, and a second look keeps the device verdict and runs again the next time the browser comes back online. Source: review. Verified: each sentence traced to src/ai/itemRead.ts, its tests and src/pages/PackPage.tsx.
