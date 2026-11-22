@@ -28,8 +28,9 @@ export function boxChanges(boxId: string, storage: Storage): BoxChanges {
   let sent = 0;
   return {
     announce() {
-      // A new value each time, since an unchanged one fires no storage event.
-      try { storage.setItem(NAME(boxId), `${Date.now()}-${++sent}`); } catch { /* storage blocked: other tabs are not told */ }
+      // A new value each time, since an unchanged one fires no storage event: two tabs can write in the same
+      // millisecond with the same count, so a random part keeps them apart.
+      try { storage.setItem(NAME(boxId), `${Date.now()}-${++sent}-${Math.random().toString(36).slice(2)}`); } catch { /* storage blocked: other tabs are not told */ }
     },
     onChange(f) {
       if (typeof window === "undefined") return () => {};

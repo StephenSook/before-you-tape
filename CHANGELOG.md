@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Without BroadcastChannel, the value a tab writes to tell the others now carries a random part (src/data/boxChanges.ts): two tabs writing in the same millisecond wrote the same value, so the second fired no storage event and the first tab missed it. Source: review (round 1 on the cross-tab change). Verified: a new boxChanges test with a fixed clock failed first and passes.
+
 - The box store also tells this browser's other tabs when a save lands, edit or not, and when the box is being deleted (src/data/boxStore.ts). A country saved as the box loaded, an earlier visit's edits sent after a reload, and a delete whose sign-in cleanup failed (which leaves the box pointer) used to go unheard, so another tab could still say Ready to tape. Source: review (round 1 on the cross-tab change). Verified: two new store tests failed first and pass.
 
 - A box read only from this browser's cache, which stays not whole until a reload, now says so with a Reload page button: Showing the copy kept in this browser. Reload once you're online to check the whole box. Source: review (the cache-only state is accepted until reload, so recovery is one tap). Verified: a new Pack page test failed first and passes.

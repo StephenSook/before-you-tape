@@ -39,6 +39,18 @@ describe("boxChanges", () => {
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
+  // Two tabs writing in the same millisecond must still change the value, or the second fires no storage event.
+  it("writes a new value each time, even from two tabs in the same millisecond", () => {
+    vi.stubGlobal("BroadcastChannel", undefined);
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const key = "byt.boxChanged.box-1";
+    boxChanges("box-1", localStorage).announce();
+    const first = localStorage.getItem(key);
+    boxChanges("box-1", localStorage).announce();
+    expect(localStorage.getItem(key)).not.toBe(first);
+    vi.restoreAllMocks();
+  });
+
   it("never throws when storage is blocked", () => {
     vi.stubGlobal("BroadcastChannel", undefined);
     const blocked = { setItem: () => { throw new Error("blocked"); } } as unknown as Storage;
