@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The line on what the saved box list holds (the About and What ran where pages) and the web privacy page now name the Wh and lithium-grams figures an item's label names, which rule edition revision 7 keeps with each item as numbers; neither said so. A new test reads the privacy page for it. Source: the live-site privacy audit. Verified: the page tests and the new privacy page test failed first, full gate.
+
 - New shared vectors, tests/vectors/editionChoice.json, set out which rule edition an app uses for a Remote Config pin and whether it says so, so the web, iPhone and Android edition choices cannot drift: no pin, the built-in id with its hash or another hash, a newer, equal, older or revision-less pin, a pin naming the edition in use, a missing document, a failed fetch, a wrong hash, a document with another id, an unreadable one, and a newer edition already in use with an older, newer or failed pin. Revisions are offsets from the built-in edition's, and each case says whether the document is fetched. A web test runs them against chooseEdition. Source: the revision 7 phone pin check. Verified: the test passes on all 16 cases, and a planted wrong expectation failed it, naming that case.
 
 - A pinned rule edition older than the web build's own now says nothing: the web app keeps its built-in edition, which is the usual state while the pin serves phone builds made before it, instead of showing "The pinned rule edition is older than this build's. Using the built-in edition.", which read like an error on the live page. A pin older than a newer edition already in use still says it is kept. Source: the revision 7 live check. Verified: the edition source test failed first, full gate.
