@@ -15,6 +15,7 @@ const span = (w: NonNullable<Measured["window"]>) =>
 function OurTest({ e }: { e: EvalSummary }) {
   const onDevice = e.readOnDevice === e.checks ? `All ${e.checks} checks were` : `${e.readOnDevice} of ${e.checks} checks were`;
   const looks = `${e.secondLookItems} ${e.secondLookItems === 1 ? "item" : "items"} also got a second look in the cloud`;
+  const w = e.withoutRuleChanges;
   const hazards = e.hazardsCalledOk.k === 0
     ? `no hazard was called OK to pack (0 of ${e.hazardsCalledOk.n})`
     : `${e.hazardsCalledOk.k} of ${e.hazardsCalledOk.n} hazards were called OK to pack`;
@@ -28,6 +29,10 @@ function OurTest({ e }: { e: EvalSummary }) {
         <summary>How our test was run</summary>
         <ul>
           <li>Agreement with our draft labels: {e.agreement.k} of {e.agreement.n} checks. No second person has checked the labels, so this is not accuracy.</li>
+          <li>
+            {e.items - w.items} of the {e.items} items prompted rule changes; without them, {w.agreement.k} of {w.agreement.n} checks
+            agree and {w.hazardsCalledOk.k} of {w.hazardsCalledOk.n} hazards were called OK.
+          </li>
           <li>Check this: {e.checkThis.k} of {e.checkThis.n} checks</li>
           <li>Time to a verdict: median {seconds(e.p50Ms)}, 90th percentile {seconds(e.p90Ms)}, second look included</li>
           <li>Computer: {e.machine}, Chrome {e.chrome}</li>
