@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { canonicalJson, parseEdition, sha256Hex } from "../src/engine/edition";
+import { pinRefusal } from "./pin-guard";
 
 const PROJECT = "before-you-tape-2026";
 
@@ -26,9 +27,15 @@ export function firestoreFields(d: EditionDocument): Record<string, { stringValu
 }
 
 // With --dry-run it prints the document's id, hash and size and writes nothing, so it needs no token.
-export async function publishEdition(o: { args: readonly string[]; token: string | undefined; raw: unknown; fetch: typeof fetch; log: (line: string) => void }): Promise<void> {
+export async function publishEdition(o: {
+  args: readonly string[]; token: string | undefined; raw: unknown; fetch: typeof fetch; log: (line: string) => void; liveFacts?: ReadonlySet<string>;
+}): Promise<void> {
   const d = await editionDocument(o.raw);
   const dry = o.args.includes("--dry-run");
+  // An edition a live app build would refuse is never written for a pin; a dry run still prints it, for the record.
+  const refusal = pinRefusal(o.raw, o.liveFacts);
+  if (refusal && !dry) throw new Error(`Refused: ruleEditions/${d.id} cannot be pinned: ${refusal}`);
+  if (refusal) o.log(`ruleEditions/${d.id} cannot be pinned: ${refusal}`);
   const token = o.token?.trim();
   if (!dry && !token) throw new Error("ACCESS_TOKEN is not set");
   if (dry) {

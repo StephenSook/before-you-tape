@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import bundled from "../rules/edition.json";
 import { chooseEdition } from "../src/data/editionSource";
 import { canonicalJson, parseEdition, sha256Hex } from "../src/engine/edition";
+import live from "../rules/live-engines.json";
 import { editionDocument, firestoreFields, publishEdition } from "./publish-edition";
+
+// A live-engine list that knows every fact this build's edition reads, to test the write path itself.
+const allFacts = new Set([...live.facts, "battery.numbersFrom"]);
 
 describe("editionDocument", () => {
   it("names the document by the edition id and holds its canonical JSON and SHA-256", async () => {
@@ -55,7 +59,7 @@ describe("publishEdition", () => {
 
   it("writes the document once, at ruleEditions/{id}, with the operator's token", async () => {
     const r = recorder();
-    await publishEdition({ args: [], token: "t0ken", raw: bundled, fetch: r.fetchFake, log: r.log });
+    await publishEdition({ args: [], token: "t0ken", raw: bundled, fetch: r.fetchFake, log: r.log, liveFacts: allFacts });
     expect(r.calls).toHaveLength(1);
     expect(r.calls[0]?.url).toBe(`https://firestore.googleapis.com/v1/projects/before-you-tape-2026/databases/(default)/documents/ruleEditions/${id}`);
     expect(r.calls[0]?.init?.method).toBe("PATCH");
@@ -64,9 +68,18 @@ describe("publishEdition", () => {
     expect(r.lines).toContain(`published ruleEditions/${id}`);
   });
 
+  it("refuses to write an edition a live app build would refuse, and says so in a dry run", async () => {
+    const r = recorder();
+    await expect(publishEdition({ args: [], token: "t0ken", raw: bundled, fetch: r.fetchFake, log: r.log })).rejects.toThrow(/battery\.numbersFrom/);
+    expect(r.calls).toHaveLength(0);
+    const dry = recorder();
+    await publishEdition({ args: ["--dry-run"], token: undefined, raw: bundled, fetch: dry.fetchFake, log: dry.log });
+    expect(dry.lines.join("\n")).toMatch(/cannot be pinned: .*battery\.numbersFrom/);
+  });
+
   it("refuses a real write with no token", async () => {
     const r = recorder();
-    await expect(publishEdition({ args: [], token: "", raw: bundled, fetch: r.fetchFake, log: r.log })).rejects.toThrow(/ACCESS_TOKEN/);
+    await expect(publishEdition({ args: [], token: "", raw: bundled, fetch: r.fetchFake, log: r.log, liveFacts: allFacts })).rejects.toThrow(/ACCESS_TOKEN/);
     expect(r.calls).toHaveLength(0);
   });
 });
