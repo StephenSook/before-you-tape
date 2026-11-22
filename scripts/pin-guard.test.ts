@@ -43,20 +43,24 @@ describe("pin guard", () => {
     expect(() => checkTemplatePin(template(bundled.editionId, "0".repeat(64)), bundled, sha, known)).toThrow(/rules_edition_sha256/);
   });
 
-  it("checks a pin in a conditional value or a parameter group too, since clients read both", async () => {
+  it("refuses a pin in a conditional value or a parameter group: clients pick each key's value on its own", async () => {
     const sha = await sha256Hex(canonicalJson(bundled));
     const conditional = { parameters: {
       rules_edition_id: { defaultValue: { value: "" }, conditionalValues: { phones: { value: bundled.editionId } } },
       rules_edition_sha256: { defaultValue: { value: "" }, conditionalValues: { phones: { value: sha } } } } };
-    expect(() => checkTemplatePin(conditional, bundled, sha)).toThrow(/battery\.numbersFrom/);
+    expect(() => checkTemplatePin(conditional, bundled, sha)).toThrow(/top-level default/);
     const grouped = { parameters: {}, parameterGroups: { pins: { parameters: {
       rules_edition_id: { defaultValue: { value: bundled.editionId } }, rules_edition_sha256: { defaultValue: { value: sha } } } } } };
-    expect(() => checkTemplatePin(grouped, bundled, sha)).toThrow(/battery\.numbersFrom/);
+    expect(() => checkTemplatePin(grouped, bundled, sha)).toThrow(/top-level default/);
     const known = new Set([...live.facts, "battery.numbersFrom"]);
-    expect(() => checkTemplatePin(conditional, bundled, sha, known)).not.toThrow();
+    // Refused even for an edition every live build reads: a client in two conditions could get the id from one and
+    // the hash from the other.
+    expect(() => checkTemplatePin(conditional, bundled, sha, known)).toThrow(/top-level default/);
+    const plain = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } }, rules_edition_sha256: { defaultValue: { value: sha } } } };
+    expect(() => checkTemplatePin(plain, bundled, sha, known)).not.toThrow();
     const wrongHash = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } },
       rules_edition_sha256: { defaultValue: { value: sha }, conditionalValues: { phones: { value: "0".repeat(64) } } } } };
-    expect(() => checkTemplatePin(wrongHash, bundled, sha, known)).toThrow(/rules_edition_sha256/);
+    expect(() => checkTemplatePin(wrongHash, bundled, sha, known)).toThrow(/top-level default/);
   });
 
   it("treats a pin as unchanged only when every value sits where it does live, and refuses a pin with empty values", async () => {
@@ -66,11 +70,11 @@ describe("pin guard", () => {
       rules_edition_sha256: { defaultValue: { value: "" }, conditionalValues: { [cond]: { value: hash } } } } });
     // The same old id and hash moved to another condition is a new pin, and an old edition is refused.
     expect(() => checkPublishPin(at("tablets", "byt-08f3b8c7ff31", "a".repeat(64)), at("phones", "byt-08f3b8c7ff31", "a".repeat(64)), {}, bundled, sha))
-      .toThrow(/rules\/edition\.json/);
+      .toThrow(/top-level default/);
     // A pin naming this edition must give its hash everywhere: an empty hash for one condition is refused.
     const known = new Set([...live.facts, "battery.numbersFrom"]);
     const gap = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } },
       rules_edition_sha256: { defaultValue: { value: sha }, conditionalValues: { phones: { value: "" } } } } };
-    expect(() => checkTemplatePin(gap, bundled, sha, known)).toThrow(/rules_edition_sha256/);
+    expect(() => checkTemplatePin(gap, bundled, sha, known)).toThrow(/top-level default/);
   });
 });

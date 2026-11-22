@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The pin guard now takes a pin only as the two keys' top-level default values and refuses any conditional or grouped pin value, whatever edition it names: Remote Config gives a client each key's value on its own, so a client in two conditions could get the id from one and an empty hash from the other. The production checklist says so. The live kill_cloud dry run with --keep-live-pin still validates with kill_cloud the only change. Source: second-model review of revision 7 (round 4). Verified: the guard tests failed first, full gate.
+
 - A weight on a label is now skipped as a lithium-grams figure unless it says lithium or metal: "DEVICE WEIGHT: 80g" no longer holds a coin cell whose sender typed its 3 V and 0.1 g, while "LITHIUM METAL WEIGHT: 1.2g" still counts as the lithium content. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 4). Verified: the vector failed first, full gate.
 
 - A full list of label figures now keeps the smallest along with the 7 largest, so a read that disagrees with a small figure the label names (98 Wh read twice under a label also saying 40 Wh) still holds; a number agrees with every figure exactly when it agrees with the smallest and the largest, so the figures left out never change a verdict. Source: second-model review of revision 7 (round 4). Verified: the store test failed first, full gate.

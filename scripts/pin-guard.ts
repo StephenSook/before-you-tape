@@ -58,33 +58,21 @@ const placesOf = (t: PinTemplate, key: string): Array<[string, string]> => {
       ...Object.entries(record(p.conditionalValues)).map(([c, v]) => [`${where} ${c}`, text(record(v).value)] as [string, string])];
   }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 };
-// The id and hash a client sees, for the default and for each condition either key names, at the top and in each
-// group: a condition's own value where it has one, else the default (each key on its own).
-const pairsOf = (t: PinTemplate): Array<{ where: string; id: string; sha: string }> => {
-  const groups = Object.entries(record(t.parameterGroups)).map(([g, v]) => [`group ${g}`, record(record(v).parameters)] as const);
-  return ([["top", record(t.parameters)] as const, ...groups]).flatMap(([where, ps]) => {
-    if (!("rules_edition_id" in ps) && !("rules_edition_sha256" in ps)) return [];
-    const id = record(ps.rules_edition_id);
-    const sha = record(ps.rules_edition_sha256);
-    const conds = new Set([...Object.keys(record(id.conditionalValues)), ...Object.keys(record(sha.conditionalValues))]);
-    const seen = (p: Record<string, unknown>, c?: string) => {
-      const own = c === undefined ? undefined : record(p.conditionalValues)[c];
-      return text(record(own === undefined ? p.defaultValue : own).value);
-    };
-    return [{ where: `${where} default`, id: seen(id), sha: seen(sha) },
-      ...[...conds].sort().map((c) => ({ where: `${where} ${c}`, id: seen(id, c), sha: seen(sha, c) }))];
-  });
-};
+// A pin is set only as the two keys' top-level default values. Remote Config gives a client each key's value on its
+// own (the first matching condition for that key), so a conditional or grouped pin could hand one client the id from
+// one condition and the hash from another; such a template is refused, whatever edition it names.
 export function checkTemplatePin(t: PinTemplate, local: { editionId: string }, localSha: string, liveFacts: ReadonlySet<string> = LIVE_FACTS): void {
-  // Wherever a client sees an id, it must be this checkout's edition, with its hash beside it.
-  const pinned = pairsOf(t).filter((p) => p.id !== "");
-  if (pinned.length === 0) return;
-  for (const p of pinned) {
-    if (p.id !== local.editionId) throw new Error(`rules_edition_id ${p.id} (${p.where}) is not the edition in rules/edition.json (${local.editionId}); check out the commit that built it, so its facts can be checked`);
-    if (p.sha !== localSha) throw new Error(`rules_edition_sha256 ${p.sha || "(empty)"} (${p.where}) is not the hash of the edition in rules/edition.json (${localSha})`);
+  const elsewhere = [...placesOf(t, "rules_edition_id"), ...placesOf(t, "rules_edition_sha256")].filter(([where]) => where !== "top default");
+  if (elsewhere.length > 0) {
+    throw new Error(`rules_edition_id and rules_edition_sha256 may only be set as top-level default values, not under ${elsewhere.map(([w]) => w).join(", ")}`);
   }
+  const id = text(record(record(record(t.parameters).rules_edition_id).defaultValue).value);
+  if (id === "") return;
+  const sha = text(record(record(record(t.parameters).rules_edition_sha256).defaultValue).value);
+  if (id !== local.editionId) throw new Error(`rules_edition_id ${id} is not the edition in rules/edition.json (${local.editionId}); check out the commit that built it, so its facts can be checked`);
+  if (sha !== localSha) throw new Error(`rules_edition_sha256 ${sha || "(empty)"} is not the hash of the edition in rules/edition.json (${localSha})`);
   const why = pinRefusal(local, liveFacts);
-  if (why) throw new Error(`Refused: rules_edition_id ${local.editionId} cannot be pinned: ${why}`);
+  if (why) throw new Error(`Refused: rules_edition_id ${id} cannot be pinned: ${why}`);
 }
 
 // Before a publish: a pin left exactly as it is live is no new pin and is not checked, so a kill_cloud flip from a
