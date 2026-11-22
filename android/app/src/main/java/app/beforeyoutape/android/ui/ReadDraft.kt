@@ -18,6 +18,8 @@ data class ReadDraft(
     val numbers: Map<String, String>,
     val flags: Map<String, Boolean>,
     val retailBox: RetailBoxWire,
+    /** The battery number fields the person typed into, changed or not. */
+    val typed: Set<String> = emptySet(),
 )
 
 /** The web form's rules (src/ui/ReadFields.tsx, AddByHand.tsx, FixReading.tsx). */
@@ -101,14 +103,17 @@ object ReadDrafts {
         )
     }
 
-    /** Only the fields the person changed, as overrides on top of the read. */
+    /**
+     * Only the fields the person changed, as overrides on top of the read. A battery number they typed into is saved
+     * even when it is the same as the read, if it is above 0: they read it off the label (rule edition 7).
+     */
     fun changed(read: ItemReadWire, d: ReadDraft): Map<String, JsonElement> = buildMap {
         if (d.itemName != read.itemName) put("itemName", JsonPrimitive(d.itemName))
         if (d.category != null && d.category != read.category) put("category", JsonPrimitive(d.category.name))
         if (d.labelText != read.labelText) put("labelText", JsonPrimitive(d.labelText))
         for ((f, _) in ReadCopy.NUMBERS) {
             val n = parseNumber(d.numbers[f].orEmpty())
-            if (n != null && n != number(read, f)) put(f, JsonPrimitive(n))
+            if (n != null && (n != number(read, f) || (f in d.typed && n > 0))) put(f, JsonPrimitive(n))
         }
         for ((f, _) in ReadCopy.FLAGS) if ((d.flags[f] ?: false) != flag(read, f)) put(f, JsonPrimitive(d.flags[f] ?: false))
         if (d.retailBox != read.retailBox) put("retailBox", JsonPrimitive(d.retailBox.name))

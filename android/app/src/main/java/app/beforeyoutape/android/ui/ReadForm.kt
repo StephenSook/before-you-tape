@@ -71,7 +71,7 @@ fun ReadForm(
         if (ReadDrafts.showsBatteryNumbers(draft, batteryLabel)) for ((f, label) in ReadCopy.NUMBERS) {
             val text = draft.numbers[f].orEmpty()
             OutlinedTextField(
-                text, { draft = draft.copy(numbers = draft.numbers + (f to it)) }, label = { Text(label) }, singleLine = true,
+                text, { draft = draft.copy(numbers = draft.numbers + (f to it), typed = draft.typed + f) }, label = { Text(label) }, singleLine = true,
                 isError = ReadDrafts.parseNumber(text) == null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(),
             )

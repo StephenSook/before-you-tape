@@ -107,6 +107,34 @@ object BoxLogic {
     fun withEngineError(s: BoxState, name: String): BoxState = s.copy(result = null, engineError = name)
 
     /**
+     * [patch] with the numbers that come with a typed deciding number, as the sender's own (rule edition 7): a typed
+     * Wh above 0 brings the volts and capacity (mAh) shown, typed lithium grams above 0 bring the volts shown, each only
+     * when it is above 0 and not typed itself. Never Wh with grams or grams with Wh. Nothing comes when the patch sets
+     * any battery number to 0. (This app runs no second look, so no item carries a numbers dispute.)
+     */
+    fun withCompanions(input: BoxItemInput, patch: Map<String, JsonElement>): Map<String, JsonElement> {
+        fun typed(f: String) = (patch[f] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { !it.isString }?.content?.toDoubleOrNull()
+        if (BATTERY_NUMBERS.any { typed(it) == 0.0 }) return patch
+        val bring = buildList {
+            if ((typed("wattHours") ?: 0.0) > 0) addAll(listOf("volts", "milliampHours"))
+            if ((typed("lithiumGrams") ?: 0.0) > 0) add("volts")
+        }.distinct().filter { it !in patch }
+        if (bring.isEmpty()) return patch
+        val shown = effectiveRead(input)
+        return patch + bring.mapNotNull { f -> batteryNumber(shown, f).takeIf { it > 0 }?.let { f to kotlinx.serialization.json.JsonPrimitive(it) } }
+    }
+
+    private val BATTERY_NUMBERS = listOf("volts", "milliampHours", "wattHours", "lithiumGrams")
+
+    private fun batteryNumber(r: ItemReadWire, f: String): Double = when (f) {
+        "volts" -> r.volts
+        "milliampHours" -> r.milliampHours
+        "wattHours" -> r.wattHours
+        "lithiumGrams" -> r.lithiumGrams
+        else -> error("not a battery number: $f")
+    }
+
+    /**
      * The read with the sender's fixes applied, as the form shows it. An override the read type
      * cannot take (typed text in a number field) is left out here; the engine still judges it.
      */
