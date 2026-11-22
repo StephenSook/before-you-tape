@@ -66,10 +66,11 @@ export function numbersFromOf(read: ItemRead, typed: ReadonlySet<BatteryNumberFi
 }
 
 // Wh and lithium grams a label names, such as "185Wh", "15,4 Wh", "1.0g" or ".5g". Grams take a lower-case g, so
-// "5G" (a phone network) is no figure, and a weight ("NET WT 80g", "Weight: 80 g") is no lithium figure.
+// "5G" (a phone network) is no figure, and a net or gross weight ("NET WT 80g", "NET WT (80g)", "N.W. 80g") is no
+// lithium figure. Any other weight counts: "LITHIUM METAL WEIGHT: 1.2g" is the lithium content.
 const WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
 const GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
-const A_WEIGHT = /(?:\bwt|\bweight|\bn\.?\s?w)\.?\s*:?\s*$/i;
+const A_WEIGHT = /(?:\b(?:net|gross)\s*(?:wt|weight)|\b[ng]\.\s?w)\.?\s*:?\s*\(?\s*$/i;
 const figures = (text: string, re: RegExp, skip?: RegExp) => [...text.matchAll(re)]
   .filter((m) => !skip?.test(text.slice(Math.max(0, m.index - 16), m.index)))
   .map((m) => Number(m[1]!.replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);

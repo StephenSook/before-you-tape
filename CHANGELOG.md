@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Only a net or gross weight ("NET WT 80g", "NET WT (80g)", "N.W. 80g") is now skipped as a lithium-grams figure; any other weight counts, so "LITHIUM METAL WEIGHT: 1.2g" holds a coin cell two reads gave as 0.1 g. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vector failed first, full gate.
+
 - A label figure with no number to check it against now holds: a Wh figure is checked against volts times capacity when no Wh is printed (a label saying 185Wh beside a read of 3.7 V and 5000 mAh holds), and with neither it holds; a grams figure holds when the sender cleared the grams or the label says lithium metal (clearing a read's 0.1 g under a label naming 1.2 g of lithium no longer turns the cell lithium-ion and OK). The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vectors failed first, full gate.
 
 - A label figure above the number in use now holds beyond rounding (half a percent), never within the 3 percent tolerance, for read and typed numbers alike: typing 99 Wh beside a label's 101 Wh pack figure no longer reads OK under the 100 Wh limit. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vector failed first, full gate.

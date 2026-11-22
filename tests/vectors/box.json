@@ -514,5 +514,21 @@
       "read": { "category": "other_electronics", "labelText": "LI-ION 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 0, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "station": "check" }, "expectRules": { "station": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_lithium_metal_weight_is_a_lithium_figure", "code": "CA", "today": "2026-11-20",
+    "source": "Two reads agree on 0.1 g but the label says LITHIUM METAL WEIGHT: 1.2g: that weight is the lithium content and holds",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look",
+      "read": { "category": "battery_toy", "labelText": "CR2 3V LITHIUM METAL WEIGHT: 1.2g", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "toy": "check" }, "expectRules": { "toy": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_net_weight_in_brackets_is_not_a_lithium_figure", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed the coin cell's 0.1 g; the label's NET WT (80g) is a weight, not lithium",
+    "items": [{ "itemId": "cell", "identityConfirmedBy": "sender", "overrides": { "volts": 3, "lithiumGrams": 0.1 },
+      "read": { "category": "battery_toy", "labelText": "CR2032 3V 0.1g / NET WT (80g)", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": {}, "notRules": { "cell": ["DATA-LABEL-NUMBERS"] }
   }
 ]
