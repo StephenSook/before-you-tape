@@ -64,7 +64,8 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
 
   // The box's items, each with its disputes when they were written together (else reopened). `read` is getDocs, or
   // getDocsFromCache for the copy this browser holds.
-  const readItems = async (boxId: string, d: Partial<BoxState>, read: typeof getDocs = getDocs): Promise<Partial<BoxState>> => {
+  // fromCache: either query was answered by this browser's cache rather than the server.
+  const readItems = async (boxId: string, d: Partial<BoxState>, read: typeof getDocs = getDocs): Promise<{ box: Partial<BoxState>; fromCache: boolean }> => {
     const readBoth = () => Promise.all([read(collection(db, "boxes", boxId, "items")), read(collection(db, "boxes", boxId, "disputes"))]);
     let [itemDocs, disputeDocs] = await readBoth();
     // The two queries are not one snapshot: a write between them can pair an item with older disputes. Read
@@ -72,7 +73,8 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     if (mismatched(itemDocs, disputeDocs)) [itemDocs, disputeDocs] = await readBoth();
     const disputes = new Map(disputeDocs.docs.map((x) => [x.id, unexpired(x.data()) as Disputes & { itemRev?: string }]));
     const items = itemDocs.docs.map((x) => paired(unexpired(x.data()) as BoxItem, disputes.get(x.id)));
-    return { boxId, destinationCode: d.destinationCode, sources: d.sources, lastRecheckMs: d.lastRecheckMs ?? null, items };
+    const fromCache = itemDocs.metadata.fromCache || disputeDocs.metadata.fromCache;
+    return { box: { boxId, destinationCode: d.destinationCode, sources: d.sources, lastRecheckMs: d.lastRecheckMs ?? null, items }, fromCache };
   };
 
   return {
@@ -82,7 +84,9 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
         const fromServer = !snap.metadata.fromCache;
         if (!snap.exists()) return { status: "missing", fromServer };
         expiries.set(boxId, (snap.data().expiresAt as Timestamp | undefined) ?? null);
-        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>), fromServer };
+        // From the server only when the box and both of its queries were: the connection can drop between them.
+        const read = await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>);
+        return { status: "found", box: read.box, fromServer: fromServer && !read.fromCache };
       } catch (e) {
         // Not a member, offline with nothing cached, or a query that failed: never an empty box.
         return { status: "failed", error: message(e) };
@@ -94,7 +98,7 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
       try {
         const snap = await getDocFromCache(doc(db, "boxes", boxId));
         if (!snap.exists()) return { status: "missing" };
-        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>, getDocsFromCache) };
+        return { status: "found", box: (await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>, getDocsFromCache)).box };
       } catch (e) {
         return { status: "failed", error: message(e) };
       }
