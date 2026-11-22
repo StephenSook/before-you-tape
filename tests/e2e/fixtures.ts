@@ -19,6 +19,12 @@ export function appCheckDebugToken(): string | null {
   return process.env.APPCHECK_DEBUG_TOKEN?.trim() || null;
 }
 
+// The token when one is set, and none otherwise, never failing: for the one spec the deploy gate and the daily probe
+// also run on the live site with no token (starts.spec.ts).
+export function optionalAppCheckToken(): string | null {
+  return process.env.APPCHECK_DEBUG_TOKEN_CI?.trim() || process.env.APPCHECK_DEBUG_TOKEN?.trim() || null;
+}
+
 // The only origins that get the App Check debug token: the deployed app and the local preview and dev server.
 export const TOKEN_ORIGINS = ["https://before-you-tape-2026.web.app", "https://before-you-tape-2026.firebaseapp.com", "http://localhost:4173", "http://localhost:5173"];
 

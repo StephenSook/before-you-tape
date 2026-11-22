@@ -5,6 +5,9 @@ import { extname, join } from "node:path";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { startBuildServer, type BuildServer } from "./swServer";
 
+// The one named exception to the token rule (scripts/e2e-live-opt-in.ts): this spec serves the build from its own
+// server on a random port, where the debug token is never given (TOKEN_ORIGINS in ./fixtures), so App Check fails
+// there and the live database counts the app's few reads as refused. Expected, and labelled in docs/SECURITY.md.
 // A deploy reaching a browser that already has the worker. "Old" is the shipped build. "Next" is the same build as
 // the next deploy would differ from it: a changed page and worker, a new version.json, and one lazily loaded chunk
 // under a new name, so its old name no longer exists on the server. A tab never reloads without its own tap, and a

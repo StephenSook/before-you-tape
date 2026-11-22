@@ -5,6 +5,9 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { startBuildServer, type BuildServer } from "./swServer";
 
+// The one named exception to the token rule (scripts/e2e-live-opt-in.ts): this spec serves the build from its own
+// server on a random port, where the debug token is never given (TOKEN_ORIGINS in ./fixtures), so App Check fails
+// there and the live database counts the app's few reads as refused. Expected, and labelled in docs/SECURITY.md.
 // The kill switch: a build made with BYT_SW_KILL=1 ships a worker that unregisters itself and deletes its caches.
 // Deployed over a site whose worker is installed, it leaves the browser with no worker and no cached app, so the
 // next visit is served by the network alone. The deploy reads BYT_SW_KILL from the repository variable.

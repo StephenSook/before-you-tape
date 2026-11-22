@@ -1,6 +1,7 @@
 // /judge in a real browser: the sample box shows, a country switch re-checks it, and the page makes no
-// request to a Google API: no sign-in, no model call, no database. Plain Playwright, so CI runs it.
-import { expect, test } from "@playwright/test";
+// request to a Google API: no sign-in, no model call, no database. It carries the App Check debug token
+// (./fixtures) like every local run; /judge itself never uses it.
+import { expect, test } from "./fixtures";
 
 test("the sample box works with no sign-in, camera or model", async ({ page }) => {
   const googleApis: string[] = [];
