@@ -295,8 +295,11 @@ final class BoxStore {
     @discardableResult
     func addManual(_ read: JSONValue) -> String {
         let itemId = newId()
+        // A typed item's numbers are judged on the Wh rules, so its label's figures must outlast the label text,
+        // which is not saved. A typed label is never clipped.
         items.append(BoxItem(itemId: itemId, read: read, identityConfirmedBy: "sender", labelTags: tags(read["labelText"]),
-                             tagsEdition: tagsEdition(read["labelText"]), readSource: "manual", readMs: 0))
+                             tagsEdition: tagsEdition(read["labelText"]), readSource: "manual", readMs: 0,
+                             labelFigures: figures([Self.text(read["labelText"]) ?? ""], kept: nil)))
         commit()
         return itemId
     }

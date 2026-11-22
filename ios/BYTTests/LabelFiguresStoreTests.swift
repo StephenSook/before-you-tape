@@ -66,6 +66,20 @@ import Testing
         #expect(ruleIds(try reloaded(p), id).contains("DATA-LABEL-NUMBERS"))
     }
 
+    /// An item typed by hand keeps its label's figures too: its typed numbers are judged on the Wh rules, so
+    /// after a reload only the figures can still hold a Wh below the label's.
+    @Test func aTypedItemsLabelFiguresStillHoldItAfterAReload() throws {
+        let p = MemoryBoxPersistence()
+        let s = try t.store(p, engine: engine)
+        s.setDestination("CA")
+        let id = s.addManual(Self.with(Self.phone, ["labelText": .string("3.85V 4000mAh PACK 154Wh")]))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        #expect(s.result?.items[id]?.level == "check" && ruleIds(s, id).contains("DATA-LABEL-NUMBERS"))
+        let again = try reloaded(p)
+        #expect(again.result?.items[id]?.level == "check" && ruleIds(again, id).contains("DATA-LABEL-NUMBERS"))
+    }
+
     @Test func aLabelTheSenderTypesAddsItsFiguresAndTheyStayAfterAReload() throws {
         let p = MemoryBoxPersistence()
         let s = try t.store(p, engine: engine)

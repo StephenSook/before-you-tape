@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): an item typed by hand keeps its label's figures after a relaunch
+- What: a hand-typed item's numbers are judged on the Wh rules (numbersFrom "typed"), so after a relaunch,
+  with its label text gone, nothing held a Wh below the label's figure: a typed 15.4 Wh under a label
+  saying 154Wh went from Check this to OK. A hand-typed item now keeps its label's figures, decided by the
+  engine, like a photo read.
+- Source: second-model review of this change set (the web's manual entry leaves them out too; reported).
+- Verified: the new reload test failed first (OK after the reload) and passes; LabelFiguresStoreTests,
+  TypedNumbersStoreTests and BoxStoreTests pass, 43 of 43.
+
 ### feat(ios): the card says when a second model agreed, only while the rules count it
 - What: an item a matching cloud second look stands behind now says so on its card, in the web's
   words: "A second model in the cloud read the same, so this counts as checked. Use Fix this reading
