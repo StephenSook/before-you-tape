@@ -14,7 +14,10 @@ describe("RanPage", () => {
     expect(within(row(/Hold an item still/)).getByText(/never the cloud/)).toBeInTheDocument();
     expect(within(row(/Check now/)).getByText(/only if you allowed cloud checks/)).toBeInTheDocument();
     expect(within(row(/Change the country/)).getByText(/0 model calls/)).toBeInTheDocument();
-    expect(within(row(/Check it in the cloud/)).getByText(/only when you press it/)).toBeInTheDocument();
+    // After a photo read on this device, the second look runs by itself when the rules ask and cloud checks are on.
+    expect(within(row(/second look/)).getByText(/by itself/)).toBeInTheDocument();
+    expect(within(row(/second look/)).queryByText(/only when you press it/)).toBeNull();
+    expect(within(row(/Fix this reading/)).getByText(/Nothing goes to a model/)).toBeInTheDocument();
   });
 
   it("never says nothing leaves when the box list is saved, and points at what it holds", () => {

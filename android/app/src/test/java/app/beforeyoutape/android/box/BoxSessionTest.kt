@@ -43,6 +43,14 @@ class BoxSessionTest {
         assertEquals(900.0, item.readMs, 0.0)
     }
 
+    /** The figures of the whole label are kept with the item, since its label text is clipped and never synced. */
+    @Test fun aReadIsAddedWithItsLabelFigures() = runTest {
+        val box = box()
+        val figures = app.beforeyoutape.engine.LabelFigures(wh = listOf(154.0, 15.4), grams = emptyList())
+        session(box, ReadOutcome.Read(read, Source.IN_CLOUD, ReadRoute.CLOUD_ONLY, 900, emptyList(), figures)).check(crop)
+        assertEquals(figures, box.state.items.single().input.labelFigures)
+    }
+
     @Test fun aBlockedReadAddsNothingAndSaysWhy() = runTest {
         val box = box()
         val message = session(box, ReadOutcome.Blocked(BlockReason.OFFLINE)).check(crop)

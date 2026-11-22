@@ -121,6 +121,25 @@ class BoxDocsContractTest {
         assertEquals(null, BoxDocs.itemFromDoc("r", BoxDocs.itemToDoc(photo)).input.numbersFrom)
     }
 
+    /**
+     * The label's figures are synced, since the synced read carries no label text, and an item document written
+     * before they were kept (as android-judge-3 writes it) still loads, with none.
+     */
+    @Test fun anItemsLabelFiguresAreSyncedAndAnOlderDocumentStillLoads() {
+        val read = ItemReadWire("Power bank", ItemCategoryWire.power_bank, "Li-ion 3.85V 4000mAh 15.4Wh 154Wh", 3.85, 4000.0, 15.4, 0.0,
+            true, false, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
+        val figures = app.beforeyoutape.engine.LabelFigures(wh = listOf(154.0, 15.4), grams = emptyList())
+        val item = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "r", figures).items.single()
+        val doc = BoxDocs.itemToDoc(item)
+        assertEquals(mapOf("wh" to listOf(154.0, 15.4), "grams" to emptyList<Double>()), doc["labelFigures"])
+        val back = BoxDocs.itemFromDoc("r", doc).input
+        assertEquals("", back.read.labelText)
+        assertEquals(figures, back.labelFigures)
+        val older = doc - "labelFigures"
+        assertEquals(null, BoxDocs.itemFromDoc("r", older).input.labelFigures)
+        assertTrue("labelFigures" !in BoxDocs.itemToDoc(BoxDocs.itemFromDoc("r", older)))
+    }
+
     @Test fun anItemDocumentNeverCarriesLabelText() {
         val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
             false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)

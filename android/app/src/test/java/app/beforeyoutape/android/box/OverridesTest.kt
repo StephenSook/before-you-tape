@@ -64,6 +64,28 @@ class OverridesTest {
         assertEquals(listOf("liquid"), c.state.items.single().input.labelTags)
     }
 
+    /** Typed label words bring their figures, merged with the item's; a fix that types no label keeps the figures. */
+    @Test fun aTypedLabelSetsTheFiguresAndOtherFixesKeepThem() {
+        val e = Recorder(result)
+        val c = withBank(e)
+        val figures = app.beforeyoutape.engine.LabelFigures(wh = listOf(18.5), grams = emptyList())
+        c.override("b", mapOf("labelText" to JsonPrimitive("Li-ion 18.5Wh")), labelTags = listOf("lithium_ion"), labelFigures = figures)
+        assertEquals(figures, c.state.items.single().input.labelFigures)
+        assertEquals(figures, e.seen.last().single().labelFigures)
+        c.override("b", mapOf("volts" to JsonPrimitive(3.7)), labelTags = null)
+        assertEquals(figures, c.state.items.single().input.labelFigures)
+    }
+
+    /** The texts a typed label's figures come from: with none kept yet, the read's own label (an item read before
+     *  figures were kept) comes too, so its figures are not lost. */
+    @Test fun aTypedLabelsFiguresAlsoCoverTheReadLabelWhenNoneAreKept() {
+        val input = withBank(Recorder(result)).state.items.single().input
+        assertEquals(listOf("Li-ion 5000mAh", "Li-ion 18.5Wh"), BoxLogic.figureTexts(input, "Li-ion 18.5Wh"))
+        val kept = input.copy(labelFigures = app.beforeyoutape.engine.LabelFigures(wh = listOf(18.5), grams = emptyList()))
+        assertEquals(listOf("Li-ion 18.5Wh"), BoxLogic.figureTexts(kept, "Li-ion 18.5Wh"))
+        assertEquals(listOf("Li-ion 18.5Wh"), BoxLogic.figureTexts(input.copy(read = input.read.copy(labelText = "")), "Li-ion 18.5Wh"))
+    }
+
     @Test fun aQuantityIsKeptBetweenOneAndNinetyNineAsOnTheWeb() {
         val c = withBank(Recorder(result))
         c.setQuantity("b", 0.0)
