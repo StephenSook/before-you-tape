@@ -38,6 +38,7 @@ class PackScreenTest {
     private var checks = 0
     private lateinit var box: BoxController
     private var state by mutableStateOf(BoxLogic.empty("CA"))
+    private var unreadable by mutableStateOf(false)
 
     // The shared vector three_unknown_phones: three phones whose cell count the engine must ask about.
     private val phone = ItemReadWire("Phone", ItemCategoryWire.phone, "3.85V 4000mAh 15.4Wh", 3.85, 4000.0, 15.4, 0.0,
@@ -52,7 +53,9 @@ class PackScreenTest {
             box.answer(id, "device_condition", "new_sealed")
         }
         state = box.state
-        rule.setContent { PackScreen(state = state, onAnswer = { i: String, q: String, a: String -> box.answer(i, q, a); state = box.state }) }
+        rule.setContent {
+            PackScreen(state = state, onAnswer = { i: String, q: String, a: String -> box.answer(i, q, a); state = box.state }, savedBoxUnreadable = unreadable)
+        }
     }
 
     @After fun tearDown() = host.close()
@@ -84,6 +87,18 @@ class PackScreenTest {
 
     @Test fun theFooterDisclaimsThePostalService() {
         showing(Copy.FOOTER)
+    }
+
+    /** An empty box beside a saved box the phone could not open says so, and is never called empty. */
+    @Test fun anEmptyBoxBesideAnUnreadableSaveIsNotCalledEmpty() {
+        state = BoxLogic.empty("CA")
+        unreadable = true
+        rule.waitForIdle()
+        showing(Copy.SAVED_BOX_UNREADABLE)
+        rule.onNodeWithText(Copy.NO_ITEMS, useUnmergedTree = true).assertDoesNotExist()
+        unreadable = false
+        rule.waitForIdle()
+        showing(Copy.NO_ITEMS)
     }
 
     @Test fun withNoEngineTheRulesNotLoadedLineIsShownAndNoVerdict() {

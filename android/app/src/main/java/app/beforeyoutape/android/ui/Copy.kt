@@ -39,6 +39,7 @@ object Copy {
     const val RULES_NOT_LOADED = "The rules could not be loaded, so nothing is checked yet."
     const val KEPT_ON_PHONE = "Labels are read on this phone only."
     const val NO_ITEMS = "Nothing in the box yet."
+    const val SAVED_BOX_UNREADABLE = "The saved box could not be opened. Add its items again."
     const val CAMERA_OFF = "Camera is off. Add a photo instead."
     const val PHOTO_FAILED = "That photo did not work. Take it again, or add a photo."
     const val HOLD_ZONE = "Hold the item's label inside this frame."
@@ -60,7 +61,8 @@ object Copy {
 
     fun sendingTo(name: String) = "Sending to $name"
 
-    fun seeTheBox(count: Int) = "See the box ($count)"
+    /** The box button; with no [count] (a saved box this phone could not open), no number, as 0 would say empty. */
+    fun seeTheBox(count: Int?) = if (count == null) "See the box" else "See the box ($count)"
 
     fun howMany(n: Int) = "How many: $n"
 
@@ -108,8 +110,8 @@ object Copy {
 
     val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING,
         TYPE_LABEL_WH, TYPE_LABEL_GRAMS, CHECK_THE_NUMBER, RULES_NOT_LOADED,
-        KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
-        sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
+        KEPT_ON_PHONE, NO_ITEMS, SAVED_BOX_UNREADABLE, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
+        sendingTo("Canada"), seeTheBox(2), seeTheBox(null)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud").map { readLine(it, 1234.0) }
 }

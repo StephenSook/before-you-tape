@@ -8,7 +8,6 @@ import app.beforeyoutape.engine.ItemReadWire
 import app.beforeyoutape.engine.RetailBoxWire
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class BoxPersistenceTest {
@@ -30,7 +29,7 @@ class BoxPersistenceTest {
         s = s.copy(items = s.items.map { it.copy(extras = mapOf("cropKey" to null, "secondLook" to mapOf("ms" to 900L, "reason" to "checked again"))) })
         val prefs = MapPrefs()
         BoxPersistence(prefs).save(s)
-        val back = BoxPersistence(prefs).load()!!
+        val back = BoxPersistence(prefs).found()
         // Label text stays on the phone, so it is kept here (never in a synced document).
         assertEquals(s.copy(result = null, engineError = null), back)
     }
@@ -40,7 +39,7 @@ class BoxPersistenceTest {
         val s = one.copy(items = one.items.map { it.copy(readMs = 1450.75) })
         val prefs = MapPrefs()
         BoxPersistence(prefs).save(s)
-        assertEquals(1450.75, BoxPersistence(prefs).load()!!.items.single().readMs, 0.0)
+        assertEquals(1450.75, BoxPersistence(prefs).found().items.single().readMs, 0.0)
     }
 
     /** Which edition made each item's tags stays on the phone; a box saved before it was kept loads with none. */
@@ -51,10 +50,10 @@ class BoxPersistenceTest {
         s = s.copy(items = s.items.zip(listOf("byt-x", "", null)).map { (i, e) -> i.copy(tagsEdition = e) })
         val prefs = MapPrefs()
         BoxPersistence(prefs).save(s)
-        assertEquals(listOf("byt-x", "", null), BoxPersistence(prefs).load()!!.items.map { it.tagsEdition })
+        assertEquals(listOf("byt-x", "", null), BoxPersistence(prefs).found().items.map { it.tagsEdition })
         // A save from before the edition was kept has no such key.
         prefs.values["active_box"] = prefs.values.getValue("active_box").replace(Regex(",?\"tagsEdition\":(\"[^\"]*\"|null)"), "")
-        assertEquals(listOf(null, null, null), BoxPersistence(prefs).load()!!.items.map { it.tagsEdition })
+        assertEquals(listOf(null, null, null), BoxPersistence(prefs).found().items.map { it.tagsEdition })
     }
 
     /** A typed item stays typed on the phone, and a typed item saved before numbersFrom was kept loads as typed. */
@@ -62,10 +61,10 @@ class BoxPersistenceTest {
         val s = BoxLogic.addManual(BoxLogic.empty("CA"), read.copy(evidence = EvidenceWire.item_seen), emptyList(), "t")
         val prefs = MapPrefs()
         BoxPersistence(prefs).save(s)
-        assertEquals("typed", BoxPersistence(prefs).load()!!.items.single().input.numbersFrom)
+        assertEquals("typed", BoxPersistence(prefs).found().items.single().input.numbersFrom)
         prefs.values["active_box"] = prefs.values.getValue("active_box").replace(Regex(",?\"numbersFrom\":\"typed\""), "")
         assertEquals(false, prefs.values.getValue("active_box").contains("numbersFrom"))
-        assertEquals("typed", BoxPersistence(prefs).load()!!.items.single().input.numbersFrom)
+        assertEquals("typed", BoxPersistence(prefs).found().items.single().input.numbersFrom)
     }
 
     /** The label's figures stay with the item on the phone. */
@@ -74,15 +73,54 @@ class BoxPersistenceTest {
         val s = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "f", figures)
         val prefs = MapPrefs()
         BoxPersistence(prefs).save(s)
-        assertEquals(figures, BoxPersistence(prefs).load()!!.items.single().input.labelFigures)
+        assertEquals(figures, BoxPersistence(prefs).found().items.single().input.labelFigures)
     }
 
     @Test fun nothingSavedMeansNoBox() {
-        assertNull(BoxPersistence(MapPrefs()).load())
+        assertEquals(SavedBox.None, BoxPersistence(MapPrefs()).read())
     }
 
-    @Test fun aDamagedSaveStartsAnEmptyBoxInsteadOfCrashing() {
-        val prefs = MapPrefs().apply { values["active_box"] = "{not json" }
-        assertNull(BoxPersistence(prefs).load())
+    /**
+     * A save this build cannot read is not an empty box: it may hold items. Damaged text, a save of another version, and
+     * an item with a field this build does not know (a newer build wrote it) all read as unreadable, never as no box.
+     */
+    @Test fun aSaveThisBuildCannotReadIsNotAnEmptyBox() {
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.ON_DEVICE, 300, "p1"))
+        val good = prefs.values.getValue("active_box")
+        val newer = good.replace("\"input\":{", "\"input\":{\"fromANewerBuild\":1,")
+        assertEquals(true, newer != good)
+        for (text in listOf("{not json", good.replace("\"v\":1", "\"v\":2"), newer)) {
+            prefs.values["active_box"] = text
+            assertEquals(text, SavedBox.Unreadable, BoxPersistence(prefs).read())
+        }
     }
+
+    /** An unreadable save is kept until the first item is added: an empty box never writes over it. */
+    @Test fun anUnreadableSaveIsKeptUntilTheFirstItem() {
+        val prefs = MapPrefs().apply { values["active_box"] = "{not json" }
+        val persistence = BoxPersistence(prefs)
+        assertEquals(SavedBox.Unreadable, persistence.read())
+        assertEquals(true, persistence.holdsUnreadable)
+        persistence.save(BoxLogic.setDestination(BoxLogic.empty("CA"), "PH"))
+        assertEquals("{not json", prefs.values["active_box"])
+        assertEquals(true, persistence.holdsUnreadable)
+        val one = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.ON_DEVICE, 300, "p1")
+        persistence.save(one)
+        assertEquals(false, persistence.holdsUnreadable)
+        assertEquals(listOf("p1"), BoxPersistence(prefs).found().items.map { it.input.itemId })
+        // Once the box holds items, it is known; emptying it again saves the empty box.
+        persistence.save(BoxLogic.remove(one, "p1"))
+        assertEquals(emptyList<String>(), BoxPersistence(prefs).found().items.map { it.input.itemId })
+    }
+
+    @Test fun aReadableSaveHoldsNothing() {
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(BoxLogic.empty("CA"))
+        val persistence = BoxPersistence(prefs)
+        assertEquals(true, persistence.read() is SavedBox.Found)
+        assertEquals(false, persistence.holdsUnreadable)
+    }
+
+    private fun BoxPersistence.found() = (read() as SavedBox.Found).state
 }

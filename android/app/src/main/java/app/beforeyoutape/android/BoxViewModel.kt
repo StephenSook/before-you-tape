@@ -25,6 +25,7 @@ import app.beforeyoutape.android.config.RcStore
 import app.beforeyoutape.android.data.FirebaseSignIn
 import app.beforeyoutape.android.data.BoxPersistence
 import app.beforeyoutape.android.data.LocalStore
+import app.beforeyoutape.android.data.SavedBox
 import app.beforeyoutape.android.data.SharedPrefs
 import app.beforeyoutape.android.engine.EngineAssets
 import app.beforeyoutape.android.engine.PublishedEditions
@@ -144,11 +145,15 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             bundledEdition = loaded?.third
             runningEdition = loaded?.third
             engineLoaded.complete(Unit)
-            // The box from before Android stopped the process, re-checked by the rules.
-            persistence.load()?.let { box.restore(it) }
+            // The box from before Android stopped the process, re-checked by the rules. A save this build cannot read
+            // is kept, and the box is not called empty, until an item is added.
+            (persistence.read() as? SavedBox.Found)?.let { box.restore(it.state) }
             restored = true
             state.update {
-                it.copy(loading = false, destinations = loaded?.second.orEmpty(), box = box.state, message = if (loaded == null) Copy.RULES_NOT_LOADED else null)
+                it.copy(
+                    loading = false, destinations = loaded?.second.orEmpty(), box = box.state, boxUnreadable = boxUnreadable(),
+                    message = if (loaded == null) Copy.RULES_NOT_LOADED else null,
+                )
             }
         }
         refreshModel()
@@ -216,8 +221,11 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
 
     /** Shows the current box. Runs on any thread, so it never saves. */
     private fun publish(change: (HomeUi) -> HomeUi = { it }) {
-        state.update { change(it).copy(box = box.state) }
+        state.update { change(it).copy(box = box.state, boxUnreadable = boxUnreadable()) }
     }
+
+    /** Empty beside a save this build could not read: the box is not known to be empty. */
+    private fun boxUnreadable() = persistence.holdsUnreadable && box.state.items.isEmpty()
 
     override fun destination(code: String) {
         store.setDestination(code)

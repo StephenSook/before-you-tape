@@ -134,12 +134,12 @@ class StaleTagsTest {
         first.override("t", mapOf("labelText" to JsonPrimitive("")), emptyList())
         BoxPersistence(prefs).save(first.state)
         val again = controller()
-        again.restore(BoxPersistence(prefs).load()!!)
+        again.restore((BoxPersistence(prefs).read() as app.beforeyoutape.android.data.SavedBox.Found).state)
         assertHeld(again, "t", StaleTags.LABEL_UNKNOWN)
         again.override("t", mapOf("labelText" to JsonPrimitive("REPLICA GRENADE")), tags("REPLICA GRENADE"))
         BoxPersistence(prefs).save(again.state)
         val third = controller()
-        third.restore(BoxPersistence(prefs).load()!!)
+        third.restore((BoxPersistence(prefs).read() as app.beforeyoutape.android.data.SavedBox.Found).state)
         assertReleased(third, "t")
     }
 
