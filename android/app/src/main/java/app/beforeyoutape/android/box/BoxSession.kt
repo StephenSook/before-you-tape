@@ -46,7 +46,7 @@ class BoxSession(
     private fun outcome(out: ReadOutcome): String? = when (out) {
         // A read of no item (a camera pointed at a room) is dropped, never added, as on the web.
         is ReadOutcome.Read -> if (NoItem.isNoItem(out.read)) Copy.NO_ITEM else {
-            box.addRead(out.read, out.labelTags, out.source, out.ms, newId())
+            box.addRead(out.read, out.labelTags, out.source, out.ms, newId(), out.labelFigures)
             null
         }
         is ReadOutcome.Blocked -> Copy.blocked(out.reason)

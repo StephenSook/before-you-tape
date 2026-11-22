@@ -34,6 +34,19 @@ class ItemReaderTest {
     private val consented = CloudState(consent = true, online = true, killCloud = false)
     private val noConsent = CloudState(consent = null, online = true, killCloud = false)
 
+    /** The label's figures come from the model's whole label, before the parser cuts it, and ride with the read. */
+    @Test fun aReadCarriesTheFiguresOfItsWholeLabel() = runTest {
+        val whole = "x".repeat(170) + " 99Wh"
+        val m = FakeModel(listOf({ _: SdkMode -> ModelReply(wire.copy(labelText = whole), Source.IN_CLOUD, 120) }))
+        val seen = mutableListOf<String>()
+        val figures = app.beforeyoutape.engine.LabelFigures(wh = listOf(99.0), grams = emptyList())
+        val r = ItemReader(m, { TaggedRead(wire, emptyList()) }, gate = { DeviceModelStatus.UNAVAILABLE }, cloud = { consented },
+            prompt = { "prompt" }, signIn = {}, figures = { seen += it; figures })
+        val out = r.read(crop) as ReadOutcome.Read
+        assertEquals(listOf(whole), seen)
+        assertEquals(figures, out.labelFigures)
+    }
+
     /** The parser's tags (from the whole label, before the cut) ride with the read to the box. */
     @Test fun aReadCarriesTheTagsTheParserGaveForItsWholeLabel() = runTest {
         val m = FakeModel(listOf(reply(Source.IN_CLOUD)))

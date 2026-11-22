@@ -68,6 +68,15 @@ class BoxPersistenceTest {
         assertEquals("typed", BoxPersistence(prefs).load()!!.items.single().input.numbersFrom)
     }
 
+    /** The label's figures stay with the item on the phone. */
+    @Test fun anItemsLabelFiguresAreKeptOnThePhone() {
+        val figures = app.beforeyoutape.engine.LabelFigures(wh = listOf(154.0, 15.4), grams = listOf(0.5))
+        val s = BoxLogic.addRead(BoxLogic.empty("CA"), read, emptyList(), Source.IN_CLOUD, 900, "f", figures)
+        val prefs = MapPrefs()
+        BoxPersistence(prefs).save(s)
+        assertEquals(figures, BoxPersistence(prefs).load()!!.items.single().input.labelFigures)
+    }
+
     @Test fun nothingSavedMeansNoBox() {
         assertNull(BoxPersistence(MapPrefs()).load())
     }
