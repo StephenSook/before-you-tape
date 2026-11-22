@@ -293,4 +293,153 @@ import Testing
         #expect(s.result?.items[id]?.hits.map(\.ruleId).contains("DATA-DISPUTE") == false)
         #expect(p.saved.last?.items[0].disputes?["category"]?["resolved"] == .bool(true))
     }
+
+    // Battery numbers stand only when a second look read the same ones (USPS-INTL-LI-ONE-READ): numbers the
+    // sender picked between two readings, or typed, are the sender's (the web app's tests of the same name).
+    static let phone = with(powerBank, ["itemName": .string("Phone"), "category": .string("phone"), "labelText": .string("3.85V 4000mAh 15.4Wh"),
+                                        "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
+    static let bigPhone = with(phone, ["labelText": .string("3.85V 40000mAh 154Wh"), "milliampHours": .number(40000), "wattHours": .number(154)])
+    func ruleIds(_ s: BoxStore, _ id: String) -> [String] { s.result?.items[id]?.hits.map(\.ruleId) ?? [] }
+
+    @Test func numbersBothReadsAgreedOnAreOK() throws {
+        let (s, id) = try look(Self.phone, Self.phone)
+        #expect(s.items[0].identityConfirmedBy == "second_look")
+        #expect(level(s, id) == "ok")
+    }
+
+    @Test func numbersPickedBetweenTwoReadingsAreHeldEitherSide() throws {
+        // The smaller reading would have been OK: it is held for its numbers.
+        let small = try look(Self.phone, Self.bigPhone)
+        // Reads that disagree on the numbers never make a second look stand behind them, picked or not.
+        #expect(small.0.items[0].identityConfirmedBy != "second_look")
+        small.0.settleDispute(small.1, field: "battery", side: .device)
+        #expect(small.0.items[0].identityConfirmedBy != "second_look")
+        #expect(level(small.0, small.1) == "check")
+        #expect(ruleIds(small.0, small.1).contains("USPS-INTL-LI-ONE-READ"))
+        // The larger one is over 100 Wh and out either way.
+        let large = try look(Self.phone, Self.bigPhone)
+        large.0.settleDispute(large.1, field: "battery", side: .cloud)
+        #expect(large.0.items[0].identityConfirmedBy != "second_look")
+        #expect(level(large.0, large.1) == "take_out")
+    }
+
+    @Test func lithiumGramsPickedBetweenTwoReadingsAreHeld() throws {
+        let coin = Self.with(Self.phone, ["category": .string("battery_toy"), "itemName": .string("Toy"), "labelText": .string("CR2032 LITHIUM"),
+                                          "volts": .number(3), "milliampHours": .number(0), "wattHours": .number(0), "lithiumGrams": .number(0.1)])
+        let (s, id) = try look(coin, Self.with(coin, ["lithiumGrams": .number(1.2)]))
+        #expect(s.items[0].identityConfirmedBy != "second_look")
+        s.settleDispute(id, field: "lithiumGrams", side: .device)
+        #expect(s.items[0].identityConfirmedBy != "second_look")
+        #expect(level(s, id) == "check")
+        #expect(ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
+    }
+
+    @Test func numbersTypedOverTwoReadsThatAgreedAreHeld() throws {
+        // All three numbers typed lower than both reads: held for them, never OK.
+        let all = try look(Self.bigPhone, Self.bigPhone)
+        #expect(all.0.items[0].identityConfirmedBy == "second_look")
+        all.0.override(all.1, patch: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
+        #expect(all.0.items[0].identityConfirmedBy == "sender")
+        #expect(level(all.0, all.1) == "check")
+        #expect(ruleIds(all.0, all.1).contains("USPS-INTL-LI-ONE-READ"))
+        // One number typed is enough to make them the sender's (here it no longer agrees with the others).
+        for patch: [String: JSONValue] in [["volts": .number(3.7)], ["milliampHours": .number(4000)], ["wattHours": .number(15.4)],
+                                           ["lithiumGrams": .number(0.1)]] {
+            let one = try look(Self.bigPhone, Self.bigPhone)
+            one.0.override(one.1, patch: patch)
+            #expect(one.0.items[0].identityConfirmedBy == "sender", "\(patch)")
+            #expect(level(one.0, one.1) != "ok", "\(patch)")
+        }
+    }
+
+    @Test func numbersTypedWhileTheCloudReadRanAreHeld() throws {
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let id = try #require(s.addRead(t.outcome(Self.bigPhone, .onDevice), cropFile: nil))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        s.override(id, patch: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
+        let m = try engine.mergeSecondLook(device: Self.bigPhone, cloud: Self.bigPhone)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(Self.bigPhone), disputes: m.disputes)
+        #expect(s.items[0].identityConfirmedBy == "sender")
+        #expect(level(s, id) == "check")
+        #expect(ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
+    }
+
+    @Test func anItemTheSenderConfirmedWhileItsLookRanIsReleasedOnceBothReadsAgree() throws {
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let id = try #require(s.addRead(t.outcome(Self.phone, .onDevice), cropFile: nil))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        s.confirmIdentity(id)
+        let m = try engine.mergeSecondLook(device: Self.phone, cloud: Self.phone)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(Self.phone), disputes: m.disputes)
+        #expect(s.items[0].identityConfirmedBy == "second_look")
+        #expect(level(s, id) == "ok")
+    }
+
+    /// A box saved by an earlier build, with numbers the sender typed or picked under a second look, is
+    /// held when it opens; what is saved still says second_look, and a recheck writes nothing.
+    @Test func aSavedItemWithTypedOrPickedNumbersIsHeldAndItsSavedIdentityIsKept() throws {
+        func saved(_ read: JSONValue, overrides: [String: JSONValue] = [:], disputes: JSONValue? = nil) -> BoxSnapshot {
+            let item = BoxItem(itemId: "saved-n", read: Self.with(read, ["labelText": .string("")]), overrides: overrides,
+                               answers: ["device_condition": "new_sealed", "cell_count": "one"], identityConfirmedBy: "second_look",
+                               tagsEdition: "", readSource: "phone_on_device", readMs: 900,
+                               secondLook: SecondLookNote(ms: 900, reason: "battery_numbers"), disputes: disputes)
+            return BoxSnapshot(boxId: "saved-box", destinationCode: "CA", items: [item], cloudConsent: true, sources: BoxSources())
+        }
+        let pickedDispute: JSONValue = .object(["battery": .object([
+            "device": .object(["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)]),
+            "cloud": .object(["volts": .number(3.85), "milliampHours": .number(40000), "wattHours": .number(154)]),
+            "resolved": .bool(true)])])
+        let cases: [(String, BoxSnapshot, String)] = [
+            ("control", saved(Self.phone), "ok"),
+            ("typed", saved(Self.bigPhone, overrides: ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)]), "check"),
+            ("picked", saved(Self.phone, disputes: pickedDispute), "check"),
+        ]
+        for (name, snapshot, want) in cases {
+            let p = MemoryBoxPersistence(stored: snapshot)
+            let s = try t.store(p, engine: engine)
+            s.load()
+            #expect(level(s, "saved-n") == want, "\(name)")
+            #expect(ruleIds(s, "saved-n").contains("USPS-INTL-LI-ONE-READ") == (want == "check"), "\(name)")
+            #expect(p.saved.allSatisfy { $0.items.first?.identityConfirmedBy == "second_look" }, "\(name)")
+            let saves = p.saved.count
+            s.reevaluate()
+            #expect(p.saved.count == saves, "\(name)")
+        }
+    }
+
+    @Test func aLaterLookThatSeesAnotherKindOfItemDropsAnEarlierSecondLook() throws {
+        let (s, id) = try look(Self.phone, Self.phone)
+        #expect(s.items[0].identityConfirmedBy == "second_look")
+        let tablet = Self.with(Self.bigPhone, ["itemName": .string("Tablet"), "category": .string("tablet"),
+                                               "milliampHours": .number(5000), "wattHours": .number(19.25)])
+        let m = try engine.mergeSecondLook(device: Self.phone, cloud: tablet)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(tablet), disputes: m.disputes)
+        #expect(s.items[0].identityConfirmedBy != "second_look")
+    }
+
+    @Test func aLookIsNotCountedAsAgreeingWhenTheSenderChangedWhatTheItemIs() throws {
+        let bank = Self.with(Self.phone, ["itemName": .string("Power bank"), "category": .string("power_bank")])
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let id = try #require(s.addRead(t.outcome(bank, .onDevice), cropFile: nil))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        s.override(id, patch: ["category": .string("phone")])
+        s.confirmIdentity(id)
+        let m = try engine.mergeSecondLook(device: bank, cloud: bank)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(bank), disputes: m.disputes)
+        #expect(s.items[0].identityConfirmedBy != "second_look")
+        #expect(level(s, id) != "ok")
+    }
+
+    @Test func correctionsOfAnythingButTheNumbersKeepTheSecondLook() throws {
+        let (s, id) = try look(Self.phone, Self.phone)
+        s.override(id, patch: ["itemName": .string("My phone")])
+        #expect(s.items[0].identityConfirmedBy == "second_look")
+        #expect(level(s, id) == "ok")
+    }
 }

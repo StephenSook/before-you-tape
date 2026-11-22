@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): battery numbers the sender typed or picked no longer count as a second look's
+- What: the box store now follows the web store (src/data/boxStore.ts, main 46298ca) on who stands
+  behind an item's battery numbers, which revision 6 (USPS-INTL-LI-ONE-READ) needs. When a second
+  look lands, it confirms the item only if it saw the kind of item the box has now (the sender's
+  category correction first), no number was typed while it ran, and the two reads gave the same
+  numbers; it also replaces an earlier "Yes, this is". Picking a side of a battery or lithium grams
+  dispute, or typing volts, mAh, Wh or grams, makes a second look's item the sender's. When the box is
+  judged, an item saved as second_look with typed numbers or a numbers dispute is passed as the
+  sender's, so a box saved by build 1.0.0 (2) is held too; what is saved is not changed.
+- Source: second-model review of the web store, mirrored for the iPhone.
+- Verified: ten tests port the web's "battery numbers stand only when a second look read the same
+  ones"; against the earlier store, the five for the new behavior fail and the rest pass; with the fix
+  all pass. The iPhone saves a box when it opens, as before, so the saved-box test checks that the
+  saved identity stays second_look and a recheck writes nothing. `bash ios/scripts/ci-local-ios.sh`
+  exits 0.
+
 ### test(ios): three app tests follow rule edition revision 6's one-read battery hold
 - What: revision 6 holds an installed battery with printed numbers at Check this unless a second look
   read the same numbers (USPS-INTL-LI-ONE-READ). Three iPhone app tests still expected OK from such an
