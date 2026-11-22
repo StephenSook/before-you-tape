@@ -57,8 +57,11 @@ describe("initFirebase", () => {
     const fb = fresh();
     vi.mocked(getToken).mockResolvedValueOnce({ token: "t" });
     expect(await fb.verified()).toBe(true);
-    vi.mocked(getToken).mockRejectedValueOnce(new Error("appCheck/fetch-status-error"));
+    vi.mocked(getToken).mockRejectedValueOnce(Object.assign(new Error("refused"), { code: "appCheck/fetch-status-error" }));
     expect(await fb.verified()).toBe(false);
+    // No connection is not a failed check (src/firebase/appCheckVerdict.ts).
+    vi.mocked(getToken).mockRejectedValueOnce(Object.assign(new Error("offline"), { code: "appCheck/fetch-network-error" }));
+    expect(await fb.verified()).toBe(true);
     expect(getToken).toHaveBeenCalledWith(appCheck);
   });
 
