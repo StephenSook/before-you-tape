@@ -80,3 +80,46 @@ test("a read on the device sends nothing to a model in the cloud", async ({ page
   expect(await page.evaluate(() => (window as unknown as { __devicePrompts: number }).__devicePrompts)).toBe(1);
   expect(cloudRequests).toEqual([]);
 });
+
+test("a cloud second look sends the same part the page showed, with no text but our own prompts", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  // The device read's Wh does not match volts times capacity, so the rules ask for a second look in the cloud.
+  const deviceRead = { ...lotionRead, itemName: "Phone", category: "phone", labelText: "LI-ION 3.85V 4000mAh 25Wh", volts: 3.85,
+    milliampHours: 4000, wattHours: 25, batteryWords: true, liquid: false, retailBox: "sealed" };
+  await page.addInitScript((reply) => {
+    (window as unknown as { LanguageModel: unknown }).LanguageModel = {
+      availability: async () => "available",
+      create: async () => ({ prompt: async () => reply, destroy: () => undefined }),
+    };
+  }, JSON.stringify(deviceRead));
+  const bodies: Body[] = [];
+  const cloudReply = { ...modelReply, candidates: [{ ...modelReply.candidates[0]!, content: { role: "model", parts: [{ text: JSON.stringify(deviceRead) }] } }] };
+  await page.route(AI_HOSTS, async (route) => {
+    bodies.push(route.request().postDataJSON() as Body);
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(cloudReply) });
+  });
+  await page.goto("/");
+  await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
+  const send = page.getByRole("button", { name: "Check this part" });
+  await expect(send).toBeEnabled();
+  const shownSha = await send.getAttribute("data-part-sha256");
+  await send.click();
+  const card = page.getByTestId("item-card");
+  await expect(card).toContainText("Read on this laptop");
+  expect(bodies).toHaveLength(0);
+  // Not asked yet: the card offers the look, and asks before anything is sent.
+  await card.getByTestId("cloud-look").click();
+  await page.getByRole("button", { name: "Allow" }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+  await expect(card.getByTestId("second-look")).toBeVisible();
+  const parts = (bodies[0]!.contents ?? []).flatMap((c) => c.parts ?? []);
+  const images = parts.filter((p) => p.inlineData);
+  expect(images).toHaveLength(1);
+  expect(images[0]!.inlineData!.mimeType).toBe("image/jpeg");
+  expect(createHash("sha256").update(images[0]!.inlineData!.data ?? "").digest("hex")).toBe(shownSha);
+  const system = typeof bodies[0]!.systemInstruction === "string" ? [bodies[0]!.systemInstruction] : (bodies[0]!.systemInstruction?.parts ?? []).map((p) => p.text ?? "");
+  const texts = [...parts.filter((p) => p.text !== undefined).map((p) => p.text!), ...system];
+  expect(texts.length).toBeGreaterThan(0);
+  for (const t of texts) expect([ITEM_READ_PROMPT, ITEM_READ_SYSTEM]).toContain(t);
+  expect(parts.every((p) => p.text !== undefined || p.inlineData !== undefined)).toBe(true);
+});
