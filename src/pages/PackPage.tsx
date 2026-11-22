@@ -344,6 +344,12 @@ export function PackPage(p: PackPageProps) {
     if (!look) return;
     // Whatever path starts it, a look whose read began before the newest no never goes.
     if (afterANo(look)) { looks.current.delete(itemId); return; }
+    // The second-look policy in force now decides, not the one the look was asked under (a retry after being offline
+    // can come long after); an item that already has its look gets no other.
+    const item = store.getState().items.find((i) => i.itemId === itemId);
+    const reasonNow = item && !item.secondLook ? needsSecondLook(deriveFacts(item, edition), { source: "on_device" }, live.current.secondLook) : null;
+    if (!reasonNow) { looks.current.delete(itemId); return; }
+    look.reason = reasonNow;
     // An item removed from the box is never sent to the cloud again.
     if (!inBox(itemId)) { looks.current.delete(itemId); return; }
     if (looking.current.has(itemId)) { lookAgain.current.add(itemId); return; }
@@ -364,7 +370,8 @@ export function PackPage(p: PackPageProps) {
     });
     const { models: m } = live.current;
     try {
-      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, () => stillAllowed() && inBox(itemId), work.signal);
+      // Checked again right before the request: a no given meanwhile, here or in another tab, keeps the photo here.
+      const out = await runSecondLook(m.cloud, look.part, look.read, now, m.fallback, () => stillAllowed() && inBox(itemId) && !afterANo(look), work.signal);
       limit.clear();
       if (gone.current || limit.over || !inBox(itemId)) return;
       store.applySecondLook(itemId, out.merged, out.ms, SECOND_LOOK_TEXT[look.reason], out.cloudLabel, out.disputes);
@@ -453,6 +460,8 @@ export function PackPage(p: PackPageProps) {
   const onImage = async (part: ImagePart, how: ImageHow) => {
     // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
     if (gone.current) return;
+    // The answer is read first, so a no another tab recorded earlier is counted before the read, not during it.
+    store.consentNow();
     const nosAtRead = store.consentNoCount();
     // Only a sender's press counts here: a frame the camera read by itself must not hide a press's notice.
     const press = how === "steady" ? null : ++presses.current;

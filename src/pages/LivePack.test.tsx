@@ -313,6 +313,37 @@ describe("LivePack", () => {
       cleanup();
     }
   });
+  it("sends no reconnect retry of a look the second-look policy in force no longer asks for", async () => {
+    const { models, push, rerender } = setup({}, "available");
+    const m = deviceReadsPhone(models);
+    m.cloud.generate.mockRejectedValue(new Error("Failed to fetch"));
+    await addPhoto();
+    await waitFor(() => expect(m.cloud.generate).toHaveBeenCalled());
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    const tries = m.cloud.generate.mock.calls.length;
+    rerender({ online: false });
+    act(() => push({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
+    m.cloud.generate.mockResolvedValue({ text: JSON.stringify(phoneOnDevice), source: "in_cloud" });
+    rerender({ online: true });
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).toHaveBeenCalledTimes(tries);
+  });
+  it("still runs a look when an earlier tab's no was only first read during the read, and the sender said yes since", async () => {
+    localStorage.clear();
+    const here = deviceConsent(localStorage);
+    const { models, store } = setup({}, "available", {}, here);
+    const m = Object.values(models)[0]!;
+    let finish!: (v: { text: string; source: "on_device" }) => void;
+    m.device.generate.mockImplementation(() => new Promise((r) => { finish = r; }));
+    // A tab still on the earlier question said no; this tab has not read that yet.
+    localStorage.setItem("byt.cloudConsent", "false");
+    await addPhoto();
+    await waitFor(() => expect(m.device.generate).toHaveBeenCalled());
+    act(() => store.setConsent(true));
+    await act(async () => { finish({ text: JSON.stringify(phoneOnDevice), source: "on_device" }); });
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
   it("drops a waiting look when the second-look policy in force no longer asks for one", async () => {
     const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
     const m = deviceReadsPhone(models);
