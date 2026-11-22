@@ -21,6 +21,10 @@ data class AboutInfo(
 object About {
     const val RULES_URL = "https://before-you-tape-2026.web.app/rules"
 
+    /** The App Check provider this build uses. It names the provider; it does not say a check passed. */
+    fun appCheckRow(provider: String): String =
+        "App Check provider: " + if (provider == "play_integrity") "Play Integrity" else provider
+
     /**
      * One line each. The SDK does not report the on-device model's name, so a ready model is
      * "ready" and never named.
@@ -29,7 +33,7 @@ object About {
         add(Copy.modelSentence(i.deviceModel))
         if (i.deviceModel == DeviceModelStatus.AVAILABLE) add("On-device model: ready")
         add("Cloud model: ${i.cloudModel}")
-        add("App Check: ${i.appCheckProvider}")
+        add(appCheckRow(i.appCheckProvider))
         add("Cloud reads: " + when (i.cloudConsent) { true -> "allowed"; false -> "off"; null -> "not chosen yet" })
         add("Rules edition: ${i.editionId}")
         add("Rules bundle: ${i.bundleCommit.take(7)} (${i.bundleSha256.take(12)})")
