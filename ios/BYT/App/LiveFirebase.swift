@@ -21,6 +21,11 @@ struct LiveFirebase: Sendable {
         return arguments.contains(optIn) && !arguments.contains(uiTest) && !hostedByXCTest
     }
 
+    /// The rule for a process with these launch arguments and this environment, in a Debug build.
+    static func forProcess(arguments: [String], environment: [String: String]) -> LiveFirebase {
+        LiveFirebase(allowed: decide(debug: true, arguments: arguments, hostedByXCTest: hostedByXCTest(environment: environment)))
+    }
+
     /// True when XCTest runs inside this process: a unit test launch hosted by the app.
     static func hostedByXCTest(environment: [String: String]) -> Bool {
         ["XCTestConfigurationFilePath", "XCTestBundlePath", "XCTestSessionIdentifier"].contains { environment[$0] != nil }
@@ -30,8 +35,7 @@ struct LiveFirebase: Sendable {
     static let thisLaunch: LiveFirebase = {
         #if DEBUG
         let process = ProcessInfo.processInfo
-        return LiveFirebase(allowed: decide(debug: true, arguments: process.arguments,
-                                            hostedByXCTest: hostedByXCTest(environment: process.environment)))
+        return forProcess(arguments: process.arguments, environment: process.environment)
         #else
         return LiveFirebase(allowed: true)
         #endif

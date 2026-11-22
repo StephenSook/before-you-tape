@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### test(ios): the Firebase gate tests check the process wiring and never touch a live provider
+- What: the launch rule for a process is now one function (LiveFirebase.forProcess), which the launch
+  uses. A test checks that this test process stays off even with `-liveFirebase` added, so the XCTest
+  check is proven on its own. The App Check test requires the offline provider before asking it for a
+  token, so a broken gate fails the test instead of reaching the live provider or hanging.
+- Source: second-model review of this change set.
+- Verified: the new check failed first (forProcess did not exist), then passed; LiveFirebaseTests 9
+  passed. The full local CI on the finished set exit 0.
+
 ### fix(ios): a UI test's app stays off Firebase even when launched with -liveFirebase
 - What: a UI test's app runs in a process of its own, which may carry no XCTest marker. Its launch
   argument `-uiTestFakeReader` now keeps it off the live project even with `-liveFirebase`.

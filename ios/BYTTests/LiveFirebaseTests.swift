@@ -29,6 +29,9 @@ import Testing
     @Test func thisTestLaunchIsHostedAndOff() {
         #expect(LiveFirebase.hostedByXCTest(environment: ProcessInfo.processInfo.environment))
         #expect(!LiveFirebase.thisLaunch.allowed)
+        // The XCTest check alone keeps this process off, even with the opt-in added.
+        let process = ProcessInfo.processInfo
+        #expect(!LiveFirebase.forProcess(arguments: process.arguments + [LiveFirebase.optIn], environment: process.environment).allowed)
     }
 
     @Test func anOffLaunchSkipsTheCallAndSaysSo() async {
@@ -55,10 +58,10 @@ import Testing
     /// sends nothing: it answers with an error at once and says so in the log.
     @Test func aHostedTestLaunchGivesAppCheckAProviderThatSendsNothing() async throws {
         let app = try #require(FirebaseApp.app())
-        let provider = BYTAppCheckFactory().createProvider(with: app)
-        #expect(provider is OfflineAppCheckProvider)
+        // Required before it is asked for a token, so a broken gate never reaches the live provider.
+        let provider = try #require(BYTAppCheckFactory().createProvider(with: app) as? OfflineAppCheckProvider)
         let refused: Bool = await withCheckedContinuation { done in
-            provider?.getToken { token, error in done.resume(returning: token == nil && error != nil) }
+            provider.getToken { token, error in done.resume(returning: token == nil && error != nil) }
         }
         #expect(refused)
         #expect(LiveFirebase.skipped.contains("App Check token"))
