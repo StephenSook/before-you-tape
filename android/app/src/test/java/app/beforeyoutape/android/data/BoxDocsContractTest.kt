@@ -106,6 +106,21 @@ class BoxDocsContractTest {
         assertTrue(!d.toString().contains("Grandma"))
     }
 
+    /**
+     * A typed item's numbers count as typed after a sync too, but the document does not say so: the Firestore rules
+     * allow no such key, so a typed item is known by its read source.
+     */
+    @Test fun aTypedItemIsTypedAgainAfterASyncWithoutTheDocumentSayingSo() {
+        val read = ItemReadWire("Power bank", ItemCategoryWire.power_bank, "", 3.7, 5000.0, 18.5, 0.0,
+            true, false, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.item_seen)
+        val typed = BoxLogic.addManual(BoxLogic.empty("CA"), read, emptyList(), "t").items.single()
+        val doc = BoxDocs.itemToDoc(typed)
+        assertTrue("numbersFrom" !in doc)
+        assertEquals("typed", BoxDocs.itemFromDoc("t", doc).input.numbersFrom)
+        val photo = BoxLogic.addRead(BoxLogic.empty("CA"), read.copy(evidence = EvidenceWire.label_read), emptyList(), Source.IN_CLOUD, 900, "r").items.single()
+        assertEquals(null, BoxDocs.itemFromDoc("r", BoxDocs.itemToDoc(photo)).input.numbersFrom)
+    }
+
     @Test fun anItemDocumentNeverCarriesLabelText() {
         val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
             false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)

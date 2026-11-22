@@ -42,10 +42,17 @@ class ItemCardTest {
 
     @After fun tearDown() = host.close()
 
+    /**
+     * The phone with a second look that read the same numbers, as in the web card test. Without one, the hold on battery
+     * numbers from a single read (USPS-INTL-LI-ONE-READ) is this phone's first reason, so no first reason restates the
+     * question. This app runs no second look, so the item is set here to test the card alone.
+     */
+    private fun secondLooked() = box.state.items.single().let { it.copy(input = it.input.copy(identityConfirmedBy = "second_look")) }
+
     /** The card asks its question once: the reason line that restates it is not shown beside it. */
     @Test fun aQuestionIsAskedOnce() {
-        val item = box.state.items.single()
-        val verdict = box.state.result!!.items.getValue("a")
+        val item = secondLooked()
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
         val question = checkNotNull(verdict.question) { "the engine asked nothing for this phone" }
         val restating = verdict.hits.first().text
         assertTrue("premise: the first reason restates the question ($restating)", restating.startsWith(question.text))
@@ -56,8 +63,8 @@ class ItemCardTest {
 
     /** As on the web: when the first reason only restates the question, the next reason shows in its place. */
     @Test fun theNextReasonShowsInsteadOfOneThatRestatesTheQuestion() {
-        val item = box.state.items.single()
-        val verdict = box.state.result!!.items.getValue("a")
+        val item = secondLooked()
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
         val question = checkNotNull(verdict.question)
         val next = verdict.hits.drop(1).firstOrNull { !it.text.startsWith(question.text) }
         assertTrue("premise: a reason other than the restating one (${verdict.hits.map { it.text }})", next != null)

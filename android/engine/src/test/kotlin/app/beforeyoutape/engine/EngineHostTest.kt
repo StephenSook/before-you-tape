@@ -60,6 +60,23 @@ class EngineHostTest {
         }
     }
 
+    /**
+     * numbersFrom is optional in the engine's item input: it is left out unless it is set, even where defaults are
+     * written, and the engine takes an item that sets it.
+     */
+    @Test fun numbersFromIsSentOnlyWhenSet() {
+        RepoFiles.host().use { host ->
+            val base = RepoFiles.obj("tests/vectors/defaults.json").getValue("baseRead").jsonObject
+            val read = host.parseItemRead(Json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), base))
+            val item = BoxItemInput("a", read, kotlinx.serialization.json.JsonObject(emptyMap()), emptyMap(), 1.0, "sender", emptyList())
+            val writesDefaults = Json { encodeDefaults = true }
+            assertTrue("numbersFrom" !in writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), item).jsonObject)
+            val typed = item.copy(numbersFrom = "typed")
+            assertEquals(JsonPrimitive("typed"), writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), typed).jsonObject["numbersFrom"])
+            assertTrue(host.evaluateBox(listOf(typed), "CA", "2026-11-20").items.containsKey("a"))
+        }
+    }
+
     @Test fun aLabelWithQuotesBackslashesAndLineSeparatorsRoundTrips() {
         val label = "PERFUME \"EAU\" 50 ml\\n\nALCOHOL </script>"
         RepoFiles.host().use { host ->

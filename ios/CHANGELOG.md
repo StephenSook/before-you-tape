@@ -5,6 +5,46 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the second-look number tests can fail when the behavior they name is missing
+- What: four of the new tests could pass without the behavior they test. A new test loads an item a
+  second look confirmed while its battery or lithium grams were still disputed (a box saved by an
+  earlier build) and picks each side: the item and its saved copy become the sender's. The cloud-side
+  battery pick now checks the dispute was settled; the saved-box test requires a saved copy before
+  checking its identity; the later look of another kind of item keeps the same numbers, so only what
+  the item is differs. The fix entry below now names the store each count was measured against.
+- Source: second-model review of the store fix (low findings only).
+- Verified: with the settle step removed from the store, only the new test fails; against main's
+  store, 8 of the 11 tests fail (the agreeing reads, a correction that is not a number, and a category
+  the sender changed and confirmed pass there too); with the fix, all 28 SecondLookStoreTests pass;
+  `bash ios/scripts/ci-local-ios.sh` exits 0.
+
+### fix(ios): battery numbers the sender typed or picked no longer count as a second look's
+- What: the box store now follows the web store (src/data/boxStore.ts, main 46298ca) on who stands
+  behind an item's battery numbers, which revision 6 (USPS-INTL-LI-ONE-READ) needs. When a second
+  look lands, it confirms the item only if it saw the kind of item the box has now (the sender's
+  category correction first), no number was typed while it ran, and the two reads gave the same
+  numbers; it also replaces an earlier "Yes, this is". Picking a side of a battery or lithium grams
+  dispute, or typing volts, mAh, Wh or grams, makes a second look's item the sender's. When the box is
+  judged, an item saved as second_look with typed numbers or a numbers dispute is passed as the
+  sender's, so a box saved by build 1.0.0 (2) is held too; what is saved is not changed.
+- Source: second-model review of the web store, mirrored for the iPhone.
+- Verified: ten tests port the web's "battery numbers stand only when a second look read the same
+  ones"; against the first port of the web branch (ae1ca9b), the five for its later behavior fail and
+  the rest pass; with the fix all pass. The iPhone saves a box when it opens, as before, so the saved-box test checks that the
+  saved identity stays second_look and a recheck writes nothing. `bash ios/scripts/ci-local-ios.sh`
+  exits 0.
+
+### test(ios): three app tests follow rule edition revision 6's one-read battery hold
+- What: revision 6 holds an installed battery with printed numbers at Check this unless a second look
+  read the same numbers (USPS-INTL-LI-ONE-READ). Three iPhone app tests still expected OK from such an
+  item and failed on main. The power bank read as a phone now expects its control, with no dispute, to
+  be held by the one-read rule and not by a dispute (as the web test does). The two stale-label lithium
+  tests now add their phone with a second look that read the same numbers (BoxStoreTests.secondLooked),
+  so they still test the lithium wait, like the web's guardStaleTags tests.
+- Source: the app tests run under revision 6 (they run only in the local CI, not on GitHub's runners).
+- Verified: the three failed on main's code; the same three pass on main's store code with these
+  changes; `bash ios/scripts/ci-local-ios.sh` exits 0.
+
 ### docs(ios): record the rule edition pin switching a real iPhone to revision 5
 - What: docs/evidence/ios/2026-11-21-rule-edition-pin.md records that build 1.0.0 (2), which carries
   revision 4, switched to revision 5 on an iPhone 17 Pro through the Remote Config pin and the
