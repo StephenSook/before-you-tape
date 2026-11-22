@@ -419,8 +419,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
             await deps.persistence.putMeta(boxId, meta);
             boxExists = true;
             failed.delete("meta");
-            answered();
+            // Only a save that reached the server answers for App Check; one kept in this browser proves nothing.
             if (deps.persistence.localOnly?.() !== true) {
+              answered();
               serverMeta = stableJson(meta);
               if (journal.meta === sent) journal.meta = null;
             }
@@ -436,11 +437,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
-              answered();
               // A write kept only in this browser stays in the journal for the server. A write that landed is
               // what the server now holds, even when a newer edit made meanwhile (a change, or a removal now
               // waiting as a delete) stays in the journal to be sent next.
               if (deps.persistence.localOnly?.() !== true) {
+                answered();
                 if (item) server.set(id, stableJson(item));
                 else server.delete(id);
                 // Done with this item unless a different copy was recorded while the write was out.
