@@ -99,8 +99,9 @@ export function deriveBattery(
   const whComputed = volts !== null && milliampHours !== null ? round2((volts * milliampHours) / 1000) : null;
   // Printed lithium grams are a lithium metal rating, checked against the per-cell and per-battery limits.
   const lithiumGrams = printed(read.lithiumGrams);
-  const liMetal = tags.includes("li_metal") || lithiumGrams !== null;
   const liIon = tags.includes("li_ion");
+  // Printed grams mean lithium metal, unless the label itself says lithium-ion: then the Wh checks still apply.
+  const liMetal = tags.includes("li_metal") || (lithiumGrams !== null && !liIon);
   const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null || lithiumGrams !== null;
   // Label words count as battery evidence even when the model's batteryWords flag is false.
   const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");

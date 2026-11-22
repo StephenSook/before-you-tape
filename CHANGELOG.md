@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A battery whose label says LI-ION stays lithium-ion when lithium grams are printed or typed, so its Wh checks still apply: before, a typed 0.1 g turned a 10 V 12000 mAh laptop with no Wh into lithium metal and OK. A shared box vector pins it, and the committed iOS engine bundle is rebuilt. Source: second-model review of revision 7. Verified: the vector failed first, full gate.
+
 - Clearing a battery number in Fix this reading no longer makes the other battery numbers the sender's: only a number above zero the sender typed brings the rest with it, so blanking the mAh of a read whose numbers disagree no longer turns it OK. A shared box vector pins it. Source: second-model review of revision 7. Verified: the form test failed first, full gate.
 
 - The label number field on a held item starts again, empty, when a second look changes which number it asks for (lithium grams to Wh), so text typed for one number is never sent as the other. Source: second-model review of revision 7. Verified: the card test failed first, full gate.

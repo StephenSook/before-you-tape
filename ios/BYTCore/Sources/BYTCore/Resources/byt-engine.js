@@ -218,8 +218,8 @@ var BYT = (() => {
     const whPrinted = printed(read.wattHours);
     const whComputed = volts !== null && milliampHours !== null ? round2(volts * milliampHours / 1e3) : null;
     const lithiumGrams = printed(read.lithiumGrams);
-    const liMetal = tags.includes("li_metal") || lithiumGrams !== null;
     const liIon = tags.includes("li_ion");
+    const liMetal = tags.includes("li_metal") || lithiumGrams !== null && !liIon;
     const anyNumber = volts !== null || milliampHours !== null || whPrinted !== null || lithiumGrams !== null;
     const labelEvidence = liMetal || liIon || tags.includes("battery_label") || tags.includes("power_bank_label");
     const badNumber = [read.volts, read.milliampHours, read.wattHours, read.lithiumGrams].some((n) => !isNumber(n));

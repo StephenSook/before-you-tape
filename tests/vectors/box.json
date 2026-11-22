@@ -422,5 +422,12 @@
     "items": [{ "itemId": "laptop", "overrides": { "milliampHours": 0 }, "read": { "category": "laptop", "labelText": "10V 12000mAh 98Wh", "volts": 10, "milliampHours": 12000, "wattHours": 98, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "laptop": "check" }, "expectRules": { "laptop": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "lithium_grams_on_a_li_ion_label_keep_the_wh_check", "code": "CA", "today": "2026-11-20",
+    "source": "A label that says LI-ION stays lithium-ion when grams are typed: the missing Wh is still asked for (10 V x 12000 mAh is 120 Wh)",
+    "items": [{ "itemId": "laptop", "overrides": { "volts": 10, "milliampHours": 12000, "lithiumGrams": 0.1 }, "read": { "category": "laptop", "labelText": "LI-ION 10V 12000mAh", "volts": 10, "milliampHours": 12000, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "laptop": "check" }, "expectRules": { "laptop": ["USPS-INTL-LI-NO-WH"] }
   }
 ]
