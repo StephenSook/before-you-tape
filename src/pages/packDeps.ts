@@ -10,6 +10,7 @@ import { createItemModels } from "../ai/firebaseModels";
 import type { ItemModels } from "../ai/port";
 import { remoteConfigSource, type ConfigSource } from "../config/remoteConfig";
 import { createBoxStore, type BoxStore } from "../data/boxStore";
+import { boxChanges } from "../data/boxChanges";
 import { deviceConsent } from "../data/deviceConsent";
 import { deviceNames } from "../data/deviceNames";
 import { deleteCrop } from "../data/crops";
@@ -43,6 +44,7 @@ export function buildDeps(): PackDeps | Error {
     const lm = (globalThis as { LanguageModel?: unknown }).LanguageModel;
     const edition = parseEdition(bundledEdition);
     const newId = () => crypto.randomUUID();
+    const boxId = currentBoxId(localStorage, newId);
     const signIn = ensureSignedIn(fb.auth);
     // Saves record the edition in use when they are written, so a switch to a newer edition is kept.
     let store: BoxStore | null = null;
@@ -56,7 +58,8 @@ export function buildDeps(): PackDeps | Error {
       // The device's own local calendar date, which counts the rule layers' age (docs/LIMITS.md).
       today: () => localDay(),
       newId,
-      boxId: currentBoxId(localStorage, newId),
+      boxId,
+      changes: boxChanges(boxId, localStorage),
       consent: deviceConsent(localStorage),
       deviceNames: deviceNames(localStorage),
       verified: () => fb.verified(),
