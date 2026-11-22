@@ -30,6 +30,29 @@ class LabelFiguresVectorsTest {
         assertEquals("cases that differ:\n${differ.joinToString("\n")}", emptyList<String>(), differ)
     }
 
+    /**
+     * An item as a sync reloads it (its read carries no label text) still holds on its label's figures when it keeps
+     * them, and only then: the figures are what keeps DATA-LABEL-NUMBERS after a reload.
+     */
+    @Test fun aReloadedItemStillHoldsOnItsKeptFigures() {
+        RepoFiles.host().use { host ->
+            val base = RepoFiles.obj("tests/vectors/defaults.json").getValue("baseRead").jsonObject
+            val full = "LI-ION 3.85V 4000mAh 15.4Wh PACK 154Wh"
+            val read = host.parseItemRead(Json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), kotlinx.serialization.json.JsonObject(base + mapOf(
+                "itemName" to kotlinx.serialization.json.JsonPrimitive("Phone"), "category" to kotlinx.serialization.json.JsonPrimitive("phone"),
+                "labelText" to kotlinx.serialization.json.JsonPrimitive(full), "volts" to kotlinx.serialization.json.JsonPrimitive(3.85),
+                "milliampHours" to kotlinx.serialization.json.JsonPrimitive(4000), "wattHours" to kotlinx.serialization.json.JsonPrimitive(15.4),
+                "batteryWords" to kotlinx.serialization.json.JsonPrimitive(true), "evidence" to kotlinx.serialization.json.JsonPrimitive("label_read")))))
+            val figures = host.labelFigures(listOf(full))
+            assertEquals(listOf(154.0, 15.4), figures?.wh)
+            val reloaded = BoxItemInput("p", read.copy(labelText = ""), kotlinx.serialization.json.JsonObject(emptyMap()), emptyMap(), 1.0, null,
+                host.labelTags(full), labelFigures = figures)
+            fun rules(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-20").items.getValue("p").hits.map { it.ruleId }
+            assertTrue("DATA-LABEL-NUMBERS" in rules(reloaded))
+            assertTrue("DATA-LABEL-NUMBERS" !in rules(reloaded.copy(labelFigures = null)))
+        }
+    }
+
     /** The check above can fail: a case with a figure it does not give is reported. */
     @Test fun aWrongExpectationIsReported() {
         RepoFiles.host().use { host ->

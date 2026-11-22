@@ -5,6 +5,7 @@ import app.beforeyoutape.engine.BoxItemInput
 import app.beforeyoutape.engine.BoxResult
 import app.beforeyoutape.engine.EngineError
 import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.LabelFigures
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -22,8 +23,12 @@ object BoxLogic {
         onDeviceReads = 0, cloudReads = 0, rulesOnlyRechecks = 0, engineError = null,
     )
 
-    fun addRead(s: BoxState, read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String): BoxState {
-        val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, null, labelTags)
+    /** A photo read. [labelFigures] are the engine's figures for its whole label, kept since its text is clipped. */
+    fun addRead(
+        s: BoxState, read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String,
+        labelFigures: LabelFigures? = null,
+    ): BoxState {
+        val input = BoxItemInput(newId, read, JsonObject(emptyMap()), emptyMap(), 1.0, null, labelTags, labelFigures = labelFigures)
         val readSource = if (source == Source.ON_DEVICE) "phone_on_device" else "phone_cloud"
         return s.copy(
             items = s.items + BoxItem(input, readSource, ms.toDouble(), null),
@@ -33,11 +38,11 @@ object BoxLogic {
     }
 
     /** A typed item: the sender's own, so its identity is confirmed by the sender, and so are its numbers. */
-    fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String): BoxState {
+    fun addManual(s: BoxState, read: ItemReadWire, labelTags: List<String>, newId: String, labelFigures: LabelFigures? = null): BoxState {
         // A typed item is the sender's own word: a ticked alcohol line is kept as theirs, so the
         // rules treat it like an answer of yes and do not ask again (as the web app does).
         val overrides = if (read.alcoholOnLabel) mapOf("alcoholOnLabel" to kotlinx.serialization.json.JsonPrimitive(true)) else emptyMap()
-        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags, numbersFrom = TYPED)
+        val input = BoxItemInput(newId, read, JsonObject(overrides), emptyMap(), 1.0, "sender", labelTags, numbersFrom = TYPED, labelFigures = labelFigures)
         return s.copy(items = s.items + BoxItem(input, MANUAL, 0.0, null))
     }
 
@@ -53,14 +58,27 @@ object BoxLogic {
 
     /**
      * Fields the sender corrected, kept as overrides on top of the read. A corrected label brings its
-     * own tags ([labelTags]); otherwise the item keeps its tags.
+     * own tags ([labelTags]) and figures ([labelFigures], merged with the item's by the engine); otherwise
+     * the item keeps them.
      */
-    fun override(s: BoxState, itemId: String, patch: Map<String, JsonElement>, labelTags: List<String>?): BoxState = s.copy(
+    fun override(
+        s: BoxState, itemId: String, patch: Map<String, JsonElement>, labelTags: List<String>?, labelFigures: LabelFigures? = null,
+    ): BoxState = s.copy(
         items = s.items.map {
             if (it.input.itemId != itemId) it
-            else it.copy(input = it.input.copy(overrides = JsonObject(it.input.overrides + patch), labelTags = labelTags ?: it.input.labelTags))
+            else it.copy(input = it.input.copy(
+                overrides = JsonObject(it.input.overrides + patch), labelTags = labelTags ?: it.input.labelTags,
+                labelFigures = labelFigures ?: it.input.labelFigures,
+            ))
         },
     )
+
+    /**
+     * The label texts a typed label's figures come from. With none kept yet (an item read before they were kept),
+     * the read's own label comes too, so its figures are not lost.
+     */
+    fun figureTexts(input: BoxItemInput, typedLabel: String): List<String> =
+        if (input.labelFigures == null && input.read.labelText.isNotBlank()) listOf(input.read.labelText, typedLabel) else listOf(typedLabel)
 
     /** 1 to 99, rounded, as the web app keeps it; anything not a number is 1. */
     fun setQuantity(s: BoxState, itemId: String, n: Double): BoxState {
@@ -148,8 +166,8 @@ class BoxController(
         state = state.copy(items = state.items.map { if (it.input.itemId == itemId) it.copy(tagsEdition = StaleTags.editionFor(it.input, current)) else it })
     }
 
-    fun addRead(read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String) {
-        state = BoxLogic.addRead(state, read, labelTags, source, ms, newId)
+    fun addRead(read: ItemReadWire, labelTags: List<String>, source: Source, ms: Long, newId: String, labelFigures: LabelFigures? = null) {
+        state = BoxLogic.addRead(state, read, labelTags, source, ms, newId, labelFigures)
         stamp(newId)
         recheck()
     }
@@ -159,18 +177,18 @@ class BoxController(
         recheck()
     }
 
-    fun addManual(read: ItemReadWire, labelTags: List<String>, newId: String) {
-        state = BoxLogic.addManual(state, read, labelTags, newId)
+    fun addManual(read: ItemReadWire, labelTags: List<String>, newId: String, labelFigures: LabelFigures? = null) {
+        state = BoxLogic.addManual(state, read, labelTags, newId, labelFigures)
         stamp(newId)
         recheck()
     }
 
-    fun override(itemId: String, patch: Map<String, JsonElement>, labelTags: List<String>?) {
+    fun override(itemId: String, patch: Map<String, JsonElement>, labelTags: List<String>?, labelFigures: LabelFigures? = null) {
         val before = state.items.firstOrNull { it.input.itemId == itemId }
         val label = (patch["labelText"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
         // Blank words are not a label: a stale item keeps its tags, and so stays held, until real words are typed.
         val keepStale = label != null && !StaleTags.hasWords(label) && before != null && StaleTags.isStale(before, edition())
-        state = BoxLogic.override(state, itemId, patch, if (keepStale) null else labelTags)
+        state = BoxLogic.override(state, itemId, patch, if (keepStale) null else labelTags, labelFigures)
         if (label != null && !keepStale) stamp(itemId)
         recheck()
     }

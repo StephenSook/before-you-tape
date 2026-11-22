@@ -4,6 +4,7 @@ import app.beforeyoutape.android.box.BoxItem
 import app.beforeyoutape.android.box.BoxLogic
 import app.beforeyoutape.engine.BoxItemInput
 import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.LabelFigures
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -120,7 +121,16 @@ object BoxDocs {
         doc["customs"] = item.extras["customs"] ?: EMPTY_CUSTOMS
         // The web app stamps addedAt (ms since 1970) on new items; kept as it came.
         if ("addedAt" in item.extras) doc["addedAt"] = item.extras["addedAt"]
+        // The synced read carries no label text, so the label's figures go with the item. Left out when there are none.
+        input.labelFigures?.let { doc["labelFigures"] = mapOf("wh" to it.wh, "grams" to it.grams) }
         return doc
+    }
+
+    /** An item document's label figures; none on a document written before they were kept. */
+    private fun labelFigures(v: Any?): LabelFigures? {
+        val m = v as? Map<*, *> ?: return null
+        fun list(k: String) = (m[k] as List<*>).map { (it as Number).toDouble() }
+        return LabelFigures(wh = list("wh"), grams = list("grams"))
     }
 
     fun itemFromDoc(id: String, doc: Map<String, Any?>): BoxItem {
@@ -133,6 +143,7 @@ object BoxDocs {
             quantity = (doc["quantity"] as Number).toDouble(),
             identityConfirmedBy = doc["identityConfirmedBy"] as String?,
             labelTags = (doc["labelTags"] as List<*>).map { it as String },
+            labelFigures = labelFigures(doc["labelFigures"]),
         )
         val extras = EXTRA_KEYS.filter { it in doc }.associateWith { doc[it] }
         val readSource = doc["readSource"] as String
