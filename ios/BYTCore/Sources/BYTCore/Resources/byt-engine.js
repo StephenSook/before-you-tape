@@ -351,6 +351,7 @@ var BYT = (() => {
     let identity = "unconfirmed";
     if (input.identityConfirmedBy) identity = input.identityConfirmedBy;
     else if (read.evidence === "label_read" && tags.has(LABEL_TEXT_TAG)) identity = "label";
+    if (identity === "second_look" && (input.disputes?.battery !== void 0 || input.disputes?.lithiumGrams !== void 0)) identity = "sender";
     return {
       category: read.category,
       tags: tagList,

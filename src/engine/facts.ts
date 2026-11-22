@@ -134,6 +134,9 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
   let identity: ItemFacts["identity"] = "unconfirmed";
   if (input.identityConfirmedBy) identity = input.identityConfirmedBy;
   else if (read.evidence === "label_read" && tags.has(LABEL_TEXT_TAG)) identity = "label";
+  // A second look stands behind the numbers only when the two reads agreed on them: once they disputed the battery
+  // numbers or the lithium grams, settled or not, the numbers are no second look's.
+  if (identity === "second_look" && (input.disputes?.battery !== undefined || input.disputes?.lithiumGrams !== undefined)) identity = "sender";
 
   return {
     category: read.category,

@@ -169,6 +169,21 @@ describe("evaluateBox", () => {
     }
   });
 
+  it("never takes a second look as agreeing on numbers the two reads disputed, even once the dispute is settled", () => {
+    // Not a shared vector: Android's engine input carries no disputes.
+    const phone = { ...sealedPhoneOneCell, identityConfirmedBy: "second_look" as const };
+    const settled = { ...phone, disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 },
+      cloud: { volts: 3.85, milliampHours: 4000, wattHours: 15.8 }, resolved: true } } };
+    const v = run([settled], "CA").items.phone!;
+    expect(v.level).toBe("check");
+    expect(v.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+    const grams = { ...phone, disputes: { lithiumGrams: { device: 0, cloud: 0, resolved: true } } };
+    expect(run([grams], "CA").items.phone?.hits.map((h) => h.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+    // A settled dispute about something else leaves the second look standing.
+    const box = { ...phone, disputes: { retailBox: { device: "sealed" as const, cloud: "cannot_tell" as const, resolved: true } } };
+    expect(run([box], "CA").items.phone?.level).toBe("ok");
+  });
+
   it("holds a second look whose numbers disagree with the first read on the open dispute, not on the second look", () => {
     // Not a shared vector: only the web and the iPhone run second looks, so Android's engine input carries no disputes.
     const phone = { ...sealedPhoneOneCell, identityConfirmedBy: "second_look" as const };
