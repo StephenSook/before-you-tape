@@ -106,7 +106,10 @@ import Testing
                 served = kind == .string("wrongId") ? try doc("byt-vectorother", pin["revision"])
                     : kind == .string("unreadable") ? #"{"editionId":"byt-vectorpin01","revision":99}"# : pinned
                 wantId = "byt-vectorpin01"
-                // An unreadable document has no hash this iPhone can take; the engine refuses it first.
+                // An unreadable document has no hash this iPhone can take (the engine takes the canonical form
+                // and refuses the document first), so its pin hash goes unchecked and the notice is notRead.
+                // The web hashes first, so with a wrong hash it says failedCheck instead; both keep the edition
+                // in use. The shared case serves a matching hash, where both say notRead.
                 wantSha = kind == .string("wrongHash") ? String(repeating: "0", count: 64)
                     : served.flatMap(EditionSource.identity(of:))?.sha ?? String(repeating: "f", count: 64)
                 // This iPhone's fetcher gives nothing both for a missing document and for a failed fetch.

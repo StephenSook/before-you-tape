@@ -143,9 +143,12 @@ import Testing
         s.confirmLabelNumber(id, field: "wattHours", value: 20)
         s.confirmLabelNumber(id, field: "wattHours", value: 15.4)
         #expect(s.items[0].overrides == ["wattHours": .number(15.4)])
+        // During a dispute even the exact number the merged reading shows confirms nothing more.
         let open = try SecondLookStoreTests().look(Self.phone, SecondLookStoreTests.bigPhone)
-        open.0.confirmLabelNumber(open.1, field: "wattHours", value: 15.4)
-        #expect(open.0.items[0].overrides == ["wattHours": .number(15.4)])
+        #expect(open.0.items[0].disputes?["battery"] != nil)
+        let shown = try #require(open.0.items[0].read.num("wattHours"))
+        open.0.confirmLabelNumber(open.1, field: "wattHours", value: shown)
+        #expect(open.0.items[0].overrides == ["wattHours": .number(shown)])
         let none = try read(Self.phone)
         for bad in [0, -1, Double.nan, Double.infinity] { none.0.confirmLabelNumber(none.1, field: "wattHours", value: bad) }
         #expect(none.0.items[0].overrides.isEmpty)

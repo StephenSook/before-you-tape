@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the label-number dispute test checks the number the reading shows
+- What: the test of a label number typed during a numbers dispute typed 15.4 Wh against a merged reading
+  of 154 Wh, so it missed the tolerance and passed whether or not the dispute guard worked. It now types
+  the exact Wh the merged reading shows. The edition test also says why an unreadable document's hash is
+  not checked on this iPhone: the web says failedCheck there with a wrong hash, and both keep the edition
+  in use. Tests only.
+- Source: second-model review of this change set.
+- Verified: the test passes; with the dispute guard removed from confirmLabelNumber it failed (the volts
+  and mAh came along), and the store file was put back byte for byte.
+
 ### fix(ios): Fix this reading resets the fields a second look moved while it was open
 - What: numbers the sender typed against the first read stayed theirs when a second look landed with other
   numbers while the form was open, so Save settled the battery dispute with them. A typed 3.85 V, 4000 mAh
