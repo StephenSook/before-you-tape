@@ -168,7 +168,10 @@ import Testing
     @Test func aPowerBankReadAsAPhoneIsHeldAtCheckThis() throws {
         let phone = Self.with(Self.powerBank, ["itemName": .string("Phone"), "category": .string("phone")])
         let control = try look(Self.powerBank, phone, disputes: false)
-        #expect(level(control.0, control.1) == "ok")
+        // Without the dispute, the cloud's category alone does not hold it: what still holds it is the one-read
+        // battery check, as the reads did not agree on what it is.
+        let controlRules = control.0.result?.items[control.1]?.hits.map(\.ruleId) ?? []
+        #expect(!controlRules.contains("DATA-DISPUTE") && controlRules.contains("USPS-INTL-LI-ONE-READ"), "\(controlRules)")
         let (s, id) = try look(Self.powerBank, phone)
         #expect(level(s, id) == "check")
         #expect(s.result?.items[id]?.hits.map(\.ruleId).contains("DATA-DISPUTE") == true)
