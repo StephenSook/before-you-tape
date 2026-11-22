@@ -129,6 +129,20 @@ public final class RulesEngine: @unchecked Sendable {
         return (merged, disputes, same)
     }
 
+    /// The Wh and lithium-gram figures an item keeps from its labels, by the engine's own parser and
+    /// rule (no repeats, each capped at 99999, over 8 of a kind the 7 largest and the smallest). Pass every
+    /// full label text that counts and the item's figures so far (`kept`). Nil means the item leaves the
+    /// field out.
+    public func labelFigures(texts: [String], kept: JSONValue? = nil) throws -> JSONValue? {
+        var input: [String: JSONValue] = ["texts": .array(texts.map { .string($0) })]
+        if let kept { input["kept"] = kept }
+        switch try call("labelFiguresJson", json(.object(input)))["labelFigures"] {
+        case let .object(figures)?: return .object(figures)
+        case .null?: return nil
+        default: throw EngineError.badReply("labelFiguresJson: no labelFigures")
+        }
+    }
+
     // MARK: Plumbing
 
     private func call(_ name: String, _ argument: String? = nil) throws -> JSONValue {

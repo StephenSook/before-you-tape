@@ -79,4 +79,20 @@ import Testing
             #expect(got == v["expect"], "\(String(describing: v["name"]))")
         }
     }
+
+    /// The figures an item keeps from its labels, decided by the engine's labelFiguresJson: the same
+    /// shared cases the web engine and the bridge's TypeScript test pass. A null expect means the item
+    /// leaves the field out, which the Swift call gives as nil.
+    @Test func everyLabelFiguresVectorPassesInJavaScriptCore() throws {
+        let engine = try RulesEngine()
+        guard case let .array(cases) = try load("tests/vectors/labelFigures.json") else { Issue.record("vectors"); return }
+        #expect(cases.count >= 10)
+        for v in cases {
+            guard case let .string(name)? = v["name"], case let .array(texts)? = v["texts"] else { Issue.record("shape"); continue }
+            let strings = texts.compactMap { if case let .string(s) = $0 { s } else { nil } }
+            #expect(strings.count == texts.count, "\(name) texts are strings")
+            let want: JSONValue? = v["expect"] == .null ? nil : v["expect"]
+            #expect(try engine.labelFigures(texts: strings, kept: v["kept"]) == want, "\(name)")
+        }
+    }
 }

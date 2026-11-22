@@ -5,6 +5,25 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the large phone read in the second-look tests names no Wh on its label
+- What: rule edition revision 7 holds a typed number below any figure the label names. The two tests of
+  numbers typed in full typed 15.4 Wh over a read whose label said 154Wh, so the engine rightly held
+  them at Check this. The large phone fixture's label is now "3.85V 40000mAh", the same as the web
+  store's own test, so the tests again judge typed numbers on the Wh rules. Tests only.
+- Source: the full local CI on the revision 7 head, which failed these two tests; the web test fixture
+  changed in fb8e08c.
+- Verified: SecondLookStoreTests 28 of 28 pass on the simulator (xcodebuild exit 0).
+
+### feat(ios): the engine host gives an item's label figures and passes their shared vectors
+- What: RulesEngine.labelFigures(texts:kept:) calls the bundled engine's labelFiguresJson with the full
+  label texts that count and the figures the item has so far, and returns the figures to keep, or nil
+  when the item leaves the field out. Parsing, repeats, the 99999 cap and the over-8 rule stay in the
+  engine; Swift parses no label. A new test runs every case in tests/vectors/labelFigures.json through
+  it in JavaScriptCore. Nothing in the app calls it yet; the app work comes with build 3.
+- Source: the revision 7 phone-mirror work (the bridge's new labelFiguresJson).
+- Verified: the test failed first (no such call), then the BYTCore suite passed (38 tests, exit 0). A
+  planted wrong figure in one vector made the test fail, and the file was put back byte for byte.
+
 ### test(ios): three second-look number tests follow rule edition revision 7
 - What: revision 7 judges battery numbers the sender typed in full on the Wh and grams rules, holds a
   set that is part typed and part read, and still holds numbers picked between two readings. Three

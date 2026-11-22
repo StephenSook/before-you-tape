@@ -298,7 +298,8 @@ import Testing
     // sender picked between two readings, or typed, are the sender's (the web app's tests of the same name).
     static let phone = with(powerBank, ["itemName": .string("Phone"), "category": .string("phone"), "labelText": .string("3.85V 4000mAh 15.4Wh"),
                                         "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
-    static let bigPhone = with(phone, ["labelText": .string("3.85V 40000mAh 154Wh"), "milliampHours": .number(40000), "wattHours": .number(154)])
+    /// No Wh on its label, like the web test's: a label figure above a typed number holds it (rule edition revision 7).
+    static let bigPhone = with(phone, ["labelText": .string("3.85V 40000mAh"), "milliampHours": .number(40000), "wattHours": .number(154)])
     func ruleIds(_ s: BoxStore, _ id: String) -> [String] { s.result?.items[id]?.hits.map(\.ruleId) ?? [] }
 
     @Test func numbersBothReadsAgreedOnAreOK() throws {
