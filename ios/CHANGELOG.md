@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): a UI test opens Fix this reading while a second look runs
+- What: a new UI test opens Fix this reading before the second look lands, types a Wh, and checks that
+  the field then shows the merged reading's 37 Wh and the form says "The second look changed Watt-hours
+  (Wh). Check it again before you save." A debug-only option (-uiTestSlowLook) makes the UI test's cloud
+  read take 10 seconds. Tests and debug-only support.
+- Source: second-model review of this change set (the store test called the rebase itself, so it could
+  not catch a sheet that never sees the new reading).
+- Verified: the test passes; with the sheet's rebase call removed it failed (no note), and the form file
+  was put back byte for byte.
+
 ### fix(ios): Fix this reading counts a respelled label as moved, as the web does
 - What: Swift calls two spellings of the same letters equal (an accent stored on its own or with its
   letter). So when a second look returned the label respelled that way, the open form neither saw the

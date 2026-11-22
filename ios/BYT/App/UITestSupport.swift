@@ -15,6 +15,9 @@ enum UITestSupport {
     /// the device as a phone, with cloud checks off, so the card holds the numbers the model read until the
     /// sender types the Wh printed on the label.
     static var phoneRead: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestPhoneRead") }
+    /// With `-uiTestSlowLook` too: the second look's cloud read takes 10 seconds, so a test can open Fix this
+    /// reading before it lands.
+    static var slowLook: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestSlowLook") }
 
     static var onDevice: OnDeviceStatus {
         OnDeviceStatus(unavailable: nil, localeSupported: true, contextSize: 4096, variant: "UI test", vision: secondLook || phoneRead)
@@ -33,7 +36,8 @@ enum UITestSupport {
         }
         if secondLook {
             return ItemReader(device: FixedRunner(read: powerBank(milliampHours: 5000, wattHours: 18.5, batteryWords: false)),
-                              makeCloud: { _ in FixedRunner(read: powerBank(milliampHours: 10000, wattHours: 37, batteryWords: true)) },
+                              makeCloud: { _ in FixedRunner(read: powerBank(milliampHours: 10000, wattHours: 37, batteryWords: true),
+                                                            delaySeconds: slowLook ? 10 : 0) },
                               parse: { ParsedRead(read: $0) })
         }
         return ItemReader(device: FixedRunner(), makeCloud: { _ in FixedRunner() }, parse: { ParsedRead(read: $0) })
@@ -80,9 +84,12 @@ enum UITestSupport {
             "flammableOnLabel": .bool(false), "glassContainer": .bool(false), "powder": .bool(false),
             "retailBox": .string("cannot_tell"), "evidence": .string("label_read"),
         ])
+        /// How long the read takes, for a test that acts while it runs.
+        var delaySeconds: Double = 0
 
         func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
             UITestSupport.calls.add()
+            if delaySeconds > 0 { try? await Task.sleep(for: .seconds(delaySeconds)) }
             return .success(ItemReply(read: read, tokens: nil))
         }
     }
