@@ -1201,6 +1201,20 @@ describe("createBoxStore", () => {
       expect(t.getState().readFromCache).toBeUndefined();
     });
 
+    // With reCAPTCHA blocked a first visit never signs in, so its saves go to this browser's storage: those are not
+    // the server answering, and must not hide the failed check.
+    it("does not count a save kept only in this browser as the server answering", async () => {
+      let say!: (ok: boolean) => void;
+      const p = Object.assign(spyPersistence(), { localOnly: () => true });
+      const s = store({ persistence: p, verified: () => new Promise<boolean>((r) => { say = r; }) });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(p.putItem).toHaveBeenCalled();
+      say(false);
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+    });
+
     it("ignores a refusal's check that answers no after a later save landed", async () => {
       const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
       let say!: (ok: boolean) => void;

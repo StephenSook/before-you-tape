@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A save kept only in this browser no longer counts as the server answering (src/data/boxStore.ts). On the live site with reCAPTCHA blocked, a first visit never signs in, so its saves go to this browser's storage; the first such save hid the 30-second App Check check, and the page showed no security-check message. Source: the live check after the App Check change deployed. Verified: a new store test (a local-only save, then the check answers no) failed first and passes.
+
 - The emulator tests of the box's Firestore persistence (tests/firestore/persistence.test.ts, tests/firestore/contract.test.ts) expect fromServer on each read, and check that a found box read from the emulator says it came from the server. Source: CI (the rules job failed on the new field). Verified: npm run test:rules passes, 51 tests, against the local emulator.
 
 - docs/SECURITY.md row 1d says exactly what was read: the 24 hours to 13:13 UTC began before enforcement and all 118 denials came after it; Firestore's Data Access audit logs are off in this project (no auditConfigs in its IAM policy), so the denials are matched to our test runs by time; the Pack page shows a refused box's copy apart and read only and never shows a box that did not load as new or empty; /blind names the check until its session opens; and the iPhone keeps the edition it already has when a pinned read is refused (ios/BYT/Data/EditionSource.swift). Source: review (round 1 on this change). Verified: the audit config read with gcloud projects get-iam-policy; each UI sentence traced to the store and page tests; the iPhone sentence to EditionSource.choose.
