@@ -98,6 +98,7 @@ describe("RanPage", () => {
     expect(detail).not.toHaveAttribute("open");
     for (const line of [
       "Agreement with our draft labels: 69 of 80 checks. No second person has checked the labels, so this is not accuracy.",
+      "2 of the 40 items prompted rule changes; without them, 67 of 76 checks agree and 0 of 26 hazards were called OK.",
       "Check this: 14 of 80 checks",
       "Time to a verdict: median 4.9 s, 90th percentile 7.7 s, second look included",
       "Computer: Apple M5 Pro, 48 GB, Chrome 157.0.8103.80",
