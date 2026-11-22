@@ -41,10 +41,17 @@ const spyPersistence = (loaded: Partial<BoxState> | null = null) => {
 };
 const writes = (p: ReturnType<typeof spyPersistence>) => p.putMeta.mock.calls.length + p.putItem.mock.calls.length + p.deleteItem.mock.calls.length;
 let ids = 0;
-const store = (o: { persistence?: BoxOps; verified?: () => Promise<boolean> } = {}) => createBoxStore({
+const store = (o: { persistence?: BoxOps; verified?: () => Promise<boolean>; changes?: BoxChangesDep } = {}) => createBoxStore({
   edition: () => ed, persistence: o.persistence ?? spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
   ...(o.verified ? { verified: o.verified } : {}),
+  ...(o.changes ? { changes: o.changes } : {}),
 });
+type BoxChangesDep = { announce(): void; onChange(f: () => void): () => void };
+// A stand-in for the other tabs: what this tab announced, and a way to hear another tab.
+const otherTabs = () => {
+  let heard: (() => void) | null = null;
+  return { announce: vi.fn(), onChange: (f: () => void) => { heard = f; return () => { heard = null; }; }, change: () => heard?.() };
+};
 
 const phoneItem: BoxItem = {
   itemId: "phone-1", read: { ...shirtRead, evidence: "label_read", labelText: "" }, overrides: {}, answers: {}, quantity: 1,
@@ -1089,6 +1096,58 @@ describe("createBoxStore", () => {
       await s.settled();
       expect(s.getState().loadState).toBe("failed");
       expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+  });
+
+  // Another tab of this browser can change the box after this tab read it; this tab reads the box once.
+  describe("another tab changing the box", () => {
+    it("tells the other tabs about each change, and nothing for a load", async () => {
+      const tabs = otherTabs();
+      const s = store({ changes: tabs });
+      await s.ready;
+      expect(tabs.announce).not.toHaveBeenCalled();
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      expect(tabs.announce).toHaveBeenCalledTimes(1);
+      s.setDestination("CA");
+      expect(tabs.announce).toHaveBeenCalledTimes(2);
+    });
+
+    // A save can land with no edit this visit: an earlier visit's journal sent after a reload, or a country saved at load.
+    it("tells the other tabs about each save that lands, edit or not", async () => {
+      const tabs = otherTabs();
+      const p = spyPersistence();
+      const kept = { ...phoneItem, itemId: "kept-1" };
+      const s = createBoxStore({ edition: () => ed, persistence: p, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
+        journal: { read: () => ({ meta: null, items: { "kept-1": kept } }), write: () => {} }, changes: tabs });
+      await s.ready;
+      await s.settled();
+      expect(p.putItem).toHaveBeenCalled();
+      expect(tabs.announce).toHaveBeenCalled();
+    });
+
+    // A delete whose sign-in cleanup fails leaves the box pointer, so the other tab is told here.
+    it("tells the other tabs when the box is being deleted", async () => {
+      const tabs = otherTabs();
+      const s = store({ changes: tabs });
+      await s.ready;
+      await s.close();
+      expect(tabs.announce).toHaveBeenCalledTimes(1);
+    });
+
+    it("marks the box changed and not whole once another tab changes it, until a reload", async () => {
+      const tabs = otherTabs();
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: true });
+      const s = store({ persistence: p, changes: tabs });
+      await s.ready;
+      expect(s.getState().incomplete ?? false).toBe(false);
+      tabs.change();
+      expect(s.getState().changedElsewhere).toBe(true);
+      expect(s.getState().incomplete).toBe(true);
+      // This tab's own later edits and saves do not make it whole again.
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(s.getState().incomplete).toBe(true);
     });
   });
 

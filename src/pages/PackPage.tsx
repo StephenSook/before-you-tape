@@ -639,6 +639,20 @@ export function PackPage(p: PackPageProps) {
           </p>
         )}
         {state.unverified && <SecurityCheckFailed onReload={p.onReload} />}
+        {/* Another tab changed the box after this one read it; only a reload reads it again. */}
+        {state.changedElsewhere && (
+          <p data-testid="changed-elsewhere" role="alert">
+            This box changed in another tab.{" "}
+            <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload page</button>
+          </p>
+        )}
+        {/* Read only from this browser's cache: the box stays not whole until a reload reads it from the server. */}
+        {state.readFromCache !== undefined && !state.unverified && (
+          <p data-testid="cache-only" role="status">
+            Showing the copy kept in this browser. Reload once you're online to check the whole box.{" "}
+            <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload page</button>
+          </p>
+        )}
         {/* A browser that did not pass the security check is told that instead: the cause, not the symptom. */}
         {state.loadState === "failed" && !state.unverified && (
           <p role="alert">
