@@ -5,6 +5,13 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### build(ios): build number 3 for 1.0.0, carrying rule edition revision 7
+- What: CURRENT_PROJECT_VERSION goes from 2 to 3. Build 3 carries rule edition revision 7 built in (the
+  live pin stays at revision 6, which this build keeps out as older), with the revision 7 iPhone work.
+- Source: the build 3 release.
+- Verified: the full local CI passed on the merged change set (283 app tests, 0 failed); the archive
+  for this commit is checked before upload.
+
 ### test(ios): a UI test opens Fix this reading while a second look runs
 - What: a new UI test opens Fix this reading before the second look lands, types a Wh, and checks that
   the field then shows the merged reading's 37 Wh and the form says "The second look changed Watt-hours
