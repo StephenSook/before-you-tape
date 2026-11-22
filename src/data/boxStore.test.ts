@@ -633,6 +633,30 @@ describe("createBoxStore", () => {
           expect(level(s, id)).not.toBe("ok");
         });
 
+        it("never makes the read numbers the sender's by matching a number the sender typed before", () => {
+          const read: ItemRead = { ...phone, volts: 3.925, milliampHours: 4000, wattHours: 15.4, labelText: "3.925V 4000mAh 15.4Wh" };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(read, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          s.confirmLabelNumber(id, "wattHours", 16);
+          s.confirmLabelNumber(id, "wattHours", 16);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 16 });
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("keeps the number the sender typed when it matches within the tolerance, so a limit still applies", () => {
+          const laptop: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "11V 9000mAh 99Wh", volts: 11, milliampHours: 9000, wattHours: 99 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(laptop, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.confirmLabelNumber(id, "wattHours", 101);
+          expect(s.getState().items[0]?.overrides).toMatchObject({ wattHours: 101 });
+          expect(level(s, id)).toBe("take_out");
+        });
+
         it("checks lithium grams the same way for a lithium metal cell", () => {
           const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
           const s = store();

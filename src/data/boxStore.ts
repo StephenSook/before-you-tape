@@ -512,10 +512,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const i = items.find((x) => x.itemId === itemId);
     if (!i || !Number.isFinite(value) || value <= 0) return;
     const now = { ...i.read, ...i.overrides };
-    const read = now[field];
+    // Only a match with the model's own reading confirms the numbers read with it; matching a number the sender
+    // typed earlier confirms nothing more. The sender's number is the one kept, so a limit still applies to it.
+    const read = i.overrides[field] === undefined ? i.read[field] : 0;
     const matches = read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
-    const shown = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).filter((f) => now[f] > 0);
-    overrideItem(itemId, matches ? Object.fromEntries(shown.map((f) => [f, now[f]])) as Partial<ItemRead> : { [field]: value });
+    const shown = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).filter((f) => f !== field && now[f] > 0);
+    overrideItem(itemId, matches ? { ...Object.fromEntries(shown.map((f) => [f, now[f]])), [field]: value } as Partial<ItemRead> : { [field]: value });
   };
   const ready = load();
 
