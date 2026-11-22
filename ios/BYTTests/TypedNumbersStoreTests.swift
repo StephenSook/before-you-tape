@@ -61,6 +61,52 @@ import Testing
         #expect(s.items[0].disputes?["battery"] == nil)
     }
 
+    /// A phone read on this iPhone, answered as a sender would (Canada).
+    func read(_ read: JSONValue) throws -> (BoxStore, String) {
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let id = try #require(s.addRead(t.outcome(read, .onDevice), cropFile: nil))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        return (s, id)
+    }
+    static let coin = with(phone, ["category": .string("battery_toy"), "itemName": .string("Toy"), "labelText": .string("CR2032 LITHIUM"),
+                                   "volts": .number(3), "milliampHours": .number(0), "wattHours": .number(0), "lithiumGrams": .number(0.1)])
+
+    /// A typed Wh brings the volts and capacity shown with it, as the sender's own: the Wh rules check them
+    /// against it. Typed lithium grams bring the volts, never a Wh.
+    @Test func aTypedDecidingNumberBringsTheNumbersShownWithIt() throws {
+        let (s, id) = try read(Self.phone)
+        s.override(id, patch: ["wattHours": .number(15.4)])
+        #expect(s.items[0].overrides["volts"] == .number(3.85) && s.items[0].overrides["milliampHours"] == .number(4000))
+        #expect(s.items[0].overrides["wattHours"] == .number(15.4) && s.items[0].overrides["lithiumGrams"] == nil)
+        #expect(s.result?.items[id]?.level == "ok")
+        let coin = try read(Self.coin)
+        coin.0.override(coin.1, patch: ["lithiumGrams": .number(0.1)])
+        #expect(coin.0.items[0].overrides == ["volts": .number(3), "lithiumGrams": .number(0.1)])
+        let both = try read(Self.with(Self.phone, ["lithiumGrams": .number(0.1)]))
+        both.0.override(both.1, patch: ["lithiumGrams": .number(0.1)])
+        #expect(both.0.items[0].overrides == ["volts": .number(3.85), "lithiumGrams": .number(0.1)])
+    }
+
+    /// Nothing comes along with a number that decides nothing, with a cleared number, or while the reads
+    /// dispute the numbers (open or settled).
+    @Test func nothingComesAlongWithAClearedNumberOrDuringANumbersDispute() throws {
+        let (s, id) = try read(Self.phone)
+        s.override(id, patch: ["volts": .number(3.85)])
+        #expect(s.items[0].overrides == ["volts": .number(3.85)])
+        let cleared = try read(Self.phone)
+        cleared.0.override(cleared.1, patch: ["wattHours": .number(15.4), "milliampHours": .number(0)])
+        #expect(cleared.0.items[0].overrides == ["wattHours": .number(15.4), "milliampHours": .number(0)])
+        let open = try SecondLookStoreTests().look(Self.phone, SecondLookStoreTests.bigPhone)
+        open.0.override(open.1, patch: ["wattHours": .number(15.4)])
+        #expect(open.0.items[0].overrides == ["wattHours": .number(15.4)])
+        let settled = try SecondLookStoreTests().look(Self.phone, SecondLookStoreTests.bigPhone)
+        settled.0.settleDispute(settled.1, field: "battery", side: .device)
+        settled.0.override(settled.1, patch: ["wattHours": .number(15.4)])
+        #expect(settled.0.items[0].overrides == ["wattHours": .number(15.4)])
+    }
+
     @Test func aTypedItemsLabelFigureAboveItsTypedNumberHoldsIt() throws {
         let (s, id) = try typed(Self.with(Self.phone, ["labelText": .string("3.85V 4000mAh PACK 20Wh")]))
         #expect(level(s, id) == "check")

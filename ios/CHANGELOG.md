@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): a typed Wh brings the volts and mAh shown, and typed grams bring the volts
+- What: when the sender types a deciding number, the store saves the numbers shown with it as theirs,
+  as the web store does: a typed Wh above 0 brings the volts and mAh shown (each if above 0), so the Wh
+  rules check them against it; typed lithium grams above 0 bring the volts. A Wh never comes with grams,
+  nor grams with a Wh. Nothing comes along while the item has a battery or lithium-grams dispute (open or
+  settled), when the correction clears a battery number to 0, or with a number that decides nothing.
+- Source: the revision 7 phone-mirror spec, B4 (the web store's withShownNumbers).
+- Verified: the new test of the numbers that come along failed first and passes; the test of when
+  nothing comes along passes before and after. The four store suites pass, 67 of 67.
+
 ### fix(ios): a battery dispute settles on the numbers either read gave
 - What: the sender's own numbers settled a battery dispute only when they typed all three (volts,
   mAh and Wh), even when neither read printed a Wh. Now, as on the web, a correction settles it once

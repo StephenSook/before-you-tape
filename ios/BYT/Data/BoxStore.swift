@@ -320,9 +320,34 @@ final class BoxStore {
 
     func answer(_ itemId: String, question: String, answer: String) { update(itemId) { $0.answers[question] = answer } }
 
+    /// The sender's corrections (the web app's override), with the numbers that come with a typed deciding
+    /// number.
+    func override(_ itemId: String, patch: [String: JSONValue]) {
+        guard let item = items.first(where: { $0.itemId == itemId }) else { return }
+        overrideItem(itemId, patch: Self.withShownNumbers(item, patch))
+    }
+
+    /// The numbers that come with a typed deciding number, as the sender's own (the web app's
+    /// withShownNumbers): with a Wh, the volts and capacity shown (the Wh rules check them against it); with
+    /// a lithium metal cell's grams, the volts. Never the other deciding number, never while the two reads
+    /// dispute the numbers (open or settled), and never when the sender cleared one (a cleared number can
+    /// hide a disagreement between the others).
+    nonisolated static let rideAlong: [String: [String]] = ["wattHours": ["volts", "milliampHours"], "lithiumGrams": ["volts"]]
+    static func withShownNumbers(_ item: BoxItem, _ patch: [String: JSONValue]) -> [String: JSONValue] {
+        func number(_ v: JSONValue?) -> Double? { if case let .number(n)? = v { n } else { nil } }
+        let deciding = ["wattHours", "lithiumGrams"].filter { (number(patch[$0]) ?? 0) > 0 }
+        let clears = ["volts", "milliampHours", "wattHours", "lithiumGrams"].contains { number(patch[$0]) == 0 }
+        guard !deciding.isEmpty, !clears, !numbersDisputed(item.disputes) else { return patch }
+        var out = patch
+        for f in deciding.flatMap({ rideAlong[$0] ?? [] }) where out[f] == nil {
+            if let shown = number(item.overrides[f] ?? item.read[f]), shown > 0 { out[f] = .number(shown) }
+        }
+        return out
+    }
+
     /// A corrected label replaces the read one, so its tags must survive the label text not being saved.
     /// The sender's own correction of a disputed fact settles that dispute.
-    func override(_ itemId: String, patch: [String: JSONValue]) {
+    private func overrideItem(_ itemId: String, patch: [String: JSONValue]) {
         update(itemId) { item in
             item.overrides.merge(patch) { _, new in new }
             if let label = patch["labelText"] {
