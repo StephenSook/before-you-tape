@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item whose battery numbers are held for one read (USPS-INTL-LI-ONE-READ) now has an empty field on its card, Type the Wh printed on the label (lithium grams for a lithium metal cell with no Wh). A number within the rules' Wh tolerance of the read makes every battery number shown the sender's own (typed); a different number replaces the read one only, and the item is judged again. Nothing is filled in for the sender. Two shared box vectors pin both sides. Source: the revision 7 plan. Verified: the store, card and pack page tests failed first, full gate.
+
 - Fix this reading saves every battery number the form shows (volts, mAh, Wh, lithium grams) once the sender changes one, so a corrected set counts as the sender's own (typed) and is never part typed and part read, which revision 7 holds. Corrections of other fields save only what was changed. Source: the revision 7 plan. Verified: the two form tests failed first, full gate.
 
 - On the web, a typed item's battery numbers count as typed (numbersFrom typed for an item typed by hand, at evaluation only, nothing new saved), so under revision 7 the Wh rules judge them; a photo's read numbers are still held. The browser extension does the same when the sender typed every detail with no read to start from, and the judge page's matched pairs count their typed-in label numbers as typed. Source: the revision 7 plan. Verified: the store, pack page, extension and matched-pairs tests failed first, full gate.

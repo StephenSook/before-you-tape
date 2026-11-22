@@ -111,6 +111,8 @@ export interface BoxStore {
   setError(itemId: string, text: string): void;
   answer(itemId: string, questionId: string, answerId: string): void;
   override(itemId: string, patch: Partial<ItemRead>): void;
+  // The number printed on the label, typed into an empty field by the sender (rule edition revision 7).
+  confirmLabelNumber(itemId: string, field: "wattHours" | "lithiumGrams", value: number): void;
   setQuantity(itemId: string, n: number): void;
   setCustoms(itemId: string, patch: Partial<CustomsLine>): void;
   remove(itemId: string): void;
@@ -482,6 +484,39 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     commit(evaluate(), false);
     await flush();
   };
+  const overrideItem = (itemId: string, patch: Partial<ItemRead>) => update(itemId, (i) => {
+    let next: BoxItem = {
+      ...i, overrides: { ...i.overrides, ...patch },
+      // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
+      // label is no reading: an item held for older label words keeps its tags, and so stays held.
+      labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
+        ? i.labelTags : tagsOf(patch.labelText),
+      // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
+      ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
+    };
+    if (typesNumbers(patch)) next = numbersByHand(next);
+    if (!i.disputes) return next;
+    // The sender's own correction of a disputed fact settles that dispute.
+    const settled: ReadDisputes = { ...i.disputes };
+    for (const f of DISPUTE_FIELDS) {
+      const d = settled[f];
+      if (d && corrects(patch, f)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
+    }
+    return withDisputes(next, settled);
+  });
+
+  // The sender typed the Wh (or lithium grams) printed on the label into an empty field. A match within the rules'
+  // tolerance makes every battery number shown the sender's own; a different number replaces the read one only, and the
+  // item is judged again. Either way the sender has read the label.
+  const confirmLabelNumber = (itemId: string, field: "wattHours" | "lithiumGrams", value: number) => {
+    const i = items.find((x) => x.itemId === itemId);
+    if (!i || !Number.isFinite(value) || value <= 0) return;
+    const now = { ...i.read, ...i.overrides };
+    const read = now[field];
+    const matches = read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
+    const shown = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).filter((f) => now[f] > 0);
+    overrideItem(itemId, matches ? Object.fromEntries(shown.map((f) => [f, now[f]])) as Partial<ItemRead> : { [field]: value });
+  };
   const ready = load();
 
   return {
@@ -612,26 +647,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit(state.result, false);
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
-    override: (itemId, patch) => update(itemId, (i) => {
-      let next: BoxItem = {
-        ...i, overrides: { ...i.overrides, ...patch },
-        // A corrected label replaces the read one, so its tags must survive the label text not being saved. A blank
-        // label is no reading: an item held for older label words keeps its tags, and so stays held.
-        labelTags: patch.labelText === undefined || (patch.labelText.trim() === "" && tagsAreStale(i, wordsVersion()))
-          ? i.labelTags : tagsOf(patch.labelText),
-        // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
-        ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
-      };
-      if (typesNumbers(patch)) next = numbersByHand(next);
-      if (!i.disputes) return next;
-      // The sender's own correction of a disputed fact settles that dispute.
-      const settled: ReadDisputes = { ...i.disputes };
-      for (const f of DISPUTE_FIELDS) {
-        const d = settled[f];
-        if (d && corrects(patch, f)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
-      }
-      return withDisputes(next, settled);
-    }),
+    override: overrideItem,
+    confirmLabelNumber,
     setQuantity: (itemId, n) => update(itemId, (i) => ({ ...i, quantity: clampQuantity(n) })),
     setCustoms: (itemId, patch) => update(itemId, (i) => ({ ...i, customs: { ...i.customs, ...patch } })),
     remove(itemId) {

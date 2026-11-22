@@ -149,6 +149,7 @@ describe("evaluateBox", () => {
       "mixed_numbers_are_held_even_after_a_second_look", "typed_item_numbers_go_through_the_wh_rules", "typed_120_wh_laptop_is_take_out",
       "label_text_wh_that_disagrees_with_the_read_is_check", "label_text_grams_that_disagree_with_the_read_are_check",
       "typed_numbers_settle_a_label_text_mismatch", "label_text_wh_with_a_comma_that_agrees_is_ok",
+      "label_number_typed_and_matched_makes_every_number_typed", "label_number_typed_and_different_replaces_the_read_and_holds",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

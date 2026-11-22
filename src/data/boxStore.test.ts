@@ -602,6 +602,55 @@ describe("createBoxStore", () => {
         expect(ruleIds(read, r)).toContain("USPS-INTL-LI-ONE-READ");
       });
 
+      describe("the sender types the number printed on the label", () => {
+        const held = () => {
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(phone, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+          return { s, id };
+        };
+
+        it("makes every number the sender's when it matches the read", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 15.4);
+          expect(s.getState().items[0]?.overrides).toMatchObject({ volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
+          expect(level(s, id)).toBe("ok");
+        });
+
+        it("counts a match within the tolerance the rules allow", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 15.5);
+          expect(level(s, id)).toBe("ok");
+        });
+
+        it("replaces the read number when it does not match, and judges the item again", () => {
+          const { s, id } = held();
+          s.confirmLabelNumber(id, "wattHours", 154);
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 154 });
+          expect(level(s, id)).not.toBe("ok");
+        });
+
+        it("checks lithium grams the same way for a lithium metal cell", () => {
+          const coin: ItemRead = { ...phone, category: "battery_toy", itemName: "Toy", labelText: "CR2032 LITHIUM", volts: 3, milliampHours: 0, wattHours: 0, lithiumGrams: 0.1 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome(coin, "on_device"), "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "one");
+          expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+          s.confirmLabelNumber(id, "lithiumGrams", 0.1);
+          expect(ruleIds(s, id)).not.toContain("USPS-INTL-LI-ONE-READ");
+          const other = store();
+          other.setDestination("CA");
+          const o = other.addRead(outcome(coin, "on_device"), "k");
+          other.confirmLabelNumber(o, "lithiumGrams", 1.2);
+          expect(other.getState().items[0]?.overrides).toEqual({ lithiumGrams: 1.2 });
+        });
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });

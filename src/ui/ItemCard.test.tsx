@@ -322,5 +322,41 @@ describe("ItemCard", () => {
     render(<ItemCard item={phone} verdict={saysMore} crop={jpeg} />);
     expect(screen.getByText(/We read "alcohol" and "free" on two lines/)).toBeInTheDocument();
   });
+
+  describe("the number printed on the label", () => {
+    const heldPhone = item("lp", { ...base, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000,
+      wattHours: 15.4, batteryWords: true, retailBox: "sealed" }, { answers: { device_condition: "new_sealed", cell_count: "one" } });
+
+    it("asks a held item for the Wh on its label in an empty field, and sends what the sender types", async () => {
+      const onConfirmNumber = vi.fn();
+      render(<ItemCard item={heldPhone} verdict={verdictFor(heldPhone)} crop={null} onConfirmNumber={onConfirmNumber} />);
+      const field = screen.getByLabelText("Type the Wh printed on the label");
+      expect(field).toHaveValue("");
+      await userEvent.type(field, "15.4");
+      await userEvent.click(screen.getByRole("button", { name: "Check the number" }));
+      expect(onConfirmNumber).toHaveBeenCalledWith("lp", "wattHours", 15.4);
+    });
+
+    it("asks for the lithium grams on a lithium metal cell with no Wh", () => {
+      const coin = item("lc", { ...base, itemName: "Toy", category: "battery_toy", labelText: "CR2032 LITHIUM", volts: 3, lithiumGrams: 0.1, batteryWords: true,
+        retailBox: "sealed" }, { answers: { device_condition: "new_sealed" } });
+      render(<ItemCard item={coin} verdict={verdictFor(coin)} crop={null} onConfirmNumber={() => {}} />);
+      expect(screen.getByLabelText("Type the lithium grams printed on the label")).toHaveValue("");
+    });
+
+    it("asks nothing when the numbers are not held", () => {
+      const typed = { ...heldPhone, numbersFrom: "typed" as const };
+      render(<ItemCard item={typed} verdict={verdictFor(typed)} crop={null} onConfirmNumber={() => {}} />);
+      expect(screen.queryByLabelText("Type the Wh printed on the label")).toBeNull();
+    });
+
+    it("sends nothing until a number above zero is typed", async () => {
+      const onConfirmNumber = vi.fn();
+      render(<ItemCard item={heldPhone} verdict={verdictFor(heldPhone)} crop={null} onConfirmNumber={onConfirmNumber} />);
+      expect(screen.getByRole("button", { name: "Check the number" })).toBeDisabled();
+      await userEvent.type(screen.getByLabelText("Type the Wh printed on the label"), "0");
+      expect(screen.getByRole("button", { name: "Check the number" })).toBeDisabled();
+    });
+  });
 });
 
