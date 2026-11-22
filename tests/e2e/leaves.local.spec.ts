@@ -98,7 +98,12 @@ test("a cloud second look sends the same part the page showed, with no text but 
     bodies.push(route.request().postDataJSON() as Body);
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(cloudReply) });
   });
+  // The offer is decided when the read lands, and cloud checks stay off until Remote Config's settings arrive: the
+  // stand-in model answers at once, so the photo waits for those settings.
+  const settings = page.waitForResponse((r) => r.url().includes("firebaseremoteconfig.googleapis.com") && r.url().includes(":fetch") && r.ok());
   await page.goto("/");
+  await settings;
+  await page.waitForTimeout(1000);
   await page.getByTestId("upload-input").setInputFiles("tests/e2e/fixtures/lotion-label.jpg");
   const send = page.getByRole("button", { name: "Check this part" });
   await expect(send).toBeEnabled();
