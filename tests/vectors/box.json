@@ -450,5 +450,12 @@
     "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look", "read": { "category": "battery_toy", "labelText": "CR2032 LITHIUM 0.1g 5G", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "toy": "ok" }, "notRules": { "toy": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "label_grams_typed_and_different_leave_mixed_numbers_held", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed 0.2 g over a coin cell read as 0.1 g at 3 V: the grams are typed, the volts read, so the set is mixed and held",
+    "items": [{ "itemId": "toy", "overrides": { "lithiumGrams": 0.2 }, "read": { "category": "battery_toy", "labelText": "CR2032 LITHIUM", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "toy": "check" }, "expectRules": { "toy": ["USPS-INTL-LI-ONE-READ"] }
   }
 ]

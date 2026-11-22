@@ -152,7 +152,7 @@ describe("evaluateBox", () => {
       "label_number_typed_and_matched_makes_every_number_typed", "label_number_typed_and_different_replaces_the_read_and_holds",
       "blanking_one_number_does_not_make_the_rest_typed", "lithium_grams_on_a_li_ion_label_keep_the_wh_check",
       "a_label_naming_two_wh_figures_holds_when_one_disagrees", "a_figure_written_with_a_leading_point_reads_as_written",
-      "a_5G_model_name_is_not_a_lithium_figure",
+      "a_5G_model_name_is_not_a_lithium_figure", "label_grams_typed_and_different_leave_mixed_numbers_held",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

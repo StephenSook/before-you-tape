@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Two tests pin what earlier ones only assumed: a shared vector where the sender typed grams that differ from a coin cell's read, whose only hold is the mixed-numbers one (no Wh rule masks it), and an extension test that a form filled in from a read is held while the same details typed by hand are judged on the Wh rules. Source: second-model review of revision 7. Verified: the vector's only hit is USPS-INTL-LI-ONE-READ, full gate.
+
 - rc-publish now checks the pin the whole Remote Config template would publish, not only values given with --set: a rules_edition_id already in the template, published with --allow, must be the edition in rules/edition.json, carry its hash in rules_edition_sha256, and read only facts every live app build knows. Source: second-model review of revision 7. Verified: the guard test failed first, full gate.
 
 - DATA-LABEL-NUMBERS now holds when ANY Wh or lithium-grams figure the label names disagrees with the read (a module's 98 Wh no longer hides the pack's 120 Wh), takes the figures from the whole label as read rather than the clipped text, keeps them with the item (labelFigures, allowed by the Firestore rules: up to 8 of each, numbers above 0) so a reload or clearing the label words no longer drops the hold, adds a second look's label figures to them, and reads grams only with a lower-case g (5G is no figure) and a leading point as written (.5g is 0.5 g). The JSON bridge validates labelFigures, and the committed iOS engine bundle is rebuilt. Source: second-model review of revision 7. Verified: the vectors, the store reload test, the rules test and the bridge test failed first, full gate and the Firestore rules tests.

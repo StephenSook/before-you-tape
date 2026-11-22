@@ -33,6 +33,16 @@ it("applies the battery watt-hour limit to an installed battery", () => {
   expect(under.level).toBe("ok");
 });
 
+it("holds numbers left as a read gave them, typed by hand only when the sender typed everything", () => {
+  const laptop = typedRead({ ...scarf, itemName: "Laptop", category: "laptop", volts: 11.1, milliampHours: 9000, wattHours: 99.9, batteryWords: true });
+  const answers: ItemAnswers = { device_condition: "new_sealed", cell_count: "more_than_one" };
+  // A form filled in from a read (the panel's draft) is not typed by hand, so its numbers are held.
+  const fromDraft = checkOne(toBoxItem(laptop, { confirmed: true, answers, quantity: 1 }), ed, "CA", today);
+  expect(fromDraft.hits.map((hit) => hit.ruleId)).toContain("USPS-INTL-LI-ONE-READ");
+  const byHand = checkOne(toBoxItem(laptop, { confirmed: true, answers, quantity: 1, typedByHand: true }), ed, "CA", today);
+  expect(byHand.level).toBe("ok");
+});
+
 it("an unconfirmed item is never OK", () => {
   expect(checkOne(toBoxItem(typedRead(scarf), { confirmed: false, answers: {}, quantity: 1 }), ed, "CA", today).level).toBe("check");
 });
