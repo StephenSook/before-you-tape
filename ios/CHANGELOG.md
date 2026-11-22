@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the large phone read in the second-look tests names no Wh on its label
+- What: rule edition revision 7 holds a typed number below any figure the label names. The two tests of
+  numbers typed in full typed 15.4 Wh over a read whose label said 154Wh, so the engine rightly held
+  them at Check this. The large phone fixture's label is now "3.85V 40000mAh", the same as the web
+  store's own test, so the tests again judge typed numbers on the Wh rules. Tests only.
+- Source: the full local CI on the revision 7 head, which failed these two tests; the web test fixture
+  changed in fb8e08c.
+- Verified: SecondLookStoreTests 28 of 28 pass on the simulator (xcodebuild exit 0).
+
 ### feat(ios): the engine host gives an item's label figures and passes their shared vectors
 - What: RulesEngine.labelFigures(texts:kept:) calls the bundled engine's labelFiguresJson with the full
   label texts that count and the figures the item has so far, and returns the figures to keep, or nil
