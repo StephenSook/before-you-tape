@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The Firestore rules tests now write an item exactly as android-judge-3 writes it (no tagsVersion, numbersFrom or labelFigures) and check it is still accepted, so old phones keep saving after the labelFigures change. The iPhone app writes no box or item documents. Source: the revision 7 rules change. Verified: the Firestore rules tests (51 of 51), full gate.
+
 - Two tests pin what earlier ones only assumed: a shared vector where the sender typed grams that differ from a coin cell's read, whose only hold is the mixed-numbers one (no Wh rule masks it), and an extension test that a form filled in from a read is held while the same details typed by hand are judged on the Wh rules. Source: second-model review of revision 7. Verified: the vector's only hit is USPS-INTL-LI-ONE-READ, full gate.
 
 - rc-publish now checks the pin the whole Remote Config template would publish, not only values given with --set: a rules_edition_id already in the template, published with --allow, must be the edition in rules/edition.json, carry its hash in rules_edition_sha256, and read only facts every live app build knows. Source: second-model review of revision 7. Verified: the guard test failed first, full gate.
