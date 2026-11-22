@@ -37,4 +37,30 @@ class LabelFiguresReloadTest {
             assertTrue("DATA-LABEL-NUMBERS" !in rules(reloaded.copy(labelFigures = null)))
         }
     }
+
+    /**
+     * A typed item the same way: a phone typed as 3.85 V, 4000 mAh and 15.4 Wh under the label words "3.85V 4000mAh PACK
+     * 154Wh", new and sealed with one cell, in Canada, is held on DATA-LABEL-NUMBERS before and after a sync reload, its
+     * figures taken from the typed label words as the app adds a typed item. Without them it would read OK after the reload.
+     */
+    @Test fun aSyncedAndReloadedTypedItemStillHoldsOnItsLabelFigures() {
+        EngineAssets.load(InstrumentationRegistry.getInstrumentation().targetContext).use { host ->
+            val label = "3.85V 4000mAh PACK 154Wh"
+            val read = ItemReadWire("Phone", ItemCategoryWire.phone, label, 3.85, 4000.0, 15.4, 0.0,
+                true, false, false, false, false, false, false, RetailBoxWire.sealed, EvidenceWire.label_read)
+            val box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-20" })
+            box.addManual(read, host.labelTags(label), "t", host.labelFigures(listOf(label)))
+            box.answer("t", "device_condition", "new_sealed")
+            box.answer("t", "cell_count", "one")
+            fun verdict(input: app.beforeyoutape.engine.BoxItemInput) = host.evaluateBox(listOf(input), "CA", "2026-11-20").items.getValue("t")
+            assertTrue("DATA-LABEL-NUMBERS" in box.state.result!!.items.getValue("t").hits.map { it.ruleId })
+            val reloaded = BoxDocs.itemFromDoc("t", BoxDocs.itemToDoc(box.state.items.single())).input
+            assertEquals("", reloaded.read.labelText)
+            assertEquals("typed", reloaded.numbersFrom)
+            assertTrue("DATA-LABEL-NUMBERS" in verdict(reloaded).hits.map { it.ruleId })
+            val withoutFigures = verdict(reloaded.copy(labelFigures = null))
+            assertTrue("DATA-LABEL-NUMBERS" !in withoutFigures.hits.map { it.ruleId })
+            assertEquals("ok", withoutFigures.level.name)
+        }
+    }
 }
