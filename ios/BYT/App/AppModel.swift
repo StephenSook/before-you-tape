@@ -659,10 +659,13 @@ final class AppModel {
             ? "This version is out of date. Update the app to keep checking items." : nil
     }
 
-    /// A published edition lives at ruleEditions/{id} as { json, sha256 }; missing or malformed gives nil.
+    /// A published edition lives at ruleEditions/{id} as { json, sha256 }; missing or malformed gives nil,
+    /// as does a launch that may not call Firebase, which reads nothing.
     nonisolated static let firestoreEdition: @Sendable (String) async -> String? = { id in
-        guard let snapshot = try? await Firestore.firestore().collection("ruleEditions").document(id).getDocument() else { return nil }
-        return snapshot.data()?["json"] as? String
+        await LiveFirebase.thisLaunch.call("Firestore read of ruleEditions/\(id)", offline: nil) {
+            guard let snapshot = try? await Firestore.firestore().collection("ruleEditions").document(id).getDocument() else { return nil }
+            return snapshot.data()?["json"] as? String
+        }
     }
 
     nonisolated static let boxIdKey = "currentBoxId"

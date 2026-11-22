@@ -21,7 +21,15 @@ struct SignIn {
         return await attempt()
     }
 
-    static func firebase() -> SignIn {
+    /// Firebase's anonymous sign-in. In a launch that may not call Firebase (a test or a Debug run
+    /// without -liveFirebase) it never touches Auth: it is not signed in, and an attempt is skipped.
+    static func firebase(live: LiveFirebase = .thisLaunch) -> SignIn {
+        guard live.allowed else {
+            return SignIn(isSignedIn: { false }, attempt: {
+                live.skip("anonymous sign-in")
+                return false
+            })
+        }
         let gate = SignInGate()
         return SignIn(isSignedIn: { Auth.auth().currentUser != nil },
                       attempt: { await gate.signIn() },

@@ -3,6 +3,27 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-22
+
+### fix(ios): tests and Debug launches skip the live sign-in, Remote Config and Firestore
+- What: a new rule (LiveFirebase) says whether a launch may call Firebase over the network. Release
+  builds always may. A Debug build may only when launched with `-liveFirebase` and not hosted by
+  XCTest. Otherwise the anonymous sign-in, the Remote Config fetch and the Firestore read of a pinned
+  rule edition are skipped, and each skip says so in the log ("Skipped <call>: Firebase network calls
+  are off in this Debug or test launch. Launch with -liveFirebase to turn them on."). With no sign-in,
+  no cloud read can run either. UI tests now run on the shipped Remote Config defaults with the cloud
+  open, because their cloud reader is a fixed one that sends nothing.
+- Source: Firestore's App Check metrics showed denied reads from an unknown client. The local test
+  simulator's own log traced part of them to Debug test launches: each launch made a new App Check
+  debug token that was never registered, and once the built-in edition differed from the pinned one,
+  each launch read the pinned edition from the live project and was refused.
+- Verified: LiveFirebaseTests (6 tests) failed first (LiveFirebase did not exist), then passed. One
+  of them builds the model a hosted test launch builds, starts it and gives it a pin: it signs in
+  nowhere, shows the not-loaded notice and records the skipped Firestore read. `bash
+  ios/scripts/ci-local-ios.sh` exit 0 (289 app tests: 288 passed, 0 failed, 1 opt-in skip). The
+  simulator's log for that run shows no Firestore denial and no sign-in or Remote Config request;
+  App Check still exchanged a token at launch (next entry).
+
 ## 2026-11-21
 
 ### build(ios): build number 3 for 1.0.0, carrying rule edition revision 7
