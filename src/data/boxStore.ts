@@ -199,8 +199,11 @@ const NUMBER_DISPUTES = ["battery", "lithiumGrams"] as const;
 const numbersDisputed = (d: ReadDisputes | undefined): boolean => NUMBER_DISPUTES.some((f) => d?.[f] !== undefined);
 // What the rules are told: a second look stands behind the numbers only when no one typed or picked them. This holds
 // for an item saved by an earlier version too, and changes nothing that is saved.
-const forRules = (i: BoxItem): BoxItem =>
-  i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" } : i;
+const forRules = (i: BoxItem): BoxItem => {
+  const who = i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" as const } : i;
+  // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine counts them read).
+  return i.readSource === "manual" ? { ...who, numbersFrom: "typed" } : who;
+};
 
 // Who stands behind an item once a second look lands. Same kind of item, numbers that agree and none typed: the second
 // look, even over an earlier tap of "Yes, this is". Numbers typed while it ran: the sender. Numbers the two reads gave

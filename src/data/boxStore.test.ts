@@ -586,6 +586,22 @@ describe("createBoxStore", () => {
         expect(level(s, id)).not.toBe("ok");
       });
 
+      it("judges a typed item's numbers on the rules for them, and still holds one read from a photo", () => {
+        const typed = store();
+        typed.setDestination("CA");
+        const t = typed.addManual({ ...phone });
+        typed.answer(t, "device_condition", "new_sealed");
+        typed.answer(t, "cell_count", "one");
+        expect(level(typed, t)).toBe("ok");
+        const read = store();
+        read.setDestination("CA");
+        const r = read.addRead(outcome(phone, "on_device"), "k");
+        read.answer(r, "device_condition", "new_sealed");
+        read.answer(r, "cell_count", "one");
+        expect(level(read, r)).toBe("check");
+        expect(ruleIds(read, r)).toContain("USPS-INTL-LI-ONE-READ");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });
