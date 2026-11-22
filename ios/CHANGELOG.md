@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): Fix this reading saves only the fields the sender typed into
+- What: the form saved every field that differed from the reading, so when a second look changed the
+  reading while the form was open, Save wrote the old values back over it. The draft now records the
+  fields the sender typed into, picked or switched, and a fix saves only those. A battery number typed
+  in again as it was shown, above 0, counts as typed, so it is the sender's; one typed back to empty is
+  not saved unless it differs from the reading. A cleared number is saved as 0. The store then adds the
+  numbers that come with a typed Wh. The evidence rule is unchanged.
+- Source: the revision 7 phone-mirror spec, B3 (the web app's FixReading).
+- Verified: two new tests failed first (the untouched mAh, Wh and name were saved over the moved
+  reading, and a number typed again as shown was dropped) and pass. ReadDraftTests and the store
+  suites pass, 79 of 79.
+
 ### test(ios): the shared edition-choice cases run through the iPhone's edition choice
 - What: a new test runs every case in tests/vectors/editionChoice.json (16 now), which the web app and
   the Android app run too, through EditionSource.choose. It builds the documents as the web harness

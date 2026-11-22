@@ -34,13 +34,18 @@ struct ReadDraft: Equatable, Sendable {
         ("shoes", "Shoes"), ("book_paper", "Book or paper"), ("toy", "Toy"), ("ceramic", "Ceramic or porcelain (mug, plate, vase)"), ("other", "Something else"),
     ].map { Category(id: $0.0, label: $0.1) }
 
-    var itemName = ""
+    var itemName = "" { didSet { mark("itemName", oldValue != itemName) } }
     /// "" until the sender picks one.
-    var category = ""
-    var labelText = ""
-    var numbers: [String: String] = [:]
-    var flags: [String: Bool] = [:]
-    var retailBox = "cannot_tell"
+    var category = "" { didSet { mark("category", oldValue != category) } }
+    var labelText = "" { didSet { mark("labelText", oldValue != labelText) } }
+    var numbers: [String: String] = [:] { didSet { for (f, _) in Self.numberFields { mark(f, oldValue[f] ?? "" != numbers[f] ?? "") } } }
+    var flags: [String: Bool] = [:] { didSet { for (f, _) in Self.flagFields { mark(f, oldValue[f] ?? false != flags[f] ?? false) } } }
+    var retailBox = "cannot_tell" { didSet { mark("retailBox", oldValue != retailBox) } }
+    /// The fields the sender typed into (or picked, or switched) since the draft was made from a reading;
+    /// only these are saved by a fix.
+    private(set) var touched: Set<String> = []
+
+    private mutating func mark(_ field: String, _ edited: Bool) { if edited { touched.insert(field) } }
 
     static func of(_ read: JSONValue?) -> ReadDraft {
         var d = ReadDraft()
@@ -53,6 +58,8 @@ struct ReadDraft: Equatable, Sendable {
         }
         for (f, _) in flagFields { d.flags[f] = read?.flag(f) ?? false }
         d.retailBox = read?.text("retailBox") ?? "cannot_tell"
+        // Filling the draft from the reading is not the sender's typing.
+        d.touched = []
         return d
     }
 
@@ -86,16 +93,22 @@ struct ReadDraft: Equatable, Sendable {
         return patch
     }
 
-    /// A fix as saved: the changed fields, and when the sender said what the item is, their word as
-    /// the evidence (the label they typed, or what they say it is), so an unsure read is resolved.
-    /// Only a new category or new label words say what it is: a new name alone does not (renaming
-    /// an unsure "Shirt" to "My shirt" adds nothing), and neither does clearing the label or adding spaces.
+    /// A fix as saved (the web app's FixReading): the changed fields the sender typed into, never one they
+    /// left alone (so a reading that moved under the form is not undone), and a battery number they typed
+    /// again as it was shown, above 0, which is theirs too; the store adds the numbers that come with a
+    /// typed Wh. When the sender said what the item is, their word is the evidence (the label they typed,
+    /// or what they say it is), so an unsure read is resolved. Only a new category or new label words say
+    /// what it is: a new name alone does not (renaming an unsure "Shirt" to "My shirt" adds nothing), and
+    /// neither does clearing the label or adding spaces.
     func fixPatch(from read: JSONValue) -> [String: JSONValue] {
-        var patch = changed(from: read)
+        var patch = changed(from: read).filter { touched.contains($0.key) }
+        for (f, _) in Self.numberFields where touched.contains(f) && patch[f] == nil {
+            if let n = Self.parseNumber(numbers[f] ?? ""), n > 0 { patch[f] = .number(n) }
+        }
         let label = labelText.trimmingCharacters(in: .whitespacesAndNewlines)
         let before = (read.text("labelText") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         // New words means different words once spaces are set aside: a space added is not new evidence.
-        if patch["category"] != nil || (!label.isEmpty && label != before) {
+        if patch["category"] != nil || (patch["labelText"] != nil && !label.isEmpty && label != before) {
             patch["evidence"] = .string(label.isEmpty ? "item_seen" : "label_read")
         }
         return patch

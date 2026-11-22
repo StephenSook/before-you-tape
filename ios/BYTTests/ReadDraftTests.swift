@@ -166,4 +166,31 @@ import Testing
         n.flags["liquid"] = true
         #expect(n.fixPatch(from: FixReadingView.current(s.items.first!)) == ["liquid": .bool(true)])
     }
+
+    static let phone = BoxStoreTests.read(["itemName": .string("Phone"), "category": .string("phone"), "labelText": .string("3.85V 4000mAh 15.4Wh"),
+                                           "volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)])
+
+    /// Only the fields the sender typed into are saved: a field they never touched is never saved, even when
+    /// the reading moved under the form (a second look landed while it was open).
+    @Test func aFixSavesOnlyTheFieldsTheSenderTypedInto() {
+        var d = ReadDraft.of(Self.phone)
+        d.flags["liquid"] = true
+        let moved = SecondLookStoreTests.with(Self.phone, ["milliampHours": .number(40000), "wattHours": .number(154), "itemName": .string("Big phone")])
+        #expect(d.fixPatch(from: moved) == ["liquid": .bool(true)])
+    }
+
+    /// A battery number the sender typed again as it was shown is theirs too; one typed back to empty is not.
+    @Test func aBatteryNumberTypedAgainAsShownCounts() {
+        var d = ReadDraft.of(Self.phone)
+        d.numbers["milliampHours"] = "400"
+        d.numbers["milliampHours"] = "4000"
+        d.numbers["lithiumGrams"] = "5"
+        d.numbers["lithiumGrams"] = ""
+        #expect(d.fixPatch(from: Self.phone) == ["milliampHours": .number(4000)])
+        // A cleared number the sender typed is saved as 0.
+        d.numbers["wattHours"] = ""
+        #expect(d.fixPatch(from: Self.phone) == ["milliampHours": .number(4000), "wattHours": .number(0)])
+        // Nothing typed, nothing saved.
+        #expect(ReadDraft.of(Self.phone).fixPatch(from: Self.phone).isEmpty)
+    }
 }
