@@ -17,6 +17,23 @@ describe("deviceConsent", () => {
     expect(c.get()).toBeNull();
   });
 
+  it("counts each no on this device, so every tab finds the newest one without its storage event", () => {
+    const c = deviceConsent(localStorage);
+    expect(c.noCount()).toBe(0);
+    c.set(true);
+    expect(c.noCount()).toBe(0);
+    c.set(false);
+    const otherTab = deviceConsent(localStorage);
+    expect(otherTab.noCount()).toBe(1);
+    otherTab.set(true);
+    otherTab.set(false);
+    expect(c.noCount()).toBe(2);
+    // A no recorded by a tab still on the earlier question counts too.
+    localStorage.setItem("byt.cloudConsent", "false");
+    expect(c.get()).toBe(false);
+    expect(c.noCount()).toBe(3);
+  });
+
   it("asks again anyone who said yes to the earlier question, which did not mention a second look, and keeps an earlier no", () => {
     localStorage.setItem("byt.cloudConsent", "true");
     expect(deviceConsent(localStorage).get()).toBeNull();

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -7,6 +7,7 @@ import { CONFIG_DEFAULTS } from "../config/defaults";
 import type { AppConfig, ConfigSource } from "../config/remoteConfig";
 import { noPersistence } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
+import { deviceConsent, type DeviceConsent } from "../data/deviceConsent";
 import type { ItemRead } from "../shared/itemRead";
 import { LivePack } from "./LivePack";
 
@@ -31,12 +32,12 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 
 let n = 0;
 type PageOver = { settingsWaitMs?: number; settingsNoticeMs?: number; online?: boolean; today?: string };
-function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}) {
+function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}, consent?: DeviceConsent) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
   const hybrid = () => (gate === "available" ? port(phoneOnDevice, "on_device") : port());
   const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: hybrid(), cloud: port(), fallback: port() }));
-  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
+  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}`, ...(consent ? { consent } : {}) });
   store.setConsent(true);
   const cfg = fakeSource(start);
   const ui = (over: PageOver) => <LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
@@ -224,6 +225,147 @@ describe("LivePack", () => {
     const m = Object.values(models)[0];
     expect(m?.hybrid.generate).toHaveBeenCalledTimes(1);
     expect(m?.cloud.generate).not.toHaveBeenCalled();
+  });
+
+  // A read on the device can land before Remote Config's settings (cloud checks are off until they do), or while
+  // kill_cloud is on: the second look the rules asked for waits for cloud checks to come on, instead of being lost.
+  const deviceReadsPhone = (models: ReturnType<typeof setup>["models"]) => {
+    const m = Object.values(models)[0]!;
+    m.device.generate.mockResolvedValue({ text: JSON.stringify(phoneOnDevice), source: "on_device" });
+    return m;
+  };
+  it("runs a second look the rules asked for once Remote Config's settings arrive", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("runs a second look the rules asked for once kill_cloud is switched off", async () => {
+    const { models, push } = setup({ killCloud: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    act(() => push({ killCloud: false }));
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("sends no waiting second look when the sender took cloud checks back meanwhile", async () => {
+    const { models, push, store } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    // A no, then a yes again, before cloud checks come on: only the no dropping the look keeps it from going.
+    act(() => store.setConsent(false));
+    act(() => store.setConsent(true));
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("second-look")).toBeNull();
+  });
+  it("sends no look for a read that started before a no, even after a yes again", async () => {
+    const { models, push, store } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = Object.values(models)[0]!;
+    let finish!: (v: { text: string; source: "on_device" }) => void;
+    m.device.generate.mockImplementation(() => new Promise((r) => { finish = r; }));
+    await addPhoto();
+    await waitFor(() => expect(m.device.generate).toHaveBeenCalled());
+    act(() => store.setConsent(false));
+    act(() => store.setConsent(true));
+    await act(async () => { finish({ text: JSON.stringify(phoneOnDevice), source: "on_device" }); });
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+  it("sends a waiting look to the model named in the same update that turns cloud checks on", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const old = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined, cloudModelItem: "gemini-3.8-flash" }));
+    await screen.findByTestId("second-look");
+    expect(old.cloud.generate).not.toHaveBeenCalled();
+    expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  // Another tab's no, then yes, that this tab has not heard yet (its storage events wait): a look whose read began
+  // before that no must not go when this tab reconnects or cloud checks come on.
+  it("sends no look after another tab's no and yes that this tab has not heard about yet", async () => {
+    for (const hold of ["offline", "settings"] as const) {
+      localStorage.clear();
+      const here = deviceConsent(localStorage);
+      const { models, push, rerender } = setup(hold === "settings" ? { killCloud: true, pauseUnknown: true } : {}, "available", {}, here);
+      const m = deviceReadsPhone(models);
+      if (hold === "offline") rerender({ online: false });
+      await addPhoto();
+      await screen.findByText("Read on this laptop");
+      const otherTab = deviceConsent(localStorage);
+      otherTab.set(false);
+      otherTab.set(true);
+      if (hold === "offline") rerender({ online: true });
+      else act(() => push({ killCloud: false, pauseUnknown: undefined }));
+      await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+      expect(m.cloud.generate, hold).not.toHaveBeenCalled();
+      cleanup();
+    }
+  });
+  it("sends no reconnect retry of a look the second-look policy in force no longer asks for", async () => {
+    const { models, push, rerender } = setup({}, "available");
+    const m = deviceReadsPhone(models);
+    m.cloud.generate.mockRejectedValue(new Error("Failed to fetch"));
+    await addPhoto();
+    await waitFor(() => expect(m.cloud.generate).toHaveBeenCalled());
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    const tries = m.cloud.generate.mock.calls.length;
+    rerender({ online: false });
+    act(() => push({ secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
+    m.cloud.generate.mockResolvedValue({ text: JSON.stringify(phoneOnDevice), source: "in_cloud" });
+    rerender({ online: true });
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).toHaveBeenCalledTimes(tries);
+  });
+  it("still runs a look when an earlier tab's no was only first read during the read, and the sender said yes since", async () => {
+    localStorage.clear();
+    const here = deviceConsent(localStorage);
+    const { models, store } = setup({}, "available", {}, here);
+    const m = Object.values(models)[0]!;
+    let finish!: (v: { text: string; source: "on_device" }) => void;
+    m.device.generate.mockImplementation(() => new Promise((r) => { finish = r; }));
+    // A tab still on the earlier question said no; this tab has not read that yet.
+    localStorage.setItem("byt.cloudConsent", "false");
+    await addPhoto();
+    await waitFor(() => expect(m.device.generate).toHaveBeenCalled());
+    act(() => store.setConsent(true));
+    await act(async () => { finish({ text: JSON.stringify(phoneOnDevice), source: "on_device" }); });
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("drops a waiting look when the second-look policy in force no longer asks for one", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined,
+      secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+  it("keeps a waiting look through being offline, and runs it once back online", async () => {
+    const { models, push, rerender } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    rerender({ online: false });
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    rerender({ online: true });
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
   it("runs the second look by default, as a control for the policy test", async () => {

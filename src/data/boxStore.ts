@@ -134,6 +134,8 @@ export interface BoxStore {
   // This device's answer as stored now, read fresh: right before a cloud call it may differ from the state
   // a page last rendered, if another tab changed it.
   consentNow(): boolean | null;
+  // How many times a no was given on this device (read fresh): a photo read before the newest no stays here.
+  consentNoCount(): number;
 }
 
 export interface BoxStoreDeps {
@@ -270,6 +272,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let destinationCode = DEFAULT_DESTINATION;
   let liveRead: { code: string; edition: DestinationEdition } | null = null;
   let cloudConsent: boolean | null = deps.consent?.get() ?? null;
+  // Nos given here, for a store with no device record (tests, the sample page).
+  let localNos = 0;
   let sources: BoxSources = { ...NO_SOURCES };
   let lastRecheckMs: number | null = null;
   const clock = deps.clock ?? (() => Date.now());
@@ -726,6 +730,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit(evaluate(), false);
     },
     consentNow: () => (deps.consent ? deps.consent.get() : cloudConsent),
+    consentNoCount: () => (deps.consent ? deps.consent.noCount() : localNos),
     // After a read that failed, saving again means reading the box again first.
     retrySave: () => {
       if (loadState === "failed") { void load(); return; }
@@ -748,6 +753,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       if (editedWhileClosed) { editedWhileClosed = false; commit(); }
     },
     setConsent(v) {
+      if (v === false) localNos++;
       deps.consent?.set(v);
       publishConsent(v);
     },
