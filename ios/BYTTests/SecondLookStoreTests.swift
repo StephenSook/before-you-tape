@@ -319,8 +319,36 @@ import Testing
         // The larger one is over 100 Wh and out either way.
         let large = try look(Self.phone, Self.bigPhone)
         large.0.settleDispute(large.1, field: "battery", side: .cloud)
+        #expect(dispute(large.0, "battery")?["resolved"] == .bool(true))
         #expect(large.0.items[0].identityConfirmedBy != "second_look")
         #expect(level(large.0, large.1) == "take_out")
+    }
+
+    /// An item a second look confirmed while its numbers were still disputed (a box saved by an earlier
+    /// build): picking either side of the battery or lithium grams makes the numbers the sender's.
+    @Test func pickingNumbersOnASecondLookItemMakesThemTheSenders() throws {
+        let numbers: [(String, JSONValue)] = [
+            ("battery", .object(["device": .object(["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.4)]),
+                                 "cloud": .object(["volts": .number(3.85), "milliampHours": .number(40000), "wattHours": .number(154)]),
+                                 "resolved": .bool(false)])),
+            ("lithiumGrams", .object(["device": .number(0.1), "cloud": .number(1.2), "resolved": .bool(false)])),
+        ]
+        for (field, open) in numbers {
+            for side in [DisputeSide.device, .cloud] {
+                let item = BoxItem(itemId: "saved-n", read: Self.with(Self.phone, ["labelText": .string("")]),
+                                   answers: ["device_condition": "new_sealed", "cell_count": "one"], identityConfirmedBy: "second_look",
+                                   tagsEdition: "", readSource: "phone_on_device", readMs: 900,
+                                   secondLook: SecondLookNote(ms: 900, reason: "battery_numbers"), disputes: .object([field: open]))
+                let p = MemoryBoxPersistence(stored: BoxSnapshot(boxId: "saved-box", destinationCode: "CA", items: [item],
+                                                                cloudConsent: true, sources: BoxSources()))
+                let s = try t.store(p, engine: engine)
+                s.load()
+                s.settleDispute("saved-n", field: field, side: side)
+                #expect(dispute(s, field)?["resolved"] == .bool(true), "\(field) \(side)")
+                #expect(s.items[0].identityConfirmedBy == "sender", "\(field) \(side)")
+                #expect(p.saved.last?.items.first?.identityConfirmedBy == "sender", "\(field) \(side)")
+            }
+        }
     }
 
     @Test func lithiumGramsPickedBetweenTwoReadingsAreHeld() throws {
@@ -404,7 +432,7 @@ import Testing
             s.load()
             #expect(level(s, "saved-n") == want, "\(name)")
             #expect(ruleIds(s, "saved-n").contains("USPS-INTL-LI-ONE-READ") == (want == "check"), "\(name)")
-            #expect(p.saved.allSatisfy { $0.items.first?.identityConfirmedBy == "second_look" }, "\(name)")
+            #expect(!p.saved.isEmpty && p.saved.allSatisfy { $0.items.first?.identityConfirmedBy == "second_look" }, "\(name)")
             let saves = p.saved.count
             s.reevaluate()
             #expect(p.saved.count == saves, "\(name)")
@@ -414,8 +442,8 @@ import Testing
     @Test func aLaterLookThatSeesAnotherKindOfItemDropsAnEarlierSecondLook() throws {
         let (s, id) = try look(Self.phone, Self.phone)
         #expect(s.items[0].identityConfirmedBy == "second_look")
-        let tablet = Self.with(Self.bigPhone, ["itemName": .string("Tablet"), "category": .string("tablet"),
-                                               "milliampHours": .number(5000), "wattHours": .number(19.25)])
+        // The same numbers, so only what the item is differs between the two looks.
+        let tablet = Self.with(Self.phone, ["itemName": .string("Tablet"), "category": .string("tablet")])
         let m = try engine.mergeSecondLook(device: Self.phone, cloud: tablet)
         s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: Self.label(tablet), disputes: m.disputes)
         #expect(s.items[0].identityConfirmedBy != "second_look")
