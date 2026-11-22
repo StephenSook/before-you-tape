@@ -52,6 +52,7 @@ import Testing
         #expect(signIn.currentUid() == nil)
         #expect(await signIn.delete(nil) == .none)
         #expect(LiveFirebase.skipped.contains("anonymous sign-in"))
+        #expect(LiveFirebase.skipped.contains("anonymous account deletion"))
     }
 
     /// App Check fetches a token by itself at launch. In this test launch its provider is one that
@@ -82,7 +83,7 @@ import Testing
         #expect(m.editionNotice == EditionSource.notLoaded)
         #expect(LiveFirebase.skipped.contains("Firestore read of ruleEditions/byt-hermetic-test"))
         #expect(LiveFirebase.skipped.contains("anonymous sign-in"))
-        #expect(LiveFirebase.skipped.contains("Remote Config fetch"))
+        #expect(LiveFirebase.skipped.contains("Remote Config fetch and realtime listener"))
     }
 
     /// A test may stub a signed-in user, but the app's own cloud reader still sends nothing in this

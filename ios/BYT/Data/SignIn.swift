@@ -28,6 +28,9 @@ struct SignIn {
             return SignIn(isSignedIn: { false }, attempt: {
                 live.skip("anonymous sign-in")
                 return false
+            }, delete: { _ in
+                live.skip("anonymous account deletion")
+                return .none
             })
         }
         let gate = SignInGate()

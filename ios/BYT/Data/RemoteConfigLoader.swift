@@ -17,7 +17,7 @@ final class RemoteConfigLoader {
     /// stay in force.
     func start() {
         guard live.allowed else {
-            live.skip("Remote Config fetch")
+            live.skip("Remote Config fetch and realtime listener")
             return
         }
         guard registration == nil else { return }

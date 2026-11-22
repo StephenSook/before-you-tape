@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### fix(ios): an off launch logs a skipped account deletion and names the Remote Config listener
+- What: in a launch that may not call Firebase, "Delete everything" now logs that it skipped deleting
+  the anonymous account (it still clears the box on the iPhone), and the Remote Config skip names both
+  the fetch and the realtime listener it skips.
+- Source: second-model review of this change set.
+- Verified: LiveFirebaseTests 9 passed with the new names. `bash ios/scripts/ci-local-ios.sh` exit 0
+  on this exact tree (292 app tests: 291 passed, 0 failed, 1 opt-in skip); the simulator log of that
+  run (40,089 lines from the app) names no Google or Firebase host.
+
 ### test(ios): the Firebase gate tests check the process wiring and never touch a live provider
 - What: the launch rule for a process is now one function (LiveFirebase.forProcess), which the launch
   uses. A test checks that this test process stays off even with `-liveFirebase` added, so the XCTest
