@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: the Samsung A16 link for the android-judge-5 file now points at docs/evidence/android/a16-2026-11-22/judge-5.md, the record of that exact file, and the wording about the earlier android-judge-4 check is gone. Source: review. Verified: the evidence file names the same APK and SHA-256; full gate, hygiene and tone.
+
 - rules/live-engines.json lists android-judge-5 beside android-judge-3 and android-judge-4, so the pin guard names it among the live builds a pin must not break. The facts list is unchanged: it is what every live build knows, and android-judge-5 knows all of them. Source: review. Verified: the pin-guard test failed first without android-judge-5, then passed with publish-edition's tests; full gate, hygiene and tone.
 
 - The judge page's Android app link, and the README's, now point at the android-judge-5 release (before-you-tape-android-27087ac.apk, SHA-256 4d58a905dd0dfe6d771fa31bd7ea4b111e754b83d08977a12139166d73e924f9, built from 27087ac with rule edition revision 7). The README says the A16 check on that file is in its release notes and keeps the link to the earlier android-judge-4 A16 record. Source: review. Verified: the judge page test failed first on the judge-4 link, then passed; release assets and digest read with gh; full gate, hygiene and tone.
