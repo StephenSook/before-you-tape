@@ -25,6 +25,7 @@ fun PackScreen(
     onFix: ((itemId: String) -> Unit)? = null,
     onRemove: ((itemId: String) -> Unit)? = null,
     onQuantity: ((itemId: String, step: Int) -> Unit)? = null,
+    onConfirmNumber: ((itemId: String, field: String, value: Double) -> Unit)? = null,
     bottom: @Composable () -> Unit = {},
 ) {
     val result = state.result
@@ -38,7 +39,7 @@ fun PackScreen(
             result != null -> {
                 for (item in state.items) {
                     val verdict = result.items[item.input.itemId] ?: continue
-                    ItemCard(item, verdict, onAnswer, onFix, onRemove, onQuantity)
+                    ItemCard(item, verdict, onAnswer, onFix, onRemove, onQuantity, onConfirmNumber)
                 }
                 if (result.lithium.text.isNotEmpty()) Text(result.lithium.text, style = MaterialTheme.typography.bodyLarge)
                 for (note in result.notes) Text(note.text, style = MaterialTheme.typography.bodyMedium)

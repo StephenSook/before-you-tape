@@ -107,6 +107,61 @@ object BoxLogic {
     fun withEngineError(s: BoxState, name: String): BoxState = s.copy(result = null, engineError = name)
 
     /**
+     * [patch] with the numbers that come with a typed deciding number, as the sender's own (rule edition 7): a typed
+     * Wh above 0 brings the volts and capacity (mAh) shown, typed lithium grams above 0 bring the volts shown, each only
+     * when it is above 0 and not typed itself. Never Wh with grams or grams with Wh. Nothing comes when the patch sets
+     * any battery number to 0. (This app runs no second look, so no item carries a numbers dispute.)
+     */
+    fun withCompanions(input: BoxItemInput, patch: Map<String, JsonElement>): Map<String, JsonElement> {
+        fun typed(f: String) = (patch[f] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { !it.isString }?.content?.toDoubleOrNull()
+        if (BATTERY_NUMBERS.any { typed(it) == 0.0 }) return patch
+        val bring = buildList {
+            if ((typed("wattHours") ?: 0.0) > 0) addAll(listOf("volts", "milliampHours"))
+            if ((typed("lithiumGrams") ?: 0.0) > 0) add("volts")
+        }.distinct().filter { it !in patch }
+        if (bring.isEmpty()) return patch
+        val shown = effectiveRead(input)
+        return patch + bring.mapNotNull { f -> batteryNumber(shown, f).takeIf { it > 0 }?.let { f to kotlinx.serialization.json.JsonPrimitive(it) } }
+    }
+
+    /**
+     * What the label check on a held battery saves (rule edition 7): [value], the Wh or lithium grams the sender typed
+     * from the label, compared with the model's own reading only (a number the sender typed earlier confirms nothing
+     * more). A match within [tolerancePct] saves the typed number with the numbers it brings; otherwise the typed
+     * number alone. The typed number is always the one kept. Null when the value is not a number above 0.
+     */
+    fun labelNumberPatch(input: BoxItemInput, field: String, value: Double, tolerancePct: Double?): Map<String, JsonElement>? {
+        if (!value.isFinite() || value <= 0) return null
+        val read = if (field in input.overrides) 0.0 else batteryNumber(input.read, field)
+        val matches = tolerancePct != null && read > 0 && kotlin.math.abs(value - read) / read * 100 <= tolerancePct
+        val typed = mapOf(field to kotlinx.serialization.json.JsonPrimitive(value))
+        return if (matches) withCompanions(input, typed) else typed
+    }
+
+    /** The number the label check asks for: the Wh when Wh is shown, otherwise the lithium grams. */
+    fun labelNumberField(shown: ItemReadWire): String = if (shown.wattHours > 0) "wattHours" else "lithiumGrams"
+
+    /** The typed text as a number above 0 (a comma is a decimal point), or null. */
+    fun labelNumberValue(text: String): Double? =
+        text.trim().replace(",", ".").toDoubleOrNull()?.takeIf { it.isFinite() && it > 0 }
+
+    /** The edition's limits.whTolerancePct, or null when it cannot be read (then nothing matches). */
+    fun whTolerancePct(editionJson: String?): Double? = runCatching {
+        Json.parseToJsonElement(editionJson ?: return null).jsonObject["limits"]?.jsonObject?.get("whTolerancePct")
+            ?.let { it as? kotlinx.serialization.json.JsonPrimitive }?.takeIf { !it.isString }?.content?.toDoubleOrNull()
+    }.getOrNull()
+
+    private val BATTERY_NUMBERS = listOf("volts", "milliampHours", "wattHours", "lithiumGrams")
+
+    private fun batteryNumber(r: ItemReadWire, f: String): Double = when (f) {
+        "volts" -> r.volts
+        "milliampHours" -> r.milliampHours
+        "wattHours" -> r.wattHours
+        "lithiumGrams" -> r.lithiumGrams
+        else -> error("not a battery number: $f")
+    }
+
+    /**
      * The read with the sender's fixes applied, as the form shows it. An override the read type
      * cannot take (typed text in a number field) is left out here; the engine still judges it.
      */

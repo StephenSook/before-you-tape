@@ -306,7 +306,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun fixed(itemId: String, draft: ReadDraft) {
         onWorker {
             val input = box.state.items.firstOrNull { it.input.itemId == itemId }?.input ?: return@onWorker
-            val patch = ReadDrafts.changed(BoxLogic.effectiveRead(input), draft)
+            // Only what the sender typed, with the numbers a typed Wh or lithium grams brings (rule edition 7).
+            val patch = BoxLogic.withCompanions(input, ReadDrafts.changed(BoxLogic.effectiveRead(input), draft))
             val tags = if ("labelText" in patch) host?.labelTags(draft.labelText) ?: emptyList() else null
             // Typed label words bring their figures, merged by the engine with the ones the item keeps.
             val figures = if ("labelText" in patch) host?.labelFigures(BoxLogic.figureTexts(input, draft.labelText), input.labelFigures) else null
@@ -318,6 +319,16 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     override fun answer(itemId: String, questionId: String, answerId: String) {
         onWorker {
             box.answer(itemId, questionId, answerId)
+            publish()
+        }
+    }
+
+    override fun confirmNumber(itemId: String, field: String, value: Double) {
+        onWorker {
+            val input = box.state.items.firstOrNull { it.input.itemId == itemId }?.input ?: return@onWorker
+            // The tolerance is the running edition's own; with none, nothing matches and the typed number is saved alone.
+            val patch = BoxLogic.labelNumberPatch(input, field, value, BoxLogic.whTolerancePct(runningEdition?.json)) ?: return@onWorker
+            box.override(itemId, patch, null)
             publish()
         }
     }

@@ -32,6 +32,10 @@ object Copy {
     const val TYPE_IT = "Type it"
     const val RETAKE = "Take the photo again"
     const val FIX_READING = "Fix this reading"
+    /** The label check on a held battery (rule edition 7), worded as on the web card. */
+    const val TYPE_LABEL_WH = "Type the Wh printed on the label"
+    const val TYPE_LABEL_GRAMS = "Type the lithium grams printed on the label"
+    const val CHECK_THE_NUMBER = "Check the number"
     const val RULES_NOT_LOADED = "The rules could not be loaded, so nothing is checked yet."
     const val KEPT_ON_PHONE = "Labels are read on this phone only."
     const val NO_ITEMS = "Nothing in the box yet."
@@ -102,7 +106,8 @@ object Copy {
         return if ("," in where) "$where, in $took." else "$where in $took."
     }
 
-    val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING, RULES_NOT_LOADED,
+    val ALL: List<String> = listOf(CONSENT, ALLOW, KEEP_ON_PHONE, FOOTER, CHECK_NOW, ADD_PHOTO, TYPE_IT, RETAKE, FIX_READING,
+        TYPE_LABEL_WH, TYPE_LABEL_GRAMS, CHECK_THE_NUMBER, RULES_NOT_LOADED,
         KEPT_ON_PHONE, NO_ITEMS, CAMERA_OFF, PHOTO_FAILED, HOLD_ZONE, LOADING, WHERE_TO, ADD_ANOTHER, REMOVE, ONE_MORE, ONE_FEWER, MODEL_CAN_DOWNLOAD, GET_MODEL, MODEL_DOWNLOADING, MODEL_DOWNLOAD_FAILED, UPDATE_NEEDED, UPDATE_HOW, OPEN_DOWNLOADS, howMany(3),
         sendingTo("Canada"), seeTheBox(2)) + BlockReason.entries.map(::blocked) + FailReason.entries.map(::failed) +
         listOf("phone_on_device", "phone_cloud", "on_device", "in_cloud", "manual", "cloud_unreported").map(::source) +
