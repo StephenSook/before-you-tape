@@ -675,6 +675,15 @@ describe("createBoxStore", () => {
         });
       });
 
+      it("settles a battery dispute once the sender typed every number either read gave", () => {
+        const whOnly: ItemRead = { ...phone, labelText: "15.4Wh", volts: 0, milliampHours: 0, wattHours: 15.4 };
+        const { s, id } = look(whOnly, { ...whOnly, wattHours: 16 });
+        expect(ruleIds(s, id)).toContain("DATA-DISPUTE");
+        s.override(id, { wattHours: 16 });
+        expect(ruleIds(s, id)).not.toContain("DATA-DISPUTE");
+        expect(level(s, id)).toBe("ok");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });

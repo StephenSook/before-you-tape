@@ -186,10 +186,16 @@ function forStorage(item: BoxItem): BoxItem {
 
 // Whether a sender's correction covers a disputed fact: their own word settles it. Battery numbers are one
 // fact: only a whole corrected set (all three numbers) settles them, never one edited number.
-const corrects = (patch: Partial<ItemRead>, field: DisputeField): boolean =>
-  field === "battery" ? patch.volts !== undefined && patch.milliampHours !== undefined && patch.wattHours !== undefined
-  : field === "labelTags" ? patch.labelText !== undefined
-  : patch[field] !== undefined;
+// A battery dispute is settled by the sender's own numbers: every one that either read gave (all three when the
+// dispute's readings are not known).
+const BATTERY_DISPUTE_FIELDS = ["volts", "milliampHours", "wattHours"] as const;
+const corrects = (patch: Partial<ItemRead>, field: DisputeField, d?: { device: unknown; cloud: unknown }): boolean => {
+  if (field === "labelTags") return patch.labelText !== undefined;
+  if (field !== "battery") return patch[field] !== undefined;
+  const given = (side: unknown, f: (typeof BATTERY_DISPUTE_FIELDS)[number]) => ((side as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0) > 0;
+  const needed = d ? BATTERY_DISPUTE_FIELDS.filter((f) => given(d.device, f) || given(d.cloud, f)) : [...BATTERY_DISPUTE_FIELDS];
+  return (needed.length > 0 ? needed : [...BATTERY_DISPUTE_FIELDS]).every((f) => patch[f] !== undefined);
+};
 
 // Battery numbers the sender typed (any of them), or picked between two readings, are theirs and not a second look's:
 // the rules let only a second look that read the same numbers stand behind them (USPS-INTL-LI-ONE-READ).
@@ -500,7 +506,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const settled: ReadDisputes = { ...i.disputes };
     for (const f of DISPUTE_FIELDS) {
       const d = settled[f];
-      if (d && corrects(patch, f)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
+      if (d && corrects(patch, f, d)) (settled as Record<DisputeField, unknown>)[f] = { ...d, resolved: true };
     }
     return withDisputes(next, settled);
   });
@@ -606,7 +612,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           found.labelTags = { device: [...i.labelTags], cloud: cloudTags, resolved: false };
         }
         // A fact the sender corrected while the cloud read ran is theirs: no dispute stands on it.
-        for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f)) delete found[f];
+        for (const f of DISPUTE_FIELDS) if (corrects(i.overrides, f, found[f])) delete found[f];
         return withDisputes({
           ...i, read: merged, secondLook: { ms, reason },
           // The merged label is one of the two reads' labels, clipped; its words come from that read's whole label.
