@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import bundled from "../rules/edition.json";
 import live from "../rules/live-engines.json";
-import { checkPinSet, factsBeyondLiveEngines, factsOf } from "./pin-guard";
+import { canonicalJson, sha256Hex } from "../src/engine/edition";
+import { checkPinSet, checkTemplatePin, factsBeyondLiveEngines, factsOf } from "./pin-guard";
 
 describe("pin guard", () => {
   it("finds every fact an edition's rules and lines read", () => {
@@ -25,5 +26,20 @@ describe("pin guard", () => {
     expect(() => checkPinSet({ kill_cloud: "true" }, bundled)).not.toThrow();
     const known = new Set([...live.facts, "battery.numbersFrom"]);
     expect(() => checkPinSet({ rules_edition_id: bundled.editionId }, bundled, known)).not.toThrow();
+  });
+
+  it("checks the pin the whole template would publish, not only the values set on the command line", async () => {
+    const sha = await sha256Hex(canonicalJson(bundled));
+    const template = (id: string, hash: string) => ({ parameters: {
+      rules_edition_id: { defaultValue: { value: id } }, rules_edition_sha256: { defaultValue: { value: hash } } } });
+    // The template already names this build's edition, which live builds refuse: published with --allow, it is refused too.
+    expect(() => checkTemplatePin(template(bundled.editionId, sha), bundled, sha)).toThrow(/battery\.numbersFrom/);
+    expect(() => checkTemplatePin(template("", ""), bundled, sha)).not.toThrow();
+    expect(() => checkTemplatePin({ parameters: {} }, bundled, sha)).not.toThrow();
+    const known = new Set([...live.facts, "battery.numbersFrom"]);
+    expect(() => checkTemplatePin(template(bundled.editionId, sha), bundled, sha, known)).not.toThrow();
+    // The id must be this checkout's edition, and the hash its hash.
+    expect(() => checkTemplatePin(template("byt-0000000000ab", sha), bundled, sha, known)).toThrow(/rules\/edition\.json/);
+    expect(() => checkTemplatePin(template(bundled.editionId, "0".repeat(64)), bundled, sha, known)).toThrow(/rules_edition_sha256/);
   });
 });

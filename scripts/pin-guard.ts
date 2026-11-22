@@ -38,3 +38,17 @@ export function checkPinSet(sets: Record<string, string>, local: { editionId: st
   const why = pinRefusal(local, liveFacts);
   if (why) throw new Error(`Refused: rules_edition_id ${id} cannot be pinned: ${why}`);
 }
+
+// What the whole Remote Config template would publish, after any --set: the pin it names must be this checkout's
+// edition (by id and hash) and one every live build can read. Catches a pin already in the template, published with
+// --allow, as well as one set on the command line.
+interface PinTemplate { parameters?: Record<string, { defaultValue?: { value?: string } } | undefined> }
+export function checkTemplatePin(t: PinTemplate, local: { editionId: string }, localSha: string, liveFacts: ReadonlySet<string> = LIVE_FACTS): void {
+  const id = t.parameters?.rules_edition_id?.defaultValue?.value ?? "";
+  if (id === "") return;
+  const sha = t.parameters?.rules_edition_sha256?.defaultValue?.value ?? "";
+  if (id !== local.editionId) throw new Error(`rules_edition_id ${id} is not the edition in rules/edition.json (${local.editionId}); check out the commit that built it, so its facts can be checked`);
+  if (sha !== localSha) throw new Error(`rules_edition_sha256 ${sha || "(empty)"} is not the hash of the edition in rules/edition.json (${localSha})`);
+  const why = pinRefusal(local, liveFacts);
+  if (why) throw new Error(`Refused: rules_edition_id ${id} cannot be pinned: ${why}`);
+}

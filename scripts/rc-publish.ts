@@ -12,7 +12,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { checkPinSet } from "./pin-guard";
+import { canonicalJson, sha256Hex } from "../src/engine/edition";
+import { checkPinSet, checkTemplatePin } from "./pin-guard";
 
 const PROJECT = "before-you-tape-2026";
 const URL = `https://firebaseremoteconfig.googleapis.com/v1/projects/${PROJECT}/remoteConfig`;
@@ -98,9 +99,12 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const sets = parseSets(args);
   // A pin may only name this checkout's edition, and only one every live app build's engine can read.
-  checkPinSet(sets, JSON.parse(readFileSync("rules/edition.json", "utf8")) as { editionId: string });
+  const edition = JSON.parse(readFileSync("rules/edition.json", "utf8")) as { editionId: string };
+  checkPinSet(sets, edition);
   const allow = new Set([...args.flatMap((a, i) => (a === "--allow" && args[i + 1] ? [args[i + 1]!] : [])), ...Object.keys(sets)]);
   const local = applySets(JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate, sets);
+  // The same for the pin the whole template would publish, with or without --set.
+  checkTemplatePin(local, edition, await sha256Hex(canonicalJson(edition)));
 
   const live = await call("GET", token);
   if (!live.etag) throw new Error("the live template came back with no ETag; nothing was published");
