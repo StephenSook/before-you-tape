@@ -2,7 +2,7 @@
 // the one question that would settle it, and the four rule layers behind the verdict.
 import { useState } from "react";
 import type { ImagePart } from "../ai/port";
-import type { BoxItem } from "../data/boxStore";
+import { secondLookStands, type BoxItem } from "../data/boxStore";
 import { LABEL_TEXT_TAG } from "../engine/facts";
 import { openDisputes, type DisputeField, type DisputeValues, type ItemVerdict, type LayerStatus } from "../engine/types";
 import type { ItemCategory, ItemRead } from "../shared/itemRead";
@@ -188,6 +188,9 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, onCo
       <SourceGlyph source={item.readSource} />
       {checking && <p role="status">Checking again in the cloud.</p>}
       {!checking && item.secondLook && <p data-testid="second-look">{item.secondLook.reason}</p>}
+      {!checking && secondLookStands(item) && (
+        <p data-testid="second-look-agreed">A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong.</p>
+      )}
       {error && <p role="alert">{error}</p>}
       {unsaved && <p role="alert">Not saved yet. This change is only on this device for now.</p>}
       {unsaved && onRetrySave && <button type="button" onClick={onRetrySave}>Try saving again</button>}
