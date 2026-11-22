@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The judge page's Android app link, and the README's, now point at the android-judge-4 release (before-you-tape-android-3708cf1.apk, SHA-256 fe218b21323179b904bd0b3765cd38af0f5426f194b7b4857458f6ec235dca73, built with rule edition revision 7 and checked on a Samsung A16). The judge page's Android battery note now says numbers read from a photo stay at Check this until the sender types them from the label, which judge-4 counts. rules/live-engines.json lists android-judge-4 beside android-judge-3, whose installs still refuse unknown facts, so the facts every live build knows are unchanged. Source: the android-judge-4 release. Verified: the judge page test failed first, full gate.
+
 - The second-look test waits for Remote Config's fetch before adding the photo: its stand-in model answers at once, and cloud checks stay off until those settings arrive, so without the wait the card had no second look to offer. Source: the first CI run of the test. Verified: full gate; the verify job runs the spec.
 
 - A new local end-to-end test intercepts the cloud second look and checks it sends what the page showed: exactly one image, byte for byte the crop the page offered, and no text but the app's two fixed prompts. It makes a read on this device that the rules send for a second look, checks nothing reaches the cloud before the sender takes the card's offer and taps Allow, then reads the one request. The first cloud read already had this check. Source: the live-site audit. Verified: in CI, where the App Check debug token lets the cloud path run.
