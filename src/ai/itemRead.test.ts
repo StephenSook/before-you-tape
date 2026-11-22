@@ -223,6 +223,27 @@ describe("readItem", () => {
     expect(gone.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
+  it("never takes a status from the message when the SDK's field has one, or from a URL in the message", async () => {
+    // A field status outside 4xx and 5xx is still the status: the 503 in the body is not read.
+    const moved = models({ cloud: sdkFails(302, "[302 Found] 503 Service Unavailable"), fallback: never() });
+    await expect(readItem(moved, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(moved.fallback.generate).not.toHaveBeenCalled();
+    // A project ID in the request URL is neither a status nor a network word.
+    const gone = models({
+      cloud: sdkFails(404, "Error fetching from https://firebasevertexai.googleapis.com/v1beta/projects/network-403/models/gemini-x:generateContent: [404 Not Found] models/gemini-x is no longer available"),
+      fallback: ok("in_cloud"),
+    });
+    expect(await readItem(gone, img, "cloud_only", clock(0, 9))).toMatchObject({ fallbackAfter: "404" });
+    expect(gone.cloud.generate).toHaveBeenCalledTimes(1);
+    const lost = models({
+      cloud: { generate: vi.fn(async () => { throw new AIError(AIErrorCode.ERROR, "Error fetching from https://firebasevertexai.googleapis.com/v1beta/projects/p-503/models/m:generateContent: Failed to fetch"); }) },
+      fallback: never(),
+    });
+    await expect(readItem(lost, img, "cloud_only", clock(0, 1))).rejects.toMatchObject({ kind: "cloud_unreachable" });
+    expect(lost.cloud.generate).toHaveBeenCalledTimes(2);
+    expect(lost.fallback.generate).not.toHaveBeenCalled();
+  });
+
   it("gives a network failure with no status, as the SDK wraps a Failed to fetch, one retry and no fallback model", async () => {
     const lost = (): MockPort => ({ generate: vi.fn(async () => { throw new AIError(AIErrorCode.ERROR, "Error fetching from https://firebasevertexai.googleapis.com/v1beta/x: Failed to fetch"); }) });
     const m = models({ cloud: lost(), fallback: never() });
