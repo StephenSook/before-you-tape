@@ -1,5 +1,7 @@
 package app.beforeyoutape.engine
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
@@ -57,7 +59,12 @@ data class ItemReadWire(
 @Serializable
 data class TaggedRead(val read: ItemReadWire, val labelTags: List<String>)
 
-/** One item in the box, as the engine takes it. Every field is given; there are no defaults here. */
+/**
+ * One item in the box, as the engine takes it. Every field is given except [numbersFrom], the one optional
+ * field in the engine's input: "typed" when the sender typed the item's battery numbers. It is left out of
+ * the JSON unless it is set, and the engine then counts the numbers as read, the safe side.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class BoxItemInput(
     val itemId: String,
@@ -68,6 +75,7 @@ data class BoxItemInput(
     val quantity: Double,
     val identityConfirmedBy: String?,
     val labelTags: List<String>,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val numbersFrom: String? = null,
 )
 
 @Serializable
