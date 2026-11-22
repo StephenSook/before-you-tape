@@ -79,9 +79,10 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     async loadBox(boxId: string): Promise<LoadResult> {
       try {
         const snap = await getDoc(doc(db, "boxes", boxId));
-        if (!snap.exists()) return { status: "missing" };
+        const fromServer = !snap.metadata.fromCache;
+        if (!snap.exists()) return { status: "missing", fromServer };
         expiries.set(boxId, (snap.data().expiresAt as Timestamp | undefined) ?? null);
-        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>) };
+        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>), fromServer };
       } catch (e) {
         // Not a member, offline with nothing cached, or a query that failed: never an empty box.
         return { status: "failed", error: message(e) };

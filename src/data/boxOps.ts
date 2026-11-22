@@ -2,9 +2,11 @@
 // writes another one's items back. A load says whether the box was found, is missing, or could not be read.
 import type { BoxItem, BoxSources, BoxState } from "./boxStore";
 
+// fromServer: the answer came from the server, not from this browser's cache (Firestore answers from its cache when
+// it cannot reach the server, as with reCAPTCHA blocked). Unset when the store keeps no other copy.
 export type LoadResult =
-  | { status: "found"; box: Partial<BoxState> }
-  | { status: "missing" }
+  | { status: "found"; box: Partial<BoxState>; fromServer?: boolean }
+  | { status: "missing"; fromServer?: boolean }
   // The read itself failed (offline, refused, a query that errored): nothing may be written over the box.
   | { status: "failed"; error: string };
 

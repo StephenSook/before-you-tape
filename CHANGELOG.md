@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A box read now says whether it reached the server (fromServer in src/data/boxOps.ts, from Firestore's snapshot metadata in src/data/persistence.ts): Firestore answers from this browser's cache when it cannot reach the server, as with reCAPTCHA blocked, and the store needs to tell the two apart. Source: review (round 1 on the App Check change: a slow check could leave the failure shown after the server answered). Verified: a new loadBox test with Firestore mocked failed first and passes for found and missing, from the server and from the cache.
+
 - docs/SECURITY.md row 1d: verified overnight (read 2026-11-22 13:13 UTC: still ENFORCED; 3,466 verified web requests, 55 Android and 9 iPhone over 24 hours; none allowed without a valid token; 118 denials, every one inside our own test runs, matched by time since Firestore keeps no request logs), and what a browser App Check cannot verify now sees. Source: review. Verified: the counts from Cloud Monitoring's verification_count grouped by result, security and app; the attribution from the start and end of each local Playwright run and the iOS simulator log's times.
 
 - /blind says the same when App Check refuses this browser: This browser did not pass the site's security check, with a Reload page button, until the session opens (src/pages/BlindRoute.tsx). It used to say to check the connection, or, with reCAPTCHA blocked and an empty cache, that the link was not valid. Source: review (the same reproduction). Verified: a new BlindRoute test failed first and passes; the existing link, not-ready and connection messages still pass when App Check passes.
