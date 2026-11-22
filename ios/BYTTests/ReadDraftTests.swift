@@ -179,6 +179,55 @@ import Testing
         #expect(d.fixPatch(from: moved) == ["liquid": .bool(true)])
     }
 
+    /// A second look that moves the reading under the open form resets the fields it moved to the new reading,
+    /// and they are no longer the sender's: no choice made against the old reading is saved. The moved fields
+    /// the sender had edited are named.
+    @Test func aReadingThatMovesUnderTheFormResetsTheFieldsItMoved() {
+        var d = ReadDraft.of(Self.phone)
+        for (f, typed) in [("volts", "3.85"), ("milliampHours", "4000"), ("wattHours", "15.4")] {
+            d.numbers[f] = "1"
+            d.numbers[f] = typed
+        }
+        d.flags["liquid"] = true
+        let moved = SecondLookStoreTests.with(Self.phone, ["milliampHours": .number(40000), "wattHours": .number(154)])
+        #expect(d.rebase(from: Self.phone, to: moved) == ["milliampHours", "wattHours"])
+        #expect(d.numbers["milliampHours"] == "40000" && d.numbers["wattHours"] == "154" && d.numbers["volts"] == "3.85")
+        #expect(d.fixPatch(from: moved) == ["volts": .number(3.85), "liquid": .bool(true)])
+        #expect(ReadDraft.changedLine(["milliampHours", "wattHours"])
+            == "The second look changed Milliamp-hours (mAh), Watt-hours (Wh). Check it again before you save.")
+        #expect(ReadDraft.changedLine([]) == nil)
+        // A moved field the sender had not edited is reset without a word.
+        var quiet = ReadDraft.of(Self.phone)
+        #expect(quiet.rebase(from: Self.phone, to: moved).isEmpty && quiet.numbers["wattHours"] == "154")
+    }
+
+    /// The same, through the store: numbers retyped against the first read, then a second look that reads
+    /// other numbers, then Save. The retyped volts alone do not settle the battery dispute, so the larger
+    /// reading still decides it, as on the web.
+    @Test func numbersRetypedBeforeASecondLookMovedThemDoNotSettleIt() throws {
+        let t = BoxStoreTests()
+        let engine = try BoxStoreTests.bundledEngine()
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let big = SecondLookStoreTests.bigPhone
+        let id = try #require(s.addRead(t.outcome(Self.phone, .onDevice), cropFile: nil))
+        s.answer(id, question: "device_condition", answer: "new_sealed")
+        s.answer(id, question: "cell_count", answer: "one")
+        let opened = FixReadingView.current(s.items[0])
+        var d = ReadDraft.of(opened)
+        for (f, typed) in [("volts", "3.85"), ("milliampHours", "4000"), ("wattHours", "15.4")] {
+            d.numbers[f] = "1"
+            d.numbers[f] = typed
+        }
+        let m = try engine.mergeSecondLook(device: Self.phone, cloud: big)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: "3.85V 40000mAh", disputes: m.disputes)
+        let now = FixReadingView.current(s.items[0])
+        _ = d.rebase(from: opened, to: now)
+        s.applyFix(id, patch: d.fixPatch(from: now))
+        #expect(s.items[0].disputes?["battery"]?["resolved"] == .bool(false))
+        #expect(s.result?.items[id]?.level == "take_out")
+    }
+
     /// A battery number the sender typed again as it was shown is theirs too; one typed back to empty is not.
     @Test func aBatteryNumberTypedAgainAsShownCounts() {
         var d = ReadDraft.of(Self.phone)

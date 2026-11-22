@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): Fix this reading resets the fields a second look moved while it was open
+- What: numbers the sender typed against the first read stayed theirs when a second look landed with other
+  numbers while the form was open, so Save settled the battery dispute with them. A typed 3.85 V, 4000 mAh
+  and 15.4 Wh over a second look of 40000 mAh and 154 Wh turned Take it out into OK, where the web keeps
+  Take it out. As in the web's FixReading, the form now measures the draft against the reading it shows.
+  When that reading changes, each field it moved shows the new reading and is no longer the sender's, and
+  the form names the moved fields the sender had edited: "The second look changed ... Check it again
+  before you save." A reset field the sender edits again is theirs again.
+- Source: second-model review of this change set.
+- Verified: two new tests failed against a no-op rebase (the dispute was settled) and pass: the draft
+  reset, the note and a quiet reset of a field the sender had not edited, and the store scenario, which
+  stays Take it out with the dispute open. The quiet-reset case first caught a mark set by the reset
+  itself, fixed before commit. ReadDraftTests and the store suites pass, 81 of 81.
+
 ### fix(ios): an item typed by hand keeps its label's figures after a relaunch
 - What: a hand-typed item's numbers are judged on the Wh rules (numbersFrom "typed"), so after a relaunch,
   with its label text gone, nothing held a Wh below the label's figure: a typed 15.4 Wh under a label

@@ -63,6 +63,33 @@ struct ReadDraft: Equatable, Sendable {
         return d
     }
 
+    /// The reading moved under the open form (a second look landed): each field it moved shows the new
+    /// reading and is no longer the sender's, so no choice made against the old reading is saved (the web
+    /// app's FixReading). Returns the moved fields the sender had edited, which the form names.
+    mutating func rebase(from old: JSONValue, to new: JSONValue) -> [String] {
+        let before = Self.of(old), fresh = Self.of(new)
+        // Read before the fields are set back, since setting one marks it.
+        let edits = touched
+        var moved: [String] = []
+        if before.category != fresh.category { moved.append("category"); category = fresh.category }
+        if before.itemName != fresh.itemName { moved.append("itemName"); itemName = fresh.itemName }
+        if before.labelText != fresh.labelText { moved.append("labelText"); labelText = fresh.labelText }
+        for (f, _) in Self.numberFields where before.numbers[f] != fresh.numbers[f] { moved.append(f); numbers[f] = fresh.numbers[f] }
+        for (f, _) in Self.flagFields where before.flags[f] != fresh.flags[f] { moved.append(f); flags[f] = fresh.flags[f] }
+        if before.retailBox != fresh.retailBox { moved.append("retailBox"); retailBox = fresh.retailBox }
+        touched = edits.subtracting(moved)
+        return moved.filter { edits.contains($0) }
+    }
+
+    /// What the form says about the fields a second look changed after the sender edited them; nil for none.
+    static func changedLine(_ fields: [String]) -> String? {
+        guard !fields.isEmpty else { return nil }
+        let words: [String: String] = ["category": "what it is", "itemName": "the name", "labelText": "the label text", "retailBox": "the box"]
+        let all = numberFields + flagFields
+        let names = fields.map { f in words[f] ?? all.first { $0.id == f }?.label ?? f }
+        return "The second look changed \(names.joined(separator: ", ")). Check it again before you save."
+    }
+
     /// The typed number, 0 for an empty field, or nil when it is not a number of zero or more.
     static func parseNumber(_ text: String) -> Double? {
         let t = text.trimmingCharacters(in: .whitespaces)

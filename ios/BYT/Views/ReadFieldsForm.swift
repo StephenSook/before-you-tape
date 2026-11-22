@@ -34,17 +34,23 @@ struct ReadFieldsForm: View {
     }
 }
 
-/// The sender corrects what was read. Only the changed fields are saved, on top of the read.
+/// The sender corrects what was read. Only the fields they edited are saved, on top of the read. A second
+/// look can land while the form is open: a field it moved shows the new reading, and one the sender had
+/// edited is reset to it with a note, so no choice made against the old reading is saved.
 struct FixReadingView: View {
     let item: BoxItem
     let box: BoxStore
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ReadDraft
+    /// The reading the draft is measured against, and the edited fields a second look reset.
+    @State private var base: JSONValue
+    @State private var reset: [String] = []
 
     init(item: BoxItem, box: BoxStore) {
         self.item = item
         self.box = box
         _draft = State(initialValue: ReadDraft.of(Self.current(item)))
+        _base = State(initialValue: Self.current(item))
     }
 
     /// The reading as the sender sees it now: the read with their earlier fixes on top.
@@ -56,13 +62,16 @@ struct FixReadingView: View {
 
     var body: some View {
         NavigationStack {
-            Form { ReadFieldsForm(draft: $draft) }
+            Form {
+                if let line = ReadDraft.changedLine(reset) { Text(line).accessibilityIdentifier("fix-reading-reset") }
+                ReadFieldsForm(draft: $draft)
+            }
                 .navigationTitle("Fix this reading")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            box.applyFix(item.itemId, patch: draft.fixPatch(from: Self.current(item)))
+                            box.applyFix(item.itemId, patch: draft.fixPatch(from: base))
                             dismiss()
                         }
                         .disabled(!draft.canSave)
@@ -70,6 +79,13 @@ struct FixReadingView: View {
                 }
         }
         .accessibilityIdentifier("fix-reading")
+        // The reading changed under the form: once per change.
+        .onChange(of: Self.current(item)) { _, now in
+            reset = draft.rebase(from: base, to: now)
+            base = now
+        }
+        // A reset field the sender edits again is theirs again.
+        .onChange(of: draft.touched) { _, touched in reset.removeAll { touched.contains($0) } }
     }
 }
 
