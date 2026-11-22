@@ -344,6 +344,16 @@ describe("ItemCard", () => {
       expect(screen.getByLabelText("Type the lithium grams printed on the label")).toHaveValue("");
     });
 
+    it("starts the field again when a second look changes which number it asks for", async () => {
+      const coin = item("lc2", { ...base, itemName: "Toy", category: "battery_toy", labelText: "CR2032 LITHIUM", volts: 3, lithiumGrams: 0.1, batteryWords: true,
+        retailBox: "sealed" }, { answers: { device_condition: "new_sealed" } });
+      const { rerender } = render(<ItemCard item={coin} verdict={verdictFor(coin)} crop={null} onConfirmNumber={() => {}} />);
+      await userEvent.type(screen.getByLabelText("Type the lithium grams printed on the label"), "1.2");
+      const looked = { ...coin, read: { ...coin.read, milliampHours: 400, wattHours: 1.2 } };
+      rerender(<ItemCard item={looked} verdict={verdictFor(looked)} crop={null} onConfirmNumber={() => {}} />);
+      expect(screen.getByLabelText("Type the Wh printed on the label")).toHaveValue("");
+    });
+
     it("asks nothing when the numbers are not held", () => {
       const typed = { ...heldPhone, numbersFrom: "typed" as const };
       render(<ItemCard item={typed} verdict={verdictFor(typed)} crop={null} onConfirmNumber={() => {}} />);

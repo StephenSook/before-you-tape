@@ -147,8 +147,9 @@ const OWN_CHECK = "Before You Tape: ";
 
 // Battery numbers read from a photo are held until the sender reads the label: they type the Wh (or, for a lithium
 // metal cell with no Wh, the lithium grams) into an empty field, never a value filled in for them.
+const labelNumberField = (read: ItemRead) => (read.wattHours > 0 ? "wattHours" : "lithiumGrams");
 function LabelNumberCheck({ read, onCheck }: { read: ItemRead; onCheck: (field: "wattHours" | "lithiumGrams", value: number) => void }) {
-  const field = read.wattHours > 0 ? "wattHours" : "lithiumGrams";
+  const field = labelNumberField(read);
   const [text, setText] = useState("");
   const value = Number(text.replace(",", "."));
   const usable = text.trim() !== "" && Number.isFinite(value) && value > 0;
@@ -228,7 +229,9 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, onCo
       {needsRating && <button type="button" onClick={() => { setFocusField("wattHours"); setFixOpen(true); }}>Type the rating</button>}
       {needsLithium && <button type="button" onClick={() => { setFocusField("lithiumGrams"); setFixOpen(true); }}>Type the lithium amount</button>}
       {onConfirmNumber && verdict.hits.some((h) => h.ruleId === "USPS-INTL-LI-ONE-READ") && (
-        <LabelNumberCheck read={{ ...item.read, ...item.overrides }} onCheck={(field, value) => onConfirmNumber(item.itemId, field, value)} />
+        // Keyed on the number asked for: a second look that changes it starts the field again, empty.
+        <LabelNumberCheck key={labelNumberField({ ...item.read, ...item.overrides })} read={{ ...item.read, ...item.overrides }}
+          onCheck={(field, value) => onConfirmNumber(item.itemId, field, value)} />
       )}
       {(onQuantity || onRemove) && (
         <p className="item-controls">

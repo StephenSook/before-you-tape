@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The label number field on a held item starts again, empty, when a second look changes which number it asks for (lithium grams to Wh), so text typed for one number is never sent as the other. Source: second-model review of revision 7. Verified: the card test failed first, full gate.
+
 - The label number check on a held item now compares the typed number with the model's own reading only, and keeps the typed number: typing the same different number twice no longer makes the read volts and mAh the sender's, and 101 Wh typed against a read of 99 Wh is judged as 101 Wh, over the limit. Source: second-model review of revision 7. Verified: two store tests failed first, full gate.
 
 - A pin can no longer name a rule edition that a live app build's engine would refuse. rules/live-engines.json lists the facts every live build knows (android-judge-3, iPhone build 2); publish-edition refuses to write an edition that reads any other fact (a dry run prints its values and the reason), and rc-publish refuses to set rules_edition_id to it, or to an edition other than the one in rules/edition.json. docs/PRODUCTION-CHECKLIST.md says so: revision 7 reads battery.numbersFrom, so it ships only built in, and the pin stays at revision 6. Source: the revision 7 plan (a refused pin drops an old build to its built-in edition, revision 4 on android-judge-3). Verified: the guard tests failed first, the dry run of revision 7 refuses it with the reason, full gate.
