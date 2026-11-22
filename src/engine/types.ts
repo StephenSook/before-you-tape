@@ -18,7 +18,8 @@ export interface BatteryFacts {
   // Where the battery numbers present came from: all typed by the sender, all from a model read, or both.
   numbersFrom: "read" | "typed" | "mixed";
   // A Wh or lithium-grams figure the label text names that a read number it was not typed over disagrees with.
-  labelMismatch: { kind: "wh" | "grams"; label: number; read: number } | null;
+  // read is the number in use; typed says the sender typed it.
+  labelMismatch: { kind: "wh" | "grams"; label: number; read: number; typed: boolean } | null;
 }
 
 export interface LithiumLimits {

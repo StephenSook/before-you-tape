@@ -76,17 +76,21 @@ export function labelFiguresOf(text: string): LabelFigures {
 }
 const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) / b) * 100 <= tolerancePct;
 
-// A figure the label names that the read's own number disagrees with, when that number was read, not typed. Every
-// figure must agree: one that matches does not hide another, such as a module's rating beside the pack's.
+// A figure the label names that the number in use disagrees with. A read number must agree with every figure: one
+// that matches does not hide another, such as a module's rating beside the pack's. A typed number must be at least
+// every figure, so typing the module's rating still holds while typing the pack's, the larger, settles it.
 function labelMismatchOf(figs: LabelFigures, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
   lithiumGrams: number | null, tolerancePct: number): BatteryFacts["labelMismatch"] {
-  if (whPrinted !== null && !typed.has("wattHours")) {
-    const off = figs.wh.find((n) => !agrees(n, whPrinted, tolerancePct));
-    if (off !== undefined) return { kind: "wh", label: off, read: whPrinted };
+  const off = (list: number[], n: number, byHand: boolean) => list.find((f) => !agrees(f, n, tolerancePct) && (!byHand || f > n));
+  if (whPrinted !== null) {
+    const byHand = typed.has("wattHours");
+    const label = off(figs.wh, whPrinted, byHand);
+    if (label !== undefined) return { kind: "wh", label, read: whPrinted, typed: byHand };
   }
-  if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
-    const off = figs.grams.find((n) => !agrees(n, lithiumGrams, tolerancePct));
-    if (off !== undefined) return { kind: "grams", label: off, read: lithiumGrams };
+  if (lithiumGrams !== null) {
+    const byHand = typed.has("lithiumGrams");
+    const label = off(figs.grams, lithiumGrams, byHand);
+    if (label !== undefined) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
   }
   return null;
 }

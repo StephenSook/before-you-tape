@@ -468,7 +468,8 @@ describe("createBoxStore", () => {
 
     describe("battery numbers stand only when a second look read the same ones", () => {
       const phone: ItemRead = { ...powerBank, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000, wattHours: 15.4 };
-      const big: ItemRead = { ...phone, labelText: "3.85V 40000mAh 154Wh", milliampHours: 40000, wattHours: 154 };
+      // The label text names no Wh, so a typed Wh is judged on the Wh rules alone (a label figure above it holds).
+      const big: ItemRead = { ...phone, labelText: "3.85V 40000mAh", milliampHours: 40000, wattHours: 154 };
       const ruleIds = (s: ReturnType<typeof store>, id: string) => s.getState().result.items[id]?.hits.map((h) => h.ruleId) ?? [];
 
       it("is OK when both reads gave the same numbers", () => {
@@ -655,6 +656,18 @@ describe("createBoxStore", () => {
           s.confirmLabelNumber(id, "wattHours", 101);
           expect(s.getState().items[0]?.overrides).toMatchObject({ wattHours: 101 });
           expect(level(s, id)).toBe("take_out");
+        });
+
+        it("a typed Wh matching the read does not settle a larger figure the label names", () => {
+          const read: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "98Wh", volts: 14, milliampHours: 7000, wattHours: 98 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh MODULE / PACK 185Wh" }, "k");
+          s.answer(id, "device_condition", "new_sealed");
+          s.answer(id, "cell_count", "more_than_one");
+          s.confirmLabelNumber(id, "wattHours", 98);
+          expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+          expect(level(s, id)).not.toBe("ok");
         });
 
         it("saves only the typed number while the two reads dispute the numbers", () => {

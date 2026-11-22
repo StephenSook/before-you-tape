@@ -205,13 +205,16 @@ var BYT = (() => {
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
   function labelMismatchOf(figs, typed, whPrinted, lithiumGrams, tolerancePct) {
-    if (whPrinted !== null && !typed.has("wattHours")) {
-      const off = figs.wh.find((n) => !agrees(n, whPrinted, tolerancePct));
-      if (off !== void 0) return { kind: "wh", label: off, read: whPrinted };
+    const off = (list2, n, byHand) => list2.find((f) => !agrees(f, n, tolerancePct) && (!byHand || f > n));
+    if (whPrinted !== null) {
+      const byHand = typed.has("wattHours");
+      const label = off(figs.wh, whPrinted, byHand);
+      if (label !== void 0) return { kind: "wh", label, read: whPrinted, typed: byHand };
     }
-    if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
-      const off = figs.grams.find((n) => !agrees(n, lithiumGrams, tolerancePct));
-      if (off !== void 0) return { kind: "grams", label: off, read: lithiumGrams };
+    if (lithiumGrams !== null) {
+      const byHand = typed.has("lithiumGrams");
+      const label = off(figs.grams, lithiumGrams, byHand);
+      if (label !== void 0) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
     }
     return null;
   }
@@ -995,7 +998,8 @@ var BYT = (() => {
   };
   var shown = (n) => String(Math.round(n * 100) / 100);
   function labelNumbersHit(m) {
-    const said = m.kind === "wh" ? `${shown(m.label)} Wh but the read says ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but the read says ${shown(m.read)} g`;
+    const source = m.typed ? "the number typed is" : "the read says";
+    const said = m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
     return {
       ruleId: "DATA-LABEL-NUMBERS",
       layer: "data",

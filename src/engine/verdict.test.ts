@@ -148,11 +148,12 @@ describe("evaluateBox", () => {
       "typed_numbers_over_a_read_release_the_hold", "one_typed_number_over_a_read_is_mixed_and_held",
       "mixed_numbers_are_held_even_after_a_second_look", "typed_item_numbers_go_through_the_wh_rules", "typed_120_wh_laptop_is_take_out",
       "label_text_wh_that_disagrees_with_the_read_is_check", "label_text_grams_that_disagree_with_the_read_are_check",
-      "typed_numbers_settle_a_label_text_mismatch", "label_text_wh_with_a_comma_that_agrees_is_ok",
+      "typed_numbers_settle_a_label_text_mismatch", "typed_numbers_below_the_label_text_figure_hold", "label_text_wh_with_a_comma_that_agrees_is_ok",
       "label_number_typed_and_matched_makes_every_number_typed", "label_number_typed_and_different_replaces_the_read_and_holds",
       "blanking_one_number_does_not_make_the_rest_typed", "lithium_grams_on_a_li_ion_label_keep_the_wh_check",
       "a_label_naming_two_wh_figures_holds_when_one_disagrees", "a_figure_written_with_a_leading_point_reads_as_written",
       "a_5G_model_name_is_not_a_lithium_figure", "label_grams_typed_and_different_leave_mixed_numbers_held",
+      "a_typed_wh_below_another_label_figure_still_holds", "a_typed_wh_at_the_largest_label_figure_settles_it",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

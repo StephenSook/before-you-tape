@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A typed battery number now settles the label's figures only when it is at least every Wh or lithium-grams figure the label names: typing a module's 98 Wh beside the pack's 185 Wh, or 18.5 Wh under a label that says 185 Wh, holds with "The label text says 185 Wh but the number typed is 98 Wh", while typing the largest figure settles it at the stricter number. A read number must still agree with every figure. The shared vector for typed numbers settling a label mismatch now types the label's own numbers, a new one holds 18.5 Wh typed under 185 Wh, and the committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 2). Verified: the vectors and the store test failed first, full gate.
+
 - Fix this reading counts a battery number the sender typed again as it was shown as their own, so retyping 16 Wh confirms the numbers instead of saving nothing, and clearing a number both reads agreed on keeps the second look behind the others (a cleared number is no number), so it no longer turns an OK item into a hold. Source: second-model review of revision 7 (round 2). Verified: the form and store tests failed first, full gate.
 
 - An item's kept label figures now come first when a second look adds its own, so eight new figures can no longer push out a kept 185 Wh, and the figures in a label the sender types are kept with the item too, so a reload still holds it. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.

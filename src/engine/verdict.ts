@@ -44,7 +44,8 @@ const DISPUTE_HIT: RuleHit = {
 // A read's label text names a Wh or lithium-grams figure its own number disagrees with. In code, like the hits above.
 const shown = (n: number) => String(Math.round(n * 100) / 100);
 function labelNumbersHit(m: NonNullable<ItemFacts["battery"]["labelMismatch"]>): RuleHit {
-  const said = m.kind === "wh" ? `${shown(m.label)} Wh but the read says ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but the read says ${shown(m.read)} g`;
+  const source = m.typed ? "the number typed is" : "the read says";
+  const said = m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
   return {
     ruleId: "DATA-LABEL-NUMBERS", layer: "data", level: "check", section: "Before You Tape: label and reading disagree", url: RULES_PAGE,
     text: `The label text says ${said}. Type the numbers from the label in Fix this reading.`,

@@ -388,10 +388,19 @@
   },
   {
     "name": "typed_numbers_settle_a_label_text_mismatch", "code": "CA", "today": "2026-11-20",
-    "source": "The sender typed the numbers: their word stands over the label text read",
-    "items": [{ "itemId": "station", "overrides": { "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5 }, "read": { "category": "other_electronics", "labelText": "LI-ION 50000mAh 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
+    "source": "The read said 185 Wh, ten times the label text's 18.5 Wh; the sender typed the label's numbers, so they settle it",
+    "items": [{ "itemId": "station", "overrides": { "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5 },
+      "read": { "category": "other_electronics", "labelText": "LI-ION 5000mAh 3.7V 18.5Wh", "volts": 3.7, "milliampHours": 50000, "wattHours": 185, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "station": "ok" }, "notRules": { "station": ["DATA-LABEL-NUMBERS", "USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "typed_numbers_below_the_label_text_figure_hold", "code": "CA", "today": "2026-11-20",
+    "source": "The label text says 185 Wh and the sender typed 18.5 Wh, the ten-times-low misread: a typed number below a label figure holds",
+    "items": [{ "itemId": "station", "overrides": { "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5 },
+      "read": { "category": "other_electronics", "labelText": "LI-ION 50000mAh 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "station": "check" }, "expectRules": { "station": ["DATA-LABEL-NUMBERS"] }
   },
   {
     "name": "label_text_wh_with_a_comma_that_agrees_is_ok", "code": "CA", "today": "2026-11-20",
@@ -457,5 +466,21 @@
     "items": [{ "itemId": "toy", "overrides": { "lithiumGrams": 0.2 }, "read": { "category": "battery_toy", "labelText": "CR2032 LITHIUM", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": { "toy": "check" }, "expectRules": { "toy": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "a_typed_wh_below_another_label_figure_still_holds", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed the module's 98 Wh; the label also says the pack is 185 Wh, so the typed number does not settle it",
+    "items": [{ "itemId": "pack", "identityConfirmedBy": "sender", "overrides": { "volts": 14, "milliampHours": 7000, "wattHours": 98 }, "labelFigures": { "wh": [98, 185], "grams": [] },
+      "read": { "category": "laptop", "labelText": "", "volts": 14, "milliampHours": 7000, "wattHours": 98, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "more_than_one" } }],
+    "expect": { "pack": "check" }, "expectRules": { "pack": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_typed_wh_at_the_largest_label_figure_settles_it", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed the pack's 185 Wh, the largest figure the label names: it is judged at 185 Wh, too big to mail",
+    "items": [{ "itemId": "pack", "identityConfirmedBy": "sender", "overrides": { "volts": 14, "milliampHours": 13200, "wattHours": 185 }, "labelFigures": { "wh": [98, 185], "grams": [] },
+      "read": { "category": "laptop", "labelText": "", "volts": 14, "milliampHours": 7000, "wattHours": 98, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "more_than_one" } }],
+    "expect": { "pack": "take_out" }, "notRules": { "pack": ["DATA-LABEL-NUMBERS"] }
   }
 ]
