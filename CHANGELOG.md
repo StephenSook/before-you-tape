@@ -6,6 +6,10 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- rules/live-engines.json lists android-judge-5 beside android-judge-3 and android-judge-4, so the pin guard names it among the live builds a pin must not break. The facts list is unchanged: it is what every live build knows, and android-judge-5 knows all of them. Source: review. Verified: the pin-guard test failed first without android-judge-5, then passed with publish-edition's tests; full gate, hygiene and tone.
+
+- The judge page's Android app link, and the README's, now point at the android-judge-5 release (before-you-tape-android-27087ac.apk, SHA-256 4d58a905dd0dfe6d771fa31bd7ea4b111e754b83d08977a12139166d73e924f9, built from 27087ac with rule edition revision 7). The README says the A16 check on that file is in its release notes and keeps the link to the earlier android-judge-4 A16 record. Source: review. Verified: the judge page test failed first on the judge-4 link, then passed; release assets and digest read with gh; full gate, hygiene and tone.
+
 - README: says the Chrome extension CI builds is not part of this entry: it was not measured, and its cloud bridge page is closed on the site (frame-ancestors 'none' in firebase.json). Source: review. Verified: firebase.json header and bridgeParentsFromPolicy read; hygiene, tone and gate run.
 
 - docs/SECURITY.md says how the browser tests reach the live project: the local project starts only with BYT_E2E_LIVE_PROJECT=1 and a registered App Check debug token, which CI's browser steps and the deploy gate set, and the one named exception, the two service worker specs on their own server, whose few App Check denials are expected. Source: review. Verified: each sentence traced to scripts/e2e-live-opt-in.ts, playwright.config.ts, the workflows and the two specs.

@@ -16,7 +16,7 @@ describe("pin guard", () => {
     expect(factsBeyondLiveEngines({ rules: [{ when: { fact: "battery.numbersFrom", op: "eq", value: "typed" } }] })).toEqual(["battery.numbersFrom"]);
     // This build's edition reads battery.numbersFrom, which android-judge-3 and iPhone build 2 refuse.
     expect(factsBeyondLiveEngines(bundled)).toEqual(["battery.numbersFrom"]);
-    expect(live.builds).toEqual(expect.arrayContaining(["android-judge-3", "iPhone build 2"]));
+    expect(live.builds).toEqual(expect.arrayContaining(["android-judge-3", "android-judge-4", "android-judge-5", "iPhone build 2"]));
   });
 
   it("refuses a pin to an edition a live build would refuse, or to one this checkout cannot check", () => {
