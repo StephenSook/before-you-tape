@@ -82,6 +82,14 @@ export function keepLivePin(t: RcTemplate, live: RcTemplate): RcTemplate {
   return { ...t, parameters };
 }
 
+// The publish body is the local template, which has no parameter groups: a live template with any would lose them.
+export function checkNoGroups(live: RcTemplate & { parameterGroups?: unknown }): void {
+  const groups = live.parameterGroups;
+  if (groups !== null && typeof groups === "object" && Object.keys(groups).length > 0) {
+    throw new Error("the live template has parameter groups, which this script would drop; nothing was published");
+  }
+}
+
 // Every live value that would change or vanish, unless named in allow.
 export function refusals(plan: PublishPlan, allow: ReadonlySet<string>): string[] {
   return [...plan.changed.map((c) => c.key), ...plan.dropped].filter((k) => !allow.has(k)).sort();
@@ -117,6 +125,7 @@ async function main(): Promise<void> {
 
   const live = await call("GET", token);
   if (!live.etag) throw new Error("the live template came back with no ETag; nothing was published");
+  checkNoGroups(live.body);
   const template = applySets(JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate, sets);
   const local = keep ? keepLivePin(template, live.body) : template;
   // A new pin, set or already in the template, may only name this checkout's edition, and only one every live app

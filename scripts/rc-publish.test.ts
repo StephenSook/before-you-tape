@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySets, keepLivePin, parseSets, planPublish, refusals, type RcTemplate } from "./rc-publish";
+import { applySets, checkNoGroups, keepLivePin, parseSets, planPublish, refusals, type RcTemplate } from "./rc-publish";
 import { checkPublishPin } from "./pin-guard";
 
 const p = (value: string, valueType = "STRING", extra: Record<string, unknown> = {}) => ({ defaultValue: { value }, valueType, description: "a key", ...extra });
@@ -83,5 +83,13 @@ describe("keeping the live pin", () => {
     expect(() => checkPublishPin(keepLivePin(pin("", ""), livePin), livePin, {}, here, "b".repeat(64))).not.toThrow();
     expect(() => checkPublishPin(pin("byt-0000000000ab", "c".repeat(64)), livePin, {}, here, "b".repeat(64))).toThrow(/rules\/edition\.json/);
     expect(() => checkPublishPin(pin("", ""), livePin, { rules_edition_id: "byt-0000000000ab" }, here, "b".repeat(64))).toThrow(/rules_edition_id/);
+  });
+});
+
+describe("parameter groups", () => {
+  it("refuses a live template with parameter groups, which this script would drop", () => {
+    expect(() => checkNoGroups({ parameters: {} })).not.toThrow();
+    expect(() => checkNoGroups({ parameters: {}, parameterGroups: {} } as RcTemplate)).not.toThrow();
+    expect(() => checkNoGroups({ parameters: {}, parameterGroups: { pins: { parameters: {} } } } as RcTemplate)).toThrow(/parameter groups/);
   });
 });

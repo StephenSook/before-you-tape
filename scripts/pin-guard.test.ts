@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import bundled from "../rules/edition.json";
 import live from "../rules/live-engines.json";
 import { canonicalJson, sha256Hex } from "../src/engine/edition";
-import { checkPinSet, checkTemplatePin, factsBeyondLiveEngines, factsOf } from "./pin-guard";
+import { checkPinSet, checkPublishPin, checkTemplatePin, factsBeyondLiveEngines, factsOf } from "./pin-guard";
 
 describe("pin guard", () => {
   it("finds every fact an edition's rules and lines read", () => {
@@ -57,5 +57,20 @@ describe("pin guard", () => {
     const wrongHash = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } },
       rules_edition_sha256: { defaultValue: { value: sha }, conditionalValues: { phones: { value: "0".repeat(64) } } } } };
     expect(() => checkTemplatePin(wrongHash, bundled, sha, known)).toThrow(/rules_edition_sha256/);
+  });
+
+  it("treats a pin as unchanged only when every value sits where it does live, and refuses a pin with empty values", async () => {
+    const sha = await sha256Hex(canonicalJson(bundled));
+    const at = (cond: string, id: string, hash: string) => ({ parameters: {
+      rules_edition_id: { defaultValue: { value: "" }, conditionalValues: { [cond]: { value: id } } },
+      rules_edition_sha256: { defaultValue: { value: "" }, conditionalValues: { [cond]: { value: hash } } } } });
+    // The same old id and hash moved to another condition is a new pin, and an old edition is refused.
+    expect(() => checkPublishPin(at("tablets", "byt-08f3b8c7ff31", "a".repeat(64)), at("phones", "byt-08f3b8c7ff31", "a".repeat(64)), {}, bundled, sha))
+      .toThrow(/rules\/edition\.json/);
+    // A pin naming this edition must give its hash everywhere: an empty hash for one condition is refused.
+    const known = new Set([...live.facts, "battery.numbersFrom"]);
+    const gap = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } },
+      rules_edition_sha256: { defaultValue: { value: sha }, conditionalValues: { phones: { value: "" } } } } };
+    expect(() => checkTemplatePin(gap, bundled, sha, known)).toThrow(/rules_edition_sha256/);
   });
 });
