@@ -36,6 +36,25 @@ const phoneNoWh = item("ph", { ...base, itemName: "Phone", category: "phone", la
 const noWh = verdictFor(phoneNoWh);
 
 describe("ItemCard", () => {
+  it("says a second model agreed when a second look stands behind the item, and only then", () => {
+    const AGREED = "A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong.";
+    const agreed = item("s2", shirtSeen.read, { identityConfirmedBy: "second_look" });
+    expect(verdictFor(agreed).level).toBe("ok");
+    render(<ItemCard item={agreed} verdict={verdictFor(agreed)} crop={jpeg} />);
+    expect(screen.getByText(AGREED)).toBeInTheDocument();
+    cleanup();
+    // The sender's own word, typed numbers or a numbers dispute: the second look no longer stands behind it.
+    for (const other of [
+      item("s3", shirtSeen.read, { identityConfirmedBy: "sender" }),
+      item("s4", shirtSeen.read, { identityConfirmedBy: "second_look", overrides: { wattHours: 15.4 } }),
+      item("s5", shirtSeen.read, { identityConfirmedBy: "second_look", disputes: { battery: { device: [3.85, 4000, 15.4], cloud: [3.85, 4000, 16], resolved: true } } as unknown as BoxItem["disputes"] }),
+    ]) {
+      render(<ItemCard item={other} verdict={verdictFor(other)} crop={jpeg} />);
+      expect(screen.queryByText(AGREED), other.itemId).toBeNull();
+      cleanup();
+    }
+  });
+
   it("shows the crop, the first reason, the source and the four layers", () => {
     expect(takeOut.level).toBe("take_out");
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);

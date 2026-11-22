@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item a matching cloud second look stands behind now says so on its card: "A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong." It shows only while the rules count the second look (not once the sender typed its numbers or the reads disputed them), through one store check, secondLookStands, that the rules and the card share. Before, a shirt seen but not label-read, or a phone's read battery numbers, could turn OK with no tap and no word of why. Source: the live-site audit. Verified: the card test failed first, full gate.
+
 - The line on what the saved box list holds (the About and What ran where pages) and the web privacy page now name the Wh and lithium-grams figures an item's label names, which rule edition revision 7 keeps with each item as numbers; neither said so. A new test reads the privacy page for it. Source: the live-site privacy audit. Verified: the page tests and the new privacy page test failed first, full gate.
 - The What ran where page now says a cloud second look runs by itself, after a photo read on this device when the rules ask for one and cloud checks are allowed, or when the sender presses Check it in the cloud; it used to say only when pressed, which was not true once cloud checks were allowed. A new row says Fix this reading and typing the Wh printed on the label send nothing to a model, and that the typed numbers are saved with the box list. Source: the live-site privacy audit. Verified: the page test failed first, full gate.
 
