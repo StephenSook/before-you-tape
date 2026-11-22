@@ -6,7 +6,7 @@ import app.beforeyoutape.android.ai.FailReason
 /** Every sentence the app shows. Verdict words never appear here: they come from the rules engine. */
 object Copy {
     /**
-     * The web app's consent sentence, with "laptop" changed to "phone" and its clause about the cloud's second look
+     * The web app's consent sentence, with "device" changed to "phone" and its clause about the cloud's second look
      * left out: Android runs no second look. The phone sends the cropped photo with a fixed instruction prompt.
      */
     const val CONSENT = "To read items this phone can't, the cropped photo goes to Google's Gemini. Allow?"
