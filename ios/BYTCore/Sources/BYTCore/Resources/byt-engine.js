@@ -191,7 +191,28 @@ var BYT = (() => {
     if (MAYBE_BATTERY_DEVICES.has(read.category)) return lithiumEvidence ? "installed" : "unknown";
     return hasEvidence ? "unknown" : "none";
   }
-  function deriveBattery(read, answers, quantity, limits, tags) {
+  var BATTERY_NUMBER_FIELDS = ["volts", "milliampHours", "wattHours", "lithiumGrams"];
+  function numbersFromOf(read, typed) {
+    const present = BATTERY_NUMBER_FIELDS.filter((f) => printed(read[f]) !== null);
+    const typedCount = present.filter((f) => typed.has(f)).length;
+    return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
+  }
+  var WH_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*wh\b/gi;
+  var GRAMS_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*g\b/gi;
+  var figures = (text, re) => [...text.matchAll(re)].map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+  var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
+  function labelMismatchOf(read, typed, whPrinted, lithiumGrams, tolerancePct) {
+    if (whPrinted !== null && !typed.has("wattHours")) {
+      const named = figures(read.labelText, WH_IN_LABEL);
+      if (named.length > 0 && !named.some((n) => agrees(n, whPrinted, tolerancePct))) return { kind: "wh", label: named[0], read: whPrinted };
+    }
+    if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
+      const named = figures(read.labelText, GRAMS_IN_LABEL);
+      if (named.length > 0 && !named.some((n) => agrees(n, lithiumGrams, tolerancePct))) return { kind: "grams", label: named[0], read: lithiumGrams };
+    }
+    return null;
+  }
+  function deriveBattery(read, answers, quantity, limits, tags, typed = /* @__PURE__ */ new Set()) {
     const volts = printed(read.volts);
     const milliampHours = printed(read.milliampHours);
     const whPrinted = printed(read.wattHours);
@@ -233,7 +254,21 @@ var BYT = (() => {
     else if (liIon) chemistry = "li_ion";
     else if (answers.battery_installed === "not_lithium" && !BATTERY_DEVICES.has(read.category)) chemistry = "not_lithium";
     else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
-    return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
+    return {
+      presence,
+      chemistry,
+      volts,
+      milliampHours,
+      whPrinted,
+      whComputed,
+      whStatus,
+      wh,
+      lithiumGrams,
+      countAs,
+      units: quantity,
+      numbersFrom: numbersFromOf(read, typed),
+      labelMismatch: presence === "none" ? null : labelMismatchOf(read, typed, whPrinted, lithiumGrams, limits.whTolerancePct)
+    };
   }
 
   // src/engine/facts.ts
@@ -295,6 +330,9 @@ var BYT = (() => {
   function conditionOf(answer) {
     return answer === "new_sealed" || answer === "new_opened" || answer === "used" || answer === "refurbished_certified" ? answer : "unknown";
   }
+  function typedNumbers(input) {
+    return new Set(BATTERY_NUMBER_FIELDS.filter((f) => input.numbersFrom === "typed" || input.overrides[f] !== void 0));
+  }
   function deriveFacts(input, edition2) {
     const read = { ...input.read, ...input.overrides };
     const tags = new Set(edition2.categoryTags[read.category]);
@@ -318,7 +356,7 @@ var BYT = (() => {
       tags: tagList,
       evidence: read.evidence,
       identity,
-      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList),
+      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList, typedNumbers(input)),
       // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
       // the box reading (an override to "sealed") is how the sender clears it.
       condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none" ? "new_opened" : conditionOf(input.answers.device_condition),
@@ -401,7 +439,8 @@ var BYT = (() => {
     "battery.wh",
     "battery.lithiumGrams",
     "battery.countAs",
-    "battery.units"
+    "battery.units",
+    "battery.numbersFrom"
   ]);
   function checkPredicate(v, where, producible) {
     const p = obj(v, where);
@@ -945,6 +984,18 @@ var BYT = (() => {
     url: RULES_PAGE,
     text: "The two reads of this item disagree. Choose the reading that matches it."
   };
+  var shown = (n) => String(Math.round(n * 100) / 100);
+  function labelNumbersHit(m) {
+    const said = m.kind === "wh" ? `${shown(m.label)} Wh but the read says ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but the read says ${shown(m.read)} g`;
+    return {
+      ruleId: "DATA-LABEL-NUMBERS",
+      layer: "data",
+      level: "check",
+      section: "Before You Tape: label and reading disagree",
+      url: RULES_PAGE,
+      text: `The label text says ${said}. Type the numbers from the label in Fix this reading.`
+    };
+  }
   var BAD_QUANTITY_HIT = {
     ruleId: "DATA-BAD-QUANTITY",
     layer: "data",
@@ -987,6 +1038,7 @@ var BYT = (() => {
       if (openDisputes(raw.disputes).length > 0) hits.push(DISPUTE_HIT);
       if (facts.identity === "unconfirmed") hits.push(IDENTITY_HIT);
       if (facts.evidence === "not_sure" || facts.category === "other") hits.push(UNSURE_HIT);
+      if (facts.battery.labelMismatch) hits.push(labelNumbersHit(facts.battery.labelMismatch));
       hits.push(...evaluateItemRules(facts, edition2.rules));
       hits.push(...evaluateDestination(facts, input.answers, dest));
       if (layerHit) hits.push(layerHit);
@@ -1199,6 +1251,9 @@ var BYT = (() => {
       }
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
+      }
+      if (o.numbersFrom !== void 0 && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
+        throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);
       }
       if (o.disputes !== void 0) {
         for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {

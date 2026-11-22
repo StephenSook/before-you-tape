@@ -503,15 +503,15 @@ describe("createBoxStore", () => {
         expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
       });
 
-      it("holds numbers the sender typed over two reads that agreed, one number or all of them", () => {
-        // All three numbers typed lower than both reads: held for them, never OK.
+      it("judges numbers the sender typed over two reads on the rules for them, and holds a partly typed set", () => {
+        // All three numbers typed: they are the sender's, and the Wh rules judge them (rule edition revision 7).
         const all = look(big, big);
         expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
         all.s.override(all.id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
         expect(all.s.getState().items[0]?.identityConfirmedBy).toBe("sender");
-        expect(level(all.s, all.id)).toBe("check");
-        expect(ruleIds(all.s, all.id)).toContain("USPS-INTL-LI-ONE-READ");
-        // One number typed is enough to make them the sender's (here it no longer agrees with the others).
+        expect(level(all.s, all.id)).toBe("ok");
+        expect(ruleIds(all.s, all.id)).not.toContain("USPS-INTL-LI-ONE-READ");
+        // One number typed makes the identity the sender's, and the set is part typed, part read: never OK.
         for (const patch of [{ volts: 3.7 }, { milliampHours: 4000 }, { wattHours: 15.4 }, { lithiumGrams: 0.1 }]) {
           const one = look(big, big);
           one.s.override(one.id, patch);
@@ -520,7 +520,7 @@ describe("createBoxStore", () => {
         }
       });
 
-      it("holds numbers the sender typed while the cloud read ran", () => {
+      it("judges numbers the sender typed while the cloud read ran as the sender's", () => {
         const s = store();
         s.setDestination("CA");
         const id = s.addRead(outcome(big, "on_device"), "k");
@@ -529,8 +529,8 @@ describe("createBoxStore", () => {
         s.override(id, { volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
         s.applySecondLook(id, mergeReads(big, big), 900, "reason", big.labelText, readDisputes(big, big));
         expect(s.getState().items[0]?.identityConfirmedBy).toBe("sender");
-        expect(level(s, id)).toBe("check");
-        expect(ruleIds(s, id)).toContain("USPS-INTL-LI-ONE-READ");
+        expect(level(s, id)).toBe("ok");
+        expect(ruleIds(s, id)).not.toContain("USPS-INTL-LI-ONE-READ");
       });
 
       it("releases an item the sender confirmed while its second look ran, once both reads gave the same numbers", () => {
@@ -545,7 +545,7 @@ describe("createBoxStore", () => {
         expect(level(s, id)).toBe("ok");
       });
 
-      it("holds a saved item whose numbers the sender typed or picked under an earlier version, without writing on open", async () => {
+      it("judges a saved item by who gave its numbers under an earlier version, without writing on open", async () => {
         const savedAs = (extra: Partial<BoxItem>): BoxItem => ({
           itemId: "saved-n", read: { ...phone }, overrides: {}, answers: { device_condition: "new_sealed", cell_count: "one" }, quantity: 1,
           identityConfirmedBy: "second_look", labelTags: [], readSource: "on_device", readMs: 900, secondLook: { ms: 900, reason: "battery_numbers" },
@@ -553,12 +553,13 @@ describe("createBoxStore", () => {
         });
         const typed = savedAs({ read: { ...big }, overrides: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 } });
         const picked = savedAs({ disputes: { battery: { device: { volts: 3.85, milliampHours: 4000, wattHours: 15.4 }, cloud: { volts: 3.85, milliampHours: 40000, wattHours: 154 }, resolved: true } } });
-        for (const item of [typed, picked]) {
+        // Typed in full: the sender's numbers, judged on the Wh rules. Picked between two readings: still read, so held.
+        for (const [item, want] of [[typed, "ok"], [picked, "check"]] as const) {
           const p = spyPersistence({ destinationCode: "CA", items: [item] });
           const s = store({ persistence: p });
           await s.ready;
-          expect(level(s, "saved-n"), JSON.stringify(item.overrides)).toBe("check");
-          expect(ruleIds(s, "saved-n")).toContain("USPS-INTL-LI-ONE-READ");
+          expect(level(s, "saved-n"), JSON.stringify(item.overrides)).toBe(want);
+          if (want === "check") expect(ruleIds(s, "saved-n")).toContain("USPS-INTL-LI-ONE-READ");
           expect(writes(p)).toBe(0);
         }
       });

@@ -140,17 +140,24 @@ describe("evaluateBox", () => {
       "sender_ticked_alcohol_settles_it", "replica_grenade_ca", "replica_grenade_ph", "plain_toy_ca",
       "sunscreen_stick_ph", "sunscreen_stick_ca", "sanitizer_drug_facts_ph",
       "replica_words_ca", "toy_and_brand_words_ca", "replica_props_ca", "replica_props_ph", "extra_questions_ca",
-      "phone_numbers_matched_by_a_second_look_is_ok", "typed_phone_numbers_are_held_for_now", "battery_185_wh_true_numbers_is_take_out",
+      "phone_numbers_matched_by_a_second_look_is_ok", "typed_item_that_sends_no_numbers_from_is_held", "battery_185_wh_true_numbers_is_take_out",
       "battery_185_wh_read_as_18_5_is_check", "battery_185_wh_read_ten_times_low_throughout_is_check", "laptop_120_wh_read_as_12_is_check",
       "coin_cell_grams_read_once_is_check", "not_lithium_answer_keeps_one_read_numbers_held",
       "identity_tap_does_not_clear_read_numbers", "category_pick_does_not_clear_read_numbers",
-      "typed_laptop_without_label_text_is_held_for_now",
+      "typed_laptop_without_label_text_is_ok",
+      "typed_numbers_over_a_read_release_the_hold", "one_typed_number_over_a_read_is_mixed_and_held",
+      "mixed_numbers_are_held_even_after_a_second_look", "typed_item_numbers_go_through_the_wh_rules", "typed_120_wh_laptop_is_take_out",
+      "label_text_wh_that_disagrees_with_the_read_is_check", "label_text_grams_that_disagree_with_the_read_are_check",
+      "typed_numbers_settle_a_label_text_mismatch", "label_text_wh_with_a_comma_that_agrees_is_ok",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
       for (const [id, level] of Object.entries(v.expect)) expect(r.items[id]?.level, `${v.name} ${id}`).toBe(level);
       for (const [id, ids] of Object.entries((v as { expectRules?: Record<string, string[]> }).expectRules ?? {})) {
         expect(r.items[id]?.hits.map((h) => h.ruleId), `${v.name} ${id}`).toEqual(expect.arrayContaining(ids));
+      }
+      for (const [id, ids] of Object.entries((v as { notRules?: Record<string, string[]> }).notRules ?? {})) {
+        for (const ruleId of ids) expect(r.items[id]?.hits.map((h) => h.ruleId), `${v.name} ${id}`).not.toContain(ruleId);
       }
       const lithium = (v as { expectLithium?: string }).expectLithium;
       if (lithium) expect(r.lithium.status, v.name).toBe(lithium);

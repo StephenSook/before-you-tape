@@ -10,7 +10,7 @@
     "quantity": 1,
     "battery": {
       "presence": "none", "chemistry": "unknown", "volts": null, "milliampHours": null, "whPrinted": null, "whComputed": null,
-      "whStatus": "none", "wh": null, "lithiumGrams": null, "countAs": "unknown", "units": 1
+      "whStatus": "none", "wh": null, "lithiumGrams": null, "countAs": "unknown", "units": 1, "numbersFrom": "read", "labelMismatch": null
     }
   }
 }

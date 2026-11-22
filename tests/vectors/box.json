@@ -265,8 +265,8 @@
     "expect": { "phone": "ok" }, "expectLithium": "ok"
   },
   {
-    "name": "typed_phone_numbers_are_held_for_now", "code": "CA", "today": "2026-11-20",
-    "source": "No fact tells typed numbers from read ones yet, so typed numbers are held too until the next update",
+    "name": "typed_item_that_sends_no_numbers_from_is_held", "code": "CA", "today": "2026-11-20",
+    "source": "A client that does not say a typed item's numbers were typed (no numbersFrom) is judged as if they were read: the safe side",
     "items": [{ "itemId": "phone", "identityConfirmedBy": "sender", "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }, "expectLithium": "ok"
@@ -327,10 +327,77 @@
     "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }
   },
   {
-    "name": "typed_laptop_without_label_text_is_held_for_now", "code": "CA", "today": "2026-11-20",
-    "source": "A typed item with numbers and no label text: held until typed numbers can be told apart",
-    "items": [{ "itemId": "laptop", "identityConfirmedBy": "sender", "read": { "category": "laptop", "evidence": "item_seen", "volts": 11.55, "milliampHours": 4380, "wattHours": 50.6, "batteryWords": true, "retailBox": "sealed" },
+    "name": "typed_laptop_without_label_text_is_ok", "code": "CA", "today": "2026-11-20",
+    "source": "A typed item with numbers and no label text: its numbers are the sender's, so the Wh rules judge them",
+    "items": [{ "itemId": "laptop", "identityConfirmedBy": "sender", "numbersFrom": "typed", "read": { "category": "laptop", "evidence": "item_seen", "volts": 11.55, "milliampHours": 4380, "wattHours": 50.6, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
-    "expect": { "laptop": "check" }, "expectRules": { "laptop": ["USPS-INTL-LI-ONE-READ"] }
+    "expect": { "laptop": "ok" }, "notRules": { "laptop": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "typed_numbers_over_a_read_release_the_hold", "code": "CA", "today": "2026-11-20",
+    "source": "Every battery number typed in Fix this reading is the sender's: the Wh rules judge them",
+    "items": [{ "itemId": "phone", "overrides": { "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4 },
+      "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "ok" }, "notRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "one_typed_number_over_a_read_is_mixed_and_held", "code": "CA", "today": "2026-11-20",
+    "source": "Wh typed over a read whose volts and mAh stay read: mixed numbers are held",
+    "items": [{ "itemId": "phone", "overrides": { "wattHours": 15.4 },
+      "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "mixed_numbers_are_held_even_after_a_second_look", "code": "CA", "today": "2026-11-20",
+    "source": "Mixed numbers are held whoever stands behind the item",
+    "items": [{ "itemId": "phone", "identityConfirmedBy": "second_look", "overrides": { "wattHours": 15.4 },
+      "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "check" }, "expectRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "typed_item_numbers_go_through_the_wh_rules", "code": "CA", "today": "2026-11-20",
+    "source": "A typed item whose client says its numbers were typed",
+    "items": [{ "itemId": "phone", "identityConfirmedBy": "sender", "numbersFrom": "typed",
+      "read": { "category": "phone", "labelText": "3.85V 4000mAh 15.4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "ok" }, "notRules": { "phone": ["USPS-INTL-LI-ONE-READ"] }, "expectLithium": "ok"
+  },
+  {
+    "name": "typed_120_wh_laptop_is_take_out", "code": "CA", "today": "2026-11-20",
+    "source": "Typed numbers still meet the 100 Wh limit",
+    "items": [{ "itemId": "laptop", "identityConfirmedBy": "sender", "numbersFrom": "typed", "read": { "category": "laptop", "labelText": "11.1V 10810mAh 120Wh", "volts": 11.1, "milliampHours": 10810, "wattHours": 120, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "laptop": "take_out" }, "expectRules": { "laptop": ["USPS-INTL-LI-BATTERY-OVER"] }
+  },
+  {
+    "name": "label_text_wh_that_disagrees_with_the_read_is_check", "code": "CA", "today": "2026-11-20",
+    "source": "The label text says 185 Wh while the read says 18.5 Wh, even with a second look behind it",
+    "items": [{ "itemId": "station", "identityConfirmedBy": "second_look", "read": { "category": "other_electronics", "labelText": "LI-ION 50000mAh 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "station": "check" }, "expectRules": { "station": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "label_text_grams_that_disagree_with_the_read_are_check", "code": "CA", "today": "2026-11-20",
+    "source": "The label text says 1.0 g of lithium while the read says 0.1 g",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look", "read": { "category": "battery_toy", "labelText": "CR2032 3V LITHIUM 1.0g", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "toy": "check" }, "expectRules": { "toy": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "typed_numbers_settle_a_label_text_mismatch", "code": "CA", "today": "2026-11-20",
+    "source": "The sender typed the numbers: their word stands over the label text read",
+    "items": [{ "itemId": "station", "overrides": { "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5 }, "read": { "category": "other_electronics", "labelText": "LI-ION 50000mAh 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 18.5, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "station": "ok" }, "notRules": { "station": ["DATA-LABEL-NUMBERS", "USPS-INTL-LI-ONE-READ"] }
+  },
+  {
+    "name": "label_text_wh_with_a_comma_that_agrees_is_ok", "code": "CA", "today": "2026-11-20",
+    "source": "15,4 Wh on the label is 15.4 Wh",
+    "items": [{ "itemId": "phone", "identityConfirmedBy": "second_look", "read": { "category": "phone", "labelText": "3,85V 4000mAh 15,4Wh", "volts": 3.85, "milliampHours": 4000, "wattHours": 15.4, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "phone": "ok" }, "notRules": { "phone": ["DATA-LABEL-NUMBERS"] }
   }
 ]

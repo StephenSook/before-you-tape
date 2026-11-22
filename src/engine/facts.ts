@@ -1,5 +1,5 @@
 // Item facts from the read, the sender's fixes and answers, and the label words.
-import { deriveBattery } from "./battery";
+import { BATTERY_NUMBER_FIELDS, deriveBattery, type BatteryNumberField } from "./battery";
 import type { BoxItemInput, ItemFacts, RuleEdition } from "./types";
 
 // Present whenever label text was read. It is stored with the other label tags, so label
@@ -99,6 +99,11 @@ function conditionOf(answer: string | undefined): ItemFacts["condition"] {
     : "unknown";
 }
 
+// The battery numbers the sender typed: every one on a typed item, else the ones Fix this reading set.
+function typedNumbers(input: BoxItemInput): ReadonlySet<BatteryNumberField> {
+  return new Set(BATTERY_NUMBER_FIELDS.filter((f) => input.numbersFrom === "typed" || input.overrides[f] !== undefined));
+}
+
 export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFacts {
   const read = { ...input.read, ...input.overrides };
   const tags = new Set<string>(edition.categoryTags[read.category]);
@@ -135,7 +140,7 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
     tags: tagList,
     evidence: read.evidence,
     identity,
-    battery: deriveBattery(read, input.answers, input.quantity, edition.limits, tagList),
+    battery: deriveBattery(read, input.answers, input.quantity, edition.limits, tagList, typedNumbers(input)),
     // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
     // the box reading (an override to "sealed") is how the sender clears it.
     condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none"

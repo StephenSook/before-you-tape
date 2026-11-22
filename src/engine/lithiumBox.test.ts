@@ -8,7 +8,7 @@ const limits = parseEdition(bundled).limits;
 
 const battery = (patch: Partial<BatteryFacts>): BatteryFacts => ({
   presence: "installed", chemistry: "li_ion", volts: null, milliampHours: null, whPrinted: null, whComputed: null,
-  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1, ...patch,
+  whStatus: "none", wh: null, lithiumGrams: null, countAs: "unknown", units: 1, numbersFrom: "read", labelMismatch: null, ...patch,
 });
 const entry = (itemId: string, patch: Partial<BatteryFacts>): LithiumEntry => ({ itemId, battery: battery(patch) });
 const cell = (id: string, units = 1) => entry(id, { countAs: "cell", units });

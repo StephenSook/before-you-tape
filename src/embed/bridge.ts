@@ -144,6 +144,10 @@ function checkItems(raw: unknown): BoxItemInput[] {
     if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
       throw new BadInputError(`${id}.labelTags must be a list of strings`);
     }
+    // Optional. Left out, the numbers count as read, the safe side.
+    if (o.numbersFrom !== undefined && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
+      throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);
+    }
     // Optional. Only whether each dispute is settled changes a verdict, so that is what must be well formed.
     if (o.disputes !== undefined) {
       for (const [k, v] of Object.entries(plain(o.disputes, `${id}.disputes`))) {

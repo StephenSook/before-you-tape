@@ -54,12 +54,44 @@ function presenceOf(
   return hasEvidence ? "unknown" : "none";
 }
 
+// The battery numbers, and the ones the sender typed (in Fix this reading, or a typed item).
+export const BATTERY_NUMBER_FIELDS = ["volts", "milliampHours", "wattHours", "lithiumGrams"] as const;
+export type BatteryNumberField = (typeof BATTERY_NUMBER_FIELDS)[number];
+
+// Where the numbers present came from. With none present it is "read": no rule then turns on it.
+export function numbersFromOf(read: ItemRead, typed: ReadonlySet<BatteryNumberField>): BatteryFacts["numbersFrom"] {
+  const present = BATTERY_NUMBER_FIELDS.filter((f) => printed(read[f]) !== null);
+  const typedCount = present.filter((f) => typed.has(f)).length;
+  return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
+}
+
+// Wh and lithium grams the label text names, such as "185Wh", "15,4 Wh" or "1.0g".
+const WH_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*wh\b/gi;
+const GRAMS_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*g\b/gi;
+const figures = (text: string, re: RegExp) => [...text.matchAll(re)].map((m) => Number(m[1]!.replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) / b) * 100 <= tolerancePct;
+
+// A figure the label text names that the read's own number disagrees with, when that number was read, not typed.
+function labelMismatchOf(read: ItemRead, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
+  lithiumGrams: number | null, tolerancePct: number): BatteryFacts["labelMismatch"] {
+  if (whPrinted !== null && !typed.has("wattHours")) {
+    const named = figures(read.labelText, WH_IN_LABEL);
+    if (named.length > 0 && !named.some((n) => agrees(n, whPrinted, tolerancePct))) return { kind: "wh", label: named[0]!, read: whPrinted };
+  }
+  if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
+    const named = figures(read.labelText, GRAMS_IN_LABEL);
+    if (named.length > 0 && !named.some((n) => agrees(n, lithiumGrams, tolerancePct))) return { kind: "grams", label: named[0]!, read: lithiumGrams };
+  }
+  return null;
+}
+
 export function deriveBattery(
   read: ItemRead,
   answers: ItemAnswers,
   quantity: number,
   limits: LithiumLimits,
   tags: string[],
+  typed: ReadonlySet<BatteryNumberField> = new Set(),
 ): BatteryFacts {
   const volts = printed(read.volts);
   const milliampHours = printed(read.milliampHours);
@@ -111,5 +143,9 @@ export function deriveBattery(
   else if (answers.battery_installed === "not_lithium" && !BATTERY_DEVICES.has(read.category)) chemistry = "not_lithium";
   else if (anyNumber || BATTERY_DEVICES.has(read.category) || LOOSE_CATEGORIES.has(read.category)) chemistry = "li_ion";
 
-  return { presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity };
+  return {
+    presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity,
+    numbersFrom: numbersFromOf(read, typed),
+    labelMismatch: presence === "none" ? null : labelMismatchOf(read, typed, whPrinted, lithiumGrams, limits.whTolerancePct),
+  };
 }

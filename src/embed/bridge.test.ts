@@ -212,6 +212,8 @@ describe("the JSON bridge for native clients", () => {
     expect(send([{ ...good, overrides: { volts: "3.7" } }]).ok, "typed text in a number override is the engine's to judge").toBe(true);
     expect(send([{ ...good, read: { ...good.read, labelText: "\u{1F600}".repeat(160) } }]).ok, "160 characters, counted as the parser counts them").toBe(true);
     expect(send([{ ...good, overrides: { labelText: "y".repeat(400) } }]).ok, "a typed label has no length limit on the web either").toBe(true);
+    expect(send([{ ...good, numbersFrom: "typed" }]).ok, "a typed item says so").toBe(true);
+    expect(send([{ ...good, numbersFrom: "read" }]).ok).toBe(true);
     const open = send([{ ...good, disputes: { lithiumGrams: { device: 2.5, cloud: 0, resolved: false } } }]);
     expect(open.ok && (open.value as { items: Record<string, { level: string }> }).items[good.itemId]?.level, "an open dispute holds the item").toBe("check");
     const noEvidence: Record<string, unknown> = { ...good.read };
@@ -232,6 +234,8 @@ describe("the JSON bridge for native clients", () => {
       ["disputes not an object", { ...good, disputes: [] }],
       ["a dispute on an unknown fact", { ...good, disputes: { colour: { device: "red", cloud: "blue", resolved: false } } }],
       ["a dispute with no resolved flag", { ...good, disputes: { category: { device: "phone", cloud: "tablet" } } }],
+      ["numbersFrom not typed or read", { ...good, numbersFrom: "mixed" }],
+      ["numbersFrom not text", { ...good, numbersFrom: true }],
     ];
     for (const [why, it] of bad) {
       const r = send([it]);

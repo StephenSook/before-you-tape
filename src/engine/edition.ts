@@ -81,6 +81,7 @@ const KNOWN_FACTS: ReadonlySet<string> = new Set([
   "category", "tags", "evidence", "identity", "condition", "alcohol", "quantity",
   "battery.presence", "battery.chemistry", "battery.volts", "battery.milliampHours", "battery.whPrinted",
   "battery.whComputed", "battery.whStatus", "battery.wh", "battery.lithiumGrams", "battery.countAs", "battery.units",
+  "battery.numbersFrom",
 ]);
 
 function checkPredicate(v: unknown, where: string, producible: ReadonlySet<string>): void {
