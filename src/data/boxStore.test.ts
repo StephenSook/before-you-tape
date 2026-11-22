@@ -1066,15 +1066,16 @@ describe("createBoxStore", () => {
       expect(s.getState().unverified ?? false).toBe(false);
     });
 
-    it("asks App Check nothing about a save that failed for no connection", async () => {
+    it("asks App Check nothing more about a save that failed for no connection", async () => {
       const p = spyPersistence();
       p.putMeta.mockRejectedValue(Object.assign(new Error("offline"), { code: "unavailable" }));
-      const verified = vi.fn(async () => false);
+      // The one check at the start passes; any later answer would say no.
+      const verified = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(true).mockResolvedValue(false);
       const s = store({ persistence: p, verified });
       await s.ready;
       s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
       await s.settled();
-      expect(verified).not.toHaveBeenCalled();
+      expect(verified).toHaveBeenCalledTimes(1);
       expect(s.getState().unverified ?? false).toBe(false);
     });
 
@@ -1088,6 +1089,146 @@ describe("createBoxStore", () => {
       await s.settled();
       expect(s.getState().loadState).toBe("failed");
       expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+  });
+
+  // With reCAPTCHA blocked the server is never reached, so nothing is ever refused; with the exchange refused,
+  // the server refuses the box. Either way the page must say why, and never show the box as new or empty.
+  describe("a browser App Check cannot verify", () => {
+    const refusedBox = (): LoadResult => ({ status: "failed", error: "Missing or insufficient permissions." });
+    const cachedItem: BoxItem = { ...phoneItem, itemId: "cached-1" };
+    const withCache = (p: ReturnType<typeof spyPersistence>, cached: LoadResult) =>
+      Object.assign(p, { loadCached: vi.fn<(boxId: string) => Promise<LoadResult>>(async () => cached) });
+
+    it("asks App Check once at the start, and says so even when the box never loads and nothing is refused", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockReturnValue(new Promise<LoadResult>(() => {}));
+      const verified = vi.fn(async () => false);
+      const s = store({ persistence: p, verified });
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+      expect(verified).toHaveBeenCalledTimes(1);
+      expect(s.getState().outOfDate ?? false).toBe(false);
+    });
+
+    it("says nothing when App Check passes at the start", async () => {
+      const s = store({ verified: async () => true });
+      await s.ready;
+      await s.settled();
+      expect(s.getState().unverified ?? false).toBe(false);
+    });
+
+    it("shows this browser's copy of a box the server refused apart from the box, with its verdicts, and never sends it", async () => {
+      const p = withCache(spyPersistence(), { status: "found", box: { destinationCode: "CA", items: [cachedItem] } });
+      p.loadBox.mockResolvedValueOnce(refusedBox());
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      await vi.waitFor(() => expect(s.getState().cachedCopy?.items.map((i) => i.itemId)).toEqual(["cached-1"]));
+      const copy = s.getState().cachedCopy!;
+      expect(copy.destinationCode).toBe("CA");
+      expect(copy.result.items["cached-1"]).toBeDefined();
+      // The copy is not one of the box's items: the box stays unopened, and the copy cannot be changed or removed.
+      expect(s.getState().items).toEqual([]);
+      expect(s.getState().loadState).toBe("failed");
+      s.setQuantity("cached-1", 3);
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      expect(s.getState().cachedCopy?.items[0]?.quantity).toBe(cachedItem.quantity);
+      expect(writes(p)).toBe(0);
+      // Once the box opens, the server's box replaces the copy (the item was removed there meanwhile), and only
+      // this visit's new item is sent.
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { destinationCode: "CA", items: [] }, fromServer: true });
+      await s.retryLoad();
+      await s.settled();
+      expect(s.getState().cachedCopy).toBeUndefined();
+      expect(s.getState().items.map((i) => i.read.itemName)).toEqual(["Lotion"]);
+      expect(p.putItem.mock.calls.map(([, i]) => i.itemId)).not.toContain("cached-1");
+    });
+
+    it("reads the cache again when a retry of the box overtook the first read and failed too", async () => {
+      let answer!: (r: LoadResult) => void;
+      let refuseRetry!: (r: LoadResult) => void;
+      const p = withCache(spyPersistence(), { status: "found", box: { items: [cachedItem] } });
+      p.loadCached.mockImplementationOnce(() => new Promise<LoadResult>((r) => { answer = r; }));
+      p.loadBox.mockResolvedValueOnce(refusedBox()).mockImplementationOnce(() => new Promise<LoadResult>((r) => { refuseRetry = r; }));
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      await vi.waitFor(() => expect(p.loadCached).toHaveBeenCalledTimes(1));
+      // The retry is still out when the first cache read answers, so that answer is set aside...
+      const retry = s.retryLoad();
+      answer({ status: "found", box: { items: [cachedItem] } });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(s.getState().cachedCopy).toBeUndefined();
+      // ...and when the retry is refused too, the cache is read again.
+      refuseRetry(refusedBox());
+      await retry;
+      await vi.waitFor(() => expect(s.getState().cachedCopy?.items.map((i) => i.itemId)).toEqual(["cached-1"]));
+      expect(p.loadCached).toHaveBeenCalledTimes(2);
+    });
+
+    // A check can take longer than its wait on a slow connection; the server answering settles it.
+    it("drops the failure once the box is read from the server, and ignores a check that answers no after that", async () => {
+      let say!: (ok: boolean) => void;
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: true });
+      const s = store({ persistence: p, verified: () => new Promise<boolean>((r) => { say = r; }) });
+      await s.ready;
+      say(false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(s.getState().unverified ?? false).toBe(false);
+    });
+
+    it("keeps no failure from a box read only from the cache, which proves nothing", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: false });
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      await vi.waitFor(() => expect(s.getState().unverified).toBe(true));
+      expect(s.getState().readFromCache).toBe("found");
+    });
+
+    // A box the cache does not hold may still be on the server: the page must not call it new.
+    it("says when the box was read only from the cache and the cache did not hold it", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "missing", fromServer: false });
+      const s = store({ persistence: p, verified: async () => false });
+      await s.ready;
+      expect(s.getState().readFromCache).toBe("missing");
+      // A box the server itself says is missing is new.
+      const q = spyPersistence();
+      q.loadBox.mockResolvedValueOnce({ status: "missing", fromServer: true });
+      const t = store({ persistence: q, verified: async () => true });
+      await t.ready;
+      expect(t.getState().readFromCache).toBeUndefined();
+    });
+
+    it("ignores a refusal's check that answers no after a later save landed", async () => {
+      const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+      let say!: (ok: boolean) => void;
+      const p = spyPersistence();
+      p.putMeta.mockRejectedValueOnce(refused);
+      // The check at the start passes; the refusal's check answers only after the next save lands.
+      const verified = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(true).mockImplementationOnce(() => new Promise<boolean>((r) => { say = r; }));
+      const s = store({ persistence: p, verified });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      await vi.waitFor(() => expect(verified).toHaveBeenCalledTimes(2));
+      s.retrySave();
+      await s.settled();
+      expect(s.getState().unsaved).toEqual([]);
+      say(false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(s.getState().unverified ?? false).toBe(false);
+    });
+
+    it("reads no copy when the server refused the box for another reason", async () => {
+      const p = withCache(spyPersistence(), { status: "found", box: { items: [cachedItem] } });
+      p.loadBox.mockResolvedValue(refusedBox());
+      const s = store({ persistence: p, verified: async () => true });
+      await s.ready;
+      await s.settled();
+      expect(p.loadCached).not.toHaveBeenCalled();
+      expect(s.getState().items).toEqual([]);
     });
   });
 });

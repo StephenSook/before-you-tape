@@ -930,23 +930,86 @@ describe("PackPage", () => {
     expect(onReload).toHaveBeenCalledTimes(1);
   });
 
-  it("says when this browser could not be verified, not that the page is out of date, and lets the sender try again", async () => {
+  it("says when this browser did not pass the security check, not that the page is out of date, and offers a reload", async () => {
     const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
     const putMeta = vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>().mockRejectedValueOnce(refused).mockResolvedValue();
     const ops = { ...noPersistence(), putMeta };
     let ok = false;
     const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => ok });
-    setup({ store });
+    const onReload = vi.fn();
+    setup({ store, onReload });
     await store.ready;
     act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" }); });
     await store.settled();
     const notice = await screen.findByTestId("unverified");
-    expect(notice).toHaveTextContent("Saving stopped because this browser couldn't be verified. Try again in a moment.");
+    expect(notice).toHaveTextContent("This browser did not pass the site's security check. Reload the page and try again; if it fails again, try a normal browser window.");
     expect(screen.queryByTestId("out-of-date")).toBeNull();
+    await userEvent.click(within(notice).getByRole("button", { name: "Reload page" }));
+    expect(onReload).toHaveBeenCalledTimes(1);
+    // A save that lands means the check passed after all: the notice goes.
     ok = true;
-    await userEvent.click(within(notice).getByRole("button", { name: "Try again" }));
+    act(() => { store.retrySave(); });
     await waitFor(() => expect(screen.queryByTestId("unverified")).toBeNull());
     expect(putMeta).toHaveBeenCalledTimes(2);
+  });
+
+  describe("a browser App Check cannot verify", () => {
+    // A real item, made the way the page makes one.
+    const anItem = () => {
+      const s = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => "kept-1" });
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      return s.getState().items[0]!;
+    };
+
+    it("shows the copy this browser kept apart from the box, read only, when the server refuses the box: never the box as new", async () => {
+      const ops = {
+        ...noPersistence(),
+        loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "failed", error: "Missing or insufficient permissions." })),
+        loadCached: vi.fn(async (): Promise<LoadResult> => ({ status: "found", box: { destinationCode: "PH", items: [anItem()] } })),
+      };
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      setup({ store, onDeleteBox: vi.fn(async () => ({ ok: false as const, offline: true as const })) });
+      await store.ready;
+      expect(await screen.findByTestId("unverified")).toHaveTextContent("This browser did not pass the site's security check.");
+      expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: below is the copy of your box kept in this browser.");
+      const copy = await screen.findByTestId("cached-copy");
+      expect(within(copy).getByRole("heading", { name: "Kept in this browser, for Philippines" })).toBeInTheDocument();
+      expect(within(copy).getByText("Lotion")).toBeInTheDocument();
+      expect(within(copy).getByTestId("verdict-chip")).toBeInTheDocument();
+      // Read only: no card and no control for the copy.
+      expect(within(copy).queryAllByRole("button")).toEqual([]);
+      expect(screen.queryByTestId("item-card")).toBeNull();
+      expect(screen.queryByText("Nothing in the box yet.")).toBeNull();
+      expect(screen.queryByText(/Your saved box could not be opened/)).toBeNull();
+      expect(screen.queryByRole("button", { name: "Delete my saved box" })).toBeNull();
+    });
+
+    // With reCAPTCHA blocked, Firestore gives up on the server and answers from its cache, so the box opens.
+    it("marks a box that opened from this browser's cache not synced, and offers no delete", async () => {
+      const ops = { ...noPersistence(), loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "found", box: { destinationCode: "PH", items: [anItem()] }, fromServer: false })) };
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      setup({ store, onDeleteBox: vi.fn(async () => ({ ok: false as const, offline: true as const })) });
+      await store.ready;
+      expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: you're seeing the copy kept in this browser.");
+      expect(screen.queryByRole("button", { name: "Delete my saved box" })).toBeNull();
+    });
+
+    it("never calls a box new or empty when the cache did not hold it, or it never loaded", async () => {
+      const missing = { ...noPersistence(), loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "missing", fromServer: false })) };
+      const a = createBoxStore({ edition: () => ed, persistence: missing, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      const first = render(<PackPage store={a} models={spyModels()} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
+        saveCrop={async () => {}} deleteCrop={async () => {}} online />);
+      await a.ready;
+      expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: your saved box can't be shown until this browser passes the security check.");
+      expect(screen.queryByText("Nothing in the box yet.")).toBeNull();
+      first.unmount();
+      const pending = { ...noPersistence(), loadBox: vi.fn(() => new Promise<LoadResult>(() => {})) };
+      const b = createBoxStore({ edition: () => ed, persistence: pending, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      setup({ store: b });
+      expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: your saved box can't be shown until this browser passes the security check.");
+      expect(screen.getByTestId("unverified")).toBeInTheDocument();
+      expect(screen.queryByText("Nothing in the box yet.")).toBeNull();
+    });
   });
 
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {

@@ -46,6 +46,22 @@ describe("BlindView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not open this check. Check the connection and reload.");
   });
 
+  // A refused browser reads a session it cannot open (refused) or none (with reCAPTCHA blocked, Firestore answers
+  // from an empty cache): either way the page names the security check, never the connection or the link.
+  it("says this browser did not pass the security check when App Check refuses it, and offers a reload", async () => {
+    const onReload = vi.fn();
+    const refused = deps({ openSession: vi.fn(async () => { throw new Error("Missing or insufficient permissions."); }), verified: async () => false });
+    const { unmount } = render(<BlindView token="tok-1" deps={refused} onReload={onReload} />);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("This browser did not pass the site's security check. Reload the page and try again; if it fails again, try a normal browser window.");
+    await userEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
+    expect(onReload).toHaveBeenCalledTimes(1);
+    unmount();
+    render(<BlindView token="tok-1" deps={deps({ openSession: vi.fn(async () => null), verified: async () => false })} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("This browser did not pass the site's security check.");
+    expect(screen.queryByText("This link is not valid.")).toBeNull();
+  });
+
   it("shows a locked session as finished", async () => {
     render(<BlindView token="tok-1" deps={deps({ openSession: vi.fn(async () => ({ setId: "set-1", locked: true })) })} />);
     expect(await screen.findByText("Thank you. Your answers are in.")).toBeInTheDocument();

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { lockSession, openSession, saveCall, type BlindSession } from "../data/blindSession";
 import { ensureSignedIn, FirebaseConfigError, initFirebase, type FirebaseEnv } from "../firebase/app";
+import { SecurityCheckFailed } from "../ui/SecurityCheckFailed";
 import { BlindPage, type BlindCall, type BlindItem } from "./BlindPage";
 
 export interface BlindSet { setId: string; destinations: { code: string; name: string }[]; items: BlindItem[] }
@@ -14,12 +15,22 @@ export interface BlindDeps {
   loadSet(setId: string): Promise<BlindSet | null>;
   saveCall(token: string, call: BlindCall): Promise<void>;
   lockSession(token: string): Promise<void>;
+  // Whether App Check can verify this browser (src/firebase/appCheckVerdict.ts); without it, it is taken to.
+  verified?(): Promise<boolean>;
 }
 
 type State = { kind: "loading" } | { kind: "error"; text: string } | { kind: "ready"; set: BlindSet; locked: boolean };
 
-export function BlindView({ token, deps }: { token: string; deps: BlindDeps }) {
+export function BlindView({ token, deps, onReload }: { token: string; deps: BlindDeps; onReload?: () => void }) {
   const [state, setState] = useState<State>({ kind: "loading" });
+  // A browser App Check cannot verify is refused the session, or (reCAPTCHA blocked) reads none from an empty
+  // cache, so until the session opens the page names the security check instead.
+  const [unverified, setUnverified] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void deps.verified?.().catch(() => false).then((ok) => { if (alive && !ok) setUnverified(true); });
+    return () => { alive = false; };
+  }, [deps]);
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -36,6 +47,7 @@ export function BlindView({ token, deps }: { token: string; deps: BlindDeps }) {
     return () => { alive = false; };
   }, [token, deps]);
 
+  if (unverified && state.kind !== "ready") return <SecurityCheckFailed onReload={onReload} />;
   if (state.kind === "loading") return <p role="status">Opening the check.</p>;
   if (state.kind === "error") return <p role="alert">{state.text}</p>;
   return (
@@ -64,6 +76,7 @@ export function BlindRoute() {
         loadSet: fetchSet,
         saveCall: (t, c) => signIn.then(() => saveCall(fb.db, t, c)),
         lockSession: (t) => signIn.then(() => lockSession(fb.db, t)),
+        verified: () => fb.verified(),
       };
     } catch (e) {
       return e instanceof Error ? e : new Error(String(e));

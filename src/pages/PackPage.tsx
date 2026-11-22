@@ -30,6 +30,7 @@ import { localDay } from "../shared/localDay";
 import { AddByHand, savedDraft } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
+import { SecurityCheckFailed } from "../ui/SecurityCheckFailed";
 import { VerdictChip } from "../ui/VerdictChip";
 import manifest from "../../eval/set/manifest.json";
 
@@ -601,6 +602,8 @@ export function PackPage(p: PackPageProps) {
     return () => { stop(); if (askWatch.current === stop) askWatch.current = null; };
   }, [ask, store]);
 
+  // The box shown is the saved one, or this browser's copy of it: read from the server, or from a cache that held it.
+  const knownBox = state.loadState === "ready" && state.readFromCache !== "missing";
   const newestItem = state.items.at(-1);
   // Removed items whose delete has not reached the server: their cards are gone, so the page says so.
   const removedUnsaved = (state.unsaved ?? []).filter((id) => !state.items.some((i) => i.itemId === id)).length;
@@ -635,13 +638,9 @@ export function PackPage(p: PackPageProps) {
             <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload</button>
           </p>
         )}
-        {state.unverified && (
-          <p data-testid="unverified" role="alert">
-            Saving stopped because this browser couldn't be verified. Try again in a moment.{" "}
-            <button type="button" onClick={() => store.retrySave()}>Try again</button>
-          </p>
-        )}
-        {state.loadState === "failed" && (
+        {state.unverified && <SecurityCheckFailed onReload={p.onReload} />}
+        {/* A browser that did not pass the security check is told that instead: the cause, not the symptom. */}
+        {state.loadState === "failed" && !state.unverified && (
           <p role="alert">
             Your saved box could not be opened. New items stay on this device until it opens.{" "}
             <button type="button" onClick={() => void store.retryLoad()}>Try opening it again</button>
@@ -705,7 +704,15 @@ export function PackPage(p: PackPageProps) {
               {!state.outOfDate && <button type="button" onClick={() => store.retrySave()}>Try saving again</button>}
             </p>
           )}
-          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits}
+          {/* Nothing syncs while App Check refuses this browser, so the box never reads as the saved one, or as new. */}
+          {state.unverified && (
+            <p data-testid="not-synced" className="banner" role="status">
+              {state.cachedCopy ? "Not synced: below is the copy of your box kept in this browser."
+                : knownBox ? "Not synced: you're seeing the copy kept in this browser."
+                : "Not synced: your saved box can't be shown until this browser passes the security check."}
+            </p>
+          )}
+          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
             const verdict = state.result.items[item.itemId];
@@ -723,7 +730,18 @@ export function PackPage(p: PackPageProps) {
                 newest={item.itemId === state.items.at(-1)?.itemId} />
             ) : null;
           })}
-          {p.onDeleteBox && state.loadState === "ready" && (
+          {state.cachedCopy && (
+            <section data-testid="cached-copy" aria-labelledby="cached-copy-heading" className="cached-copy">
+              <h3 id="cached-copy-heading">Kept in this browser, for {countryName(state.cachedCopy.destinationCode, index)}</h3>
+              <ul>
+                {state.cachedCopy.items.map((i) => {
+                  const v = state.cachedCopy?.result.items[i.itemId];
+                  return <li key={i.itemId}>{i.overrides.itemName ?? i.read.itemName} {v && <VerdictChip level={v.level} />}</li>;
+                })}
+              </ul>
+            </section>
+          )}
+          {p.onDeleteBox && state.loadState === "ready" && !state.unverified && (
             <DeleteBoxPanel onDelete={p.onDeleteBox} onDone={(signIn) => p.afterDelete?.(signIn)} />
           )}
         </div>

@@ -5,7 +5,7 @@
 // A box lasts 37 days from its creation: its anonymous owner may be removed after 30, and Firestore's TTL policy
 // on expiresAt deletes the box, its items and its disputes. Items and disputes carry the box's own expiry. The
 // items the app holds never carry it, so revisions, and the disputes they pair, do not depend on it.
-import { collection, deleteField, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocFromCache, getDocFromServer, getDocs, getDocsFromCache, getDocsFromServer, runTransaction, setDoc, Timestamp, writeBatch, type DocumentSnapshot, type Firestore, type QuerySnapshot } from "firebase/firestore";
 import { NotBoxOwner, stableJson, type BoxGone, type BoxMeta, type BoxOps, type LoadResult } from "./boxOps";
 import type { BoxItem, BoxState } from "./boxStore";
 
@@ -62,9 +62,10 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
   };
   const withExpiry = <T extends object>(d: T, expiresAt: Timestamp | null) => (expiresAt ? { ...d, expiresAt } : d);
 
-  // The box's items, each with its disputes when they were written together (else reopened).
-  const readItems = async (boxId: string, d: Partial<BoxState>): Promise<Partial<BoxState>> => {
-    const readBoth = () => Promise.all([getDocs(collection(db, "boxes", boxId, "items")), getDocs(collection(db, "boxes", boxId, "disputes"))]);
+  // The box's items, each with its disputes when they were written together (else reopened). `read` is getDocs, or
+  // getDocsFromCache for the copy this browser holds.
+  const readItems = async (boxId: string, d: Partial<BoxState>, read: typeof getDocs = getDocs): Promise<Partial<BoxState>> => {
+    const readBoth = () => Promise.all([read(collection(db, "boxes", boxId, "items")), read(collection(db, "boxes", boxId, "disputes"))]);
     let [itemDocs, disputeDocs] = await readBoth();
     // The two queries are not one snapshot: a write between them can pair an item with older disputes. Read
     // once more before holding anything.
@@ -78,11 +79,23 @@ export function firestorePersistence(db: Firestore, uid: string, editionId: stri
     async loadBox(boxId: string): Promise<LoadResult> {
       try {
         const snap = await getDoc(doc(db, "boxes", boxId));
-        if (!snap.exists()) return { status: "missing" };
+        const fromServer = !snap.metadata.fromCache;
+        if (!snap.exists()) return { status: "missing", fromServer };
         expiries.set(boxId, (snap.data().expiresAt as Timestamp | undefined) ?? null);
-        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>) };
+        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>), fromServer };
       } catch (e) {
         // Not a member, offline with nothing cached, or a query that failed: never an empty box.
+        return { status: "failed", error: message(e) };
+      }
+    },
+    // The box as this browser's cache holds it, without asking the server: the store shows it, not synced, while the
+    // server refuses a browser App Check cannot verify. A box the cache does not hold is no copy.
+    async loadCached(boxId: string): Promise<LoadResult> {
+      try {
+        const snap = await getDocFromCache(doc(db, "boxes", boxId));
+        if (!snap.exists()) return { status: "missing" };
+        return { status: "found", box: await readItems(boxId, unexpired(snap.data()) as Partial<BoxState>, getDocsFromCache) };
+      } catch (e) {
         return { status: "failed", error: message(e) };
       }
     },
@@ -227,6 +240,8 @@ export function persistenceAfterSignIn(signIn: Promise<string>, make: (uid: stri
   return {
     localOnly: () => local,
     loadBox: (boxId) => target.then((p) => p.loadBox(boxId)),
+    // Only Firestore keeps a cache apart from the box itself; a box kept in this browser has no other copy.
+    loadCached: (boxId) => target.then((p): Promise<LoadResult> => (p.loadCached ? p.loadCached(boxId) : Promise.resolve({ status: "missing" }))),
     putMeta: (boxId, meta) => target.then((p) => p.putMeta(boxId, meta)),
     putItem: (boxId, item) => target.then((p) => p.putItem(boxId, item)),
     deleteItem: (boxId, itemId) => target.then((p) => p.deleteItem(boxId, itemId)),

@@ -7,6 +7,7 @@ import { connectAuthEmulator, getAuth, signInAnonymously, type Auth } from "fire
 import {
   connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, type Firestore,
 } from "firebase/firestore";
+import { appCheckVerdict } from "./appCheckVerdict";
 
 export interface FirebaseEnv {
   VITE_FB_API_KEY: string;
@@ -24,8 +25,9 @@ export interface FirebaseHandles {
   auth: Auth;
   db: Firestore;
   getAi(useLimitedUseTokens: boolean): AI;
-  // Whether App Check can get this browser a token now. Firestore sends a placeholder when it cannot and the server
-  // refuses that request, so a refused save asks this to say why.
+  // Whether App Check can verify this browser (src/firebase/appCheckVerdict.ts). Firestore sends a placeholder when
+  // it cannot and the server refuses that request, or never reaches the server at all when reCAPTCHA is blocked, so
+  // the box asks this to say why.
   verified(): Promise<boolean>;
 }
 
@@ -77,7 +79,7 @@ export function initFirebase(env: FirebaseEnv, name?: string): FirebaseHandles {
     app,
     auth,
     db,
-    verified: () => getToken(appCheck).then(() => true, () => false),
+    verified: () => appCheckVerdict(() => getToken(appCheck), () => globalThis.navigator?.onLine !== false),
     getAi(useLimitedUseTokens: boolean): AI {
       if (!ai) {
         ai = { instance: getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: useLimitedUseTokens }), limited: useLimitedUseTokens };

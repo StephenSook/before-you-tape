@@ -41,6 +41,16 @@ describe("persistenceAfterSignIn", () => {
   });
 });
 
+describe("persistenceAfterSignIn loadCached", () => {
+  it("reads the cached copy through Firestore after sign-in, and has none for a box kept in this browser", async () => {
+    const cached: LoadResult = { status: "found", box: { destinationCode: "CA" } };
+    const cloud = { ...fake(), loadCached: vi.fn(async () => cached) };
+    expect(await persistenceAfterSignIn(Promise.resolve("alice"), () => cloud, fake()).loadCached!("b1")).toEqual(cached);
+    expect(cloud.loadCached).toHaveBeenCalledWith("b1");
+    expect(await persistenceAfterSignIn(Promise.reject(new Error("offline")), () => cloud, fake()).loadCached!("b1")).toEqual({ status: "missing" });
+  });
+});
+
 describe("sweepUntilEmpty", () => {
   it("deletes in batches of 400 and lists again until a list comes back empty", async () => {
     const lists = [Array.from({ length: 450 }, (_, i) => i), [999], []];
