@@ -226,6 +226,46 @@ describe("LivePack", () => {
     expect(m?.cloud.generate).not.toHaveBeenCalled();
   });
 
+  // A read on the device can land before Remote Config's settings (cloud checks are off until they do), or while
+  // kill_cloud is on: the second look the rules asked for waits for cloud checks to come on, instead of being lost.
+  const deviceReadsPhone = (models: ReturnType<typeof setup>["models"]) => {
+    const m = Object.values(models)[0]!;
+    m.device.generate.mockResolvedValue({ text: JSON.stringify(phoneOnDevice), source: "on_device" });
+    return m;
+  };
+  it("runs a second look the rules asked for once Remote Config's settings arrive", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("runs a second look the rules asked for once kill_cloud is switched off", async () => {
+    const { models, push } = setup({ killCloud: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    act(() => push({ killCloud: false }));
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("sends no waiting second look when the sender took cloud checks back meanwhile", async () => {
+    const { models, push, store } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    act(() => store.setConsent(false));
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    act(() => store.setConsent(true));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("second-look")).toBeNull();
+  });
+
   it("runs the second look by default, as a control for the policy test", async () => {
     const { models } = setup({}, "available");
     await addPhoto();
