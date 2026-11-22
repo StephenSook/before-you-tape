@@ -423,6 +423,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     if (loadState !== "ready" || closed) return Promise.resolve();
     if (flushing) { again = true; return flushing; }
     flushing = (async () => {
+      // Any save that lands changes the box for this browser's other tabs, an edit made this visit or not.
+      let landedAny = false;
       do {
         again = false;
         const hasItems = Object.keys(journal.items).length > 0;
@@ -433,6 +435,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
             await deps.persistence.putMeta(boxId, meta);
             boxExists = true;
             failed.delete("meta");
+            landedAny = true;
             // Only a save that reached the server answers for App Check; one kept in this browser proves nothing.
             if (deps.persistence.localOnly?.() !== true) {
               answered();
@@ -451,6 +454,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
+              landedAny = true;
               // A write kept only in this browser stays in the journal for the server. A write that landed is
               // what the server now holds, even when a newer edit made meanwhile (a change, or a removal now
               // waiting as a delete) stays in the journal to be sent next.
@@ -479,6 +483,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         }
         keepJournal();
       } while (again && !closed);
+      if (landedAny) deps.changes?.announce();
       const before = stableJson(unsaved);
       refreshUnsaved();
       if (stableJson(unsaved) !== before) publish();
@@ -814,6 +819,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       closed = true;
       state = snapshot(state.result);
       publish();
+      // A delete whose sign-in cleanup fails leaves the box pointer, so the other tabs are told here too.
+      deps.changes?.announce();
       while (flushing) await flushing;
     },
     // Writes only when an edit was made while closed: the journal is shared by this browser's tabs, so writing this

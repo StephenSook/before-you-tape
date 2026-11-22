@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The box store also tells this browser's other tabs when a save lands, edit or not, and when the box is being deleted (src/data/boxStore.ts). A country saved as the box loaded, an earlier visit's edits sent after a reload, and a delete whose sign-in cleanup failed (which leaves the box pointer) used to go unheard, so another tab could still say Ready to tape. Source: review (round 1 on the cross-tab change). Verified: two new store tests failed first and pass.
+
 - A box read only from this browser's cache, which stays not whole until a reload, now says so with a Reload page button: Showing the copy kept in this browser. Reload once you're online to check the whole box. Source: review (the cache-only state is accepted until reload, so recovery is one tap). Verified: a new Pack page test failed first and passes.
 
 - The Pack page says when another tab of this browser changed the box: This box changed in another tab., with a Reload page button, and the box is never called ready until the reload. Source: review (a second tab's new item went unseen). Verified: a new Pack page test failed first and passes: Ready to tape before the change, the notice and no all clear after it, and the button reloads.
