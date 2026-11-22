@@ -111,6 +111,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             cloud = { CloudState(store.cloudConsent(), online(), rc?.current()?.killCloud ?: true) },
             prompt = { Prompts.ITEM_READ_PROMPT },
             signIn = { FirebaseSignIn.ensureSignedIn() },
+            // The engine's own figure parser, on the whole label before the parser clips it.
+            figures = { label -> requireNotNull(host).labelFigures(listOf(label)) },
         )
     }
 
@@ -290,7 +292,8 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             // A typed item goes through the web app's own read parser, like a model read, and keeps the tags
             // of its whole label.
             val parsed = h.parseItemReadTagged(Json.encodeToString(ItemReadWire.serializer(), read))
-            box.addManual(parsed.read, parsed.labelTags, UUID.randomUUID().toString())
+            // Its figures, too, come from the whole typed label.
+            box.addManual(parsed.read, parsed.labelTags, UUID.randomUUID().toString(), h.labelFigures(listOf(read.labelText)))
             publish { it.copy(view = HomeView.BOX, message = null) }
         }
     }
@@ -305,7 +308,9 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
             val input = box.state.items.firstOrNull { it.input.itemId == itemId }?.input ?: return@onWorker
             val patch = ReadDrafts.changed(BoxLogic.effectiveRead(input), draft)
             val tags = if ("labelText" in patch) host?.labelTags(draft.labelText) ?: emptyList() else null
-            if (patch.isNotEmpty()) box.override(itemId, patch, tags)
+            // Typed label words bring their figures, merged by the engine with the ones the item keeps.
+            val figures = if ("labelText" in patch) host?.labelFigures(BoxLogic.figureTexts(input, draft.labelText), input.labelFigures) else null
+            if (patch.isNotEmpty()) box.override(itemId, patch, tags, figures)
             publish { it.copy(view = HomeView.BOX, fixItemId = null, fixRead = null) }
         }
     }

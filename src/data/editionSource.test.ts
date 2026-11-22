@@ -41,7 +41,7 @@ describe("chooseEdition", async () => {
     expect(await chooseEdition({ ...want, wantSha: await shaOf(broken), fetchRemote: async () => broken })).toMatchObject({ from: "bundled", notice: "A newer rule edition could not be read. Using the built-in edition." });
   });
 
-  it("keeps the built-in edition when the pinned one is not newer: an older revision, the same, or none", async () => {
+  it("keeps the built-in edition, with no notice, when the pinned one is not newer: an older revision, the same, or none", async () => {
     const pinned = (revision: number | undefined) => {
       const { revision: _r, ...rest } = remote;
       void _r;
@@ -50,7 +50,7 @@ describe("chooseEdition", async () => {
     for (const revision of [undefined, bundled.revision, Math.max(1, (bundled.revision ?? 1) - 1)]) {
       const old = pinned(revision);
       expect(await chooseEdition({ ...base, wantId: "byt-newer000001", wantSha: await shaOf(old), fetchRemote: async () => old }))
-        .toMatchObject({ edition: bundled, from: "bundled", notice: "The pinned rule edition is older than this build's. Using the built-in edition." });
+        .toMatchObject({ edition: bundled, from: "bundled", notice: null });
     }
   });
 

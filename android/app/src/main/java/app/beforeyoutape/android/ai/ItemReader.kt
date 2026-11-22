@@ -2,6 +2,7 @@ package app.beforeyoutape.android.ai
 
 import app.beforeyoutape.android.capture.CropImage
 import app.beforeyoutape.engine.ItemReadWire
+import app.beforeyoutape.engine.LabelFigures
 import app.beforeyoutape.engine.TaggedRead
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
@@ -11,8 +12,14 @@ enum class BlockReason { NO_MODEL_NO_CONSENT, OFFLINE, CLOUD_PAUSED, REFUSALS_PA
 enum class FailReason { UNREADABLE, REFUSED, DEVICE_REPLY_FROM_CLOUD, DEVICE_ERROR, CLOUD_ERROR }
 
 sealed interface ReadOutcome {
-    /** [labelTags] are the engine's tags for the whole label, from the parser; the read's own text is clipped. */
-    data class Read(val read: ItemReadWire, val source: Source, val route: ReadRoute, val ms: Long, val labelTags: List<String>) : ReadOutcome
+    /**
+     * [labelTags] are the engine's tags for the whole label, from the parser; the read's own text is clipped.
+     * [labelFigures] are the engine's Wh and gram figures for the whole label, kept with the item.
+     */
+    data class Read(
+        val read: ItemReadWire, val source: Source, val route: ReadRoute, val ms: Long, val labelTags: List<String>,
+        val labelFigures: LabelFigures? = null,
+    ) : ReadOutcome
     data class Blocked(val reason: BlockReason) : ReadOutcome
     data class Failed(val reason: FailReason, val retryable: Boolean) : ReadOutcome
 }
@@ -34,6 +41,8 @@ class ItemReader(
     private val prompt: () -> String,
     /** A signed-in Firebase user (cloud requests carry its ID token); throws when sign-in fails. */
     private val signIn: suspend () -> Unit,
+    /** The engine's figures for a whole label (EngineHost.labelFigures); null when it names none. */
+    private val figures: (String) -> LabelFigures? = { null },
 ) {
     private val json = Json
     private var refusalsInARow = 0
@@ -84,15 +93,16 @@ class ItemReader(
             return failed(e.failure, route)
         }
         val read = reply.read ?: return ReadOutcome.Failed(FailReason.UNREADABLE, retryable = true)
-        val parsed = try {
-            parse(json.encodeToString(ItemReadWire.serializer(), read))
+        // The figures come from the model's whole label, before the parser clips its text.
+        val (parsed, labelFigures) = try {
+            parse(json.encodeToString(ItemReadWire.serializer(), read)) to figures(read.labelText)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             return ReadOutcome.Failed(FailReason.UNREADABLE, retryable = true)
         }
         refusalsInARow = 0
-        return ReadOutcome.Read(parsed.read, reply.source, route, (System.nanoTime() - t0) / 1_000_000, parsed.labelTags)
+        return ReadOutcome.Read(parsed.read, reply.source, route, (System.nanoTime() - t0) / 1_000_000, parsed.labelTags, labelFigures)
     }
 
     private suspend fun signedIn(): Boolean = try {
