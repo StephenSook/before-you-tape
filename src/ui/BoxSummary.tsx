@@ -5,7 +5,10 @@ import type { BoxResult } from "../engine/verdict";
 
 const range = ({ min, max }: { min: number; max: number }) => (min === max ? `${max}` : `${min} to ${max}`);
 
-export function BoxSummary({ result, itemCount, recheck, limits }: { result: BoxResult; itemCount: number; recheck: { ms: number; country: string } | null; limits: LithiumLimits }) {
+// unknownBox: the saved box could not be read (App Check refused this browser), so no items is not an empty box.
+export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = false }: {
+  result: BoxResult; itemCount: number; recheck: { ms: number; country: string } | null; limits: LithiumLimits; unknownBox?: boolean;
+}) {
   const { counts, lithium } = result;
   // Ready only when every item is OK to pack, the lithium count fits, and mail to the country is open.
   const lithiumBlocks = lithium.status === "over" || lithium.status === "mixed" || lithium.status === "depends";
@@ -16,7 +19,7 @@ export function BoxSummary({ result, itemCount, recheck, limits }: { result: Box
   return (
     <section data-testid="box-summary" aria-label="Your box">
       <h2 id="box-heading" tabIndex={-1}>Your box</h2>
-      {itemCount === 0 ? <p>Nothing in the box yet.</p> : (
+      {itemCount === 0 ? (unknownBox ? null : <p>Nothing in the box yet.</p>) : (
         <ul className="count-chips">
           {counts.takeOut > 0 && <li className="chip count-chip chip-take_out">{counts.takeOut} to take out</li>}
           {counts.check > 0 && <li className="chip count-chip chip-check">{counts.check} to check</li>}

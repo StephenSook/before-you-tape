@@ -72,6 +72,12 @@ export interface BoxState {
   // Whether the country is known: the saved box has been read, or the sender chose one. Until then the picker
   // shows no country, so even a first pick of the default counts.
   destinationKnown?: boolean;
+  // App Check could not verify this browser and the server refused the box: the copy this browser's cache kept, with
+  // its verdicts, shown apart from the box and never edited or sent, until a read of the box replaces it.
+  cachedCopy?: { destinationCode: string; items: BoxItem[]; result: BoxResult };
+  // The box was read only from this browser's cache (Firestore could not reach the server): whether the cache held
+  // it. A box the cache did not hold may still be on the server, so it is not a new box.
+  readFromCache?: "found" | "missing";
 }
 
 // Edits not yet acknowledged by the server: each item's latest stored copy (null: removed) and the box's
@@ -284,30 +290,33 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   // text back and picking what the item is brings that read's name.
   const lookLabels = new Map<string, { device: string; cloud: string; deviceName: string; cloudName: string }>();
 
-  const evaluate = (): BoxResult => {
+  const evaluateFor = (list: BoxItem[], code: string): BoxResult => {
     const edition = currentEdition();
-    const live = liveRead && liveRead.code === destinationCode ? liveRead.edition : undefined;
+    const live = liveRead && liveRead.code === code ? liveRead.edition : undefined;
     const today = deps.today();
-    return guardStaleTags(evaluateBox(items.map(forRules), edition, resolveDestination(edition, destinationCode, live, today), today), items, labelWordsVersion(edition));
+    return guardStaleTags(evaluateBox(list.map(forRules), edition, resolveDestination(edition, code, live, today), today), list, labelWordsVersion(edition));
   };
+  const evaluate = (): BoxResult => evaluateFor(items, destinationCode);
   let unsaved: readonly string[] = [];
   let loadState: NonNullable<BoxState["loadState"]> = "loading";
   let outOfDate = false;
   let unverified = false;
-  // A save has landed this visit, so the server has taken this browser's requests.
-  let saveLanded = false;
+  // Answers from the server this visit (a save that landed, the box read from the server): a "no" from App Check
+  // asked before one of them is out of date.
+  let serverAnswers = 0;
   // A country the sender chose before the saved box was read: it stands over the saved one.
   let chosenDestination: string | null = null;
-  // While the server refuses a browser App Check cannot verify, the copy this browser kept of the box is shown:
-  // each copied item's stored form (never this visit's edit unless the sender changes it), and whether the copy
-  // gave the country.
-  const cachedBase = new Map<string, string>();
+  // The copy shown while the server refuses a browser App Check cannot verify (BoxState.cachedCopy), and whether
+  // the cache has been read for it.
+  let cachedCopy: { destinationCode: string; items: BoxItem[] } | undefined;
   let cachedRead = false;
-  let cachedDestination = false;
+  let readFromCache: BoxState["readFromCache"];
   const snapshot = (result: BoxResult): BoxState => ({
     boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
-    destinationKnown: loadState === "ready" || chosenDestination !== null || cachedDestination, ...(outOfDate ? { outOfDate } : {}),
+    destinationKnown: loadState === "ready" || chosenDestination !== null, ...(outOfDate ? { outOfDate } : {}),
     ...(unverified ? { unverified } : {}),
+    ...(cachedCopy ? { cachedCopy: { ...cachedCopy, result: evaluateFor(cachedCopy.items, cachedCopy.destinationCode) } } : {}),
+    ...(readFromCache ? { readFromCache } : {}),
   });
   let state: BoxState = snapshot(evaluate());
 
@@ -334,8 +343,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   // refuses with the same code. A box that could not be opened keeps its own notice.
   const noteRefusal = (e: unknown) => {
     if (outOfDate || loadState !== "ready" || (e as { code?: unknown } | null)?.code !== "permission-denied") return;
+    const asked = serverAnswers;
     void (deps.verified ? deps.verified().catch(() => false) : Promise.resolve(true)).then((ok) => {
-      if (!ok) { markUnverified(); return; }
+      if (!ok) { if (serverAnswers === asked) markUnverified(); return; }
       if (outOfDate) return;
       outOfDate = true;
       state = { ...state, outOfDate };
@@ -351,9 +361,10 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     publish();
     void showCached();
   };
-  // A save that landed: whatever stopped this browser being verified has passed.
-  const landed = () => {
-    saveLanded = true;
+  // The server answered (a save landed, or the box was read from the server): whatever stopped App Check verifying
+  // this browser has passed.
+  const answered = () => {
+    serverAnswers += 1;
     if (!unverified) return;
     unverified = false;
     const { unverified: _gone, ...rest } = state;
@@ -374,8 +385,6 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const now = new Set(items.map((i) => i.itemId));
     for (const i of items) {
       const j = storedJson(i);
-      // A copy shown while the server refused the box is not an edit: only a change the sender makes to it is.
-      if (cachedBase.get(i.itemId) === j) { delete journal.items[i.itemId]; continue; }
       // While a write of this item is out, the server's copy is about to change: a copy equal to the old one is
       // kept in the journal too, so it is sent after that write lands (a change and back, such as 1 to 3 to 1).
       if (server.get(i.itemId) === j && !inFlight.has(i.itemId)) delete journal.items[i.itemId];
@@ -410,7 +419,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
             await deps.persistence.putMeta(boxId, meta);
             boxExists = true;
             failed.delete("meta");
-            landed();
+            answered();
             if (deps.persistence.localOnly?.() !== true) {
               serverMeta = stableJson(meta);
               if (journal.meta === sent) journal.meta = null;
@@ -427,7 +436,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
               if (item) await deps.persistence.putItem(boxId, item);
               else await deps.persistence.deleteItem(boxId, id);
               failed.delete(id);
-              landed();
+              answered();
               // A write kept only in this browser stays in the journal for the server. A write that landed is
               // what the server now holds, even when a newer edit made meanwhile (a change, or a removal now
               // waiting as a delete) stays in the journal to be sent next.
@@ -501,21 +510,16 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
 
   // App Check could not verify this browser and the server refused the box: the copy this browser's cache kept is
-  // shown (the page marks it not synced) until a read from the server replaces it. Nothing of it is sent unless the
-  // sender changes it.
+  // shown apart from the box (BoxState.cachedCopy). It is never one of the box's items, so it is never edited,
+  // journaled or sent, and a read of the box replaces it.
   const showCached = async () => {
     if (cachedRead || !unverified || loadState !== "failed" || !deps.persistence.loadCached) return;
     cachedRead = true;
     const r = await deps.persistence.loadCached(boxId).catch((e: unknown): LoadResult => ({ status: "failed", error: String(e) }));
-    if (r.status !== "found" || loadState !== "failed" || closed) return;
-    const inMemory = new Set(items.map((i) => i.itemId));
-    const copies = (r.box.items ?? []).filter((i) => !inMemory.has(i.itemId) && journal.items[i.itemId] !== null);
-    for (const i of copies) cachedBase.set(i.itemId, storedJson(withNames(i)));
-    items = [...inAddedOrder(copies.map((i) => withNames(journal.items[i.itemId] ?? i))), ...items];
-    if (chosenDestination === null && r.box.destinationCode) {
-      destinationCode = journal.meta?.destinationCode ?? r.box.destinationCode;
-      cachedDestination = true;
-    }
+    // A retry of the box overtook this read: if the retry fails too, the cache is read again.
+    if (loadState !== "failed") { cachedRead = false; return; }
+    if (r.status !== "found" || closed) return;
+    cachedCopy = { destinationCode: r.box.destinationCode ?? DEFAULT_DESTINATION, items: inAddedOrder((r.box.items ?? []).map(withNames)) };
     commit(evaluate(), false);
   };
 
@@ -531,10 +535,11 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       void showCached();
       return;
     }
-    // The server's box replaces any copy shown while it refused the box; an edit to a copy waits in the journal.
-    items = items.filter((i) => !cachedBase.has(i.itemId));
-    cachedBase.clear();
-    cachedDestination = false;
+    // The box replaces any copy shown while the server refused it, and a read from the server is an answer.
+    cachedCopy = undefined;
+    cachedRead = false;
+    readFromCache = r.fromServer === false ? r.status : undefined;
+    if (r.fromServer === true) answered();
     const inMemory = new Set(items.map((i) => i.itemId));
     const saved = r.status === "found" ? r.box : {};
     boxExists = r.status === "found";
@@ -606,7 +611,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   const ready = load();
   // Asked once at the start: with reCAPTCHA blocked nothing is ever refused, so only this can say why nothing saves.
-  void deps.verified?.().catch(() => false).then((ok) => { if (!ok && !saveLanded) markUnverified(); });
+  void deps.verified?.().catch(() => false).then((ok) => { if (!ok && serverAnswers === 0) markUnverified(); });
 
   return {
     ready,
