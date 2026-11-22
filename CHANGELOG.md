@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- This browser's tabs on the same box now tell each other when it changes (src/data/boxChanges.ts: BroadcastChannel, or the storage event where a browser lacks it). Each edit in one tab is announced, and every other open tab marks its box changed (BoxState.changedElsewhere) and not whole until a reload, since a tab reads its box once and another tab may have added a hazard. A deleted box was already told apart and still is. Source: review (round 1 on the Ready to tape change: a second tab's new item went unseen). Verified: new boxChanges tests (another tab on the same box hears it, the writing tab and other boxes do not, the storage fallback, blocked storage) and store tests failed first and pass.
+
 - A box is also not whole once saving stops because the page is out of date, or while it is being deleted (src/data/boxStore.ts), so neither shows Ready to tape; close, reopen and the out-of-date notice now refresh the state, so the flag never goes stale. An edit of the sender's own that has not reached the server yet still counts as the box they packed. Source: review (round 1 on the Ready to tape change). Verified: two new store tests failed first and pass.
 
 - A box read counts as from the server only when the box and both of its queries, items and disputes, came from the server (src/data/persistence.ts): the connection can drop between them, and items read from the cache could miss one, so the page could have called a box whole that was not. Source: review (round 1 on the Ready to tape change). Verified: a new loadBox test with items, then disputes, from the cache failed first and passes.

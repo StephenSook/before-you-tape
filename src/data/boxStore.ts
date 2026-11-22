@@ -83,6 +83,9 @@ export interface BoxState {
   // is out of date, or the box is being deleted. Hidden items may be hazards, so the page never calls such a box ready
   // to tape. An edit of the sender's own that has not reached the server yet does not count: it is what they packed.
   incomplete?: true;
+  // Another tab of this browser changed the box after this one read it (src/data/boxChanges.ts): what this tab shows
+  // may be out of date until a reload, so the box is not whole either.
+  changedElsewhere?: true;
 }
 
 // Edits not yet acknowledged by the server: each item's latest stored copy (null: removed) and the box's
@@ -170,6 +173,9 @@ export interface BoxStoreDeps {
   // permission-denied as a page out of date, so a refusal asks this before saying which. Without it, a refusal
   // always means out of date.
   verified?: () => Promise<boolean>;
+  // This browser's other tabs on the same box (src/data/boxChanges.ts): told of each change here, heard when they
+  // change it.
+  changes?: { announce(): void; onChange(f: () => void): () => void };
 }
 
 // A new box starts in the Philippines: Canada's mail is suspended from 2026-11-29 (rules/suspensions.json).
@@ -316,6 +322,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let cachedCopy: { destinationCode: string; items: BoxItem[] } | undefined;
   let cachedRead = false;
   let readFromCache: BoxState["readFromCache"];
+  // Another tab changed the box after this one read it; only a reload reads it again.
+  let changedElsewhere = false;
   // Set by close(): the box is being deleted, so nothing more is kept or sent.
   let closed = false;
   // An edit was made while closed, so reopen() has something to keep and send.
@@ -326,8 +334,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     ...(unverified ? { unverified } : {}),
     ...(cachedCopy ? { cachedCopy: { ...cachedCopy, result: evaluateFor(cachedCopy.items, cachedCopy.destinationCode) } } : {}),
     ...(readFromCache ? { readFromCache } : {}),
-    ...(loadState !== "ready" || readFromCache !== undefined || unverified || outOfDate || closed || deps.persistence.localOnly?.() === true
-      ? { incomplete: true as const } : {}),
+    ...(changedElsewhere ? { changedElsewhere: true as const } : {}),
+    ...(loadState !== "ready" || readFromCache !== undefined || unverified || outOfDate || closed || changedElsewhere
+      || deps.persistence.localOnly?.() === true ? { incomplete: true as const } : {}),
   });
   let state: BoxState = snapshot(evaluate());
 
@@ -486,6 +495,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       recordEdits();
       refreshUnsaved();
       void flush();
+      deps.changes?.announce();
     }
     publish();
   };
@@ -506,6 +516,13 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   };
   // Another tab on this device changed the answer.
   deps.consent?.onChange(publishConsent);
+  // Another tab changed the box: this one may be showing an older box.
+  deps.changes?.onChange(() => {
+    if (changedElsewhere) return;
+    changedElsewhere = true;
+    state = snapshot(state.result);
+    publish();
+  });
 
   // The names kept on this device replace the category labels the server has.
   const withNames = (i: BoxItem): BoxItem => {
