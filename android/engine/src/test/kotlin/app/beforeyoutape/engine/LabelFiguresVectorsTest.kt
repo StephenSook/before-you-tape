@@ -53,6 +53,34 @@ class LabelFiguresVectorsTest {
         }
     }
 
+    /**
+     * A typed item too (numbersFrom "typed", where a typed number must be at least every label figure): a phone typed as
+     * 3.85 V, 4000 mAh and 15.4 Wh under label words naming a 154 Wh pack, new and sealed with one cell, in Canada, is
+     * held on DATA-LABEL-NUMBERS, and still is as a sync reloads it, on its kept figures; without them it would read OK.
+     */
+    @Test fun aReloadedTypedItemStillHoldsOnItsKeptFigures() {
+        RepoFiles.host().use { host ->
+            val base = RepoFiles.obj("tests/vectors/defaults.json").getValue("baseRead").jsonObject
+            val label = "3.85V 4000mAh PACK 154Wh"
+            val read = host.parseItemRead(Json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), kotlinx.serialization.json.JsonObject(base + mapOf(
+                "itemName" to kotlinx.serialization.json.JsonPrimitive("Phone"), "category" to kotlinx.serialization.json.JsonPrimitive("phone"),
+                "labelText" to kotlinx.serialization.json.JsonPrimitive(label), "volts" to kotlinx.serialization.json.JsonPrimitive(3.85),
+                "milliampHours" to kotlinx.serialization.json.JsonPrimitive(4000), "wattHours" to kotlinx.serialization.json.JsonPrimitive(15.4),
+                "batteryWords" to kotlinx.serialization.json.JsonPrimitive(true), "retailBox" to kotlinx.serialization.json.JsonPrimitive("sealed"),
+                "evidence" to kotlinx.serialization.json.JsonPrimitive("label_read")))))
+            val answers = mapOf("device_condition" to "new_sealed", "cell_count" to "one")
+            fun verdict(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-20").items.getValue("t")
+            val typed = BoxItemInput("t", read, kotlinx.serialization.json.JsonObject(emptyMap()), answers, 1.0, "sender", host.labelTags(label),
+                numbersFrom = "typed", labelFigures = host.labelFigures(listOf(label)))
+            assertTrue("DATA-LABEL-NUMBERS" in verdict(typed).hits.map { it.ruleId })
+            val reloaded = typed.copy(read = read.copy(labelText = ""))
+            assertTrue("DATA-LABEL-NUMBERS" in verdict(reloaded).hits.map { it.ruleId })
+            val withoutFigures = verdict(reloaded.copy(labelFigures = null))
+            assertTrue("DATA-LABEL-NUMBERS" !in withoutFigures.hits.map { it.ruleId })
+            assertEquals("ok", withoutFigures.level.name)
+        }
+    }
+
     /** The check above can fail: a case with a figure it does not give is reported. */
     @Test fun aWrongExpectationIsReported() {
         RepoFiles.host().use { host ->
