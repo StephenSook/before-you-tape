@@ -366,11 +366,16 @@ final class BoxStore {
     /// What the rules are told (the web app's forRules): a second look stands behind the numbers only when
     /// no one typed or picked them. This holds for an item saved by an earlier build too, and changes
     /// nothing that is saved.
-    static func forRules(_ item: BoxItem) -> BoxItem {
-        guard item.identityConfirmedBy == "second_look", typesNumbers(item.overrides) || numbersDisputed(item.disputes) else { return item }
+    static func forRules(_ item: BoxItem) -> JSONValue {
         var told = item
-        told.identityConfirmedBy = "sender"
-        return told
+        if item.identityConfirmedBy == "second_look", typesNumbers(item.overrides) || numbersDisputed(item.disputes) {
+            told.identityConfirmedBy = "sender"
+        }
+        guard case var .object(input) = told.engineInput else { return told.engineInput }
+        // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine
+        // counts them read).
+        if item.readSource == "manual" { input["numbersFrom"] = .string("typed") }
+        return .object(input)
     }
 
     /// Who stands behind an item once a second look lands (the web app's secondLookIdentity). Same kind of
@@ -602,7 +607,7 @@ final class BoxStore {
     private func evaluate() -> BoxResult? {
         refreshStaleTags()
         // The rules are told who stands behind each item's numbers; the stored items stay as they are.
-        let input: JSONValue = .object(["items": .array(items.map { Self.forRules($0).engineInput }), "code": .string(destinationCode),
+        let input: JSONValue = .object(["items": .array(items.map(Self.forRules)), "code": .string(destinationCode),
                                         "today": .string(today())])
         do {
             let value = try engine.evaluateBox(input)

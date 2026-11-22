@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): numbers on an item typed by hand count as typed
+- What: an item the sender typed by hand (no photo read) now tells the engine numbersFrom "typed"
+  when the box is judged, so revision 7 judges its battery numbers on the Wh rules instead of holding
+  them as a model's read (USPS-INTL-LI-ONE-READ). A label figure above a typed number still holds it
+  (DATA-LABEL-NUMBERS). Only the rules are told; nothing saved changes.
+- Source: the revision 7 phone-mirror spec, B2 (the web store's forRules).
+- Verified: two new tests failed first (the typed phone was held at Check this by the one-read rule)
+  and pass now; the four store suites pass, 63 of 63.
+
 ### feat(ios): an item keeps its labels' Wh and gram figures, decided by the engine
 - What: rule edition revision 7 holds an item when a label figure is above the number in use. The
   iPhone now keeps those figures with the item and saves them, since the label text is never saved.
