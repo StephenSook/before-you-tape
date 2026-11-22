@@ -74,6 +74,10 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The facts the device read and the second look disagreed on, in the web app's shape
     /// ({ field: { device, cloud, resolved } }); an open one holds the item at "Check this".
     var disputes: JSONValue?
+    /// The Wh and lithium-gram figures the item's labels name ({ wh, grams }), as the engine decided them
+    /// (labelFiguresJson): kept and saved, since the label text is not. Nil when no label named one, and
+    /// for an item saved before they were kept.
+    var labelFigures: JSONValue?
 
     var id: String { itemId }
 
@@ -83,6 +87,7 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
                  "identityConfirmedBy": identityConfirmedBy.map { .string($0) } ?? .null,
                  "labelTags": .array(labelTags.map { .string($0) })]
         if let disputes { input["disputes"] = disputes }
+        if let labelFigures { input["labelFigures"] = labelFigures }
         return .object(input)
     }
 
@@ -274,10 +279,12 @@ final class BoxStore {
         guard let read = outcome.read, let source = outcome.source else { return nil }
         let itemId = newId()
         // The parser's tags are from the whole label; the read's own text is clipped and is never tagged.
+        // The label's figures come from the whole label too, never from the clipped text.
+        let whole = outcome.wholeLabel ?? Self.text(read["labelText"]) ?? ""
         items.append(BoxItem(itemId: itemId, read: read, labelTags: outcome.labelTags, tagsEdition: tagsEdition(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
                              readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile,
-                             wholeLabel: outcome.wholeLabel))
+                             wholeLabel: outcome.wholeLabel, labelFigures: figures([whole], kept: nil)))
         sources.add(\.onDevice, source == .onDevice ? 1 : 0)
         sources.add(\.inCloud, source == .cloud ? 1 : 0)
         sources.add(\.cloudFallbacks, outcome.fallbackAfter == nil ? 0 : 1)
@@ -322,6 +329,9 @@ final class BoxStore {
                 item.labelTags = tags(label)
                 // Blank words are not a label: a stale item stays stale until real words are read.
                 if hasWords(label) || !isStale(item) { item.tagsEdition = tagsEdition(label) }
+                // A label the sender typed adds its figures to the kept ones (its text is not kept).
+                let typed = Self.text(label) ?? ""
+                item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), typed] : [typed], kept: item.labelFigures)
             }
             if case var .object(all)? = item.disputes {
                 for field in Self.disputeFields where Self.corrects(patch, field) {
@@ -423,6 +433,10 @@ final class BoxStore {
                                               "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
             }
             for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
+            // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named
+            // counts. Taken before the merged read replaces the device's.
+            item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), cloudLabel ?? ""] : [cloudLabel ?? ""],
+                                        kept: item.labelFigures)
             // The kind of item the box has now, with the sender's own correction over the read.
             let sameKind = merged["category"] == (item.overrides["category"] ?? item.read["category"])
             // A label the sender corrected while the cloud read ran stays theirs: only its tags count.
@@ -703,6 +717,16 @@ final class BoxStore {
 
     private func tagsEdition(_ label: JSONValue?) -> String? {
         hasWords(label) ? engine.editionId : ""
+    }
+
+    /// The whole label the device read returned, while this iPhone has it; else the read's own text.
+    private static func deviceLabel(_ item: BoxItem) -> String { item.wholeLabel ?? text(item.read["labelText"]) ?? "" }
+
+    /// The figures an item keeps from these whole labels and its figures so far, as the engine decides them
+    /// (labelFiguresJson): Swift reads no label itself. If the engine refuses, the item keeps what it had,
+    /// and a box the engine then cannot judge says so (engineProblem).
+    private func figures(_ labels: [String], kept: JSONValue?) -> JSONValue? {
+        do { return try engine.labelFigures(texts: labels, kept: kept) } catch { return kept }
     }
 
     private func tags(_ label: JSONValue?) -> [String] {

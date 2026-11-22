@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): an item keeps its labels' Wh and gram figures, decided by the engine
+- What: rule edition revision 7 holds an item when a label figure is above the number in use. The
+  iPhone now keeps those figures with the item and saves them, since the label text is never saved.
+  A photo read takes them from its whole label, not the 160-character clip. A second look adds its
+  own label's figures, and a label the sender types adds its figures. Every time, the bundled engine
+  decides them through labelFiguresJson (RulesEngine.labelFigures); Swift reads no label. The figures
+  go to the engine as labelFigures. An item saved before this has none and loads as before.
+- Source: the revision 7 phone-mirror spec, B1.
+- Verified: four new store tests failed first: a figure past the label cut, and figures from a read,
+  a second look and a typed label after a reload. They pass now, with a test that an item saved
+  without figures decodes. LabelFiguresStoreTests, SecondLookStoreTests and BoxStoreTests: 61 of 61.
+
 ### test(ios): the large phone read in the second-look tests names no Wh on its label
 - What: rule edition revision 7 holds a typed number below any figure the label names. The two tests of
   numbers typed in full typed 15.4 Wh over a read whose label said 154Wh, so the engine rightly held
