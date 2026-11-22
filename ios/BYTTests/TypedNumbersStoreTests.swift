@@ -118,6 +118,39 @@ import Testing
         }
     }
 
+    /// The sender types the Wh printed on the label into an empty field. A match with the model's own
+    /// reading, within the edition's tolerance (3%), makes the numbers shown the sender's, with the typed Wh
+    /// kept; a different number replaces the read one only.
+    @Test func aLabelNumberThatMatchesTheReadingConfirmsTheNumbersShown() throws {
+        let (s, id) = try read(Self.phone)
+        #expect(ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
+        s.confirmLabelNumber(id, field: "wattHours", value: 15.8)
+        #expect(s.items[0].overrides == ["volts": .number(3.85), "milliampHours": .number(4000), "wattHours": .number(15.8)])
+        #expect(level(s, id) == "ok")
+        let other = try read(Self.phone)
+        other.0.confirmLabelNumber(other.1, field: "wattHours", value: 16)
+        #expect(other.0.items[0].overrides == ["wattHours": .number(16)])
+        #expect(level(other.0, other.1) != "ok")
+        let coin = try read(Self.coin)
+        coin.0.confirmLabelNumber(coin.1, field: "lithiumGrams", value: 0.1)
+        #expect(coin.0.items[0].overrides == ["volts": .number(3), "lithiumGrams": .number(0.1)])
+    }
+
+    /// Only the model's own reading confirms: a match with a number the sender typed earlier, or a match
+    /// while the reads dispute the numbers, saves only the typed number. A number of 0 or less does nothing.
+    @Test func aLabelNumberConfirmsOnlyTheModelsOwnReadingAndNeverDuringADispute() throws {
+        let (s, id) = try read(Self.phone)
+        s.confirmLabelNumber(id, field: "wattHours", value: 20)
+        s.confirmLabelNumber(id, field: "wattHours", value: 15.4)
+        #expect(s.items[0].overrides == ["wattHours": .number(15.4)])
+        let open = try SecondLookStoreTests().look(Self.phone, SecondLookStoreTests.bigPhone)
+        open.0.confirmLabelNumber(open.1, field: "wattHours", value: 15.4)
+        #expect(open.0.items[0].overrides == ["wattHours": .number(15.4)])
+        let none = try read(Self.phone)
+        for bad in [0, -1, Double.nan, Double.infinity] { none.0.confirmLabelNumber(none.1, field: "wattHours", value: bad) }
+        #expect(none.0.items[0].overrides.isEmpty)
+    }
+
     @Test func aTypedItemsLabelFigureAboveItsTypedNumberHoldsIt() throws {
         let (s, id) = try typed(Self.with(Self.phone, ["labelText": .string("3.85V 4000mAh PACK 20Wh")]))
         #expect(level(s, id) == "check")

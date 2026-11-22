@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the store checks a Wh or lithium-grams number typed from the label
+- What: BoxStore.confirmLabelNumber takes the Wh (or lithium grams) the sender typed from the label. It
+  compares it only with the model's own reading, never with a number the sender typed earlier. A match
+  within the edition's limits.whTolerancePct (read from the edition in force), with no numbers dispute,
+  saves the typed number plus the numbers that come with it (for Wh the volts and mAh shown, for grams
+  the volts). Any other number saves only the typed one. The typed number is always the one kept.
+  A number of 0 or less, or not finite, does nothing. The screen that asks for it comes next.
+- Source: the revision 7 phone-mirror spec, B6 (the web store's confirmLabelNumber).
+- Verified: two new tests failed against an empty stub first, then pass: a match, a miss, lithium
+  grams, an earlier typed number, a dispute and bad numbers. The four store suites pass, 70 of 70.
+
 ### test(ios): a cleared battery number makes a second look's numbers the sender's
 - What: a test now holds that any battery number in a correction, a cleared one (0) included, makes a
   second-look item's numbers the sender's, for each of the volts, mAh, Wh and lithium grams. The store

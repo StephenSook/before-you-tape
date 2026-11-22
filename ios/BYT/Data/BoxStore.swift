@@ -345,6 +345,34 @@ final class BoxStore {
         return out
     }
 
+    /// The sender typed the Wh (or lithium grams) printed on the label into an empty field (the web app's
+    /// confirmLabelNumber). A match with the model's own reading, within the edition's tolerance, makes the
+    /// numbers shown the sender's own; a different number replaces the read one only, and the item is judged
+    /// again. The typed number is the one kept, so a limit still applies to it.
+    func confirmLabelNumber(_ itemId: String, field: String, value: Double) {
+        guard let ride = Self.rideAlong[field], value.isFinite, value > 0,
+              let item = items.first(where: { $0.itemId == itemId }) else { return }
+        func number(_ v: JSONValue?) -> Double { if case let .number(n)? = v { n } else { 0 } }
+        // Only the model's own reading confirms: matching a number the sender typed earlier confirms nothing more.
+        let read = item.overrides[field] == nil ? number(item.read[field]) : 0
+        // While the two reads dispute the numbers, a match confirms only the number typed, never the others.
+        let matches = !Self.numbersDisputed(item.disputes) && read > 0 && whTolerancePct().map { abs(value - read) / read * 100 <= $0 } == true
+        var patch: [String: JSONValue] = [field: .number(value)]
+        if matches {
+            for f in ride { let shown = number(item.overrides[f] ?? item.read[f]); if shown > 0 { patch[f] = .number(shown) } }
+        }
+        overrideItem(itemId, patch: patch)
+    }
+
+    /// The edition's Wh tolerance (limits.whTolerancePct), read from the edition in force; nil when it
+    /// cannot be read, and then no typed number matches a reading.
+    private func whTolerancePct() -> Double? {
+        guard let text = try? engine.canonicalEdition(),
+              let edition = try? JSONDecoder().decode(JSONValue.self, from: Data(text.utf8)),
+              case let .number(pct)? = edition["limits"]?["whTolerancePct"] else { return nil }
+        return pct
+    }
+
     /// A corrected label replaces the read one, so its tags must survive the label text not being saved.
     /// The sender's own correction of a disputed fact settles that dispute.
     private func overrideItem(_ itemId: String, patch: [String: JSONValue]) {
