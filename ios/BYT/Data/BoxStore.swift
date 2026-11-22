@@ -329,7 +329,51 @@ final class BoxStore {
                 }
                 item.disputes = .object(all)
             }
+            if Self.typesNumbers(patch) { Self.numbersByHand(&item) }
         }
+    }
+
+    /// Whether these corrections type any battery number: the volts, mAh, Wh or lithium grams.
+    static func typesNumbers(_ patch: [String: JSONValue]) -> Bool {
+        ["volts", "milliampHours", "wattHours", "lithiumGrams"].contains { patch[$0] != nil }
+    }
+
+    /// Battery numbers the sender typed (any of them), or picked between two readings, are theirs and not a
+    /// second look's: the rules let only a second look that read the same numbers stand behind them
+    /// (USPS-INTL-LI-ONE-READ). An item nobody confirmed stays unconfirmed.
+    static func numbersByHand(_ item: inout BoxItem) {
+        if item.identityConfirmedBy == "second_look" { item.identityConfirmedBy = "sender" }
+    }
+
+    /// The disputes that are about the numbers: while either is recorded, open or settled, the reads did
+    /// not agree on them.
+    nonisolated static let numberDisputes = ["battery", "lithiumGrams"]
+    static func numbersDisputed(_ disputes: [String: JSONValue]) -> Bool { numberDisputes.contains { disputes[$0] != nil } }
+    static func numbersDisputed(_ disputes: JSONValue?) -> Bool {
+        if case let .object(d)? = disputes { numbersDisputed(d) } else { false }
+    }
+
+    /// What the rules are told (the web app's forRules): a second look stands behind the numbers only when
+    /// no one typed or picked them. This holds for an item saved by an earlier build too, and changes
+    /// nothing that is saved.
+    static func forRules(_ item: BoxItem) -> BoxItem {
+        guard item.identityConfirmedBy == "second_look", typesNumbers(item.overrides) || numbersDisputed(item.disputes) else { return item }
+        var told = item
+        told.identityConfirmedBy = "sender"
+        return told
+    }
+
+    /// Who stands behind an item once a second look lands (the web app's secondLookIdentity). Same kind of
+    /// item, numbers that agree and none typed: the second look, even over an earlier tap of "Yes, this
+    /// is". Numbers typed while it ran: the sender. Numbers the two reads gave differently, or another kind
+    /// of item than the one the box has: never the second look, as an earlier one no longer holds; the
+    /// sender's own confirmation stays.
+    static func secondLookIdentity(_ item: BoxItem, sameKind: Bool, found: [String: JSONValue]) -> String? {
+        let earlier = item.identityConfirmedBy == "second_look" ? nil : item.identityConfirmedBy
+        if !sameKind { return earlier }
+        if typesNumbers(item.overrides) { return "sender" }
+        if numbersDisputed(found) { return earlier }
+        return "second_look"
     }
 
     /// The facts two reads can dispute, in the web app's order (src/engine/types.ts DISPUTE_FIELDS).
@@ -379,7 +423,8 @@ final class BoxStore {
                                               "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
             }
             for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
-            let sameCategory = merged["category"] == item.read["category"]
+            // The kind of item the box has now, with the sender's own correction over the read.
+            let sameKind = merged["category"] == (item.overrides["category"] ?? item.read["category"])
             // A label the sender corrected while the cloud read ran stays theirs: only its tags count.
             if item.overrides["labelText"] == nil {
                 let added = cloudLabel == nil ? tags(merged["labelText"]) : cloudTags
@@ -393,7 +438,7 @@ final class BoxStore {
             }
             item.read = merged
             item.secondLook = SecondLookNote(ms: ms, reason: reason)
-            if item.identityConfirmedBy == nil, sameCategory { item.identityConfirmedBy = "second_look" }
+            item.identityConfirmedBy = Self.secondLookIdentity(item, sameKind: sameKind, found: found)
             item.disputes = found.isEmpty ? nil : .object(found)
         }
     }
@@ -440,6 +485,8 @@ final class BoxStore {
                     if item.identityConfirmedBy == nil { item.identityConfirmedBy = "sender" }
                 }
             }
+            // A battery reading or lithium grams the sender picked are the sender's numbers.
+            if field == "battery" || field == "lithiumGrams" { Self.numbersByHand(&item) }
             item.read = .object(read)
         }
     }
@@ -540,7 +587,8 @@ final class BoxStore {
 
     private func evaluate() -> BoxResult? {
         refreshStaleTags()
-        let input: JSONValue = .object(["items": .array(items.map(\.engineInput)), "code": .string(destinationCode),
+        // The rules are told who stands behind each item's numbers; the stored items stay as they are.
+        let input: JSONValue = .object(["items": .array(items.map { Self.forRules($0).engineInput }), "code": .string(destinationCode),
                                         "today": .string(today())])
         do {
             let value = try engine.evaluateBox(input)
