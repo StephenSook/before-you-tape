@@ -49,6 +49,14 @@ class CopyTest {
         assertEquals(cats, ReadCopy.CATEGORIES.mapKeys { it.key.name })
     }
 
+    /** With a saved box this phone could not open, the box button names no count: 0 would say the box is empty. */
+    @Test fun theBoxButtonNamesACountOnlyWhenTheBoxIsKnown() {
+        assertEquals("See the box (2)", Copy.seeTheBox(2))
+        assertEquals("See the box", Copy.seeTheBox(null))
+        assertTrue(Copy.ALL.contains(Copy.SAVED_BOX_UNREADABLE))
+        assertTrue(Copy.ALL.contains(Copy.seeTheBox(null)))
+    }
+
     @Test fun theFooterDisclaimsThePostalService() {
         assertEquals("Not affiliated with or approved by the US Postal Service.", Copy.FOOTER)
     }

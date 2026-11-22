@@ -45,6 +45,8 @@ data class HomeUi(
     val fixItemId: String? = null,
     /** Filled when About this phone opens. */
     val about: AboutInfo? = null,
+    /** The box is empty beside a saved box this phone could not open, so it is not known to be empty. */
+    val boxUnreadable: Boolean = false,
 )
 
 /** Where the screen goes when a read finishes. */
@@ -111,6 +113,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                 ui.view == HomeView.BOX -> PackScreen(
                     ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove, onQuantity = actions::quantity,
                     onConfirmNumber = actions::confirmNumber,
+                    savedBoxUnreadable = ui.boxUnreadable,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
                 // No destination yet: the destination button above is the one thing to do, and the camera waits.
@@ -121,7 +124,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
             }
         }
         if (ui.view != HomeView.BOX && ui.consent != null) {
-            OutlinedButton(onClick = { actions.show(HomeView.BOX) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.seeTheBox(ui.box.items.size)) }
+            OutlinedButton(onClick = { actions.show(HomeView.BOX) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.seeTheBox(ui.box.items.size.takeUnless { ui.boxUnreadable })) }
         }
         if (ui.view != HomeView.ABOUT && !ui.loading) {
             TextButton(onClick = { actions.show(HomeView.ABOUT) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ABOUT) }

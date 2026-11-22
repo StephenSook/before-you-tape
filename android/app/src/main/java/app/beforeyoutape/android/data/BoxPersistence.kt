@@ -22,10 +22,28 @@ import kotlinx.serialization.json.jsonPrimitive
  * may stay on it). Verdicts are not kept: they are recomputed from the items on restore.
  */
 class BoxPersistence(private val prefs: Prefs) {
-    fun save(s: BoxState) = prefs.put(KEY, encode(s).toString())
+    /**
+     * True once [read] found a saved box this build cannot read, until a box with items is saved. That save may hold
+     * items, so while this is true an empty box is not saved over it and the box is not called empty.
+     */
+    @Volatile var holdsUnreadable: Boolean = false
+        private set
 
-    /** The saved box, or null when there is none or it cannot be read (then the box starts empty). */
-    fun load(): BoxState? = prefs.get(KEY)?.let { text -> runCatching { decode(Json.parseToJsonElement(text).jsonObject) }.getOrNull() }
+    /** Saves [s], except an empty box over a saved box this build could not read. */
+    fun save(s: BoxState) {
+        if (holdsUnreadable && s.items.isEmpty()) return
+        prefs.put(KEY, encode(s).toString())
+        holdsUnreadable = false
+    }
+
+    /** The saved box, no box, or a box saved in a form this build cannot read (which is never read as no box). */
+    fun read(): SavedBox {
+        val text = prefs.get(KEY) ?: return SavedBox.None
+        return runCatching { SavedBox.Found(decode(Json.parseToJsonElement(text).jsonObject)) }.getOrElse {
+            holdsUnreadable = true
+            SavedBox.Unreadable
+        }
+    }
 
     private fun encode(s: BoxState) = JsonObject(
         mapOf(
@@ -86,4 +104,11 @@ class BoxPersistence(private val prefs: Prefs) {
     private companion object {
         const val KEY = "active_box"
     }
+}
+
+/** What the phone found saved: a box, nothing, or a save it cannot read (damaged, or written by another build). */
+sealed interface SavedBox {
+    data class Found(val state: BoxState) : SavedBox
+    data object None : SavedBox
+    data object Unreadable : SavedBox
 }
