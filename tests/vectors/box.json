@@ -498,5 +498,21 @@
       "read": { "category": "laptop", "labelText": "", "volts": 11.1, "milliampHours": 8919, "wattHours": 99, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed", "cell_count": "more_than_one" } }],
     "expect": { "pack": "check" }, "expectRules": { "pack": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "clearing_the_grams_keeps_the_label_lithium_figure", "code": "CA", "today": "2026-11-20",
+    "source": "The label names 1.2 g of lithium; the sender cleared the read's 0.1 g and typed the volts and Wh, so the grams figure has no number and holds",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "sender", "overrides": { "volts": 3, "wattHours": 2, "lithiumGrams": 0 },
+      "read": { "category": "battery_toy", "labelText": "LITHIUM CONTENT: 1.2g / 3V 2Wh", "volts": 3, "wattHours": 2, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
+    "expect": { "toy": "check" }, "expectRules": { "toy": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_label_wh_with_no_printed_wh_read_is_checked_against_volts_times_capacity", "code": "CA", "today": "2026-11-20",
+    "source": "The read gave 3.7 V and 5000 mAh (18.5 Wh) but no Wh, while its label text says 185Wh: the label figure holds",
+    "items": [{ "itemId": "station", "identityConfirmedBy": "sender",
+      "read": { "category": "other_electronics", "labelText": "LI-ION 3.7V 185Wh", "volts": 3.7, "milliampHours": 5000, "wattHours": 0, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "station": "check" }, "expectRules": { "station": ["DATA-LABEL-NUMBERS"] }
   }
 ]

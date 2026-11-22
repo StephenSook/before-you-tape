@@ -206,17 +206,23 @@ var BYT = (() => {
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
   var above = (f, n) => f > n * 1.005;
-  function labelMismatchOf(figs, typed, whPrinted, lithiumGrams, tolerancePct) {
+  function labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, metalLabel, tolerancePct) {
     const off = (list2, n, byHand) => list2.find((f) => above(f, n) || !byHand && !agrees(f, n, tolerancePct));
-    if (whPrinted !== null) {
-      const byHand = typed.has("wattHours");
-      const label = off(figs.wh, whPrinted, byHand);
-      if (label !== void 0) return { kind: "wh", label, read: whPrinted, typed: byHand };
+    if (figs.wh.length > 0) {
+      const n = whPrinted ?? whComputed;
+      const byHand = whPrinted !== null ? typed.has("wattHours") : typed.has("volts") && typed.has("milliampHours");
+      if (n === null) return { kind: "wh", label: Math.max(...figs.wh), read: null, typed: false };
+      const label = off(figs.wh, n, byHand);
+      if (label !== void 0) return { kind: "wh", label, read: n, typed: byHand };
     }
-    if (lithiumGrams !== null) {
+    if (figs.grams.length > 0) {
       const byHand = typed.has("lithiumGrams");
-      const label = off(figs.grams, lithiumGrams, byHand);
-      if (label !== void 0) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+      if (lithiumGrams === null) {
+        if (byHand || metalLabel) return { kind: "grams", label: Math.max(...figs.grams), read: null, typed: byHand };
+      } else {
+        const label = off(figs.grams, lithiumGrams, byHand);
+        if (label !== void 0) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+      }
     }
     return null;
   }
@@ -275,7 +281,7 @@ var BYT = (() => {
       countAs,
       units: quantity,
       numbersFrom: numbersFromOf(read, typed),
-      labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, lithiumGrams, limits.whTolerancePct)
+      labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, tags.includes("li_metal"), limits.whTolerancePct)
     };
   }
 
@@ -1001,7 +1007,7 @@ var BYT = (() => {
   var shown = (n) => String(Math.round(n * 100) / 100);
   function labelNumbersHit(m) {
     const source = m.typed ? "the number typed is" : "the read says";
-    const said = m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
+    const said = m.read === null ? m.kind === "wh" ? `${shown(m.label)} Wh but the reading has no Wh` : `${shown(m.label)} g of lithium but no lithium grams are given` : m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
     return {
       ruleId: "DATA-LABEL-NUMBERS",
       layer: "data",

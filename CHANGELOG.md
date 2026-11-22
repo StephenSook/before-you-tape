@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A label figure with no number to check it against now holds: a Wh figure is checked against volts times capacity when no Wh is printed (a label saying 185Wh beside a read of 3.7 V and 5000 mAh holds), and with neither it holds; a grams figure holds when the sender cleared the grams or the label says lithium metal (clearing a read's 0.1 g under a label naming 1.2 g of lithium no longer turns the cell lithium-ion and OK). The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vectors failed first, full gate.
+
 - A label figure above the number in use now holds beyond rounding (half a percent), never within the 3 percent tolerance, for read and typed numbers alike: typing 99 Wh beside a label's 101 Wh pack figure no longer reads OK under the 100 Wh limit. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vector failed first, full gate.
 
 - Clearing a battery number after a matching second look counts as the sender's change again, so the second look no longer stands behind the numbers left: both reads agreeing on 14 V, 8600 mAh and 98 Wh (held, as volts times capacity is 120 Wh) no longer turns OK when the sender clears the mAh. The earlier change that kept the second look is undone; typing the numbers left clears the hold. Source: second-model review of revision 7 (round 3). Verified: the store test failed first, full gate.

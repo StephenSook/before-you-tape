@@ -45,7 +45,9 @@ const DISPUTE_HIT: RuleHit = {
 const shown = (n: number) => String(Math.round(n * 100) / 100);
 function labelNumbersHit(m: NonNullable<ItemFacts["battery"]["labelMismatch"]>): RuleHit {
   const source = m.typed ? "the number typed is" : "the read says";
-  const said = m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
+  const said = m.read === null
+    ? (m.kind === "wh" ? `${shown(m.label)} Wh but the reading has no Wh` : `${shown(m.label)} g of lithium but no lithium grams are given`)
+    : m.kind === "wh" ? `${shown(m.label)} Wh but ${source} ${shown(m.read)} Wh` : `${shown(m.label)} g of lithium but ${source} ${shown(m.read)} g`;
   return {
     ruleId: "DATA-LABEL-NUMBERS", layer: "data", level: "check", section: "Before You Tape: label and reading disagree", url: RULES_PAGE,
     text: `The label text says ${said}. Type the numbers from the label in Fix this reading.`,

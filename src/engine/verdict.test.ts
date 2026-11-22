@@ -155,6 +155,7 @@ describe("evaluateBox", () => {
       "a_5G_model_name_is_not_a_lithium_figure", "label_grams_typed_and_different_leave_mixed_numbers_held",
       "a_typed_wh_below_another_label_figure_still_holds", "a_typed_wh_at_the_largest_label_figure_settles_it",
       "a_net_weight_is_not_a_lithium_figure", "a_label_figure_just_over_the_limit_is_not_hidden_by_the_tolerance",
+      "clearing_the_grams_keeps_the_label_lithium_figure", "a_label_wh_with_no_printed_wh_read_is_checked_against_volts_times_capacity",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

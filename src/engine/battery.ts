@@ -85,18 +85,27 @@ const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) 
 // way a figure above the number holds beyond rounding (half a percent), never within the tolerance: 101 Wh beside
 // 99 Wh is over 100 Wh.
 const above = (f: number, n: number) => f > n * 1.005;
+// With no printed Wh, a Wh figure is checked against volts times capacity, and with neither it holds. A grams
+// figure with no lithium grams holds when the grams were cleared or the label says lithium metal (a device label's
+// weight in grams is no reason to hold an item with no grams).
 function labelMismatchOf(figs: LabelFigures, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
-  lithiumGrams: number | null, tolerancePct: number): BatteryFacts["labelMismatch"] {
+  whComputed: number | null, lithiumGrams: number | null, metalLabel: boolean, tolerancePct: number): BatteryFacts["labelMismatch"] {
   const off = (list: number[], n: number, byHand: boolean) => list.find((f) => above(f, n) || (!byHand && !agrees(f, n, tolerancePct)));
-  if (whPrinted !== null) {
-    const byHand = typed.has("wattHours");
-    const label = off(figs.wh, whPrinted, byHand);
-    if (label !== undefined) return { kind: "wh", label, read: whPrinted, typed: byHand };
+  if (figs.wh.length > 0) {
+    const n = whPrinted ?? whComputed;
+    const byHand = whPrinted !== null ? typed.has("wattHours") : typed.has("volts") && typed.has("milliampHours");
+    if (n === null) return { kind: "wh", label: Math.max(...figs.wh), read: null, typed: false };
+    const label = off(figs.wh, n, byHand);
+    if (label !== undefined) return { kind: "wh", label, read: n, typed: byHand };
   }
-  if (lithiumGrams !== null) {
+  if (figs.grams.length > 0) {
     const byHand = typed.has("lithiumGrams");
-    const label = off(figs.grams, lithiumGrams, byHand);
-    if (label !== undefined) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+    if (lithiumGrams === null) {
+      if (byHand || metalLabel) return { kind: "grams", label: Math.max(...figs.grams), read: null, typed: byHand };
+    } else {
+      const label = off(figs.grams, lithiumGrams, byHand);
+      if (label !== undefined) return { kind: "grams", label, read: lithiumGrams, typed: byHand };
+    }
   }
   return null;
 }
@@ -164,6 +173,6 @@ export function deriveBattery(
   return {
     presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity,
     numbersFrom: numbersFromOf(read, typed),
-    labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, lithiumGrams, limits.whTolerancePct),
+    labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, whComputed, lithiumGrams, tags.includes("li_metal"), limits.whTolerancePct),
   };
 }
