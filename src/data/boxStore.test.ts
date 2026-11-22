@@ -764,6 +764,20 @@ describe("createBoxStore", () => {
         expect(ruleIds(again, id)).toContain("DATA-LABEL-NUMBERS");
       });
 
+      it("keeps the smallest figure too when the list is full, so a read disagreeing with it still holds", () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "40Wh 98Wh 98.01Wh 98.02Wh 98.03Wh 98.04Wh 98.05Wh 98.06Wh 98.07Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", "98Wh", readDisputes(read, read));
+        const wh = s.getState().items[0]?.labelFigures?.wh ?? [];
+        expect(wh).toContain(40);
+        expect(wh).toContain(98.07);
+        expect(wh.length).toBeLessThanOrEqual(8);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
       it("keeps the largest figures when the list is full, so a newly seen larger one is never dropped", () => {
         const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
         const s = store();

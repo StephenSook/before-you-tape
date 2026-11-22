@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A full list of label figures now keeps the smallest along with the 7 largest, so a read that disagrees with a small figure the label names (98 Wh read twice under a label also saying 40 Wh) still holds; a number agrees with every figure exactly when it agrees with the smallest and the largest, so the figures left out never change a verdict. Source: second-model review of revision 7 (round 4). Verified: the store test failed first, full gate.
+
 - Any label figure above the number in use now holds, with no rounding margin: two reads agreeing on 100 Wh under a label saying 100.4Wh, or 1 g under 1.004 g, no longer read OK under the limit. Typing the larger figure settles it. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 4). Verified: the vector failed first, full gate.
 
 - The pin guard now treats a pin as unchanged only when every id and hash value sits where it does live (the default or a named condition, at the top or in a group), so the same old pin moved to another condition is checked, and it checks the id and hash a client sees for each condition: where an id is set, the hash beside it must be this edition's, so an empty hash for one condition is refused. rc-publish refuses a live template with parameter groups, which its publish would drop. The live kill_cloud dry run with --keep-live-pin still validates with kill_cloud the only change. Source: second-model review of revision 7 (round 3). Verified: the guard and rc-publish tests failed first, full gate.
