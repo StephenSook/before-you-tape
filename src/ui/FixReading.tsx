@@ -1,5 +1,5 @@
-// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read; a
-// changed battery number brings the other battery numbers the form shows with it.
+// The sender corrects what was read. Only the fields they edited are saved, as overrides on top of the read; the
+// box decides which other battery numbers come with a typed one.
 // A second look can land while the form is open: an untouched field then shows the new reading, and a field
 // the sender had edited is reset to it with a note, so no choice made against the old reading is saved.
 import { useState } from "react";
@@ -14,15 +14,6 @@ export function changedFields(read: ItemRead, d: ReadDraft): Partial<ItemRead> {
   for (const [f] of NUMBER_FIELDS) {
     const n = parseNumber(d.numbers[f]);
     if (n !== null && n !== read[f]) patch[f] = n;
-  }
-  // Once the sender changes one battery number, every one the form shows is saved: they all become the sender's
-  // own (typed), never part typed and part read, which the rules hold (rule edition revision 7).
-  // A blank is no number the sender gave: only a number above zero they typed brings the others with it.
-  if (NUMBER_FIELDS.some(([f]) => (patch[f] ?? 0) > 0)) {
-    for (const [f] of NUMBER_FIELDS) {
-      const n = parseNumber(d.numbers[f]);
-      if (!(f in patch) && n !== null && n > 0) patch[f] = n;
-    }
   }
   for (const [f] of FLAG_FIELDS) if (d.flags[f] !== read[f]) patch[f] = d.flags[f];
   if (d.retailBox !== read.retailBox) patch.retailBox = d.retailBox;
@@ -86,16 +77,11 @@ export function FixReading({ read, onSave, focusField, labelTags = [] }: {
   };
   const save = () => {
     const all = changedFields(base, draft);
-    // A battery number the sender typed, changed or typed again as it was, brings every battery number the form
-    // shows: they are all the sender's own then. A blank is no number, so it brings none.
-    const typedNumber = NUMBER_FIELDS.some(([f]) => touched.has(f) && (parseNumber(draft.numbers[f]) ?? 0) > 0);
-    const numberField = (f: string) => NUMBER_FIELDS.some(([n]) => n === f);
-    const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field) || (typedNumber && numberField(f)))) as Partial<ItemRead>;
-    if (typedNumber) {
-      for (const [f] of NUMBER_FIELDS) {
-        const n = parseNumber(draft.numbers[f]);
-        if (!(f in patch) && n !== null && n > 0) patch[f] = n;
-      }
+    const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field))) as Partial<ItemRead>;
+    // A battery number the sender typed again as it was shown is theirs too. Untouched numbers are never saved here.
+    for (const [f] of NUMBER_FIELDS) {
+      const n = parseNumber(draft.numbers[f]);
+      if (touched.has(f) && !(f in patch) && n !== null && n > 0) patch[f] = n;
     }
     onSave(patch);
   };

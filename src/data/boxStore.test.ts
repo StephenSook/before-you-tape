@@ -680,6 +680,34 @@ describe("createBoxStore", () => {
           expect(level(s, id)).not.toBe("ok");
         });
 
+        it("a Wh typed in Fix this reading brings the volts and capacity shown, never the grams", () => {
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead(outcome({ ...phone, lithiumGrams: 0.3 }, "on_device"), "k");
+          s.override(id, { wattHours: 15.4 });
+          expect(s.getState().items[0]?.overrides).toEqual({ volts: phone.volts, milliampHours: phone.milliampHours, wattHours: 15.4 });
+          // The label check's match brings the same, never the grams either.
+          const t = store();
+          t.setDestination("CA");
+          const tid = t.addRead(outcome({ ...phone, lithiumGrams: 0.3 }, "on_device"), "k");
+          t.confirmLabelNumber(tid, "wattHours", phone.wattHours);
+          expect(t.getState().items[0]?.overrides).toEqual({ volts: phone.volts, milliampHours: phone.milliampHours, wattHours: phone.wattHours });
+        });
+
+        it("a typed Wh brings nothing while the reads dispute the numbers, or when a number is cleared", () => {
+          const first: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "50V 98Wh", volts: 50, milliampHours: 0, wattHours: 98 };
+          const cloud: ItemRead = { ...first, labelText: "22V 99Wh", volts: 22, wattHours: 99 };
+          const { s, id } = look(first, cloud);
+          s.override(id, { wattHours: 99 });
+          expect(s.getState().items[0]?.overrides).toEqual({ wattHours: 99 });
+          const t = store();
+          t.setDestination("CA");
+          const tid = t.addRead(outcome({ ...phone, category: "laptop", labelText: "14V 8600mAh 98Wh", volts: 14, milliampHours: 8600, wattHours: 98 }, "on_device"), "k");
+          t.override(tid, { milliampHours: 0, wattHours: 98 });
+          expect(t.getState().items[0]?.overrides).toEqual({ milliampHours: 0, wattHours: 98 });
+          expect(level(t, tid)).not.toBe("ok");
+        });
+
         it("saves only the typed number while the two reads dispute the numbers", () => {
           const first: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "50V 98Wh", volts: 50, milliampHours: 0, wattHours: 98 };
           const cloud: ItemRead = { ...first, labelText: "22V 99Wh", volts: 22, wattHours: 99 };

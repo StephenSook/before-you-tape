@@ -11,22 +11,31 @@ const phoneRead: ItemRead = {
 };
 
 describe("FixReading", () => {
-  it("saves every battery number the form shows once the sender changes one, so all of them are the sender's", async () => {
+  it("saves only the battery numbers the sender typed (the box decides which others come with them)", async () => {
     const onSave = vi.fn();
     render(<FixReading read={phoneRead} onSave={onSave} />);
     await userEvent.clear(screen.getByLabelText("Watt-hours (Wh)"));
     await userEvent.type(screen.getByLabelText("Watt-hours (Wh)"), "15.4");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
+    expect(onSave).toHaveBeenCalledWith({ wattHours: 15.4 });
   });
 
-  it("counts a battery number the sender typed again as theirs, even unchanged, and brings the others", async () => {
+  it("counts a battery number the sender typed again as theirs, even unchanged", async () => {
     const onSave = vi.fn();
     render(<FixReading read={{ ...phoneRead, wattHours: 16 }} onSave={onSave} />);
     await userEvent.clear(screen.getByLabelText("Watt-hours (Wh)"));
     await userEvent.type(screen.getByLabelText("Watt-hours (Wh)"), "16");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ volts: 3.85, milliampHours: 4000, wattHours: 16 });
+    expect(onSave).toHaveBeenCalledWith({ wattHours: 16 });
+  });
+
+  it("saves a retyped volts alone, never the untouched Wh with it", async () => {
+    const onSave = vi.fn();
+    render(<FixReading read={{ ...phoneRead, wattHours: 15.4 }} onSave={onSave} />);
+    await userEvent.clear(screen.getByLabelText("Volts (V)"));
+    await userEvent.type(screen.getByLabelText("Volts (V)"), "3.85");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ volts: 3.85 });
   });
 
   it("rejects a negative number", async () => {

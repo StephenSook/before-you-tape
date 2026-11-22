@@ -208,6 +208,19 @@ const numbersByHand = (i: BoxItem): BoxItem => (i.identityConfirmedBy === "secon
 // The disputes that are about the numbers: while either is recorded, open or settled, the reads did not agree on them.
 const NUMBER_DISPUTES = ["battery", "lithiumGrams"] as const;
 const numbersDisputed = (d: ReadDisputes | undefined): boolean => NUMBER_DISPUTES.some((f) => d?.[f] !== undefined);
+// The numbers that come with a typed deciding number, as the sender's own: with a Wh, the volts and capacity shown
+// (the Wh rules check them against it); with a lithium metal cell's grams, the volts. Never the other deciding
+// number, never while the two reads dispute the numbers, and never when the sender cleared one (a cleared number
+// can hide a disagreement between the others).
+const RIDE_ALONG = { wattHours: ["volts", "milliampHours"], lithiumGrams: ["volts"] } as const;
+function withShownNumbers(i: BoxItem, patch: Partial<ItemRead>): Partial<ItemRead> {
+  const deciding = (["wattHours", "lithiumGrams"] as const).filter((f) => (patch[f] ?? 0) > 0);
+  const clears = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).some((f) => patch[f] === 0);
+  if (deciding.length === 0 || clears || numbersDisputed(i.disputes)) return patch;
+  const now = { ...i.read, ...i.overrides };
+  const along = deciding.flatMap((f) => RIDE_ALONG[f]).filter((f) => patch[f] === undefined && now[f] > 0);
+  return { ...Object.fromEntries(along.map((f) => [f, now[f]])), ...patch };
+}
 // What the rules are told: a second look stands behind the numbers only when no one typed or picked them. This holds
 // for an item saved by an earlier version too, and changes nothing that is saved.
 const forRules = (i: BoxItem): BoxItem => {
@@ -530,6 +543,12 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     return withDisputes(next, settled);
   });
 
+  // Fix this reading: the numbers the sender typed, and the ones that come with a typed deciding number.
+  const overrideTyped = (itemId: string, patch: Partial<ItemRead>) => {
+    const i = items.find((x) => x.itemId === itemId);
+    overrideItem(itemId, i ? withShownNumbers(i, patch) : patch);
+  };
+
   // The sender typed the Wh (or lithium grams) printed on the label into an empty field. A match within the rules'
   // tolerance makes every battery number shown the sender's own; a different number replaces the read one only, and the
   // item is judged again. Either way the sender has read the label.
@@ -542,8 +561,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     const read = i.overrides[field] === undefined ? i.read[field] : 0;
     // While the two reads dispute the numbers, a match confirms only the number typed, never the disputed others.
     const matches = !numbersDisputed(i.disputes) && read > 0 && (Math.abs(value - read) / read) * 100 <= currentEdition().limits.whTolerancePct;
-    const shown = (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).filter((f) => f !== field && now[f] > 0);
-    overrideItem(itemId, matches ? { ...Object.fromEntries(shown.map((f) => [f, now[f]])), [field]: value } as Partial<ItemRead> : { [field]: value });
+    const typed = { [field]: value } as Partial<ItemRead>;
+    overrideItem(itemId, matches ? { ...Object.fromEntries(RIDE_ALONG[field].filter((f) => now[f] > 0).map((f) => [f, now[f]])), ...typed } : typed);
   };
   const ready = load();
 
@@ -677,7 +696,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       commit(state.result, false);
     },
     answer: (itemId, questionId, answerId) => update(itemId, (i) => ({ ...i, answers: { ...i.answers, [questionId]: answerId } })),
-    override: overrideItem,
+    override: overrideTyped,
     confirmLabelNumber,
     setQuantity: (itemId, n) => update(itemId, (i) => ({ ...i, quantity: clampQuantity(n) })),
     setCustoms: (itemId, patch) => update(itemId, (i) => ({ ...i, customs: { ...i.customs, ...patch } })),

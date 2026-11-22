@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Fix this reading now saves only the battery numbers the sender typed, and the box decides what comes with them: a typed Wh brings the volts and capacity shown (the Wh rules check them against it), a lithium metal cell's typed grams bring its volts, and nothing comes while the two reads dispute the numbers or when a number was cleared. Retyping only the volts no longer saves a disputed or misread Wh as the sender's, and clearing the mAh then retyping the volts no longer hides a Wh mismatch. The label check's match brings the same numbers, never the other deciding one. Source: second-model review of revision 7 (round 3). Verified: the form and store tests failed first, full gate.
+
 - An item keeps the 8 largest Wh and lithium-grams figures its labels named, not the first 8, so a second look or a typed label that adds a larger figure, such as a pack's 185 Wh after eight figures near 98 Wh, is never dropped and still holds after a reload. Source: second-model review of revision 7 (round 3). Verified: the store test failed first, full gate.
 
 - Only a net or gross weight ("NET WT 80g", "NET WT (80g)", "N.W. 80g") is now skipped as a lithium-grams figure; any other weight counts, so "LITHIUM METAL WEIGHT: 1.2g" holds a coin cell two reads gave as 0.1 g. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vector failed first, full gate.
