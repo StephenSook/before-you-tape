@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The second-look test waits for Remote Config's fetch before adding the photo: its stand-in model answers at once, and cloud checks stay off until those settings arrive, so without the wait the card had no second look to offer. Source: the first CI run of the test. Verified: full gate; the verify job runs the spec.
+
 - A new local end-to-end test intercepts the cloud second look and checks it sends what the page showed: exactly one image, byte for byte the crop the page offered, and no text but the app's two fixed prompts. It makes a read on this device that the rules send for a second look, checks nothing reaches the cloud before the sender takes the card's offer and taps Allow, then reads the one request. The first cloud read already had this check. Source: the live-site audit. Verified: in CI, where the App Check debug token lets the cloud path run.
 
 - The line on what the saved box list holds (the About and What ran where pages) and the web privacy page now name the Wh and lithium-grams figures an item's label names, which rule edition revision 7 keeps with each item as numbers; neither said so. A new test reads the privacy page for it. Source: the live-site privacy audit. Verified: the page tests and the new privacy page test failed first, full gate.
