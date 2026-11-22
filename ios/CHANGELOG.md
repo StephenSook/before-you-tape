@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): three app tests follow rule edition revision 6's one-read battery hold
+- What: revision 6 holds an installed battery with printed numbers at Check this unless a second look
+  read the same numbers (USPS-INTL-LI-ONE-READ). Three iPhone app tests still expected OK from such an
+  item and failed on main. The power bank read as a phone now expects its control, with no dispute, to
+  be held by the one-read rule and not by a dispute (as the web test does). The two stale-label lithium
+  tests now add their phone with a second look that read the same numbers (BoxStoreTests.secondLooked),
+  so they still test the lithium wait, like the web's guardStaleTags tests.
+- Source: the app tests run under revision 6 (they run only in the local CI, not on GitHub's runners).
+- Verified: the three failed on main's code; the same three pass on main's store code with these
+  changes; `bash ios/scripts/ci-local-ios.sh` exits 0.
+
 ### docs(ios): record the rule edition pin switching a real iPhone to revision 5
 - What: docs/evidence/ios/2026-11-21-rule-edition-pin.md records that build 1.0.0 (2), which carries
   revision 4, switched to revision 5 on an iPhone 17 Pro through the Remote Config pin and the

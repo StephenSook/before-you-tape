@@ -167,7 +167,7 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         _ = try engine.setEdition(Self.editionWithLabelWord("zqxword", tag: "alcohol", id: "byt-more-words"))
         let restored = try store(MemoryBoxPersistence(stored: p.saved.last), engine: engine, idPrefix: "later")
         restored.load()
-        let phoneId = restored.addManual(Self.phone)
+        let phoneId = try secondLooked(restored, Self.phone)
         // A new sealed phone is OK on its own; here it waits for the other label.
         restored.answer(phoneId, question: "device_condition", answer: "new_sealed")
         let phone = try #require(restored.result?.items[phoneId])
@@ -177,6 +177,14 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         // Once that item is out of the box, the phone stands on its own again.
         restored.remove(staleId)
         #expect(restored.result?.items[phoneId]?.level == "ok" && restored.result?.lithium.status == "ok")
+    }
+
+    /// An item read on the iPhone whose second look read the same numbers, so the second look stands
+    /// behind them (USPS-INTL-LI-ONE-READ) and the item can be OK on its own.
+    func secondLooked(_ s: BoxStore, _ read: JSONValue) throws -> String {
+        let id = try #require(s.addRead(outcome(read, .onDevice), cropFile: nil))
+        s.applySecondLook(id, merged: read, ms: 900, reason: "reason", cloudLabel: nil)
+        return id
     }
 
     /// A saved box from an earlier version, with these items, read back under the bundled edition.
@@ -198,7 +206,7 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
         let (restored, ids) = try restoredOlder([Self.perfume])
         let perfume = try #require(restored.result?.items[ids[0]])
         #expect(perfume.level == "take_out")
-        let phoneId = restored.addManual(Self.phone)
+        let phoneId = try secondLooked(restored, Self.phone)
         restored.answer(phoneId, question: "device_condition", answer: "new_sealed")
         #expect(restored.result?.items[phoneId]?.level == "check" && restored.result?.items[phoneId]?.hits.first?.text == BoxStore.lithiumWaits)
         restored.remove(ids[0])
