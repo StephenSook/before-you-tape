@@ -15,6 +15,13 @@ struct ItemCardView: View {
     var onOfferLook: (() -> Void)?
     @State private var fixing = false
 
+    /// What the card says while a matching second look stands behind the item, as the rules count it; nil
+    /// otherwise, and while the cloud is reading it again.
+    static func agreedLine(_ item: BoxItem, checkingAgain: Bool) -> String? {
+        !checkingAgain && BoxStore.secondLookStands(item)
+            ? "A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong." : nil
+    }
+
     private var name: String {
         if case let .string(n)? = item.overrides["itemName"] ?? item.read["itemName"], !n.isEmpty { return n }
         return "This item"
@@ -31,6 +38,9 @@ struct ItemCardView: View {
             } else if let look = item.secondLook {
                 Text(look.reason).accessibilityIdentifier("second-look")
             }
+            if let agreed = Self.agreedLine(item, checkingAgain: checkingAgain) {
+                Text(agreed).accessibilityIdentifier("second-look-agreed")
+            }
             if let lookError {
                 Text(lookError).accessibilityIdentifier("second-look-error")
                 if let onRetryLook { Button(DisputeWords.tryAgain, action: onRetryLook).buttonStyle(.bordered) }
@@ -46,6 +56,12 @@ struct ItemCardView: View {
                 Button("Yes, this is \(name)") { box.confirmIdentity(item.itemId) }
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("confirm-identity")
+            }
+            if LabelNumber.asked(verdict) {
+                // Keyed on the number asked for: a change of it starts the field again, empty.
+                let field = LabelNumber.field(for: FixReadingView.current(item))
+                LabelNumberCheckView(field: field) { f, value in box.confirmLabelNumber(item.itemId, field: f, value: value) }
+                    .id(field)
             }
             Button("Fix this reading") { fixing = true }
                 .buttonStyle(.borderless)

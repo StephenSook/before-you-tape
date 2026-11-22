@@ -19,6 +19,7 @@ struct RootView: View {
                 await model.start()
                 #if DEBUG
                 if UITestSupport.active, UITestSupport.secondLook { await UITestSupport.readPhotoForSecondLook(model) }
+                if UITestSupport.active, UITestSupport.phoneRead { await UITestSupport.readPhotoOfAPhone(model) }
                 #endif
             }
             .onChange(of: scenePhase) { _, phase in if phase == .active { model.becameActive() } }

@@ -74,6 +74,10 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
     /// The facts the device read and the second look disagreed on, in the web app's shape
     /// ({ field: { device, cloud, resolved } }); an open one holds the item at "Check this".
     var disputes: JSONValue?
+    /// The Wh and lithium-gram figures the item's labels name ({ wh, grams }), as the engine decided them
+    /// (labelFiguresJson): kept and saved, since the label text is not. Nil when no label named one, and
+    /// for an item saved before they were kept.
+    var labelFigures: JSONValue?
 
     var id: String { itemId }
 
@@ -83,6 +87,7 @@ struct BoxItem: Codable, Equatable, Identifiable, Sendable {
                  "identityConfirmedBy": identityConfirmedBy.map { .string($0) } ?? .null,
                  "labelTags": .array(labelTags.map { .string($0) })]
         if let disputes { input["disputes"] = disputes }
+        if let labelFigures { input["labelFigures"] = labelFigures }
         return .object(input)
     }
 
@@ -274,10 +279,12 @@ final class BoxStore {
         guard let read = outcome.read, let source = outcome.source else { return nil }
         let itemId = newId()
         // The parser's tags are from the whole label; the read's own text is clipped and is never tagged.
+        // The label's figures come from the whole label too, never from the clipped text.
+        let whole = outcome.wholeLabel ?? Self.text(read["labelText"]) ?? ""
         items.append(BoxItem(itemId: itemId, read: read, labelTags: outcome.labelTags, tagsEdition: tagsEdition(read["labelText"]),
                              readSource: source == .onDevice ? "phone_on_device" : "phone_cloud",
                              readMs: outcome.records.reduce(0) { $0 + $1.latencyMs }, readFallback: outcome.fallbackAfter, cropFile: cropFile,
-                             wholeLabel: outcome.wholeLabel))
+                             wholeLabel: outcome.wholeLabel, labelFigures: figures([whole], kept: nil)))
         sources.add(\.onDevice, source == .onDevice ? 1 : 0)
         sources.add(\.inCloud, source == .cloud ? 1 : 0)
         sources.add(\.cloudFallbacks, outcome.fallbackAfter == nil ? 0 : 1)
@@ -288,8 +295,11 @@ final class BoxStore {
     @discardableResult
     func addManual(_ read: JSONValue) -> String {
         let itemId = newId()
+        // A typed item's numbers are judged on the Wh rules, so its label's figures must outlast the label text,
+        // which is not saved. A typed label is never clipped.
         items.append(BoxItem(itemId: itemId, read: read, identityConfirmedBy: "sender", labelTags: tags(read["labelText"]),
-                             tagsEdition: tagsEdition(read["labelText"]), readSource: "manual", readMs: 0))
+                             tagsEdition: tagsEdition(read["labelText"]), readSource: "manual", readMs: 0,
+                             labelFigures: figures([Self.text(read["labelText"]) ?? ""], kept: nil)))
         commit()
         return itemId
     }
@@ -313,18 +323,74 @@ final class BoxStore {
 
     func answer(_ itemId: String, question: String, answer: String) { update(itemId) { $0.answers[question] = answer } }
 
+    /// The sender's corrections (the web app's override), with the numbers that come with a typed deciding
+    /// number.
+    func override(_ itemId: String, patch: [String: JSONValue]) {
+        guard let item = items.first(where: { $0.itemId == itemId }) else { return }
+        overrideItem(itemId, patch: Self.withShownNumbers(item, patch))
+    }
+
+    /// The numbers that come with a typed deciding number, as the sender's own (the web app's
+    /// withShownNumbers): with a Wh, the volts and capacity shown (the Wh rules check them against it); with
+    /// a lithium metal cell's grams, the volts. Never the other deciding number, never while the two reads
+    /// dispute the numbers (open or settled), and never when the sender cleared one (a cleared number can
+    /// hide a disagreement between the others).
+    nonisolated static let rideAlong: [String: [String]] = ["wattHours": ["volts", "milliampHours"], "lithiumGrams": ["volts"]]
+    static func withShownNumbers(_ item: BoxItem, _ patch: [String: JSONValue]) -> [String: JSONValue] {
+        func number(_ v: JSONValue?) -> Double? { if case let .number(n)? = v { n } else { nil } }
+        let deciding = ["wattHours", "lithiumGrams"].filter { (number(patch[$0]) ?? 0) > 0 }
+        let clears = ["volts", "milliampHours", "wattHours", "lithiumGrams"].contains { number(patch[$0]) == 0 }
+        guard !deciding.isEmpty, !clears, !numbersDisputed(item.disputes) else { return patch }
+        var out = patch
+        for f in deciding.flatMap({ rideAlong[$0] ?? [] }) where out[f] == nil {
+            if let shown = number(item.overrides[f] ?? item.read[f]), shown > 0 { out[f] = .number(shown) }
+        }
+        return out
+    }
+
+    /// The sender typed the Wh (or lithium grams) printed on the label into an empty field (the web app's
+    /// confirmLabelNumber). A match with the model's own reading, within the edition's tolerance, makes the
+    /// numbers shown the sender's own; a different number replaces the read one only, and the item is judged
+    /// again. The typed number is the one kept, so a limit still applies to it.
+    func confirmLabelNumber(_ itemId: String, field: String, value: Double) {
+        guard let ride = Self.rideAlong[field], value.isFinite, value > 0,
+              let item = items.first(where: { $0.itemId == itemId }) else { return }
+        func number(_ v: JSONValue?) -> Double { if case let .number(n)? = v { n } else { 0 } }
+        // Only the model's own reading confirms: matching a number the sender typed earlier confirms nothing more.
+        let read = item.overrides[field] == nil ? number(item.read[field]) : 0
+        // While the two reads dispute the numbers, a match confirms only the number typed, never the others.
+        let matches = !Self.numbersDisputed(item.disputes) && read > 0 && whTolerancePct().map { abs(value - read) / read * 100 <= $0 } == true
+        var patch: [String: JSONValue] = [field: .number(value)]
+        if matches {
+            for f in ride { let shown = number(item.overrides[f] ?? item.read[f]); if shown > 0 { patch[f] = .number(shown) } }
+        }
+        overrideItem(itemId, patch: patch)
+    }
+
+    /// The edition's Wh tolerance (limits.whTolerancePct), read from the edition in force; nil when it
+    /// cannot be read, and then no typed number matches a reading.
+    private func whTolerancePct() -> Double? {
+        guard let text = try? engine.canonicalEdition(),
+              let edition = try? JSONDecoder().decode(JSONValue.self, from: Data(text.utf8)),
+              case let .number(pct)? = edition["limits"]?["whTolerancePct"] else { return nil }
+        return pct
+    }
+
     /// A corrected label replaces the read one, so its tags must survive the label text not being saved.
     /// The sender's own correction of a disputed fact settles that dispute.
-    func override(_ itemId: String, patch: [String: JSONValue]) {
+    private func overrideItem(_ itemId: String, patch: [String: JSONValue]) {
         update(itemId) { item in
             item.overrides.merge(patch) { _, new in new }
             if let label = patch["labelText"] {
                 item.labelTags = tags(label)
                 // Blank words are not a label: a stale item stays stale until real words are read.
                 if hasWords(label) || !isStale(item) { item.tagsEdition = tagsEdition(label) }
+                // A label the sender typed adds its figures to the kept ones (its text is not kept).
+                let typed = Self.text(label) ?? ""
+                item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), typed] : [typed], kept: item.labelFigures)
             }
             if case var .object(all)? = item.disputes {
-                for field in Self.disputeFields where Self.corrects(patch, field) {
+                for field in Self.disputeFields where Self.corrects(patch, field, all[field]) {
                     if case var .object(d)? = all[field] { d["resolved"] = .bool(true); all[field] = .object(d) }
                 }
                 item.disputes = .object(all)
@@ -353,14 +419,24 @@ final class BoxStore {
         if case let .object(d)? = disputes { numbersDisputed(d) } else { false }
     }
 
+    /// Whether a matching second look still stands behind the item (the web app's secondLookStands): no one
+    /// typed its numbers (a cleared one included) or picked between readings, and the reads never disputed
+    /// them. The rules count it then, and the card says so: one check for both.
+    static func secondLookStands(_ item: BoxItem) -> Bool {
+        item.identityConfirmedBy == "second_look" && !typesNumbers(item.overrides) && !numbersDisputed(item.disputes)
+    }
+
     /// What the rules are told (the web app's forRules): a second look stands behind the numbers only when
     /// no one typed or picked them. This holds for an item saved by an earlier build too, and changes
     /// nothing that is saved.
-    static func forRules(_ item: BoxItem) -> BoxItem {
-        guard item.identityConfirmedBy == "second_look", typesNumbers(item.overrides) || numbersDisputed(item.disputes) else { return item }
+    static func forRules(_ item: BoxItem) -> JSONValue {
         var told = item
-        told.identityConfirmedBy = "sender"
-        return told
+        if item.identityConfirmedBy == "second_look", !secondLookStands(item) { told.identityConfirmedBy = "sender" }
+        guard case var .object(input) = told.engineInput else { return told.engineInput }
+        // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine
+        // counts them read).
+        if item.readSource == "manual" { input["numbersFrom"] = .string("typed") }
+        return .object(input)
     }
 
     /// Who stands behind an item once a second look lands (the web app's secondLookIdentity). Same kind of
@@ -380,13 +456,18 @@ final class BoxStore {
     nonisolated static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
                                 "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence"]
 
-    /// Whether these corrections settle a disputed fact: the battery only as a whole set of numbers,
-    /// the label words only with a corrected label, any other fact by itself (the web app's rule).
-    static func corrects(_ patch: [String: JSONValue], _ field: String) -> Bool {
+    /// Whether these corrections settle a disputed fact (the web app's rule): the label words only with a
+    /// corrected label, any other fact by itself, and the battery only by the sender's own numbers, every
+    /// one that either read gave (all three when the dispute's readings are not known).
+    static func corrects(_ patch: [String: JSONValue], _ field: String, _ dispute: JSONValue? = nil) -> Bool {
         switch field {
-        case "battery": patch["volts"] != nil && patch["milliampHours"] != nil && patch["wattHours"] != nil
-        case "labelTags": patch["labelText"] != nil
-        default: patch[field] != nil
+        case "battery":
+            let all = ["volts", "milliampHours", "wattHours"]
+            func given(_ side: JSONValue?, _ f: String) -> Bool { if case let .number(n)? = side?[f] { n > 0 } else { false } }
+            let needed = dispute.map { d in all.filter { given(d["device"], $0) || given(d["cloud"], $0) } } ?? all
+            return (needed.isEmpty ? all : needed).allSatisfy { patch[$0] != nil }
+        case "labelTags": return patch["labelText"] != nil
+        default: return patch[field] != nil
         }
     }
 
@@ -422,7 +503,11 @@ final class BoxStore {
                 found["labelTags"] = .object(["device": .array(item.labelTags.map { .string($0) }),
                                               "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
             }
-            for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
+            for field in Self.disputeFields where Self.corrects(item.overrides, field, found[field]) { found[field] = nil }
+            // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named
+            // counts. Taken before the merged read replaces the device's.
+            item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), cloudLabel ?? ""] : [cloudLabel ?? ""],
+                                        kept: item.labelFigures)
             // The kind of item the box has now, with the sender's own correction over the read.
             let sameKind = merged["category"] == (item.overrides["category"] ?? item.read["category"])
             // A label the sender corrected while the cloud read ran stays theirs: only its tags count.
@@ -588,7 +673,7 @@ final class BoxStore {
     private func evaluate() -> BoxResult? {
         refreshStaleTags()
         // The rules are told who stands behind each item's numbers; the stored items stay as they are.
-        let input: JSONValue = .object(["items": .array(items.map { Self.forRules($0).engineInput }), "code": .string(destinationCode),
+        let input: JSONValue = .object(["items": .array(items.map(Self.forRules)), "code": .string(destinationCode),
                                         "today": .string(today())])
         do {
             let value = try engine.evaluateBox(input)
@@ -703,6 +788,16 @@ final class BoxStore {
 
     private func tagsEdition(_ label: JSONValue?) -> String? {
         hasWords(label) ? engine.editionId : ""
+    }
+
+    /// The whole label the device read returned, while this iPhone has it; else the read's own text.
+    private static func deviceLabel(_ item: BoxItem) -> String { item.wholeLabel ?? text(item.read["labelText"]) ?? "" }
+
+    /// The figures an item keeps from these whole labels and its figures so far, as the engine decides them
+    /// (labelFiguresJson): Swift reads no label itself. If the engine refuses, the item keeps what it had,
+    /// and a box the engine then cannot judge says so (engineProblem).
+    private func figures(_ labels: [String], kept: JSONValue?) -> JSONValue? {
+        do { return try engine.labelFigures(texts: labels, kept: kept) } catch { return kept }
     }
 
     private func tags(_ label: JSONValue?) -> [String] {

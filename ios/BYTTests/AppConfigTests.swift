@@ -55,9 +55,34 @@ import Testing
         let m = model(Models(), fetchEdition: { _ in newer.text })
         await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-newer-test", "rules_edition_sha256": newer.sha]))
         #expect(m.box?.result?.editionId == "byt-newer-test" && m.editionNotice == nil)
+        // The same id with another hash names the edition in use: it stays, as on the web.
         await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-newer-test", "rules_edition_sha256": String(repeating: "0", count: 64)]))
-        #expect(m.box?.result?.editionId != "byt-newer-test")
+        #expect(m.box?.result?.editionId == "byt-newer-test" && m.editionNotice == nil)
+        // A pin that fails its check keeps the edition in use, not the built-in one.
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-other-test", "rules_edition_sha256": String(repeating: "0", count: 64)]))
+        #expect(m.box?.result?.editionId == "byt-newer-test")
         #expect(m.editionNotice == "A newer rule edition failed its integrity check. Using the built-in edition.")
+    }
+
+    /// Build 3 ships revision 7 while the pin still names revision 6 for older builds: the built-in edition
+    /// stays in force and nothing is said.
+    @Test func aPinOlderThanTheBuiltInEditionLeavesItInForceSilently() async throws {
+        let older = try EditionSourceTests.newer(id: "byt-older-test", by: -1)
+        let built = try #require(EditionSource.identity(of: try EditionSourceTests.bundled()))
+        let m = model(Models(), fetchEdition: { _ in older.text })
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-older-test", "rules_edition_sha256": older.sha]))
+        #expect(m.box?.result?.editionId == built.id && m.editionNotice == nil)
+    }
+
+    /// A newer edition already in use is never replaced by a pin older than it, and says so.
+    @Test func anOlderPinNeverReplacesANewerEditionInUse() async throws {
+        let inUse = try EditionSourceTests.newer(id: "byt-in-use", by: 2)
+        let older = try EditionSourceTests.newer(id: "byt-older-test", by: 1)
+        let m = model(Models(), fetchEdition: { id in id == "byt-in-use" ? inUse.text : older.text })
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-in-use", "rules_edition_sha256": inUse.sha]))
+        #expect(m.box?.result?.editionId == "byt-in-use")
+        await m.applyConfig(RemoteConfigValues.parse(["rules_edition_id": "byt-older-test", "rules_edition_sha256": older.sha]))
+        #expect(m.box?.result?.editionId == "byt-in-use" && m.editionNotice == EditionSource.olderThanInUse)
     }
 
     /// Holds a fetch open until the test lets it finish.
@@ -180,6 +205,8 @@ import Testing
         destinations["ZZ"] = extra
         json["destinations"] = destinations
         json["editionId"] = "byt-more-countries"
+        // A pin is used only when it is newer than the edition in use.
+        json["revision"] = (json["revision"] as! Int) + 1
         let text = String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
         let probe = try RulesEngine()
         _ = try probe.setEdition(text)

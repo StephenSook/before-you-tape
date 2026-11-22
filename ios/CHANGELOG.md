@@ -5,6 +5,192 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### build(ios): build number 3 for 1.0.0, carrying rule edition revision 7
+- What: CURRENT_PROJECT_VERSION goes from 2 to 3. Build 3 carries rule edition revision 7 built in (the
+  live pin stays at revision 6, which this build keeps out as older), with the revision 7 iPhone work.
+- Source: the build 3 release.
+- Verified: the full local CI passed on the merged change set (283 app tests, 0 failed); the archive
+  for this commit is checked before upload.
+
+### test(ios): a UI test opens Fix this reading while a second look runs
+- What: a new UI test opens Fix this reading before the second look lands, types a Wh, and checks that
+  the field then shows the merged reading's 37 Wh and the form says "The second look changed Watt-hours
+  (Wh). Check it again before you save." A debug-only option (-uiTestSlowLook) makes the UI test's cloud
+  read take 10 seconds. Tests and debug-only support.
+- Source: second-model review of this change set (the store test called the rebase itself, so it could
+  not catch a sheet that never sees the new reading).
+- Verified: the test passes; with the sheet's rebase call removed it failed (no note), and the form file
+  was put back byte for byte.
+
+### fix(ios): Fix this reading counts a respelled label as moved, as the web does
+- What: Swift calls two spellings of the same letters equal (an accent stored on its own or with its
+  letter). So when a second look returned the label respelled that way, the open form neither saw the
+  change nor reset the sender's label edit. Saving it could drop a hazard word the cloud's label carried.
+  The web compares exactly. The form now watches the reading's exact bytes, and the rebase compares
+  text character by character.
+- Source: second-model review of this change set.
+- Verified: the new test failed first (the two readings gave the same bytes key) and passes: the label is
+  reset and named, and nothing is saved. ReadDraftTests pass, 17 of 17.
+
+### test(ios): the label-number dispute test checks the number the reading shows
+- What: the test of a label number typed during a numbers dispute typed 15.4 Wh against a merged reading
+  of 154 Wh, so it missed the tolerance and passed whether or not the dispute guard worked. It now types
+  the exact Wh the merged reading shows. The edition test also says why an unreadable document's hash is
+  not checked on this iPhone: the web says failedCheck there with a wrong hash, and both keep the edition
+  in use. Tests only.
+- Source: second-model review of this change set.
+- Verified: the test passes; with the dispute guard removed from confirmLabelNumber it failed (the volts
+  and mAh came along), and the store file was put back byte for byte.
+
+### fix(ios): Fix this reading resets the fields a second look moved while it was open
+- What: numbers the sender typed against the first read stayed theirs when a second look landed with other
+  numbers while the form was open, so Save settled the battery dispute with them. A typed 3.85 V, 4000 mAh
+  and 15.4 Wh over a second look of 40000 mAh and 154 Wh turned Take it out into OK, where the web keeps
+  Take it out. As in the web's FixReading, the form now measures the draft against the reading it shows.
+  When that reading changes, each field it moved shows the new reading and is no longer the sender's, and
+  the form names the moved fields the sender had edited: "The second look changed ... Check it again
+  before you save." A reset field the sender edits again is theirs again.
+- Source: second-model review of this change set.
+- Verified: two new tests failed against a no-op rebase (the dispute was settled) and pass: the draft
+  reset, the note and a quiet reset of a field the sender had not edited, and the store scenario, which
+  stays Take it out with the dispute open. The quiet-reset case first caught a mark set by the reset
+  itself, fixed before commit. ReadDraftTests and the store suites pass, 81 of 81.
+
+### fix(ios): an item typed by hand keeps its label's figures after a relaunch
+- What: a hand-typed item's numbers are judged on the Wh rules (numbersFrom "typed"), so after a relaunch,
+  with its label text gone, nothing held a Wh below the label's figure: a typed 15.4 Wh under a label
+  saying 154Wh went from Check this to OK. A hand-typed item now keeps its label's figures, decided by the
+  engine, like a photo read.
+- Source: second-model review of this change set (the web's manual entry leaves them out too; reported).
+- Verified: the new reload test failed first (OK after the reload) and passes; LabelFiguresStoreTests,
+  TypedNumbersStoreTests and BoxStoreTests pass, 43 of 43.
+
+### feat(ios): the card says when a second model agreed, only while the rules count it
+- What: an item a matching cloud second look stands behind now says so on its card, in the web's
+  words: "A second model in the cloud read the same, so this counts as checked. Use Fix this reading
+  if it is wrong." It shows only while BoxStore.secondLookStands holds: the item is confirmed by a
+  second look, no battery number (a cleared 0 included) is in its overrides, and it has no battery or
+  lithium-grams dispute, open or settled. It does not show while the cloud is reading it again.
+  forRules now uses the same check, so the line and the verdict cannot disagree.
+- Source: the web app's secondLookStands and card line (web PR #207).
+- Verified: new tests failed first (no shared check) and pass: shown for an agreed shirt that reads
+  OK; hidden while checking again, for the sender's own word, typed Wh and a settled numbers dispute.
+  SecondLookStandsTests, SecondLookStoreTests and TypedNumbersStoreTests: 39 of 39.
+
+### fix(ios): Fix this reading saves only the fields the sender typed into
+- What: the form saved every field that differed from the reading, so when a second look changed the
+  reading while the form was open, Save wrote the old values back over it. The draft now records the
+  fields the sender typed into, picked or switched, and a fix saves only those. A battery number typed
+  in again as it was shown, above 0, counts as typed, so it is the sender's; one typed back to empty is
+  not saved unless it differs from the reading. A cleared number is saved as 0. The store then adds the
+  numbers that come with a typed Wh. The evidence rule is unchanged.
+- Source: the revision 7 phone-mirror spec, B3 (the web app's FixReading).
+- Verified: two new tests failed first (the untouched mAh, Wh and name were saved over the moved
+  reading, and a number typed again as shown was dropped) and pass. ReadDraftTests and the store
+  suites pass, 79 of 79.
+
+### test(ios): the shared edition-choice cases run through the iPhone's edition choice
+- What: a new test runs every case in tests/vectors/editionChoice.json (16 now), which the web app and
+  the Android app run too, through EditionSource.choose. It builds the documents as the web harness
+  does: the built-in edition under another id, its revision moved by an offset or removed. It checks
+  which edition is used, the notice, and whether the pin was fetched. This iPhone's fetcher returns
+  nothing both for a missing document and for a failed fetch, so both cases expect notLoaded. Tests only.
+- Source: the shared edition-choice vectors, so the three apps cannot drift on which edition a pin gives.
+- Verified: all 16 pass. With the revision check loosened to "below" instead of "not above", the
+  same-revision case failed (the pin was used), and the file was put back byte for byte.
+
+### feat(ios): the item card asks for the Wh or lithium grams printed on the label
+- What: while USPS-INTL-LI-ONE-READ holds an item's numbers, the card shows an empty field, "Type the
+  Wh printed on the label" (or "Type the lithium grams printed on the label" when no Wh is shown), and
+  a "Check the number" button, as the web card does. It takes a number above 0, with a comma read as a
+  decimal point, and passes it to BoxStore.confirmLabelNumber. It never fills in a value. The field
+  starts again, empty, after a check, and when the number it asks for changes, since it is keyed on
+  that number. DATA-LABEL-NUMBERS shows on the card like any other check. A debug-only UI test scene
+  (-uiTestPhoneRead) reads a phone on this iPhone with cloud checks off.
+- Source: the revision 7 phone-mirror spec, B6 (the web app's LabelNumberCheck).
+- Verified: helper tests failed first (no helper), then pass: when it is asked, which number, the
+  number shown with the sender's own on top, and the numbers it accepts. A new UI test passes: the
+  field asks for the Wh, then for the grams, empty, after the sender says the label prints grams, then
+  starts empty after a check. With the reset key removed it failed (the half-typed "7" stayed), and
+  the card file was put back byte for byte. The second-look and loop UI tests still pass.
+
+### feat(ios): the store checks a Wh or lithium-grams number typed from the label
+- What: BoxStore.confirmLabelNumber takes the Wh (or lithium grams) the sender typed from the label. It
+  compares it only with the model's own reading, never with a number the sender typed earlier. A match
+  within the edition's limits.whTolerancePct (read from the edition in force), with no numbers dispute,
+  saves the typed number plus the numbers that come with it (for Wh the volts and mAh shown, for grams
+  the volts). Any other number saves only the typed one. The typed number is always the one kept.
+  A number of 0 or less, or not finite, does nothing. The screen that asks for it comes next.
+- Source: the revision 7 phone-mirror spec, B6 (the web store's confirmLabelNumber).
+- Verified: two new tests failed against an empty stub first, then pass: a match, a miss, lithium
+  grams, an earlier typed number, a dispute and bad numbers. The four store suites pass, 70 of 70.
+
+### test(ios): a cleared battery number makes a second look's numbers the sender's
+- What: a test now holds that any battery number in a correction, a cleared one (0) included, makes a
+  second-look item's numbers the sender's, for each of the volts, mAh, Wh and lithium grams. The store
+  already did this; the test keeps it so. Tests only.
+- Source: the revision 7 phone-mirror spec, B5.
+- Verified: the test passes; with the store changed to ignore a 0 it failed (volts), and the store file
+  was put back byte for byte.
+
+### feat(ios): a typed Wh brings the volts and mAh shown, and typed grams bring the volts
+- What: when the sender types a deciding number, the store saves the numbers shown with it as theirs,
+  as the web store does: a typed Wh above 0 brings the volts and mAh shown (each if above 0), so the Wh
+  rules check them against it; typed lithium grams above 0 bring the volts. A Wh never comes with grams,
+  nor grams with a Wh. Nothing comes along while the item has a battery or lithium-grams dispute (open or
+  settled), when the correction clears a battery number to 0, or with a number that decides nothing.
+- Source: the revision 7 phone-mirror spec, B4 (the web store's withShownNumbers).
+- Verified: the new test of the numbers that come along failed first and passes; the test of when
+  nothing comes along passes before and after. The four store suites pass, 67 of 67.
+
+### fix(ios): a battery dispute settles on the numbers either read gave
+- What: the sender's own numbers settled a battery dispute only when they typed all three (volts,
+  mAh and Wh), even when neither read printed a Wh. Now, as on the web, a correction settles it once
+  it types every number either read gave above 0 (all three when the dispute's readings are not
+  known). The same holds for numbers typed while the cloud read ran, which leave no battery dispute.
+- Source: the revision 7 phone-mirror spec, B7 (the web store's corrects).
+- Verified: two new tests failed first (the dispute stayed open after the volts and mAh both reads
+  gave were typed) and pass; one number alone still leaves it open. The four store suites pass, 65 of 65.
+
+### fix(ios): a pinned rule edition is used only when it is newer than the one in use
+- What: the iPhone installed any pinned edition whose id and hash checked out, even an older one. A
+  build with revision 7 built in, under a pin that still names revision 6 for older builds, would have
+  gone back to revision 6. The edition choice now follows the web app's chooseEdition step for step: no
+  pin, or the built-in id and hash, gives the built-in edition; a pin naming the edition in use keeps it
+  without fetching; a fetched, checked pin whose revision is not above the edition in use is kept out
+  (a missing revision counts as 0). Under the built-in edition nothing is said. Under a newer remote
+  edition the notice is "The pinned rule edition is older than the one in use. Keeping the one in
+  use." The app now remembers the remote edition it installed, and a refused pin keeps that one, not
+  the built-in. One test changes on purpose: the id of the edition in use with another hash now keeps
+  it silently, as on the web.
+- Source: the web app's edition choice (8c98263, and #200 for the silent older pin); found while
+  checking the iPhone for the older-pin notice.
+- Verified: new edition tests (older, same and missing revisions under the built-in edition; the
+  edition in use against older, equal and newer pins; a failed pin) and two app tests failed first,
+  with the older pin installed over the built-in. Two test editions now carry a later revision.
+  EditionSourceTests, AppConfigTests and AppRulesTests: 23 of 23.
+
+### feat(ios): numbers on an item typed by hand count as typed
+- What: an item the sender typed by hand (no photo read) now tells the engine numbersFrom "typed"
+  when the box is judged, so revision 7 judges its battery numbers on the Wh rules instead of holding
+  them as a model's read (USPS-INTL-LI-ONE-READ). A label figure above a typed number still holds it
+  (DATA-LABEL-NUMBERS). Only the rules are told; nothing saved changes.
+- Source: the revision 7 phone-mirror spec, B2 (the web store's forRules).
+- Verified: two new tests failed first (the typed phone was held at Check this by the one-read rule)
+  and pass now; the four store suites pass, 63 of 63.
+
+### feat(ios): an item keeps its labels' Wh and gram figures, decided by the engine
+- What: rule edition revision 7 holds an item when a label figure is above the number in use. The
+  iPhone now keeps those figures with the item and saves them, since the label text is never saved.
+  A photo read takes them from its whole label, not the 160-character clip. A second look adds its
+  own label's figures, and a label the sender types adds its figures. Every time, the bundled engine
+  decides them through labelFiguresJson (RulesEngine.labelFigures); Swift reads no label. The figures
+  go to the engine as labelFigures. An item saved before this has none and loads as before.
+- Source: the revision 7 phone-mirror spec, B1.
+- Verified: four new store tests failed first: a figure past the label cut, and figures from a read,
+  a second look and a typed label after a reload. They pass now, with a test that an item saved
+  without figures decodes. LabelFiguresStoreTests, SecondLookStoreTests and BoxStoreTests: 61 of 61.
+
 ### test(ios): the large phone read in the second-look tests names no Wh on its label
 - What: rule edition revision 7 holds a typed number below any figure the label names. The two tests of
   numbers typed in full typed 15.4 Wh over a read whose label said 154Wh, so the engine rightly held

@@ -2,6 +2,7 @@
   "note": "The facts the rules engine in every live app build knows. Those builds refuse a pinned rule edition that reads any other fact, and fall back to their built-in edition. Add a fact here only once every live build's engine knows it.",
   "builds": [
     "android-judge-3",
+    "android-judge-4",
     "iPhone build 2"
   ],
   "facts": [
