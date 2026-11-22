@@ -107,6 +107,17 @@ import Testing
         #expect(settled.0.items[0].overrides == ["wattHours": .number(15.4)])
     }
 
+    /// Any battery number in a correction, a cleared one (0) included, makes the numbers the sender's: the
+    /// ones left are no longer the set the second look read.
+    @Test func aClearedNumberMakesASecondLooksNumbersTheSenders() throws {
+        for field in ["volts", "milliampHours", "wattHours", "lithiumGrams"] {
+            let (s, id) = try SecondLookStoreTests().look(Self.phone, Self.phone)
+            #expect(s.items[0].identityConfirmedBy == "second_look")
+            s.override(id, patch: [field: .number(0)])
+            #expect(s.items[0].identityConfirmedBy == "sender", "\(field)")
+        }
+    }
+
     @Test func aTypedItemsLabelFigureAboveItsTypedNumberHoldsIt() throws {
         let (s, id) = try typed(Self.with(Self.phone, ["labelText": .string("3.85V 4000mAh PACK 20Wh")]))
         #expect(level(s, id) == "check")

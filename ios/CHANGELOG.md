@@ -5,6 +5,14 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): a cleared battery number makes a second look's numbers the sender's
+- What: a test now holds that any battery number in a correction, a cleared one (0) included, makes a
+  second-look item's numbers the sender's, for each of the volts, mAh, Wh and lithium grams. The store
+  already did this; the test keeps it so. Tests only.
+- Source: the revision 7 phone-mirror spec, B5.
+- Verified: the test passes; with the store changed to ignore a 0 it failed (volts), and the store file
+  was put back byte for byte.
+
 ### feat(ios): a typed Wh brings the volts and mAh shown, and typed grams bring the volts
 - What: when the sender types a deciding number, the store saves the numbers shown with it as theirs,
   as the web store does: a typed Wh above 0 brings the volts and mAh shown (each if above 0), so the Wh
