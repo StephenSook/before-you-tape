@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- README: says the Chrome extension CI builds is not part of this entry: it was not measured, and its cloud bridge page is closed on the site (frame-ancestors 'none' in firebase.json). Source: review. Verified: firebase.json header and bridgeParentsFromPolicy read; hygiene, tone and gate run.
+
 - docs/SECURITY.md says how the browser tests reach the live project: the local project starts only with BYT_E2E_LIVE_PROJECT=1 and a registered App Check debug token, which CI's browser steps and the deploy gate set, and the one named exception, the two service worker specs on their own server, whose few App Check denials are expected. Source: review. Verified: each sentence traced to scripts/e2e-live-opt-in.ts, playwright.config.ts, the workflows and the two specs.
 
 - docs/e2e-emulators-plan.md, dated 2026-11-22, plans moving the local browser tests onto the Auth and Firestore emulators after 2026-11-30: a build env that defaults to a demo project, emulator web servers in the Playwright config, no App Check in emulator builds, Remote Config and Installations answered from remoteconfig.template.json, and CI on the emulators. Source: review (the plan is kept for after the deadline, and the refuse-without-opt-in rule stands until then). Verified: every file and command it names exists in the repository.
