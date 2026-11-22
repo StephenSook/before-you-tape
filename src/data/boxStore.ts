@@ -510,6 +510,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
         ? i.labelTags : tagsOf(patch.labelText),
       // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
       ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
+      // A label the sender typed adds its figures to the kept ones (the label text itself is not kept).
+      ...(patch.labelText === undefined ? {} : figuresOf(i.labelFigures ? figuresText(i.labelFigures) : i.read.labelText, patch.labelText)),
     };
     if (typesNumbers(patch)) next = numbersByHand(next);
     if (!i.disputes) return next;
@@ -633,8 +635,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
-          // Both reads' label figures: a figure only one label named still counts.
-          ...figuresOf(...(i.labelFigures ? [] : [i.read.labelText]), cloudLabel ?? "", ...(i.labelFigures ? [figuresText(i.labelFigures)] : [])),
+          // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named counts.
+          ...figuresOf(i.labelFigures ? figuresText(i.labelFigures) : i.read.labelText, cloudLabel ?? ""),
           // The kind of item the box has now, with the sender's own correction over the read.
           identityConfirmedBy: secondLookIdentity(i, merged.category === (i.overrides.category ?? i.read.category), found),
         }, found);

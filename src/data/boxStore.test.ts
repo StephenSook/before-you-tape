@@ -713,6 +713,30 @@ describe("createBoxStore", () => {
         expect(ruleIds(again, id)).toContain("DATA-LABEL-NUMBERS");
       });
 
+      it("never lets a second look's figures push out a kept one, and keeps figures in a label the sender typed", async () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh MODULE, PACK 185Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        const many = "98Wh 98.1Wh 98.2Wh 98.3Wh 98.4Wh 98.5Wh 98.6Wh 98.7Wh";
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", many, readDisputes(read, read));
+        expect(s.getState().items[0]?.labelFigures?.wh).toContain(185);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        // A label the sender typed: its figures are kept with the item, so a reload still holds.
+        const p = spyPersistence();
+        const t = store({ persistence: p });
+        t.setDestination("CA");
+        const tid = t.addRead(outcome(read, "on_device"), "k");
+        t.answer(tid, "device_condition", "new_sealed");
+        t.override(tid, { labelText: "98Wh MODULE, PACK 185Wh" });
+        await t.ready;
+        await vi.waitFor(() => expect(p.saved()?.items?.[0]?.labelFigures?.wh).toContain(185));
+        const again = store({ persistence: spyPersistence(p.saved()) });
+        await again.ready;
+        expect(ruleIds(again, tid)).toContain("DATA-LABEL-NUMBERS");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });

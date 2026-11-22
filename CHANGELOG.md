@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- An item's kept label figures now come first when a second look adds its own, so eight new figures can no longer push out a kept 185 Wh, and the figures in a label the sender types are kept with the item too, so a reload still holds it. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.
+
 - While two reads dispute an item's battery numbers or lithium grams, the label number check saves only the number typed, never the disputed others: typing 99 Wh over reads of 50 V / 98 Wh and 22 V / 99 Wh no longer copies 22 V into the sender's numbers and settles the dispute. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.
 
 - The Firestore rules tests now write an item exactly as android-judge-3 writes it (no tagsVersion, numbersFrom or labelFigures) and check it is still accepted, so old phones keep saving after the labelFigures change. The iPhone app writes no box or item documents. Source: the revision 7 rules change. Verified: the Firestore rules tests (51 of 51), full gate.
