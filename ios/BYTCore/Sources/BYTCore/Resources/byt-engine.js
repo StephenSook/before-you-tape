@@ -205,8 +205,9 @@ var BYT = (() => {
     return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, A_WEIGHT) };
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
+  var above = (f, n) => f > n * 1.005;
   function labelMismatchOf(figs, typed, whPrinted, lithiumGrams, tolerancePct) {
-    const off = (list2, n, byHand) => list2.find((f) => !agrees(f, n, tolerancePct) && (!byHand || f > n));
+    const off = (list2, n, byHand) => list2.find((f) => above(f, n) || !byHand && !agrees(f, n, tolerancePct));
     if (whPrinted !== null) {
       const byHand = typed.has("wattHours");
       const label = off(figs.wh, whPrinted, byHand);

@@ -81,10 +81,13 @@ const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) 
 
 // A figure the label names that the number in use disagrees with. A read number must agree with every figure: one
 // that matches does not hide another, such as a module's rating beside the pack's. A typed number must be at least
-// every figure, so typing the module's rating still holds while typing the pack's, the larger, settles it.
+// every figure, so typing the module's rating still holds while typing the pack's, the larger, settles it. Either
+// way a figure above the number holds beyond rounding (half a percent), never within the tolerance: 101 Wh beside
+// 99 Wh is over 100 Wh.
+const above = (f: number, n: number) => f > n * 1.005;
 function labelMismatchOf(figs: LabelFigures, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
   lithiumGrams: number | null, tolerancePct: number): BatteryFacts["labelMismatch"] {
-  const off = (list: number[], n: number, byHand: boolean) => list.find((f) => !agrees(f, n, tolerancePct) && (!byHand || f > n));
+  const off = (list: number[], n: number, byHand: boolean) => list.find((f) => above(f, n) || (!byHand && !agrees(f, n, tolerancePct)));
   if (whPrinted !== null) {
     const byHand = typed.has("wattHours");
     const label = off(figs.wh, whPrinted, byHand);

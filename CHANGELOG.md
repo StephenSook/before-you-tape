@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A label figure above the number in use now holds beyond rounding (half a percent), never within the 3 percent tolerance, for read and typed numbers alike: typing 99 Wh beside a label's 101 Wh pack figure no longer reads OK under the 100 Wh limit. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 3). Verified: the vector failed first, full gate.
+
 - Clearing a battery number after a matching second look counts as the sender's change again, so the second look no longer stands behind the numbers left: both reads agreeing on 14 V, 8600 mAh and 98 Wh (held, as volts times capacity is 120 Wh) no longer turns OK when the sender clears the mAh. The earlier change that kept the second look is undone; typing the numbers left clears the hold. Source: second-model review of revision 7 (round 3). Verified: the store test failed first, full gate.
 
 - Known limits now say the verdict trusts what the sender's own device saves: items, typed numbers, label figures and answers are written by the sender's own browser or phone, the server rules check only their shape, and a changed client changes only its own sender's verdict. Source: second-model review of revision 7 (round 2). Verified: hygiene and tone, full gate.
