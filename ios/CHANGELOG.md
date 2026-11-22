@@ -5,6 +5,19 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### fix(ios): a launch that may not call Firebase gives App Check a provider that sends nothing
+- What: App Check fetches a token by itself at launch, with nothing else asking. In a Debug or test
+  launch without `-liveFirebase`, BYTAppCheckFactory now returns OfflineAppCheckProvider, which
+  fails every token request at once, with no network call, and logs the skip. A Debug launch with
+  `-liveFirebase` keeps the debug provider; Release builds keep App Attest.
+- Source: the simulator log of the first full run with the entry below still showed the app
+  connecting to firebaseappcheck.googleapis.com at each launch.
+- Verified: a new test failed first (OfflineAppCheckProvider did not exist), then passed: this test
+  launch's provider refuses a token request and records it. `bash ios/scripts/ci-local-ios.sh` exit 0
+  (290 app tests: 289 passed, 0 failed, 1 opt-in skip). The simulator log for that whole run
+  (40,096 lines from the app) names no Google or Firebase host. A Release build for the simulator
+  compiles (exit 0).
+
 ### fix(ios): tests and Debug launches skip the live sign-in, Remote Config and Firestore
 - What: a new rule (LiveFirebase) says whether a launch may call Firebase over the network. Release
   builds always may. A Debug build may only when launched with `-liveFirebase` and not hosted by

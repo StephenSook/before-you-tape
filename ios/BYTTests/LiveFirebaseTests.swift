@@ -1,3 +1,5 @@
+import FirebaseAppCheck
+import FirebaseCore
 import Foundation
 import Testing
 @testable import BYT
@@ -41,6 +43,19 @@ import Testing
         #expect(signIn.currentUid() == nil)
         #expect(await signIn.delete(nil) == .none)
         #expect(LiveFirebase.skipped.contains("anonymous sign-in"))
+    }
+
+    /// App Check fetches a token by itself at launch. In this test launch its provider is one that
+    /// sends nothing: it answers with an error at once and says so in the log.
+    @Test func aHostedTestLaunchGivesAppCheckAProviderThatSendsNothing() async throws {
+        let app = try #require(FirebaseApp.app())
+        let provider = BYTAppCheckFactory().createProvider(with: app)
+        #expect(provider is OfflineAppCheckProvider)
+        let refused: Bool = await withCheckedContinuation { done in
+            provider?.getToken { token, error in done.resume(returning: token == nil && error != nil) }
+        }
+        #expect(refused)
+        #expect(LiveFirebase.skipped.contains("App Check token"))
     }
 
     /// The model a hosted test launch builds, with the launch's own sign-in, Remote Config and edition
