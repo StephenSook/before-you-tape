@@ -21,6 +21,9 @@ export interface BoxOps {
   deleteItem(boxId: string, itemId: string): Promise<void>;
   // True when the writes land only in this browser (sign-in failed): the store keeps them for the server.
   localOnly?(): boolean;
+  // The box as this browser's cache last held it, never from the server: shown, not synced, while the server
+  // refuses a browser App Check cannot verify.
+  loadCached?(boxId: string): Promise<LoadResult>;
   // Deletes the whole box for good: its items and disputes, then the box itself. Only its owner may.
   deleteBox?(boxId: string): Promise<BoxGone>;
 }
