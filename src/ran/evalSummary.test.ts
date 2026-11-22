@@ -24,6 +24,13 @@ const run = () => ({
       checkRate: { k: 1, n: 4 },
       latency: { shipped: { p50: 4867.5, p90: 7734.8, n: 2 } },
     },
+    withoutRuleChangeItems: {
+      items: 1,
+      truthAgreement: { k: 2, n: 2 },
+      hazardCalledOk: { k: 0, n: 1, upper95: 0.95 },
+      checkRate: { k: 0, n: 2 },
+      latency: { shipped: { p50: 4000, p90: 5000, n: 1 } },
+    },
   },
 });
 
@@ -47,12 +54,16 @@ describe("summarizeEval", () => {
       checkThis: { k: 1, n: 4 },
       p50Ms: 4868,
       p90Ms: 7735,
+      withoutRuleChanges: { items: 1, agreement: { k: 2, n: 2 }, hazardsCalledOk: { k: 0, n: 1 } },
     });
   });
 
   it("refuses a run it cannot read rather than summarize part of it", () => {
     expect(() => summarizeEval({ ...run(), rows: "x" }, "s")).toThrow();
     expect(() => summarizeEval({ ...run(), metrics: {} }, "s")).toThrow();
+    // The numbers without the items that prompted a rule change are required, and cover fewer items than the run.
+    expect(() => summarizeEval({ ...run(), metrics: { allItems: run().metrics.allItems } }, "s")).toThrow();
+    expect(() => summarizeEval({ ...run(), metrics: { ...run().metrics, withoutRuleChangeItems: { ...run().metrics.withoutRuleChangeItems, items: 3 } } }, "s")).toThrow();
     expect(() => summarizeEval(null, "s")).toThrow();
   });
 });
@@ -72,6 +83,11 @@ describe("readEval", () => {
       { ...committed, hazardsCalledOk: { k: 29, n: 28 } },
       { ...committed, readOnDevice: 81 },
       { ...committed, p90Ms: 1 },
+      { ...committed, withoutRuleChanges: undefined },
+      { ...committed, withoutRuleChanges: { ...committed.withoutRuleChanges, extra: 1 } },
+      { ...committed, withoutRuleChanges: { ...committed.withoutRuleChanges, items: 41 } },
+      { ...committed, withoutRuleChanges: { ...committed.withoutRuleChanges, agreement: { k: 77, n: 76 } } },
+      { ...committed, withoutRuleChanges: { ...committed.withoutRuleChanges, hazardsCalledOk: { k: 0, n: "26" } } },
     ];
     for (const c of cases) expect(readEval(c), JSON.stringify(c)).toEqual({ ok: false });
   });

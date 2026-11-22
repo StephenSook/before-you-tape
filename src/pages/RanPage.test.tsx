@@ -85,7 +85,7 @@ describe("RanPage", () => {
     models: "device: Chrome built-in model; cloud: a cloud model", editionId: "byt-3b5f5508968f",
     source: "eval/runs/models-2026-11-21.public.json", items: 40, destinations: 2, checks: 80, readOnDevice: 80,
     secondLookItems: 13, agreement: { k: 69, n: 80 }, hazardsCalledOk: { k: 0, n: 28 }, checkThis: { k: 14, n: 80 },
-    p50Ms: 4868, p90Ms: 7735,
+    p50Ms: 4868, p90Ms: 7735, withoutRuleChanges: { items: 38, agreement: { k: 67, n: 76 }, hazardsCalledOk: { k: 0, n: 26 } },
   });
 
   it("leads with our own test, before the saved-box totals, with its detail behind a disclosure", () => {
