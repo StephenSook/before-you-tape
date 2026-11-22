@@ -323,6 +323,16 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
         }
     }
 
+    override fun confirmNumber(itemId: String, field: String, value: Double) {
+        onWorker {
+            val input = box.state.items.firstOrNull { it.input.itemId == itemId }?.input ?: return@onWorker
+            // The tolerance is the running edition's own; with none, nothing matches and the typed number is saved alone.
+            val patch = BoxLogic.labelNumberPatch(input, field, value, BoxLogic.whTolerancePct(runningEdition?.json)) ?: return@onWorker
+            box.override(itemId, patch, null)
+            publish()
+        }
+    }
+
     override fun quantity(itemId: String, step: Int) {
         onWorker {
             box.stepQuantity(itemId, step)

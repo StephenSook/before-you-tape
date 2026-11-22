@@ -72,6 +72,9 @@ interface HomeActions {
     /** One tap: 1 for one more, -1 for one fewer. */
     fun quantity(itemId: String, step: Int)
 
+    /** The Wh (or lithium grams, by [field]) the sender typed from the label of a held battery. */
+    fun confirmNumber(itemId: String, field: String, value: Double) {}
+
     /** Download the on-device model. */
     fun getModel()
 
@@ -107,6 +110,7 @@ fun HomeScreen(ui: HomeUi, actions: HomeActions, camera: @Composable () -> Unit,
                     )
                 ui.view == HomeView.BOX -> PackScreen(
                     ui.box, actions::answer, onFix = actions::fix, onRemove = actions::remove, onQuantity = actions::quantity,
+                    onConfirmNumber = actions::confirmNumber,
                     bottom = { OutlinedButton(onClick = { actions.show(HomeView.CAMERA) }, modifier = Modifier.fillMaxWidth()) { Text(Copy.ADD_ANOTHER) } },
                 )
                 // No destination yet: the destination button above is the one thing to do, and the camera waits.
