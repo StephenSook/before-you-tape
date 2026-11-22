@@ -41,7 +41,6 @@ object EditionPin {
     const val NOT_LOADED = "A newer rule edition could not be loaded. Using the built-in edition."
     const val FAILED_CHECK = "A newer rule edition failed its integrity check. Using the built-in edition."
     const val NOT_READ = "A newer rule edition could not be read. Using the built-in edition."
-    const val OLDER = "The pinned rule edition is older than this build's. Using the built-in edition."
     const val OLDER_THAN_IN_USE = "The pinned rule edition is older than the one in use. Keeping the one in use."
 
     suspend fun choose(
@@ -69,8 +68,10 @@ object EditionPin {
         if (docId != id) return EditionChoice(running, FAILED_CHECK)
         val edition = verify(json) ?: return EditionChoice(running, NOT_READ)
         if (edition.sha256 != sha) return EditionChoice(running, FAILED_CHECK)
-        // A pin that is not newer than the rules in use would bring back rules a later edition fixed.
-        if (edition.revision <= running.revision) return EditionChoice(running, if (running === bundled) OLDER else OLDER_THAN_IN_USE)
+        // A pin that is not newer than the rules in use would bring back rules a later edition fixed. A pin older than
+        // this build's own edition is the usual state (the pin is for phone builds made before this one), so it says
+        // nothing; one older than a newer edition already in use says it is kept (as on the web).
+        if (edition.revision <= running.revision) return EditionChoice(running, if (running === bundled) null else OLDER_THAN_IN_USE)
         return EditionChoice(edition, null)
     }
 }

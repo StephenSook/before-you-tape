@@ -1,0 +1,206 @@
+[
+  {
+    "name": "no_pin_uses_the_built_in",
+    "inUse": "builtIn",
+    "pin": "none",
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": false
+    }
+  },
+  {
+    "name": "a_pin_naming_the_built_in_uses_it",
+    "inUse": "builtIn",
+    "pin": "builtIn",
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": false
+    }
+  },
+  {
+    "name": "the_built_in_id_with_another_hash_keeps_the_built_in_without_a_fetch",
+    "inUse": "builtIn",
+    "pin": "builtInIdWrongSha",
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": false
+    }
+  },
+  {
+    "name": "a_newer_pin_is_used",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "pin",
+      "notice": null,
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_pin_of_the_same_revision_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 0,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": true
+    }
+  },
+  {
+    "name": "an_older_pin_keeps_the_built_in_silently",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": -1,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_pin_with_no_revision_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": null,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": null,
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_pin_naming_the_edition_in_use_keeps_it",
+    "inUse": {
+      "revision": 1
+    },
+    "pin": "inUse",
+    "expect": {
+      "use": "inUse",
+      "notice": null,
+      "fetched": false
+    }
+  },
+  {
+    "name": "a_pin_older_than_a_newer_edition_in_use_keeps_it_and_says_so",
+    "inUse": {
+      "revision": 2
+    },
+    "pin": {
+      "revision": 1,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "inUse",
+      "notice": "olderThanInUse",
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_pin_newer_than_the_edition_in_use_is_used",
+    "inUse": {
+      "revision": 1
+    },
+    "pin": {
+      "revision": 2,
+      "doc": "ok"
+    },
+    "expect": {
+      "use": "pin",
+      "notice": null,
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_missing_pinned_document_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "missing"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": "notLoaded",
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_failed_fetch_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "fetchFails"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": "notLoaded",
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_wrong_hash_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "wrongHash"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": "failedCheck",
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_document_with_another_id_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "wrongId"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": "failedCheck",
+      "fetched": true
+    }
+  },
+  {
+    "name": "an_unreadable_document_keeps_the_built_in",
+    "inUse": "builtIn",
+    "pin": {
+      "revision": 1,
+      "doc": "unreadable"
+    },
+    "expect": {
+      "use": "builtIn",
+      "notice": "notRead",
+      "fetched": true
+    }
+  },
+  {
+    "name": "a_failed_pin_under_a_newer_edition_in_use_keeps_that_edition",
+    "inUse": {
+      "revision": 2
+    },
+    "pin": {
+      "revision": 3,
+      "doc": "wrongHash"
+    },
+    "expect": {
+      "use": "inUse",
+      "notice": "failedCheck",
+      "fetched": true
+    }
+  }
+]
