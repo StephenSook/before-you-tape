@@ -736,6 +736,19 @@ describe("createBoxStore", () => {
         expect(ruleIds(again, id)).toContain("DATA-LABEL-NUMBERS");
       });
 
+      it("keeps the largest figures when the list is full, so a newly seen larger one is never dropped", () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
+        const s = store();
+        s.setDestination("CA");
+        const many = "98Wh 98.1Wh 98.2Wh 98.3Wh 98.4Wh 98.5Wh 98.6Wh 98.7Wh";
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: many }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", "PACK 185 Wh", readDisputes(read, read));
+        expect(s.getState().items[0]?.labelFigures?.wh).toContain(185);
+        expect(s.getState().items[0]?.labelFigures?.wh.length).toBeLessThanOrEqual(8);
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
       it("never lets a second look's figures push out a kept one, and keeps figures in a label the sender typed", async () => {
         const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "98Wh", volts: 0, milliampHours: 0, wattHours: 98 };
         const s = store();

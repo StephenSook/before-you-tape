@@ -234,8 +234,10 @@ const fits = (n: number) => Math.min(n, 99999);
 const figuresOf = (...labels: string[]): Pick<BoxItem, "labelFigures"> => {
   // A figure the saved list cannot hold (Firestore takes them below 100000) is kept as 99999, still disagreeing.
   const all = labels.map(labelFiguresOf).map((f) => ({ wh: f.wh.map(fits), grams: f.grams.map(fits) }));
-  const wh = [...new Set(all.flatMap((f) => f.wh))].slice(0, 8);
-  const grams = [...new Set(all.flatMap((f) => f.grams))].slice(0, 8);
+  // At most 8 of each, the largest: a smaller figure left out can only leave the item judged at a larger number.
+  const largest = (l: number[]) => [...new Set(l)].sort((a, b) => b - a).slice(0, 8);
+  const wh = largest(all.flatMap((f) => f.wh));
+  const grams = largest(all.flatMap((f) => f.grams));
   return wh.length + grams.length > 0 ? { labelFigures: { wh, grams } } : {};
 };
 
