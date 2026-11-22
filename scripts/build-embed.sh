@@ -74,7 +74,7 @@ if not 20_000 <= len(bundle) <= 300_000:
 # version comes from the bundle, not from a source file the bundle may not contain.
 text = bundle.decode("utf-8")
 exports = ["BRIDGE_VERSION", "canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
-           "itemReadContract", "labelTagsJson", "parseItemReadJson", "parseItemReadTaggedJson", "setEdition"]
+           "itemReadContract", "labelFiguresJson", "labelTagsJson", "parseItemReadJson", "parseItemReadTaggedJson", "setEdition"]
 missing = [n for n in exports if not re.search(r"\b" + n + r": \(\) => " + n + r"\b", text)]
 if missing:
     problems.append("the bundle does not export the bridge (missing " + ", ".join(missing) + ")")

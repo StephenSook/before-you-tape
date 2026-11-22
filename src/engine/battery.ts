@@ -80,6 +80,21 @@ export interface LabelFigures { wh: number[]; grams: number[] }
 export function labelFiguresOf(text: string): LabelFigures {
   return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, aWeight) };
 }
+// The figures an item keeps from its labels, decided only here (the web store, and the phone apps through the
+// bridge's labelFiguresJson): every figure the labels name and any kept before, without repeats, each capped at
+// 99999 (Firestore takes figures below 100000), largest first, and over 8 of a kind the 7 largest and the smallest.
+// A number agrees with every figure exactly when it agrees with the smallest and the largest, and is at least every
+// figure when it is at least the largest, so the figures left out never change a verdict. None at all gives null.
+export function keptLabelFigures(texts: readonly string[], kept?: LabelFigures): LabelFigures | null {
+  const read = texts.map(labelFiguresOf);
+  const pick = (k: keyof LabelFigures) => {
+    const all = [...new Set([...(kept?.[k] ?? []), ...read.flatMap((f) => f[k])].map((n) => Math.min(n, 99999)))].sort((a, b) => b - a);
+    return all.length <= 8 ? all : [...all.slice(0, 7), all[all.length - 1]!];
+  };
+  const wh = pick("wh");
+  const grams = pick("grams");
+  return wh.length + grams.length > 0 ? { wh, grams } : null;
+}
 const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) / b) * 100 <= tolerancePct;
 
 // A figure the label names that the number in use disagrees with. A read number must agree with every figure: one

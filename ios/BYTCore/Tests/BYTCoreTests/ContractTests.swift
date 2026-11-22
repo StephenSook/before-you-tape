@@ -14,7 +14,7 @@ import Testing
         let engine = try RulesEngine()
         #expect(engine.bridgeVersion == 1)
         #expect(engine.functionNames == ["canonicalEdition", "destinationHitsJson", "editionBodyCanonical", "evaluateBoxJson",
-                                         "isNoItemJson", "itemReadContract", "labelTagsJson", "mergeSecondLookJson", "parseItemReadJson",
+                                         "isNoItemJson", "itemReadContract", "labelFiguresJson", "labelTagsJson", "mergeSecondLookJson", "parseItemReadJson",
                                          "parseItemReadTaggedJson", "secondLookReasonJson", "setEdition"])
     }
 

@@ -30,6 +30,7 @@ var BYT = (() => {
     evaluateBoxJson: () => evaluateBoxJson,
     isNoItemJson: () => isNoItemJson,
     itemReadContract: () => itemReadContract,
+    labelFiguresJson: () => labelFiguresJson,
     labelTagsJson: () => labelTagsJson,
     mergeSecondLookJson: () => mergeSecondLookJson,
     parseItemReadJson: () => parseItemReadJson,
@@ -205,6 +206,16 @@ var BYT = (() => {
   var figures = (text, re, skip) => [...text.matchAll(re)].filter((m) => !skip?.(text.slice(Math.max(0, m.index - 32), m.index))).map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
   function labelFiguresOf(text) {
     return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, aWeight) };
+  }
+  function keptLabelFigures(texts, kept) {
+    const read = texts.map(labelFiguresOf);
+    const pick = (k) => {
+      const all = [...new Set([...kept?.[k] ?? [], ...read.flatMap((f) => f[k])].map((n) => Math.min(n, 99999)))].sort((a, b) => b - a);
+      return all.length <= 8 ? all : [...all.slice(0, 7), all[all.length - 1]];
+    };
+    const wh = pick("wh");
+    const grams = pick("grams");
+    return wh.length + grams.length > 0 ? { wh, grams } : null;
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
   var above = (f, n) => f > n + 1e-9;
@@ -1275,17 +1286,7 @@ var BYT = (() => {
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
       }
-      if (o.labelFigures !== void 0) {
-        const f = plain(o.labelFigures, `${id}.labelFigures`);
-        const keys2 = Object.keys(f).sort().join(",");
-        if (keys2 !== "grams,wh") throw new BadInputError(`${id}.labelFigures must have exactly wh and grams`);
-        for (const k of ["wh", "grams"]) {
-          const list2 = f[k];
-          if (!Array.isArray(list2) || list2.length > 8 || !list2.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
-            throw new BadInputError(`${id}.labelFigures.${k} must be up to 8 numbers above 0`);
-          }
-        }
-      }
+      if (o.labelFigures !== void 0) checkLabelFigures(o.labelFigures, `${id}.labelFigures`);
       if (o.numbersFrom !== void 0 && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
         throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);
       }
@@ -1343,6 +1344,26 @@ var BYT = (() => {
         if (typeof v !== "string") throw new BadInputError(`answers.${k} must be a string`);
       }
       return evaluateDestination(facts, answers, resolveDestination(e, str2(input, "code")));
+    });
+  }
+  function checkLabelFigures(v, path) {
+    const f = plain(v, path);
+    if (Object.keys(f).sort().join(",") !== "grams,wh") throw new BadInputError(`${path} must have exactly wh and grams`);
+    for (const k of ["wh", "grams"]) {
+      const list2 = f[k];
+      if (!Array.isArray(list2) || list2.length > 8 || !list2.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
+        throw new BadInputError(`${path}.${k} must be up to 8 numbers above 0`);
+      }
+    }
+    return f;
+  }
+  function labelFiguresJson(inputJson) {
+    return reply(() => {
+      const input = object(inputJson);
+      const texts = input.texts;
+      if (!Array.isArray(texts) || !texts.every((t) => typeof t === "string")) throw new BadInputError("texts must be a list of strings");
+      const kept = input.kept === void 0 ? void 0 : checkLabelFigures(input.kept, "kept");
+      return { labelFigures: keptLabelFigures(texts, kept) };
     });
   }
   function labelTagsJson(labelText) {

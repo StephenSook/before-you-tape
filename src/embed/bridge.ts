@@ -4,6 +4,7 @@
 // and none throws, so a native host never has to catch a JavaScript exception.
 import { canonicalJson, parseEdition, resolveDestination } from "../engine/edition";
 import { evaluateDestination } from "../engine/destination";
+import { keptLabelFigures, type LabelFigures } from "../engine/battery";
 import { deriveFacts, labelTagsOf } from "../engine/facts";
 import { DISPUTE_FIELDS, type BoxItemInput, type DestinationEdition, type ItemAnswers, type ItemFacts, type RuleEdition } from "../engine/types";
 import { evaluateBox } from "../engine/verdict";
@@ -145,17 +146,7 @@ function checkItems(raw: unknown): BoxItemInput[] {
       throw new BadInputError(`${id}.labelTags must be a list of strings`);
     }
     // Optional: the Wh and lithium-grams figures the label named, up to 8 of each, numbers above 0.
-    if (o.labelFigures !== undefined) {
-      const f = plain(o.labelFigures, `${id}.labelFigures`);
-      const keys = Object.keys(f).sort().join(",");
-      if (keys !== "grams,wh") throw new BadInputError(`${id}.labelFigures must have exactly wh and grams`);
-      for (const k of ["wh", "grams"] as const) {
-        const list = f[k];
-        if (!Array.isArray(list) || list.length > 8 || !list.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
-          throw new BadInputError(`${id}.labelFigures.${k} must be up to 8 numbers above 0`);
-        }
-      }
-    }
+    if (o.labelFigures !== undefined) checkLabelFigures(o.labelFigures, `${id}.labelFigures`);
     // Optional. Left out, the numbers count as read, the safe side.
     if (o.numbersFrom !== undefined && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
       throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);
@@ -230,6 +221,35 @@ export function destinationHitsJson(inputJson: string): string {
       if (typeof v !== "string") throw new BadInputError(`answers.${k} must be a string`);
     }
     return evaluateDestination(facts as unknown as ItemFacts, answers as ItemAnswers, resolveDestination(e, str(input, "code")));
+  });
+}
+
+// Label figures as an item carries them: exactly wh and grams, each up to 8 finite numbers above 0.
+function checkLabelFigures(v: unknown, path: string): LabelFigures {
+  const f = plain(v, path);
+  if (Object.keys(f).sort().join(",") !== "grams,wh") throw new BadInputError(`${path} must have exactly wh and grams`);
+  for (const k of ["wh", "grams"] as const) {
+    const list = f[k];
+    if (!Array.isArray(list) || list.length > 8 || !list.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
+      throw new BadInputError(`${path}.${k} must be up to 8 numbers above 0`);
+    }
+  }
+  return f as unknown as LabelFigures;
+}
+
+/**
+ * The Wh and lithium-grams figures an item keeps from its labels, by the engine's own rule (keptLabelFigures), so a
+ * native client keeps them without parsing a label itself. Input { texts: string[]; kept?: LabelFigures } (texts:
+ * the whole label as read, a second look's whole label, a label the sender typed; kept: the item's figures so far).
+ * Value { labelFigures: LabelFigures | null } (null: no figures, leave the field out).
+ */
+export function labelFiguresJson(inputJson: string): string {
+  return reply(() => {
+    const input = object(inputJson);
+    const texts = input.texts;
+    if (!Array.isArray(texts) || !texts.every((t) => typeof t === "string")) throw new BadInputError("texts must be a list of strings");
+    const kept = input.kept === undefined ? undefined : checkLabelFigures(input.kept, "kept");
+    return { labelFigures: keptLabelFigures(texts as string[], kept) };
   });
 }
 

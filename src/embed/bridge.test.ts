@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import edition from "../../rules/edition.json";
+import labelFigureVectors from "../../tests/vectors/labelFigures.json";
 import box from "../../tests/vectors/box.json";
 import guards from "../../tests/vectors/box-guards.json";
 import defaults from "../../tests/vectors/defaults.json";
@@ -186,6 +187,19 @@ describe("the JSON bridge for native clients", () => {
     const ed = parseEdition(edition);
     for (const label of ["LI-ION 3.7V 5000mAh", "PERFUME \"EAU\" 50 ml\nALCOHOL", "a\\b c </script>", "AEROSOL SPRAY"]) {
       expect(value<string[]>(BYT.labelTagsJson(label)), label).toEqual(labelTagsOf(label, ed));
+    }
+  });
+
+  it("gives every shared label-figure vector the figures the engine keeps, and refuses malformed input", () => {
+    for (const v of labelFigureVectors as Array<{ name: string; texts: string[]; kept?: object; expect: object | null }>) {
+      const input = { texts: v.texts, ...(v.kept ? { kept: v.kept } : {}) };
+      expect(value<{ labelFigures: object | null }>(BYT.labelFiguresJson(JSON.stringify(input))).labelFigures, v.name).toEqual(v.expect);
+    }
+    for (const [why, input] of [
+      ["texts missing", {}], ["texts not text", { texts: [5] }], ["kept with text", { texts: [], kept: { wh: ["1"], grams: [] } }],
+      ["kept missing grams", { texts: [], kept: { wh: [1] } }], ["kept with a zero", { texts: [], kept: { wh: [0], grams: [] } }],
+    ] as const) {
+      expect(reply(BYT.labelFiguresJson(JSON.stringify(input))).ok, why).toBe(false);
     }
   });
 

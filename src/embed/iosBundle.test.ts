@@ -6,9 +6,10 @@ import { join } from "node:path";
 import { createContext, runInContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import box from "../../tests/vectors/box.json";
+import labelFigureVectors from "../../tests/vectors/labelFigures.json";
 import defaults from "../../tests/vectors/defaults.json";
 
-interface Bridge { setEdition(editionJson: string): string; evaluateBoxJson(inputJson: string): string }
+interface Bridge { setEdition(editionJson: string): string; evaluateBoxJson(inputJson: string): string; labelFiguresJson(inputJson: string): string }
 type Reply = { ok: true; value: unknown } | { ok: false; error: { name: string; message: string } };
 
 // Vitest runs from the repository root.
@@ -43,6 +44,14 @@ describe("the committed iOS engine bundle", () => {
       for (const [id, ids] of Object.entries(v.expectRules ?? {})) {
         expect(items[id]?.hits.map((h) => h.ruleId), `${v.name} ${id}`).toEqual(expect.arrayContaining(ids));
       }
+    }
+  });
+
+  it("gives every shared label-figure vector its figures", () => {
+    const BYT = loadBundle();
+    for (const v of labelFigureVectors as Array<{ name: string; texts: string[]; kept?: object; expect: object | null }>) {
+      const r = JSON.parse(BYT.labelFiguresJson(JSON.stringify({ texts: v.texts, ...(v.kept ? { kept: v.kept } : {}) }))) as Reply;
+      expect(r.ok && (r.value as { labelFigures: unknown }).labelFigures, v.name).toEqual(v.expect);
     }
   });
 });

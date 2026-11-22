@@ -4,7 +4,7 @@
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
-import { labelFiguresOf } from "../engine/battery";
+import { keptLabelFigures } from "../engine/battery";
 import { resolveDestination } from "../engine/edition";
 import { LABEL_TEXT_TAG, labelTagsOf } from "../engine/facts";
 import {
@@ -240,23 +240,11 @@ function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes):
   return "second_look";
 }
 
-// The Wh and lithium-grams figures a label names, kept with the item (the label text is not). Left out when none.
-// Kept figures written back as label text, so they join a new label's figures the same way.
-const figuresText = (f: NonNullable<BoxItem["labelFigures"]>) => [...f.wh.map((n) => `${n}Wh`), ...f.grams.map((n) => `${n}g`)].join(" ");
-const fits = (n: number) => Math.min(n, 99999);
-const figuresOf = (...labels: string[]): Pick<BoxItem, "labelFigures"> => {
-  // A figure the saved list cannot hold (Firestore takes them below 100000) is kept as 99999, still disagreeing.
-  const all = labels.map(labelFiguresOf).map((f) => ({ wh: f.wh.map(fits), grams: f.grams.map(fits) }));
-  // At most 8 of each: the 7 largest and the smallest. A number agrees with every figure exactly when it agrees
-  // with the smallest and the largest, and is at least every figure when it is at least the largest, so the
-  // figures left out never change a verdict.
-  const kept = (l: number[]) => {
-    const all = [...new Set(l)].sort((a, b) => b - a);
-    return all.length <= 8 ? all : [...all.slice(0, 7), all[all.length - 1]!];
-  };
-  const wh = kept(all.flatMap((f) => f.wh));
-  const grams = kept(all.flatMap((f) => f.grams));
-  return wh.length + grams.length > 0 ? { labelFigures: { wh, grams } } : {};
+// The Wh and lithium-grams figures the item's labels name, kept with the item (the label text is not), by the
+// engine's keptLabelFigures. Left out when there are none.
+const figuresOf = (labels: string[], kept?: BoxItem["labelFigures"]): Pick<BoxItem, "labelFigures"> => {
+  const f = keptLabelFigures(labels, kept);
+  return f ? { labelFigures: f } : {};
 };
 
 // The label words that can change a verdict: every tag except the one that only says a label was read.
@@ -535,7 +523,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       // Left out, never undefined, on an item saved before it was kept: Firestore refuses an undefined value.
       ...((patch.labelText ?? "").trim() !== "" ? { tagsVersion: wordsVersion() } : {}),
       // A label the sender typed adds its figures to the kept ones (the label text itself is not kept).
-      ...(patch.labelText === undefined ? {} : figuresOf(i.labelFigures ? figuresText(i.labelFigures) : i.read.labelText, patch.labelText)),
+      ...(patch.labelText === undefined ? {} : figuresOf(i.labelFigures ? [patch.labelText] : [i.read.labelText, patch.labelText], i.labelFigures)),
     };
     if (typesNumbers(patch)) next = numbersByHand(next);
     if (!i.disputes) return next;
@@ -588,7 +576,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
         labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), tagsVersion: wordsVersion(), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
-        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(), ...figuresOf(outcome.fullLabelText ?? outcome.read.labelText),
+        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(), ...figuresOf([outcome.fullLabelText ?? outcome.read.labelText]),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
       items = [...items, item];
@@ -618,7 +606,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     addRecorded(read, ms, cropKey) {
       const itemId = deps.newId();
       items = [...items, {
-        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), ...figuresOf(read.labelText),
+        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), ...figuresOf([read.labelText]),
         readSource: "sample_recorded", readMs: ms, secondLook: null, cropKey, customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       }];
       lastRecheckMs = null;
@@ -666,7 +654,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
           // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named counts.
-          ...figuresOf(i.labelFigures ? figuresText(i.labelFigures) : i.read.labelText, cloudLabel ?? ""),
+          ...figuresOf(i.labelFigures ? [cloudLabel ?? ""] : [i.read.labelText, cloudLabel ?? ""], i.labelFigures),
           // The kind of item the box has now, with the sender's own correction over the read.
           identityConfirmedBy: secondLookIdentity(i, merged.category === (i.overrides.category ?? i.read.category), found),
         }, found);
