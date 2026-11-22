@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): three second-look number tests follow rule edition revision 7
+- What: revision 7 judges battery numbers the sender typed in full on the Wh and grams rules, holds a
+  set that is part typed and part read, and still holds numbers picked between two readings. Three
+  iPhone app tests expected the revision 6 hold for numbers typed in full. They now expect OK with no
+  USPS-INTL-LI-ONE-READ, as the web's own tests do: numbers typed over two agreeing reads, numbers typed
+  while the cloud read ran, and the typed case of a box saved by an earlier build. The partly typed
+  and picked cases still expect the hold. Tests only; the store's results already match.
+- Source: the iPhone app tests run on the revision 7 branch before its merge.
+- Verified: on the revision 7 branch the three failed and the rest of the 249 app tests passed (1
+  skipped); with this change all 28 SecondLookStoreTests pass. The full `bash
+  ios/scripts/ci-local-ios.sh` runs on the revision 7 branch's final head before it merges.
+
 ### test(ios): the second-look number tests can fail when the behavior they name is missing
 - What: four of the new tests could pass without the behavior they test. A new test loads an item a
   second look confirmed while its battery or lithium grams were still disputed (a box saved by an
