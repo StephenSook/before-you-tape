@@ -86,10 +86,17 @@ export function FixReading({ read, onSave, focusField, labelTags = [] }: {
   };
   const save = () => {
     const all = changedFields(base, draft);
-    // A battery number the sender changed brings every battery number the form shows (changedFields adds them).
-    const typedNumber = NUMBER_FIELDS.some(([f]) => touched.has(f) && (all[f] ?? 0) > 0);
+    // A battery number the sender typed, changed or typed again as it was, brings every battery number the form
+    // shows: they are all the sender's own then. A blank is no number, so it brings none.
+    const typedNumber = NUMBER_FIELDS.some(([f]) => touched.has(f) && (parseNumber(draft.numbers[f]) ?? 0) > 0);
     const numberField = (f: string) => NUMBER_FIELDS.some(([n]) => n === f);
     const patch = Object.fromEntries(Object.entries(all).filter(([f]) => touched.has(f as Field) || (typedNumber && numberField(f)))) as Partial<ItemRead>;
+    if (typedNumber) {
+      for (const [f] of NUMBER_FIELDS) {
+        const n = parseNumber(draft.numbers[f]);
+        if (!(f in patch) && n !== null && n > 0) patch[f] = n;
+      }
+    }
     onSave(patch);
   };
   return (

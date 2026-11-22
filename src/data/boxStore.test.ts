@@ -737,6 +737,13 @@ describe("createBoxStore", () => {
         expect(ruleIds(again, tid)).toContain("DATA-LABEL-NUMBERS");
       });
 
+      it("keeps the second look when the sender clears a number both reads agreed on", () => {
+        const { s, id } = look(phone, phone);
+        s.override(id, { milliampHours: 0 });
+        expect(s.getState().items[0]?.identityConfirmedBy).toBe("second_look");
+        expect(level(s, id)).toBe("ok");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });

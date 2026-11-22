@@ -200,8 +200,9 @@ const corrects = (patch: Partial<ItemRead>, field: DisputeField, d?: { device: u
 
 // Battery numbers the sender typed (any of them), or picked between two readings, are theirs and not a second look's:
 // the rules let only a second look that read the same numbers stand behind them (USPS-INTL-LI-ONE-READ).
+// A cleared number (0) is no number: it leaves the second look behind the numbers the reads agreed on.
 const typesNumbers = (patch: Partial<ItemRead>): boolean =>
-  patch.volts !== undefined || patch.milliampHours !== undefined || patch.wattHours !== undefined || patch.lithiumGrams !== undefined;
+  (["volts", "milliampHours", "wattHours", "lithiumGrams"] as const).some((f) => patch[f] !== undefined && patch[f] !== 0);
 const numbersByHand = (i: BoxItem): BoxItem => (i.identityConfirmedBy === "second_look" ? { ...i, identityConfirmedBy: "sender" } : i);
 // The disputes that are about the numbers: while either is recorded, open or settled, the reads did not agree on them.
 const NUMBER_DISPUTES = ["battery", "lithiumGrams"] as const;

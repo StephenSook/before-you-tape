@@ -20,6 +20,15 @@ describe("FixReading", () => {
     expect(onSave).toHaveBeenCalledWith({ volts: 3.85, milliampHours: 4000, wattHours: 15.4 });
   });
 
+  it("counts a battery number the sender typed again as theirs, even unchanged, and brings the others", async () => {
+    const onSave = vi.fn();
+    render(<FixReading read={{ ...phoneRead, wattHours: 16 }} onSave={onSave} />);
+    await userEvent.clear(screen.getByLabelText("Watt-hours (Wh)"));
+    await userEvent.type(screen.getByLabelText("Watt-hours (Wh)"), "16");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ volts: 3.85, milliampHours: 4000, wattHours: 16 });
+  });
+
   it("rejects a negative number", async () => {
     render(<FixReading read={phoneRead} onSave={() => {}} />);
     await userEvent.clear(screen.getByLabelText("Volts (V)"));

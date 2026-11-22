@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Fix this reading counts a battery number the sender typed again as it was shown as their own, so retyping 16 Wh confirms the numbers instead of saving nothing, and clearing a number both reads agreed on keeps the second look behind the others (a cleared number is no number), so it no longer turns an OK item into a hold. Source: second-model review of revision 7 (round 2). Verified: the form and store tests failed first, full gate.
+
 - An item's kept label figures now come first when a second look adds its own, so eight new figures can no longer push out a kept 185 Wh, and the figures in a label the sender types are kept with the item too, so a reload still holds it. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.
 
 - While two reads dispute an item's battery numbers or lithium grams, the label number check saves only the number typed, never the disputed others: typing 99 Wh over reads of 50 V / 98 Wh and 22 V / 99 Wh no longer copies 22 V into the sender's numbers and settles the dispute. Source: second-model review of revision 7 (round 2). Verified: the store test failed first, full gate.
