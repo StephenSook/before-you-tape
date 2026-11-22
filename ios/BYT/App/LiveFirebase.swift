@@ -1,3 +1,4 @@
+import BYTCore
 import Foundation
 import os
 
@@ -59,5 +60,16 @@ struct LiveFirebase: Sendable {
         private var names: [String] = []
         func add(_ name: String) { lock.lock(); names.append(name); lock.unlock() }
         func contains(_ name: String) -> Bool { lock.lock(); defer { lock.unlock() }; return names.contains(name) }
+    }
+}
+
+/// The cloud model's runner in a launch that may not call Firebase: every read fails at once, as a
+/// paused cloud does, with no model call, and says so in the log.
+struct OfflineCloudRunner: ItemModelRunner {
+    let live: LiveFirebase
+
+    func read(_ input: ItemInput) async -> Result<ItemReply, ReadError> {
+        live.skip("cloud model read")
+        return .failure(ReadError(.cloudPaused))
     }
 }

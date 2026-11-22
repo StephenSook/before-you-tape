@@ -176,12 +176,14 @@ final class AppModel {
     }
 
     /// Every cloud runner sits behind the sign-in and the live pause switch; every answer passes the engine's parser.
-    static func makeReader(engine: RulesEngine, signIn: SignIn, pause: PauseSwitch) -> ItemReader {
+    /// In a launch that may not call Firebase, the runner behind the sign-in sends nothing either.
+    static func makeReader(engine: RulesEngine, signIn: SignIn, pause: PauseSwitch, live: LiveFirebase = .thisLaunch) -> ItemReader {
         ItemReader(
             device: DeviceRunner(),
             makeCloud: { model in
                 SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() }, pause: pause,
-                                    inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
+                                    inner: live.allowed ? CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model)
+                                        : OfflineCloudRunner(live: live))
             },
             parse: { read in
                 guard let data = try? JSONEncoder().encode(read),

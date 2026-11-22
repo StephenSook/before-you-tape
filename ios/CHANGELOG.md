@@ -5,6 +5,17 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-22
 
+### fix(ios): the app's cloud reader sends nothing in a launch that may not call Firebase
+- What: in a Debug or test launch without `-liveFirebase`, the runner behind the sign-in is now
+  OfflineCloudRunner: every cloud read fails at once as a paused cloud does, with no call to Firebase
+  AI Logic, and logs the skip. Before, a test that stubbed a signed-in user and used the app's own
+  reader could reach the live model. Release builds keep the real runner.
+- Source: second-model review of this change set.
+- Verified: a new test failed first (OfflineCloudRunner did not exist), then passed: a model with a
+  stubbed signed-in user gets the offline runner, which answers "cloud paused" and records the skip.
+  LiveFirebaseTests and SignedInCloudTests: 21 tests passed. The full local CI on the finished set
+  (this entry and the three above) exit 0.
+
 ### docs(ios): the README says tests and Debug builds call no Firebase service
 - What: the iPhone README now says that tests and Debug builds make no Firebase network call (no
   sign-in, no Remote Config fetch, no Firestore read, so no cloud read), that each skip is logged, and

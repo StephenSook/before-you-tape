@@ -75,4 +75,17 @@ import Testing
         #expect(LiveFirebase.skipped.contains("anonymous sign-in"))
         #expect(LiveFirebase.skipped.contains("Remote Config fetch"))
     }
+
+    /// A test may stub a signed-in user, but the app's own cloud reader still sends nothing in this
+    /// launch: its runner behind the sign-in is one that makes no model call.
+    @Test func aHostedTestLaunchsCloudReaderSendsNothingEvenWhenSignedIn() async throws {
+        let model = AppModel(signIn: SignIn(isSignedIn: { true }, attempt: { true }), persistence: MemoryBoxPersistence(), config: .defaults)
+        let runner = try #require(model.reader?.makeCloud("any-model") as? SignedInCloudRunner)
+        // Required before it reads, so a broken gate never reaches the live model.
+        let inner = try #require(runner.inner as? OfflineCloudRunner)
+        let result = await inner.read(.words("SHEA BODY LOTION 8 FL OZ"))
+        guard case let .failure(error) = result else { Issue.record("the offline runner answered"); return }
+        #expect(error.failure == .cloudPaused)
+        #expect(LiveFirebase.skipped.contains("cloud model read"))
+    }
 }
