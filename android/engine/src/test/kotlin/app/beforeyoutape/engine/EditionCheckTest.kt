@@ -24,6 +24,13 @@ class EditionCheckTest {
         }
     }
 
+    /** An edition the rules take with no revision counts as revision 0, so it is never newer than one in use. */
+    @Test fun anEditionWithNoRevisionCountsAsZero() {
+        val edition = RepoFiles.obj("rules/edition.json")
+        val without = kotlinx.serialization.json.JsonObject(edition - "revision").toString()
+        host().use { h -> assertEquals(0, requireNotNull(EditionCheck.verify(h, without)).revision) }
+    }
+
     @Test fun anEditionTheRulesRefuseGivesNothing() {
         host().use { h -> assertNull(EditionCheck.verify(h, """{"editionId":"byt-bad"}""")) }
     }

@@ -71,8 +71,31 @@ class EditionPinTest {
         assertEquals(EditionChoice(bundled, EditionPin.NOT_READ), c)
     }
 
+    /**
+     * An older pin is never used. Older than this build's own edition is the usual state (the pin is for phone builds
+     * made before this one), so it says nothing; older than a newer edition already in use says it is kept, as on the web.
+     */
     @Test fun anOlderEditionIsNeverUsed() {
-        assertEquals(EditionChoice(bundled, EditionPin.OLDER), choose("byt-older", sha3))
+        assertEquals(EditionChoice(bundled, null), choose("byt-older", sha3))
         assertEquals(EditionChoice(newer, EditionPin.OLDER_THAN_IN_USE), choose("byt-older", sha3, running = newer))
+    }
+
+    /**
+     * A pin is used only when its revision is above the edition in use: android-judge-4 ships revision 7 built in
+     * while the pin stays at revision 6, and keeps revision 7 without a word. An equal revision is not above it, and
+     * an edition with no revision counts as 0.
+     */
+    @Test fun aPinIsUsedOnlyWhenItsRevisionIsAboveTheEditionInUse() {
+        val rev7 = PinnedEdition("byt-rev7", "7".repeat(64), 7, """{"editionId":"byt-rev7"}""")
+        val rev6 = PinnedEdition("byt-rev6", "6".repeat(64), 6, """{"editionId":"byt-rev6"}""")
+        val equal = PinnedEdition("byt-equal", "e".repeat(64), 7, """{"editionId":"byt-equal"}""")
+        val none = PinnedEdition("byt-none", "0".repeat(64), 0, """{"editionId":"byt-none"}""")
+        val byId = listOf(rev6, equal, none).associateBy { it.editionId }
+        fun under7(pin: PinnedEdition) = now {
+            EditionPin.choose(rev7, rev7, pin.editionId, pin.sha256, { byId[it]?.json }) { json -> byId.values.firstOrNull { it.json == json } }
+        }
+        assertEquals(EditionChoice(rev7, null), under7(rev6))
+        assertEquals(EditionChoice(rev7, null), under7(equal))
+        assertEquals(EditionChoice(rev7, null), under7(none))
     }
 }
