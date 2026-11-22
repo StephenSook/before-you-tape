@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- docs/SECURITY.md says how the browser tests reach the live project: the local project starts only with BYT_E2E_LIVE_PROJECT=1 and a registered App Check debug token, which CI's browser steps and the deploy gate set, and the one named exception, the two service worker specs on their own server, whose few App Check denials are expected. Source: review. Verified: each sentence traced to scripts/e2e-live-opt-in.ts, playwright.config.ts, the workflows and the two specs.
+
 - docs/e2e-emulators-plan.md, dated 2026-11-22, plans moving the local browser tests onto the Auth and Firestore emulators after 2026-11-30: a build env that defaults to a demo project, emulator web servers in the Playwright config, no App Check in emulator builds, Remote Config and Installations answered from remoteconfig.template.json, and CI on the emulators. Source: review (the plan is kept for after the deadline, and the refuse-without-opt-in rule stands until then). Verified: every file and command it names exists in the repository.
 
 - The browser specs that ran with no App Check token now carry it: contrast, judge and offline.local through ./fixtures, and starts.spec only when one is set, since the deploy gate and the daily probe also run it on the live site with none (optionalAppCheckToken in tests/e2e/fixtures.ts). The one named exception is sw-kill.local and sw-update.local: they serve the build from their own server on a random port, where the token is never given, so their few refused reads are expected and say so. Source: review (the no-token step's specs never needed to run without a token). Verified: typecheck and lint pass; the specs run in CI with the registered token.
