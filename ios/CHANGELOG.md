@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): Fix this reading counts a respelled label as moved, as the web does
+- What: Swift calls two spellings of the same letters equal (an accent stored on its own or with its
+  letter). So when a second look returned the label respelled that way, the open form neither saw the
+  change nor reset the sender's label edit. Saving it could drop a hazard word the cloud's label carried.
+  The web compares exactly. The form now watches the reading's exact bytes, and the rebase compares
+  text character by character.
+- Source: second-model review of this change set.
+- Verified: the new test failed first (the two readings gave the same bytes key) and passes: the label is
+  reset and named, and nothing is saved. ReadDraftTests pass, 17 of 17.
+
 ### test(ios): the label-number dispute test checks the number the reading shows
 - What: the test of a label number typed during a numbers dispute typed 15.4 Wh against a merged reading
   of 154 Wh, so it missed the tolerance and passed whether or not the dispute guard worked. It now types

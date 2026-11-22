@@ -201,6 +201,19 @@ import Testing
         #expect(quiet.rebase(from: Self.phone, to: moved).isEmpty && quiet.numbers["wattHours"] == "154")
     }
 
+    /// A reading counts as moved when its text changes in any way, even to another spelling of the same
+    /// letters (an accent stored on its own), as the web compares: a label edit made against the old one is reset.
+    @Test func aLabelRespelledByASecondLookCountsAsMoved() {
+        let composed = SecondLookStoreTests.with(Self.phone, ["labelText": .string("CAF\u{00C9} FLAMMABLE BODY LOTION")])
+        let decomposed = SecondLookStoreTests.with(Self.phone, ["labelText": .string("CAFE\u{0301} FLAMMABLE BODY LOTION")])
+        #expect(composed == decomposed)
+        #expect(FixReadingView.exactly(composed) != FixReadingView.exactly(decomposed))
+        var d = ReadDraft.of(composed)
+        d.labelText = "SHEA BODY LOTION 8 FL OZ"
+        #expect(d.rebase(from: composed, to: decomposed) == ["labelText"])
+        #expect(d.fixPatch(from: decomposed).isEmpty)
+    }
+
     /// The same, through the store: numbers retyped against the first read, then a second look that reads
     /// other numbers, then Save. The retyped volts alone do not settle the battery dispute, so the larger
     /// reading still decides it, as on the web.

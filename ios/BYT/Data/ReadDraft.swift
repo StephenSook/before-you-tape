@@ -70,13 +70,16 @@ struct ReadDraft: Equatable, Sendable {
         let before = Self.of(old), fresh = Self.of(new)
         // Read before the fields are set back, since setting one marks it.
         let edits = touched
+        // Text moves when it changes in any way, another spelling of the same letters included (Swift calls
+        // those equal; the web compares exactly).
+        func differs(_ a: String?, _ b: String?) -> Bool { !(a ?? "").unicodeScalars.elementsEqual((b ?? "").unicodeScalars) }
         var moved: [String] = []
-        if before.category != fresh.category { moved.append("category"); category = fresh.category }
-        if before.itemName != fresh.itemName { moved.append("itemName"); itemName = fresh.itemName }
-        if before.labelText != fresh.labelText { moved.append("labelText"); labelText = fresh.labelText }
-        for (f, _) in Self.numberFields where before.numbers[f] != fresh.numbers[f] { moved.append(f); numbers[f] = fresh.numbers[f] }
+        if differs(before.category, fresh.category) { moved.append("category"); category = fresh.category }
+        if differs(before.itemName, fresh.itemName) { moved.append("itemName"); itemName = fresh.itemName }
+        if differs(before.labelText, fresh.labelText) { moved.append("labelText"); labelText = fresh.labelText }
+        for (f, _) in Self.numberFields where differs(before.numbers[f], fresh.numbers[f]) { moved.append(f); numbers[f] = fresh.numbers[f] }
         for (f, _) in Self.flagFields where before.flags[f] != fresh.flags[f] { moved.append(f); flags[f] = fresh.flags[f] }
-        if before.retailBox != fresh.retailBox { moved.append("retailBox"); retailBox = fresh.retailBox }
+        if differs(before.retailBox, fresh.retailBox) { moved.append("retailBox"); retailBox = fresh.retailBox }
         touched = edits.subtracting(moved)
         return moved.filter { edits.contains($0) }
     }

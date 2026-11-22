@@ -60,6 +60,14 @@ struct FixReadingView: View {
         return .object(o)
     }
 
+    /// The reading's exact bytes. Swift calls two spellings of the same letters equal (an accent stored on its
+    /// own or with its letter), while the web compares them exactly: a change between them is a change.
+    static func exactly(_ read: JSONValue) -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return (try? encoder.encode(read)) ?? Data()
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -80,7 +88,8 @@ struct FixReadingView: View {
         }
         .accessibilityIdentifier("fix-reading")
         // The reading changed under the form: once per change.
-        .onChange(of: Self.current(item)) { _, now in
+        .onChange(of: Self.exactly(Self.current(item))) { _, _ in
+            let now = Self.current(item)
             reset = draft.rebase(from: base, to: now)
             base = now
         }
