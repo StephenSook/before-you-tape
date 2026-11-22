@@ -214,6 +214,7 @@ describe("the JSON bridge for native clients", () => {
     expect(send([{ ...good, overrides: { labelText: "y".repeat(400) } }]).ok, "a typed label has no length limit on the web either").toBe(true);
     expect(send([{ ...good, numbersFrom: "typed" }]).ok, "a typed item says so").toBe(true);
     expect(send([{ ...good, numbersFrom: "read" }]).ok).toBe(true);
+    expect(send([{ ...good, labelFigures: { wh: [185], grams: [] } }]).ok, "the figures a label named").toBe(true);
     const open = send([{ ...good, disputes: { lithiumGrams: { device: 2.5, cloud: 0, resolved: false } } }]);
     expect(open.ok && (open.value as { items: Record<string, { level: string }> }).items[good.itemId]?.level, "an open dispute holds the item").toBe("check");
     const noEvidence: Record<string, unknown> = { ...good.read };
@@ -236,6 +237,11 @@ describe("the JSON bridge for native clients", () => {
       ["a dispute with no resolved flag", { ...good, disputes: { category: { device: "phone", cloud: "tablet" } } }],
       ["numbersFrom not typed or read", { ...good, numbersFrom: "mixed" }],
       ["numbersFrom not text", { ...good, numbersFrom: true }],
+      ["labelFigures with text", { ...good, labelFigures: { wh: ["185"], grams: [] } }],
+      ["labelFigures with a zero", { ...good, labelFigures: { wh: [0], grams: [] } }],
+      ["labelFigures missing grams", { ...good, labelFigures: { wh: [185] } }],
+      ["labelFigures with another key", { ...good, labelFigures: { wh: [], grams: [], mah: [5000] } }],
+      ["labelFigures with nine figures", { ...good, labelFigures: { wh: [1, 2, 3, 4, 5, 6, 7, 8, 9], grams: [] } }],
     ];
     for (const [why, it] of bad) {
       const r = send([it]);

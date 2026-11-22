@@ -145,6 +145,9 @@ export interface BoxItemInput {
   disputes?: ReadDisputes;
   // "typed" when the whole read is the sender's own (a typed item). Left out, the read is a model's: the safe side.
   numbersFrom?: "typed" | "read";
+  // The Wh and lithium-grams figures the label named when it was read, kept because the label text is not. Left
+  // out, they are taken from the read's label text.
+  labelFigures?: { wh: number[]; grams: number[] };
 }
 
 // The facts two reads can disagree on, each of which can change a verdict, with the value type of each.

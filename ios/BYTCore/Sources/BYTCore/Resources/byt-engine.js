@@ -197,22 +197,25 @@ var BYT = (() => {
     const typedCount = present.filter((f) => typed.has(f)).length;
     return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
   }
-  var WH_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*wh\b/gi;
-  var GRAMS_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*g\b/gi;
+  var WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
+  var GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
   var figures = (text, re) => [...text.matchAll(re)].map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+  function labelFiguresOf(text) {
+    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL) };
+  }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
-  function labelMismatchOf(read, typed, whPrinted, lithiumGrams, tolerancePct) {
+  function labelMismatchOf(figs, typed, whPrinted, lithiumGrams, tolerancePct) {
     if (whPrinted !== null && !typed.has("wattHours")) {
-      const named = figures(read.labelText, WH_IN_LABEL);
-      if (named.length > 0 && !named.some((n) => agrees(n, whPrinted, tolerancePct))) return { kind: "wh", label: named[0], read: whPrinted };
+      const off = figs.wh.find((n) => !agrees(n, whPrinted, tolerancePct));
+      if (off !== void 0) return { kind: "wh", label: off, read: whPrinted };
     }
     if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
-      const named = figures(read.labelText, GRAMS_IN_LABEL);
-      if (named.length > 0 && !named.some((n) => agrees(n, lithiumGrams, tolerancePct))) return { kind: "grams", label: named[0], read: lithiumGrams };
+      const off = figs.grams.find((n) => !agrees(n, lithiumGrams, tolerancePct));
+      if (off !== void 0) return { kind: "grams", label: off, read: lithiumGrams };
     }
     return null;
   }
-  function deriveBattery(read, answers, quantity, limits, tags, typed = /* @__PURE__ */ new Set()) {
+  function deriveBattery(read, answers, quantity, limits, tags, typed = /* @__PURE__ */ new Set(), figs = labelFiguresOf(read.labelText)) {
     const volts = printed(read.volts);
     const milliampHours = printed(read.milliampHours);
     const whPrinted = printed(read.wattHours);
@@ -267,7 +270,7 @@ var BYT = (() => {
       countAs,
       units: quantity,
       numbersFrom: numbersFromOf(read, typed),
-      labelMismatch: presence === "none" ? null : labelMismatchOf(read, typed, whPrinted, lithiumGrams, limits.whTolerancePct)
+      labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, lithiumGrams, limits.whTolerancePct)
     };
   }
 
@@ -333,6 +336,11 @@ var BYT = (() => {
   function typedNumbers(input) {
     return new Set(BATTERY_NUMBER_FIELDS.filter((f) => input.numbersFrom === "typed" || input.overrides[f] !== void 0));
   }
+  function labelFigures(input) {
+    const kept = input.labelFigures ?? labelFiguresOf(input.read.labelText);
+    const typed = labelFiguresOf(input.overrides.labelText ?? "");
+    return { wh: [...kept.wh, ...typed.wh], grams: [...kept.grams, ...typed.grams] };
+  }
   function deriveFacts(input, edition2) {
     const read = { ...input.read, ...input.overrides };
     const tags = new Set(edition2.categoryTags[read.category]);
@@ -357,7 +365,7 @@ var BYT = (() => {
       tags: tagList,
       evidence: read.evidence,
       identity,
-      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList, typedNumbers(input)),
+      battery: deriveBattery(read, input.answers, input.quantity, edition2.limits, tagList, typedNumbers(input), labelFigures(input)),
       // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
       // the box reading (an override to "sealed") is how the sender clears it.
       condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none" ? "new_opened" : conditionOf(input.answers.device_condition),
@@ -1252,6 +1260,17 @@ var BYT = (() => {
       }
       if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
         throw new BadInputError(`${id}.labelTags must be a list of strings`);
+      }
+      if (o.labelFigures !== void 0) {
+        const f = plain(o.labelFigures, `${id}.labelFigures`);
+        const keys2 = Object.keys(f).sort().join(",");
+        if (keys2 !== "grams,wh") throw new BadInputError(`${id}.labelFigures must have exactly wh and grams`);
+        for (const k of ["wh", "grams"]) {
+          const list2 = f[k];
+          if (!Array.isArray(list2) || list2.length > 8 || !list2.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
+            throw new BadInputError(`${id}.labelFigures.${k} must be up to 8 numbers above 0`);
+          }
+        }
       }
       if (o.numbersFrom !== void 0 && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
         throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);

@@ -144,6 +144,18 @@ function checkItems(raw: unknown): BoxItemInput[] {
     if (!Array.isArray(o.labelTags) || !o.labelTags.every((t) => typeof t === "string")) {
       throw new BadInputError(`${id}.labelTags must be a list of strings`);
     }
+    // Optional: the Wh and lithium-grams figures the label named, up to 8 of each, numbers above 0.
+    if (o.labelFigures !== undefined) {
+      const f = plain(o.labelFigures, `${id}.labelFigures`);
+      const keys = Object.keys(f).sort().join(",");
+      if (keys !== "grams,wh") throw new BadInputError(`${id}.labelFigures must have exactly wh and grams`);
+      for (const k of ["wh", "grams"] as const) {
+        const list = f[k];
+        if (!Array.isArray(list) || list.length > 8 || !list.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) {
+          throw new BadInputError(`${id}.labelFigures.${k} must be up to 8 numbers above 0`);
+        }
+      }
+    }
     // Optional. Left out, the numbers count as read, the safe side.
     if (o.numbersFrom !== undefined && o.numbersFrom !== "typed" && o.numbersFrom !== "read") {
       throw new BadInputError(`${id}.numbersFrom must be "typed", "read" or left out`);

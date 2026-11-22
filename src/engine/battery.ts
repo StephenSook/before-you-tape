@@ -65,22 +65,28 @@ export function numbersFromOf(read: ItemRead, typed: ReadonlySet<BatteryNumberFi
   return present.length === 0 || typedCount === 0 ? "read" : typedCount === present.length ? "typed" : "mixed";
 }
 
-// Wh and lithium grams the label text names, such as "185Wh", "15,4 Wh" or "1.0g".
-const WH_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*wh\b/gi;
-const GRAMS_IN_LABEL = /(\d+(?:[.,]\d+)?)\s*g\b/gi;
+// Wh and lithium grams a label names, such as "185Wh", "15,4 Wh", "1.0g" or ".5g". Grams take a lower-case g, so
+// "5G" (a phone network) is no figure.
+const WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
+const GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
 const figures = (text: string, re: RegExp) => [...text.matchAll(re)].map((m) => Number(m[1]!.replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+export interface LabelFigures { wh: number[]; grams: number[] }
+export function labelFiguresOf(text: string): LabelFigures {
+  return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL) };
+}
 const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) / b) * 100 <= tolerancePct;
 
-// A figure the label text names that the read's own number disagrees with, when that number was read, not typed.
-function labelMismatchOf(read: ItemRead, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
+// A figure the label names that the read's own number disagrees with, when that number was read, not typed. Every
+// figure must agree: one that matches does not hide another, such as a module's rating beside the pack's.
+function labelMismatchOf(figs: LabelFigures, typed: ReadonlySet<BatteryNumberField>, whPrinted: number | null,
   lithiumGrams: number | null, tolerancePct: number): BatteryFacts["labelMismatch"] {
   if (whPrinted !== null && !typed.has("wattHours")) {
-    const named = figures(read.labelText, WH_IN_LABEL);
-    if (named.length > 0 && !named.some((n) => agrees(n, whPrinted, tolerancePct))) return { kind: "wh", label: named[0]!, read: whPrinted };
+    const off = figs.wh.find((n) => !agrees(n, whPrinted, tolerancePct));
+    if (off !== undefined) return { kind: "wh", label: off, read: whPrinted };
   }
   if (lithiumGrams !== null && !typed.has("lithiumGrams")) {
-    const named = figures(read.labelText, GRAMS_IN_LABEL);
-    if (named.length > 0 && !named.some((n) => agrees(n, lithiumGrams, tolerancePct))) return { kind: "grams", label: named[0]!, read: lithiumGrams };
+    const off = figs.grams.find((n) => !agrees(n, lithiumGrams, tolerancePct));
+    if (off !== undefined) return { kind: "grams", label: off, read: lithiumGrams };
   }
   return null;
 }
@@ -92,6 +98,7 @@ export function deriveBattery(
   limits: LithiumLimits,
   tags: string[],
   typed: ReadonlySet<BatteryNumberField> = new Set(),
+  figs: LabelFigures = labelFiguresOf(read.labelText),
 ): BatteryFacts {
   const volts = printed(read.volts);
   const milliampHours = printed(read.milliampHours);
@@ -147,6 +154,6 @@ export function deriveBattery(
   return {
     presence, chemistry, volts, milliampHours, whPrinted, whComputed, whStatus, wh, lithiumGrams, countAs, units: quantity,
     numbersFrom: numbersFromOf(read, typed),
-    labelMismatch: presence === "none" ? null : labelMismatchOf(read, typed, whPrinted, lithiumGrams, limits.whTolerancePct),
+    labelMismatch: presence === "none" ? null : labelMismatchOf(figs, typed, whPrinted, lithiumGrams, limits.whTolerancePct),
   };
 }

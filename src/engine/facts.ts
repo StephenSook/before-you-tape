@@ -1,5 +1,5 @@
 // Item facts from the read, the sender's fixes and answers, and the label words.
-import { BATTERY_NUMBER_FIELDS, deriveBattery, type BatteryNumberField } from "./battery";
+import { BATTERY_NUMBER_FIELDS, deriveBattery, labelFiguresOf, type BatteryNumberField, type LabelFigures } from "./battery";
 import type { BoxItemInput, ItemFacts, RuleEdition } from "./types";
 
 // Present whenever label text was read. It is stored with the other label tags, so label
@@ -104,6 +104,13 @@ function typedNumbers(input: BoxItemInput): ReadonlySet<BatteryNumberField> {
   return new Set(BATTERY_NUMBER_FIELDS.filter((f) => input.numbersFrom === "typed" || input.overrides[f] !== undefined));
 }
 
+// The label's figures: those kept from the read (or read from its label text), and any in a label the sender typed.
+function labelFigures(input: BoxItemInput): LabelFigures {
+  const kept = input.labelFigures ?? labelFiguresOf(input.read.labelText);
+  const typed = labelFiguresOf(input.overrides.labelText ?? "");
+  return { wh: [...kept.wh, ...typed.wh], grams: [...kept.grams, ...typed.grams] };
+}
+
 export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFacts {
   const read = { ...input.read, ...input.overrides };
   const tags = new Set<string>(edition.categoryTags[read.category]);
@@ -143,7 +150,7 @@ export function deriveFacts(input: BoxItemInput, edition: RuleEdition): ItemFact
     tags: tagList,
     evidence: read.evidence,
     identity,
-    battery: deriveBattery(read, input.answers, input.quantity, edition.limits, tagList, typedNumbers(input)),
+    battery: deriveBattery(read, input.answers, input.quantity, edition.limits, tagList, typedNumbers(input), labelFigures(input)),
     // The photo outranks a saved answer: a device seen out of its box is not "still sealed". Fixing
     // the box reading (an override to "sealed") is how the sender clears it.
     condition: conditionOf(input.answers.device_condition) === "new_sealed" && read.retailBox === "open_or_none"

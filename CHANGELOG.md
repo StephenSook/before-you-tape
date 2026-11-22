@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- DATA-LABEL-NUMBERS now holds when ANY Wh or lithium-grams figure the label names disagrees with the read (a module's 98 Wh no longer hides the pack's 120 Wh), takes the figures from the whole label as read rather than the clipped text, keeps them with the item (labelFigures, allowed by the Firestore rules: up to 8 of each, numbers above 0) so a reload or clearing the label words no longer drops the hold, adds a second look's label figures to them, and reads grams only with a lower-case g (5G is no figure) and a leading point as written (.5g is 0.5 g). The JSON bridge validates labelFigures, and the committed iOS engine bundle is rebuilt. Source: second-model review of revision 7. Verified: the vectors, the store reload test, the rules test and the bridge test failed first, full gate and the Firestore rules tests.
+
 - A battery dispute between two reads is settled once the sender types every battery number either read gave: two reads that gave only a Wh (15.4 against 16) settle when the sender types the Wh, where before the volts and mAh neither read had were also required. Source: second-model review of revision 7. Verified: the store test failed first, full gate.
 
 - The engine no longer takes a second look as agreeing on battery numbers or lithium grams the two reads disputed, even once that dispute is settled: such an item is judged as the sender's, so its read numbers stay held. The web store already did this; now a native client that sends a settled dispute gets the same verdict. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7. Verified: the engine test failed first, full gate.

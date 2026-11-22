@@ -429,5 +429,26 @@
     "items": [{ "itemId": "laptop", "overrides": { "volts": 10, "milliampHours": 12000, "lithiumGrams": 0.1 }, "read": { "category": "laptop", "labelText": "LI-ION 10V 12000mAh", "volts": 10, "milliampHours": 12000, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed" } }],
     "expect": { "laptop": "check" }, "expectRules": { "laptop": ["USPS-INTL-LI-NO-WH"] }
+  },
+  {
+    "name": "a_label_naming_two_wh_figures_holds_when_one_disagrees", "code": "CA", "today": "2026-11-20",
+    "source": "98 Wh per module but 120 Wh for the pack: the read agrees with one figure only",
+    "items": [{ "itemId": "pack", "identityConfirmedBy": "second_look", "read": { "category": "other_electronics", "labelText": "98Wh PER MODULE / PACK 120Wh", "wattHours": 98, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "pack": "check" }, "expectRules": { "pack": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_figure_written_with_a_leading_point_reads_as_written", "code": "CA", "today": "2026-11-20",
+    "source": ".5g of lithium is 0.5 g, not 5 g",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look", "read": { "category": "battery_toy", "labelText": "LITHIUM .5g", "volts": 3, "lithiumGrams": 0.5, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "toy": "ok" }, "notRules": { "toy": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_5G_model_name_is_not_a_lithium_figure", "code": "CA", "today": "2026-11-20",
+    "source": "5G on a label is a phone network, not 5 g of lithium",
+    "items": [{ "itemId": "toy", "identityConfirmedBy": "second_look", "read": { "category": "battery_toy", "labelText": "CR2032 LITHIUM 0.1g 5G", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed" } }],
+    "expect": { "toy": "ok" }, "notRules": { "toy": ["DATA-LABEL-NUMBERS"] }
   }
 ]

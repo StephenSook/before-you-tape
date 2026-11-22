@@ -4,6 +4,7 @@
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import type { FallbackAfter, ReadOutcome } from "../ai/itemRead";
 import type { InferenceSourceName, ReadRoute } from "../ai/port";
+import { labelFiguresOf } from "../engine/battery";
 import { resolveDestination } from "../engine/edition";
 import { LABEL_TEXT_TAG, labelTagsOf } from "../engine/facts";
 import {
@@ -223,6 +224,16 @@ function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes):
   if (numbersDisputed(found)) return i.identityConfirmedBy === "second_look" ? null : i.identityConfirmedBy;
   return "second_look";
 }
+
+// The Wh and lithium-grams figures a label names, kept with the item (the label text is not). Left out when none.
+// Kept figures written back as label text, so they join a new label's figures the same way.
+const figuresText = (f: NonNullable<BoxItem["labelFigures"]>) => [...f.wh.map((n) => `${n}Wh`), ...f.grams.map((n) => `${n}g`)].join(" ");
+const figuresOf = (...labels: string[]): Pick<BoxItem, "labelFigures"> => {
+  const all = labels.map(labelFiguresOf);
+  const wh = [...new Set(all.flatMap((f) => f.wh))].slice(0, 8);
+  const grams = [...new Set(all.flatMap((f) => f.grams))].slice(0, 8);
+  return wh.length + grams.length > 0 ? { labelFigures: { wh, grams } } : {};
+};
 
 // The label words that can change a verdict: every tag except the one that only says a label was read.
 const wordsOf = (tags: readonly string[]) => [...new Set(tags.filter((t) => t !== LABEL_TEXT_TAG))].sort().join(",");
@@ -544,7 +555,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       const item: BoxItem = {
         itemId, read: outcome.read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null,
         labelTags: tagsOf(outcome.fullLabelText ?? outcome.read.labelText), tagsVersion: wordsVersion(), readSource: outcome.unreported ? "cloud_unreported" : outcome.source, readMs: outcome.ms, secondLook: null, cropKey,
-        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
+        customs: { ...EMPTY_CUSTOMS }, addedAt: clock(), ...figuresOf(outcome.fullLabelText ?? outcome.read.labelText),
       };
       if (outcome.fallbackAfter) item.readFallback = { after: outcome.fallbackAfter, route: outcome.route };
       items = [...items, item];
@@ -574,7 +585,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     addRecorded(read, ms, cropKey) {
       const itemId = deps.newId();
       items = [...items, {
-        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(),
+        itemId, read, overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), ...figuresOf(read.labelText),
         readSource: "sample_recorded", readMs: ms, secondLook: null, cropKey, customs: { ...EMPTY_CUSTOMS }, addedAt: clock(),
       }];
       lastRecheckMs = null;
@@ -621,6 +632,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
           // Tags made just now from label text carry the current words. A second look with no label text reads no
           // label, so an item held for older words stays held; a label the sender corrected keeps its own version.
           ...(i.overrides.labelText !== undefined || (cloudLabel ?? "").trim() === "" ? {} : { tagsVersion: now }),
+          // Both reads' label figures: a figure only one label named still counts.
+          ...figuresOf(...(i.labelFigures ? [] : [i.read.labelText]), cloudLabel ?? "", ...(i.labelFigures ? [figuresText(i.labelFigures)] : [])),
           // The kind of item the box has now, with the sender's own correction over the read.
           identityConfirmedBy: secondLookIdentity(i, merged.category === (i.overrides.category ?? i.read.category), found),
         }, found);

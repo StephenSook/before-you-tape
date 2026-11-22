@@ -684,6 +684,24 @@ describe("createBoxStore", () => {
         expect(level(s, id)).toBe("ok");
       });
 
+      it("keeps a label figure that disagrees after a reload, and after the label words are cleared", async () => {
+        const read: ItemRead = { ...phone, category: "other_electronics", itemName: "Station", labelText: "LI-ION 98Wh MODULE", volts: 0, milliampHours: 0, wattHours: 98 };
+        const p = spyPersistence();
+        const s = store({ persistence: p });
+        s.setDestination("CA");
+        const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "LI-ION 98Wh MODULE, PACK 185Wh" }, "k");
+        s.answer(id, "device_condition", "new_sealed");
+        s.applySecondLook(id, mergeReads(read, read), 900, "reason", read.labelText, readDisputes(read, read));
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        s.override(id, { labelText: "" });
+        expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        await s.ready;
+        await vi.waitFor(() => expect(p.saved()?.items?.[0]).toBeDefined());
+        const again = store({ persistence: spyPersistence(p.saved()) });
+        await again.ready;
+        expect(ruleIds(again, id)).toContain("DATA-LABEL-NUMBERS");
+      });
+
       it("keeps the second look for corrections of anything but the numbers", () => {
         const { s, id } = look(phone, phone);
         s.override(id, { itemName: "My phone" });
