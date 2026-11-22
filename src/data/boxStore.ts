@@ -601,7 +601,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       items = [...items, {
         itemId, read, overrides: read.alcoholOnLabel ? { alcoholOnLabel: true } : {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
-        addedAt: clock(),
+        // The label's figures are kept, as for a photo read: the label text itself is not saved.
+        addedAt: clock(), ...figuresOf([read.labelText]),
       }];
       lastRecheckMs = null;
       commit();
