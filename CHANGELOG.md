@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A new local end-to-end test checks that a browser with no on-device model, with cloud checks turned down, sends nothing to any model when given a photo: no request to Firebase AI Logic or any other Gemini host, and none to the on-device-only address. It watches every request the page makes. The SDK's on-device-only mode was seen sending a read to the cloud when a browser had no model API. Source: a review of the Firebase AI Logic SDK's on-device mode. Verified: passes against the local build; its cloud requests can only happen with the App Check debug token, so a red proof runs in CI.
+
 - An item typed by hand now keeps the Wh and lithium-grams figures its label words name, as a photo read does, so a Wh typed below the label's still holds after a reload: a phone typed as 15.4 Wh with the label words "3.85V 4000mAh PACK 154Wh" read Check this, then OK once the saved box reopened, since the label text is not saved. Source: a second-model review on the iPhone lane, which found the same gap there. Verified: the store reload test failed first, full gate.
 
 - An item a matching cloud second look stands behind now says so on its card: "A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong." It shows only while the rules count the second look (not once the sender typed its numbers or the reads disputed them), through one store check, secondLookStands, that the rules and the card share. Before, a shirt seen but not label-read, or a phone's read battery numbers, could turn OK with no tap and no word of why. Source: the live-site audit. Verified: the card test failed first, full gate.
