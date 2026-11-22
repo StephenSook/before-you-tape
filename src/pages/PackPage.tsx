@@ -236,6 +236,9 @@ export function PackPage(p: PackPageProps) {
   // Second looks the rules asked for while cloud checks were off for now (Remote Config's settings not here yet, or
   // kill_cloud on): decided again when cloud checks come on, as when the read landed.
   const waitingForSettings = useRef(new Set<string>());
+  // Each no to cloud checks, counted: a read that started before one never reaches the cloud, even after a new yes.
+  const consentNos = useRef(0);
+  const lastConsent = useRef(store.consentNow());
 
   // The switch and the connection as they are now, for a read that started earlier: before each further
   // cloud call (a retry, the fallback model, a recovery) the read asks whether the cloud is still allowed.
@@ -300,14 +303,17 @@ export function PackPage(p: PackPageProps) {
     // never sends one by itself.
     const offConsent = store.subscribe(() => {
       // A no drops looks waiting for cloud checks to come on, so a later yes never sends one by itself.
-      if (store.getState().cloudConsent === false) waitingForSettings.current.clear();
+      const consent = store.getState().cloudConsent;
+      if (consent === false && lastConsent.current !== false) consentNos.current++;
+      lastConsent.current = consent;
+      if (consent === false) waitingForSettings.current.clear();
       if (store.getState().cloudConsent === true) return;
       withdraw();
       const waiting = [...waitingForOnline.current];
       waitingForOnline.current.clear();
       for (const id of waiting) store.setError(id, SECOND_LOOK_FAILURE.blocked);
     });
-    const offPause = liveConfig?.subscribe((c) => { if (c.killCloud) withdraw(); else redecideLooks.current(); });
+    const offPause = liveConfig?.subscribe((c) => { if (c.killCloud) withdraw(); });
     return () => { offConsent(); offPause?.(); withdraw(); };
   }, [store, liveConfig]);
   const cloudWork = () => {
@@ -409,7 +415,9 @@ export function PackPage(p: PackPageProps) {
   // A frame the camera read by itself stays on this device (or is not read); only a press may use the cloud.
   // What happens to a look the rules asked for: it runs (offered on the card for a read the camera made by itself),
   // or it is offered to a sender not asked yet; while cloud checks are off for now it waits for them to come on.
-  const decideLook = (itemId: string, look: PendingLook) => {
+  const decideLook = (itemId: string, look: PendingLook, nosAtRead?: number) => {
+    // The read began before a no: its photo stays on this device, whatever was said since.
+    if (nosAtRead !== undefined && consentNos.current !== nosAtRead) return;
     if (shouldRunSecondLook(look.reason, liveInputs())) {
       looks.current.set(itemId, look);
       if (look.how === "steady") setOffered((o) => ({ ...o, [itemId]: true }));
@@ -418,7 +426,7 @@ export function PackPage(p: PackPageProps) {
       // A sender not asked yet is offered the look on the card, and asked when they take it.
       looks.current.set(itemId, look);
       setOffered((o) => ({ ...o, [itemId]: true }));
-    } else if (store.consentNow() !== false && live.current.online && pausedNow()) {
+    } else if (store.consentNow() !== false && (pausedNow() || !live.current.online)) {
       looks.current.set(itemId, look);
       waitingForSettings.current.add(itemId);
     }
@@ -426,19 +434,24 @@ export function PackPage(p: PackPageProps) {
   // Cloud checks came on: each waiting look is decided again with the inputs as they are now.
   const redecideLooks = useRef(() => {});
   redecideLooks.current = () => {
-    if (pausedNow()) return;
+    if (pausedNow() || !live.current.online) return;
     const waiting = [...waitingForSettings.current];
     waitingForSettings.current.clear();
     for (const id of waiting) {
       const look = looks.current.get(id);
-      if (!look || !inBox(id)) { looks.current.delete(id); continue; }
-      decideLook(id, look);
+      const item = store.getState().items.find((i) => i.itemId === id);
+      // Gone, already looked at, or no longer asked for by the second-look policy in force now: nothing is sent.
+      const reason = item && !item.secondLook ? needsSecondLook(deriveFacts(item, edition), { source: "on_device" }, live.current.secondLook) : null;
+      if (!look || !reason) { looks.current.delete(id); continue; }
+      decideLook(id, { ...look, reason });
     }
   };
-  useEffect(() => { if (!config.killCloud) redecideLooks.current(); }, [config.killCloud]);
+  // After the page has rendered a change, so the models, the policy and the connection used are the current ones.
+  useEffect(() => { if (!config.killCloud && p.online) redecideLooks.current(); }, [config.killCloud, p.online]);
   const onImage = async (part: ImagePart, how: ImageHow) => {
     // A crop that finishes encoding after the sender left starts nothing: no listener here would stop it.
     if (gone.current) return;
+    const nosAtRead = consentNos.current;
     // Only a sender's press counts here: a frame the camera read by itself must not hide a press's notice.
     const press = how === "steady" ? null : ++presses.current;
     // A newer press closes any open cloud question, so Allow can only send the newest photo.
@@ -533,7 +546,7 @@ export function PackPage(p: PackPageProps) {
       setCrops((c) => ({ ...c, [itemId]: part }));
       const added = store.getState().items.find((i) => i.itemId === itemId);
       const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, live.current.secondLook) : null;
-      if (reason) decideLook(itemId, { reason, read: outcome.read, part, how });
+      if (reason) decideLook(itemId, { reason, read: outcome.read, part, how }, nosAtRead);
       // The crop and its label text stay on this device; a failure here never loses the verdict.
       await p.saveCrop(key, part, outcome.read.labelText).catch(() => setNotice("The photo could not be kept on this device. The check still counts."));
     } catch (e) {

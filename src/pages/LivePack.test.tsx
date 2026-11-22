@@ -258,12 +258,61 @@ describe("LivePack", () => {
     const m = deviceReadsPhone(models);
     await addPhoto();
     await screen.findByText("Read on this laptop");
+    // A no, then a yes again, before cloud checks come on: only the no dropping the look keeps it from going.
     act(() => store.setConsent(false));
-    act(() => push({ killCloud: false, pauseUnknown: undefined }));
     act(() => store.setConsent(true));
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
     expect(m.cloud.generate).not.toHaveBeenCalled();
     expect(screen.queryByTestId("second-look")).toBeNull();
+  });
+  it("sends no look for a read that started before a no, even after a yes again", async () => {
+    const { models, push, store } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = Object.values(models)[0]!;
+    let finish!: (v: { text: string; source: "on_device" }) => void;
+    m.device.generate.mockImplementation(() => new Promise((r) => { finish = r; }));
+    await addPhoto();
+    await waitFor(() => expect(m.device.generate).toHaveBeenCalled());
+    act(() => store.setConsent(false));
+    act(() => store.setConsent(true));
+    await act(async () => { finish({ text: JSON.stringify(phoneOnDevice), source: "on_device" }); });
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+  it("sends a waiting look to the model named in the same update that turns cloud checks on", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const old = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined, cloudModelItem: "gemini-3.8-flash" }));
+    await screen.findByTestId("second-look");
+    expect(old.cloud.generate).not.toHaveBeenCalled();
+    expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  it("drops a waiting look when the second-look policy in force no longer asks for one", async () => {
+    const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    act(() => push({ killCloud: false, pauseUnknown: undefined,
+      secondLook: { whMismatch: false, batteryNumbers: false, notSure: false, hazardNoLabel: false, identity: false } }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+  });
+  it("keeps a waiting look through being offline, and runs it once back online", async () => {
+    const { models, push, rerender } = setup({ killCloud: true, pauseUnknown: true }, "available");
+    const m = deviceReadsPhone(models);
+    await addPhoto();
+    await screen.findByText("Read on this laptop");
+    rerender({ online: false });
+    act(() => push({ killCloud: false, pauseUnknown: undefined }));
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(m.cloud.generate).not.toHaveBeenCalled();
+    rerender({ online: true });
+    await screen.findByTestId("second-look");
+    expect(m.cloud.generate).toHaveBeenCalledTimes(1);
   });
 
   it("runs the second look by default, as a control for the policy test", async () => {
