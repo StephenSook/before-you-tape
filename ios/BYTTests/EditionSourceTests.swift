@@ -69,6 +69,64 @@ import Testing
         }
     }
 
+    /// The shared edition-choice cases (tests/vectors/editionChoice.json) that the web app and the Android
+    /// app run too, built the same way as the web harness (src/data/editionChoice.test.ts): each document is
+    /// the built-in edition under another id, its revision moved by an offset (none for null).
+    @Test func everySharedEditionChoiceVectorGivesItsEditionAndNotice() async throws {
+        let cases = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: BoxStoreTests.repo.appendingPathComponent("tests/vectors/editionChoice.json")))
+        guard case let .array(vectors) = cases else { Issue.record("shape"); return }
+        #expect(vectors.count >= 16)
+        let builtIn = try Self.bundled()
+        let built = try #require(EditionSource.identity(of: builtIn))
+        let notices: [String: String] = ["notLoaded": EditionSource.notLoaded, "failedCheck": EditionSource.failedCheck,
+                                         "notRead": EditionSource.notRead, "olderThanInUse": EditionSource.olderThanInUse]
+        func doc(_ id: String, _ offset: JSONValue?) throws -> String {
+            var json = try JSONSerialization.jsonObject(with: Data(builtIn.utf8)) as! [String: Any]
+            json["editionId"] = id
+            if case let .number(n)? = offset { json["revision"] = (json["revision"] as! Int) + Int(n) } else { json.removeValue(forKey: "revision") }
+            return String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+        }
+        func idOf(_ text: String) -> String? { (try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])?["editionId"] as? String }
+        for v in vectors {
+            guard case let .string(name)? = v["name"], case let .string(use)? = v["expect"]?["use"],
+                  case let .bool(wantFetch)? = v["expect"]?["fetched"] else { Issue.record("vector shape"); continue }
+            let inUse: String? = v["inUse"] == .string("builtIn") ? nil : try doc("byt-vectoruse01", v["inUse"]?["revision"])
+            var wantId = "", wantSha = ""
+            var served: String?
+            switch v["pin"] {
+            case .string("none")?: break
+            case .string("builtIn")?: (wantId, wantSha) = (built.id, built.sha)
+            case .string("builtInIdWrongSha")?: (wantId, wantSha, served) = (built.id, String(repeating: "0", count: 64), builtIn)
+            case .string("inUse")?:
+                let text = try #require(inUse)
+                (wantId, wantSha, served) = ("byt-vectoruse01", try #require(EditionSource.identity(of: text)).sha, text)
+            case let .object(pin)?:
+                let pinned = try doc("byt-vectorpin01", pin["revision"])
+                let kind = pin["doc"]
+                served = kind == .string("wrongId") ? try doc("byt-vectorother", pin["revision"])
+                    : kind == .string("unreadable") ? #"{"editionId":"byt-vectorpin01","revision":99}"# : pinned
+                wantId = "byt-vectorpin01"
+                // An unreadable document has no hash this iPhone can take; the engine refuses it first.
+                wantSha = kind == .string("wrongHash") ? String(repeating: "0", count: 64)
+                    : served.flatMap(EditionSource.identity(of:))?.sha ?? String(repeating: "f", count: 64)
+                // This iPhone's fetcher gives nothing both for a missing document and for a failed fetch.
+                if kind == .string("missing") || kind == .string("fetchFails") { served = nil }
+            default: Issue.record("\(name) pin"); continue
+            }
+            let fetches = Fetches()
+            let serve = served
+            let got = await EditionSource.choose(bundledText: builtIn, activeText: inUse, wantId: wantId, wantSha: wantSha) { id in
+                fetches.ids.append(id)
+                return serve
+            }
+            #expect(fetches.ids.isEmpty == !wantFetch, "\(name) fetched")
+            let usedId = use == "builtIn" ? built.id : use == "inUse" ? "byt-vectoruse01" : "byt-vectorpin01"
+            #expect(idOf(got.text) == usedId, "\(name)")
+            let wantNotice: String? = if case let .string(kind)? = v["expect"]?["notice"] { notices[kind] } else { nil }
+            #expect(got.notice == wantNotice, "\(name) notice")
+        }
+    }
+
     /// A pin naming the edition in use (here the built-in one, with another hash) keeps it, unfetched.
     @Test func aPinNamingTheEditionInUseKeepsItWithoutFetching() async throws {
         let built = try #require(EditionSource.identity(of: try Self.bundled()))

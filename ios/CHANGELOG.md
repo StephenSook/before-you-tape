@@ -5,6 +5,16 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### test(ios): the shared edition-choice cases run through the iPhone's edition choice
+- What: a new test runs every case in tests/vectors/editionChoice.json (16 now), which the web app and
+  the Android app run too, through EditionSource.choose. It builds the documents as the web harness
+  does: the built-in edition under another id, its revision moved by an offset or removed. It checks
+  which edition is used, the notice, and whether the pin was fetched. This iPhone's fetcher returns
+  nothing both for a missing document and for a failed fetch, so both cases expect notLoaded. Tests only.
+- Source: the shared edition-choice vectors, so the three apps cannot drift on which edition a pin gives.
+- Verified: all 16 pass. With the revision check loosened to "below" instead of "not above", the
+  same-revision case failed (the pin was used), and the file was put back byte for byte.
+
 ### feat(ios): the item card asks for the Wh or lithium grams printed on the label
 - What: while USPS-INTL-LI-ONE-READ holds an item's numbers, the card shows an empty field, "Type the
   Wh printed on the label" (or "Type the lithium grams printed on the label" when no Wh is shown), and
