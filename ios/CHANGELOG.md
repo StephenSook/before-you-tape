@@ -3,6 +3,85 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-22
+
+### fix(ios): an off launch logs a skipped account deletion and names the Remote Config listener
+- What: in a launch that may not call Firebase, "Delete everything" now logs that it skipped deleting
+  the anonymous account (it still clears the box on the iPhone), and the Remote Config skip names both
+  the fetch and the realtime listener it skips.
+- Source: second-model review of this change set.
+- Verified: LiveFirebaseTests 9 passed with the new names. `bash ios/scripts/ci-local-ios.sh` exit 0
+  on this exact tree (292 app tests: 291 passed, 0 failed, 1 opt-in skip); the simulator log of that
+  run (40,089 lines from the app) names no Google or Firebase host.
+
+### test(ios): the Firebase gate tests check the process wiring and never touch a live provider
+- What: the launch rule for a process is now one function (LiveFirebase.forProcess), which the launch
+  uses. A test checks that this test process stays off even with `-liveFirebase` added, so the XCTest
+  check is proven on its own. The App Check test requires the offline provider before asking it for a
+  token, so a broken gate fails the test instead of reaching the live provider or hanging.
+- Source: second-model review of this change set.
+- Verified: the new check failed first (forProcess did not exist), then passed; LiveFirebaseTests 9
+  passed. The full local CI on the finished set exit 0.
+
+### fix(ios): a UI test's app stays off Firebase even when launched with -liveFirebase
+- What: a UI test's app runs in a process of its own, which may carry no XCTest marker. Its launch
+  argument `-uiTestFakeReader` now keeps it off the live project even with `-liveFirebase`.
+- Source: second-model review of this change set.
+- Verified: a new test failed against the old rule (decide returned true for both flags), then passed;
+  LiveFirebaseTests 9 passed. The full local CI on the finished set exit 0.
+
+### fix(ios): the app's cloud reader sends nothing in a launch that may not call Firebase
+- What: in a Debug or test launch without `-liveFirebase`, the runner behind the sign-in is now
+  OfflineCloudRunner: every cloud read fails at once as a paused cloud does, with no call to Firebase
+  AI Logic, and logs the skip. Before, a test that stubbed a signed-in user and used the app's own
+  reader could reach the live model. Release builds keep the real runner.
+- Source: second-model review of this change set.
+- Verified: a new test failed first (OfflineCloudRunner did not exist), then passed: a model with a
+  stubbed signed-in user gets the offline runner, which answers "cloud paused" and records the skip.
+  LiveFirebaseTests and SignedInCloudTests: 21 tests passed. The full local CI on the finished set
+  (this entry and the three above) exit 0.
+
+### docs(ios): the README says tests and Debug builds call no Firebase service
+- What: the iPhone README now says that tests and Debug builds make no Firebase network call (no
+  sign-in, no Remote Config fetch, no Firestore read, so no cloud read), that each skip is logged, and
+  that a Debug run reaches the live project only with `-liveFirebase` and a registered App Check debug
+  token. Release builds always call it.
+- Source: the two entries below.
+- Verified: docs only; the tone and hygiene checks pass, and the full local CI on this text passed
+  (exit 0, with the entry below).
+
+### fix(ios): a launch that may not call Firebase gives App Check a provider that sends nothing
+- What: App Check fetches a token by itself at launch, with nothing else asking. In a Debug or test
+  launch without `-liveFirebase`, BYTAppCheckFactory now returns OfflineAppCheckProvider, which
+  fails every token request at once, with no network call, and logs the skip. A Debug launch with
+  `-liveFirebase` keeps the debug provider; Release builds keep App Attest.
+- Source: the simulator log of the first full run with the entry below still showed the app
+  connecting to firebaseappcheck.googleapis.com at each launch.
+- Verified: a new test failed first (OfflineAppCheckProvider did not exist), then passed: this test
+  launch's provider refuses a token request and records it. `bash ios/scripts/ci-local-ios.sh` exit 0
+  (290 app tests: 289 passed, 0 failed, 1 opt-in skip). The simulator log for that whole run
+  (40,096 lines from the app) names no Google or Firebase host. A Release build for the simulator
+  compiles (exit 0).
+
+### fix(ios): tests and Debug launches skip the live sign-in, Remote Config and Firestore
+- What: a new rule (LiveFirebase) says whether a launch may call Firebase over the network. Release
+  builds always may. A Debug build may only when launched with `-liveFirebase` and not hosted by
+  XCTest. Otherwise the anonymous sign-in, the Remote Config fetch and the Firestore read of a pinned
+  rule edition are skipped, and each skip says so in the log ("Skipped <call>: Firebase network calls
+  are off in this Debug or test launch. Launch with -liveFirebase to turn them on."). With no sign-in,
+  no cloud read can run either. UI tests now run on the shipped Remote Config defaults with the cloud
+  open, because their cloud reader is a fixed one that sends nothing.
+- Source: Firestore's App Check metrics showed denied reads from an unknown client. The local test
+  simulator's own log traced part of them to Debug test launches: each launch made a new App Check
+  debug token that was never registered, and once the built-in edition differed from the pinned one,
+  each launch read the pinned edition from the live project and was refused.
+- Verified: LiveFirebaseTests (6 tests) failed first (LiveFirebase did not exist), then passed. One
+  of them builds the model a hosted test launch builds, starts it and gives it a pin: it signs in
+  nowhere, shows the not-loaded notice and records the skipped Firestore read. `bash
+  ios/scripts/ci-local-ios.sh` exit 0 (289 app tests: 288 passed, 0 failed, 1 opt-in skip). The
+  simulator's log for that run shows no Firestore denial and no sign-in or Remote Config request;
+  App Check still exchanged a token at launch (next entry).
+
 ## 2026-11-21
 
 ### build(ios): build number 3 for 1.0.0, carrying rule edition revision 7

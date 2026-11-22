@@ -8,9 +8,18 @@ import Foundation
 final class RemoteConfigLoader {
     private lazy var remoteConfig = RemoteConfig.remoteConfig()
     private var registration: ConfigUpdateListenerRegistration?
+    private let live: LiveFirebase
     var onChange: ((RemoteConfigValues) -> Void)?
 
+    init(live: LiveFirebase = .thisLaunch) { self.live = live }
+
+    /// In a launch that may not call Firebase, nothing is fetched and the values the app started with
+    /// stay in force.
     func start() {
+        guard live.allowed else {
+            live.skip("Remote Config fetch and realtime listener")
+            return
+        }
         guard registration == nil else { return }
         remoteConfig.setDefaults(RemoteConfigValues.defaults.asStrings.mapValues { $0 as NSString })
         publish()

@@ -7,7 +7,10 @@ struct RootView: View {
     static func makeModel() -> AppModel {
         #if DEBUG
         if UITestSupport.active {
-            return AppModel(onDeviceStatus: { UITestSupport.onDevice }, persistence: UITestSupport.MemoryBox(), reader: UITestSupport.reader())
+            // A UI test calls no Firebase service, Remote Config included, so it runs on the shipped
+            // defaults with the cloud open: its cloud reader is a fixed one that sends nothing.
+            return AppModel(onDeviceStatus: { UITestSupport.onDevice }, persistence: UITestSupport.MemoryBox(), reader: UITestSupport.reader(),
+                            config: .defaults)
         }
         #endif
         return AppModel()

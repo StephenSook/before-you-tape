@@ -176,12 +176,14 @@ final class AppModel {
     }
 
     /// Every cloud runner sits behind the sign-in and the live pause switch; every answer passes the engine's parser.
-    static func makeReader(engine: RulesEngine, signIn: SignIn, pause: PauseSwitch) -> ItemReader {
+    /// In a launch that may not call Firebase, the runner behind the sign-in sends nothing either.
+    static func makeReader(engine: RulesEngine, signIn: SignIn, pause: PauseSwitch, live: LiveFirebase = .thisLaunch) -> ItemReader {
         ItemReader(
             device: DeviceRunner(),
             makeCloud: { model in
                 SignedInCloudRunner(ensureSignedIn: { await signIn.ensure() }, pause: pause,
-                                    inner: CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model))
+                                    inner: live.allowed ? CloudRunner(ai: AIClient.make(useLimitedUseTokens: true), model: model)
+                                        : OfflineCloudRunner(live: live))
             },
             parse: { read in
                 guard let data = try? JSONEncoder().encode(read),
@@ -659,10 +661,13 @@ final class AppModel {
             ? "This version is out of date. Update the app to keep checking items." : nil
     }
 
-    /// A published edition lives at ruleEditions/{id} as { json, sha256 }; missing or malformed gives nil.
+    /// A published edition lives at ruleEditions/{id} as { json, sha256 }; missing or malformed gives nil,
+    /// as does a launch that may not call Firebase, which reads nothing.
     nonisolated static let firestoreEdition: @Sendable (String) async -> String? = { id in
-        guard let snapshot = try? await Firestore.firestore().collection("ruleEditions").document(id).getDocument() else { return nil }
-        return snapshot.data()?["json"] as? String
+        await LiveFirebase.thisLaunch.call("Firestore read of ruleEditions/\(id)", offline: nil) {
+            guard let snapshot = try? await Firestore.firestore().collection("ruleEditions").document(id).getDocument() else { return nil }
+            return snapshot.data()?["json"] as? String
+        }
     }
 
     nonisolated static let boxIdKey = "currentBoxId"
