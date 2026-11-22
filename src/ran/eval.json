@@ -24,5 +24,16 @@
     "n": 80
   },
   "p50Ms": 4868,
-  "p90Ms": 7735
+  "p90Ms": 7735,
+  "withoutRuleChanges": {
+    "items": 38,
+    "agreement": {
+      "k": 67,
+      "n": 76
+    },
+    "hazardsCalledOk": {
+      "k": 0,
+      "n": 26
+    }
+  }
 }

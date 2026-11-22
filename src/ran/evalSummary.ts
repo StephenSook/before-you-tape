@@ -1,6 +1,7 @@
 // What /ran says about our own test: the shipped route of the newest public model run in eval/runs (where each
 // check was read, how many items got a cloud second look, hazards called OK, agreement with our draft labels, and
-// time to a verdict). scripts/ran-eval.ts writes it to src/ran/eval.json, and a test fails if that file and the
+// time to a verdict), and the same agreement and hazards without the items that prompted a rule change after
+// labelling (eval/PROTOCOL.md). scripts/ran-eval.ts writes it to src/ran/eval.json, and a test fails if that file and the
 // run disagree, so no number on the page is typed by hand.
 
 export interface KOfN { k: number; n: number }
@@ -27,6 +28,8 @@ export interface EvalSummary {
   checkThis: KOfN;
   p50Ms: number;
   p90Ms: number;
+  // The run's own numbers for the items that did not prompt an engine rule change after labelling.
+  withoutRuleChanges: { items: number; agreement: KOfN; hazardsCalledOk: KOfN };
 }
 
 type Obj = Record<string, unknown>;
@@ -64,6 +67,9 @@ export function summarizeEval(file: unknown, source: string): EvalSummary {
   });
   const all = obj(obj(run.metrics, "metrics").allItems, "metrics.allItems");
   const shippedTime = obj(obj(all.latency, "latency").shipped, "latency.shipped");
+  const untouched = obj(obj(run.metrics, "metrics").withoutRuleChangeItems, "metrics.withoutRuleChangeItems");
+  const untouchedItems = count(untouched.items, "withoutRuleChangeItems.items");
+  if (untouchedItems > count(all.items, "items")) throw new Error("the run has more items without rule changes than items");
   return {
     runId: str(run.runId, "runId"),
     date: str(run.date, "date"),
@@ -82,17 +88,24 @@ export function summarizeEval(file: unknown, source: string): EvalSummary {
     checkThis: kOfN(all.checkRate, "checkRate"),
     p50Ms: ms(shippedTime.p50, "shipped p50"),
     p90Ms: ms(shippedTime.p90, "shipped p90"),
+    withoutRuleChanges: {
+      items: untouchedItems,
+      agreement: kOfN(untouched.truthAgreement, "withoutRuleChangeItems.truthAgreement"),
+      hazardsCalledOk: kOfN(untouched.hazardCalledOk, "withoutRuleChangeItems.hazardCalledOk"),
+    },
   };
 }
 
 // The /ran page's guard on src/ran/eval.json: a file of exactly this shape, with counts that add up, or none.
 const KEYS = ["runId", "date", "machine", "chrome", "models", "editionId", "source", "items", "destinations", "checks",
-  "readOnDevice", "secondLookItems", "agreement", "hazardsCalledOk", "checkThis", "p50Ms", "p90Ms"];
+  "readOnDevice", "secondLookItems", "agreement", "hazardsCalledOk", "checkThis", "p50Ms", "p90Ms", "withoutRuleChanges"];
 const exactly = (v: Obj, keys: string[]) => Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 const isCount = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
 const isText = (v: unknown) => typeof v === "string" && v.trim() !== "";
 const isKOfN = (v: unknown) => isObj(v) && exactly(v, ["k", "n"]) && isCount(v.k) && isCount(v.n) && v.k <= v.n;
+const isUntouched = (v: unknown, items: number) => isObj(v) && exactly(v, ["items", "agreement", "hazardsCalledOk"])
+  && isCount(v.items) && v.items <= items && isKOfN(v.agreement) && isKOfN(v.hazardsCalledOk);
 
 export function readEval(file: unknown): { ok: true; data: EvalSummary } | { ok: false } {
   if (!isObj(file) || !exactly(file, KEYS)) return { ok: false };
@@ -102,6 +115,7 @@ export function readEval(file: unknown): { ok: true; data: EvalSummary } | { ok:
     && ["items", "destinations", "checks", "readOnDevice", "secondLookItems", "p50Ms", "p90Ms"].every((k) => isCount(f[k]))
     && (f.readOnDevice as number) <= (f.checks as number) && (f.secondLookItems as number) <= (f.items as number)
     && (f.p90Ms as number) >= (f.p50Ms as number)
-    && isKOfN(f.agreement) && isKOfN(f.hazardsCalledOk) && isKOfN(f.checkThis);
+    && isKOfN(f.agreement) && isKOfN(f.hazardsCalledOk) && isKOfN(f.checkThis)
+    && isUntouched(f.withoutRuleChanges, f.items as number);
   return fine ? { ok: true, data: f as unknown as EvalSummary } : { ok: false };
 }
