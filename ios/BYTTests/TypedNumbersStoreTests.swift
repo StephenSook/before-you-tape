@@ -32,6 +32,35 @@ import Testing
         #expect(!ruleIds(s, id).contains("USPS-INTL-LI-ONE-READ"))
     }
 
+    /// Two reads of a phone whose label prints no Wh, disagreeing on the capacity.
+    static let noWh = with(phone, ["labelText": .string("3.85V 4000mAh"), "wattHours": .number(0)])
+    static let noWhBig = with(noWh, ["labelText": .string("3.85V 40000mAh"), "milliampHours": .number(40000)])
+
+    /// A battery dispute is settled by the sender's own numbers: every one either read gave, not a Wh
+    /// neither read printed.
+    @Test func aBatteryDisputeSettlesOnceEveryNumberEitherReadGaveIsTyped() throws {
+        let (s, id) = try SecondLookStoreTests().look(Self.noWh, Self.noWhBig)
+        #expect(s.items[0].disputes?["battery"]?["resolved"] == .bool(false))
+        s.override(id, patch: ["volts": .number(3.85)])
+        #expect(s.items[0].disputes?["battery"]?["resolved"] == .bool(false))
+        s.override(id, patch: ["milliampHours": .number(4000)])
+        #expect(s.items[0].disputes?["battery"]?["resolved"] == .bool(false))
+        s.override(id, patch: ["volts": .number(3.85), "milliampHours": .number(4000)])
+        #expect(s.items[0].disputes?["battery"]?["resolved"] == .bool(true))
+    }
+
+    /// The same numbers typed while the cloud read ran leave no battery dispute standing.
+    @Test func numbersEitherReadGaveTypedWhileTheCloudReadRanLeaveNoDispute() throws {
+        let s = try t.store(engine: engine)
+        s.setDestination("CA")
+        let id = try #require(s.addRead(t.outcome(Self.noWh, .onDevice), cropFile: nil))
+        s.override(id, patch: ["volts": .number(3.85), "milliampHours": .number(4000)])
+        let m = try engine.mergeSecondLook(device: Self.noWh, cloud: Self.noWhBig)
+        #expect(m.disputes["battery"] != nil)
+        s.applySecondLook(id, merged: m.merged, ms: 900, reason: "reason", cloudLabel: "3.85V 40000mAh", disputes: m.disputes)
+        #expect(s.items[0].disputes?["battery"] == nil)
+    }
+
     @Test func aTypedItemsLabelFigureAboveItsTypedNumberHoldsIt() throws {
         let (s, id) = try typed(Self.with(Self.phone, ["labelText": .string("3.85V 4000mAh PACK 20Wh")]))
         #expect(level(s, id) == "check")

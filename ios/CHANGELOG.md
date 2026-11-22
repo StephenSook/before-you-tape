@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### fix(ios): a battery dispute settles on the numbers either read gave
+- What: the sender's own numbers settled a battery dispute only when they typed all three (volts,
+  mAh and Wh), even when neither read printed a Wh. Now, as on the web, a correction settles it once
+  it types every number either read gave above 0 (all three when the dispute's readings are not
+  known). The same holds for numbers typed while the cloud read ran, which leave no battery dispute.
+- Source: the revision 7 phone-mirror spec, B7 (the web store's corrects).
+- Verified: two new tests failed first (the dispute stayed open after the volts and mAh both reads
+  gave were typed) and pass; one number alone still leaves it open. The four store suites pass, 65 of 65.
+
 ### fix(ios): a pinned rule edition is used only when it is newer than the one in use
 - What: the iPhone installed any pinned edition whose id and hash checked out, even an older one. A
   build with revision 7 built in, under a pin that still names revision 6 for older builds, would have

@@ -334,7 +334,7 @@ final class BoxStore {
                 item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), typed] : [typed], kept: item.labelFigures)
             }
             if case var .object(all)? = item.disputes {
-                for field in Self.disputeFields where Self.corrects(patch, field) {
+                for field in Self.disputeFields where Self.corrects(patch, field, all[field]) {
                     if case var .object(d)? = all[field] { d["resolved"] = .bool(true); all[field] = .object(d) }
                 }
                 item.disputes = .object(all)
@@ -395,13 +395,18 @@ final class BoxStore {
     nonisolated static let disputeFields = ["category", "retailBox", "battery", "lithiumGrams", "batteryWords", "liquid", "pressurized",
                                 "alcoholOnLabel", "flammableOnLabel", "glassContainer", "powder", "labelTags", "evidence"]
 
-    /// Whether these corrections settle a disputed fact: the battery only as a whole set of numbers,
-    /// the label words only with a corrected label, any other fact by itself (the web app's rule).
-    static func corrects(_ patch: [String: JSONValue], _ field: String) -> Bool {
+    /// Whether these corrections settle a disputed fact (the web app's rule): the label words only with a
+    /// corrected label, any other fact by itself, and the battery only by the sender's own numbers, every
+    /// one that either read gave (all three when the dispute's readings are not known).
+    static func corrects(_ patch: [String: JSONValue], _ field: String, _ dispute: JSONValue? = nil) -> Bool {
         switch field {
-        case "battery": patch["volts"] != nil && patch["milliampHours"] != nil && patch["wattHours"] != nil
-        case "labelTags": patch["labelText"] != nil
-        default: patch[field] != nil
+        case "battery":
+            let all = ["volts", "milliampHours", "wattHours"]
+            func given(_ side: JSONValue?, _ f: String) -> Bool { if case let .number(n)? = side?[f] { n > 0 } else { false } }
+            let needed = dispute.map { d in all.filter { given(d["device"], $0) || given(d["cloud"], $0) } } ?? all
+            return (needed.isEmpty ? all : needed).allSatisfy { patch[$0] != nil }
+        case "labelTags": return patch["labelText"] != nil
+        default: return patch[field] != nil
         }
     }
 
@@ -437,7 +442,7 @@ final class BoxStore {
                 found["labelTags"] = .object(["device": .array(item.labelTags.map { .string($0) }),
                                               "cloud": .array(cloudTags.map { .string($0) }), "resolved": .bool(false)])
             }
-            for field in Self.disputeFields where Self.corrects(item.overrides, field) { found[field] = nil }
+            for field in Self.disputeFields where Self.corrects(item.overrides, field, found[field]) { found[field] = nil }
             // Both reads' label figures, the kept ones first so none is pushed out: a figure only one label named
             // counts. Taken before the merged read replaces the device's.
             item.labelFigures = figures(item.labelFigures == nil ? [Self.deviceLabel(item), cloudLabel ?? ""] : [cloudLabel ?? ""],
