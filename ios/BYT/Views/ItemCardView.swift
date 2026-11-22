@@ -15,6 +15,13 @@ struct ItemCardView: View {
     var onOfferLook: (() -> Void)?
     @State private var fixing = false
 
+    /// What the card says while a matching second look stands behind the item, as the rules count it; nil
+    /// otherwise, and while the cloud is reading it again.
+    static func agreedLine(_ item: BoxItem, checkingAgain: Bool) -> String? {
+        !checkingAgain && BoxStore.secondLookStands(item)
+            ? "A second model in the cloud read the same, so this counts as checked. Use Fix this reading if it is wrong." : nil
+    }
+
     private var name: String {
         if case let .string(n)? = item.overrides["itemName"] ?? item.read["itemName"], !n.isEmpty { return n }
         return "This item"
@@ -30,6 +37,9 @@ struct ItemCardView: View {
                 Text(DisputeWords.checkingAgain).accessibilityIdentifier("checking-again")
             } else if let look = item.secondLook {
                 Text(look.reason).accessibilityIdentifier("second-look")
+            }
+            if let agreed = Self.agreedLine(item, checkingAgain: checkingAgain) {
+                Text(agreed).accessibilityIdentifier("second-look-agreed")
             }
             if let lookError {
                 Text(lookError).accessibilityIdentifier("second-look-error")

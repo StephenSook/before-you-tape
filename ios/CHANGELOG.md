@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-21
 
+### feat(ios): the card says when a second model agreed, only while the rules count it
+- What: an item a matching cloud second look stands behind now says so on its card, in the web's
+  words: "A second model in the cloud read the same, so this counts as checked. Use Fix this reading
+  if it is wrong." It shows only while BoxStore.secondLookStands holds: the item is confirmed by a
+  second look, no battery number (a cleared 0 included) is in its overrides, and it has no battery or
+  lithium-grams dispute, open or settled. It does not show while the cloud is reading it again.
+  forRules now uses the same check, so the line and the verdict cannot disagree.
+- Source: the web app's secondLookStands and card line (web PR #207).
+- Verified: new tests failed first (no shared check) and pass: shown for an agreed shirt that reads
+  OK; hidden while checking again, for the sender's own word, typed Wh and a settled numbers dispute.
+  SecondLookStandsTests, SecondLookStoreTests and TypedNumbersStoreTests: 39 of 39.
+
 ### fix(ios): Fix this reading saves only the fields the sender typed into
 - What: the form saved every field that differed from the reading, so when a second look changed the
   reading while the form was open, Save wrote the old values back over it. The draft now records the

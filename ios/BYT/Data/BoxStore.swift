@@ -416,14 +416,19 @@ final class BoxStore {
         if case let .object(d)? = disputes { numbersDisputed(d) } else { false }
     }
 
+    /// Whether a matching second look still stands behind the item (the web app's secondLookStands): no one
+    /// typed its numbers (a cleared one included) or picked between readings, and the reads never disputed
+    /// them. The rules count it then, and the card says so: one check for both.
+    static func secondLookStands(_ item: BoxItem) -> Bool {
+        item.identityConfirmedBy == "second_look" && !typesNumbers(item.overrides) && !numbersDisputed(item.disputes)
+    }
+
     /// What the rules are told (the web app's forRules): a second look stands behind the numbers only when
     /// no one typed or picked them. This holds for an item saved by an earlier build too, and changes
     /// nothing that is saved.
     static func forRules(_ item: BoxItem) -> JSONValue {
         var told = item
-        if item.identityConfirmedBy == "second_look", typesNumbers(item.overrides) || numbersDisputed(item.disputes) {
-            told.identityConfirmedBy = "sender"
-        }
+        if item.identityConfirmedBy == "second_look", !secondLookStands(item) { told.identityConfirmedBy = "sender" }
         guard case var .object(input) = told.engineInput else { return told.engineInput }
         // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine
         // counts them read).
