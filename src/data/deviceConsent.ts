@@ -6,10 +6,14 @@
 // tab still on the earlier version can take consent back.
 const KEY = "byt.cloudConsent.v2";
 const EARLIER_KEY = "byt.cloudConsent";
+// How many times a no was given on this device, in any tab: a photo read before the newest no never reaches the cloud,
+// even after a new yes, and a tab that has not heard of that no yet still finds it here.
+const NOS_KEY = "byt.cloudConsent.nos";
 
 export interface DeviceConsent {
   get(): boolean | null;
   set(v: boolean | null): void;
+  noCount(): number;
   onChange(f: (v: boolean | null) => void): () => void;
 }
 
@@ -19,10 +23,25 @@ export function deviceConsent(storage: Storage): DeviceConsent {
   // With storage blocked the answer lasts for this visit, and starts unanswered.
   let blocked = false;
   let memory: boolean | null = null;
+  let memoryNos = 0;
+  const nosNow = () => {
+    if (blocked) return memoryNos;
+    try {
+      const n = Number(storage.getItem(NOS_KEY) ?? "0");
+      return Number.isInteger(n) && n >= 0 ? n : 0;
+    } catch {
+      return memoryNos;
+    }
+  };
+  const countNo = () => {
+    memoryNos = nosNow() + 1;
+    try { storage.setItem(NOS_KEY, String(memoryNos)); } catch { /* counted for this visit */ }
+  };
   // An earlier-version tab took consent back: the no is recorded under this key too, so a later yes from that
   // tab, to the earlier question, never brings consent back.
   const takeBack = () => {
     memory = false;
+    countNo();
     // Storage that cannot be written still holds the earlier no, which is read again next time.
     try {
       storage.setItem(KEY, "false");
@@ -42,7 +61,9 @@ export function deviceConsent(storage: Storage): DeviceConsent {
   };
   return {
     get,
+    noCount: nosNow,
     set(v) {
+      if (v === false) countNo();
       memory = v;
       if (blocked) return;
       try {

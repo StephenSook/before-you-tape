@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ed } from "../../tests/engine/helpers";
@@ -7,6 +7,7 @@ import { CONFIG_DEFAULTS } from "../config/defaults";
 import type { AppConfig, ConfigSource } from "../config/remoteConfig";
 import { noPersistence } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
+import { deviceConsent, type DeviceConsent } from "../data/deviceConsent";
 import type { ItemRead } from "../shared/itemRead";
 import { LivePack } from "./LivePack";
 
@@ -31,12 +32,12 @@ function fakeSource(start: Partial<AppConfig> = {}) {
 
 let n = 0;
 type PageOver = { settingsWaitMs?: number; settingsNoticeMs?: number; online?: boolean; today?: string };
-function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}) {
+function setup(start: Partial<AppConfig> = {}, gate: "no_api" | "available" = "no_api", page: PageOver = {}, consent?: DeviceConsent) {
   const models: Record<string, ItemModels & Record<"device" | "hybrid" | "cloud" | "fallback", ReturnType<typeof port>>> = {};
   // Keyed by the main name only; the tests read the fallback name from the calls.
   const hybrid = () => (gate === "available" ? port(phoneOnDevice, "on_device") : port());
   const makeModels = vi.fn((...[name]: [string, string]) => (models[name] ??= { device: port(), hybrid: hybrid(), cloud: port(), fallback: port() }));
-  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}` });
+  const store = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 0, today: () => "2026-11-20", newId: () => `l${n++}`, ...(consent ? { consent } : {}) });
   store.setConsent(true);
   const cfg = fakeSource(start);
   const ui = (over: PageOver) => <LivePack source={cfg.source} makeModels={makeModels} store={store} gate={gate} openCamera={async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} })}
@@ -290,6 +291,27 @@ describe("LivePack", () => {
     await screen.findByTestId("second-look");
     expect(old.cloud.generate).not.toHaveBeenCalled();
     expect(models["gemini-3.8-flash"]?.cloud.generate).toHaveBeenCalledTimes(1);
+  });
+  // Another tab's no, then yes, that this tab has not heard yet (its storage events wait): a look whose read began
+  // before that no must not go when this tab reconnects or cloud checks come on.
+  it("sends no look after another tab's no and yes that this tab has not heard about yet", async () => {
+    for (const hold of ["offline", "settings"] as const) {
+      localStorage.clear();
+      const here = deviceConsent(localStorage);
+      const { models, push, rerender } = setup(hold === "settings" ? { killCloud: true, pauseUnknown: true } : {}, "available", {}, here);
+      const m = deviceReadsPhone(models);
+      if (hold === "offline") rerender({ online: false });
+      await addPhoto();
+      await screen.findByText("Read on this laptop");
+      const otherTab = deviceConsent(localStorage);
+      otherTab.set(false);
+      otherTab.set(true);
+      if (hold === "offline") rerender({ online: true });
+      else act(() => push({ killCloud: false, pauseUnknown: undefined }));
+      await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+      expect(m.cloud.generate, hold).not.toHaveBeenCalled();
+      cleanup();
+    }
   });
   it("drops a waiting look when the second-look policy in force no longer asks for one", async () => {
     const { models, push } = setup({ killCloud: true, pauseUnknown: true }, "available");
