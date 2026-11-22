@@ -199,9 +199,10 @@ var BYT = (() => {
   }
   var WH_IN_LABEL = /(\d*[.,]?\d+)\s*wh\b/gi;
   var GRAMS_IN_LABEL = /(\d*[.,]?\d+)\s*g\b/g;
-  var figures = (text, re) => [...text.matchAll(re)].map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
+  var A_WEIGHT = /(?:\bwt|\bweight|\bn\.?\s?w)\.?\s*:?\s*$/i;
+  var figures = (text, re, skip) => [...text.matchAll(re)].filter((m) => !skip?.test(text.slice(Math.max(0, m.index - 16), m.index))).map((m) => Number(m[1].replace(",", "."))).filter((n) => Number.isFinite(n) && n > 0);
   function labelFiguresOf(text) {
-    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL) };
+    return { wh: figures(text, WH_IN_LABEL), grams: figures(text, GRAMS_IN_LABEL, A_WEIGHT) };
   }
   var agrees = (a, b, tolerancePct) => Math.abs(a - b) / b * 100 <= tolerancePct;
   function labelMismatchOf(figs, typed, whPrinted, lithiumGrams, tolerancePct) {

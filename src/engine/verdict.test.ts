@@ -154,6 +154,7 @@ describe("evaluateBox", () => {
       "a_label_naming_two_wh_figures_holds_when_one_disagrees", "a_figure_written_with_a_leading_point_reads_as_written",
       "a_5G_model_name_is_not_a_lithium_figure", "label_grams_typed_and_different_leave_mixed_numbers_held",
       "a_typed_wh_below_another_label_figure_still_holds", "a_typed_wh_at_the_largest_label_figure_settles_it",
+      "a_net_weight_is_not_a_lithium_figure",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);

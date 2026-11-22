@@ -658,6 +658,16 @@ describe("createBoxStore", () => {
           expect(level(s, id)).toBe("take_out");
         });
 
+        it("keeps a figure too big for the saved list as the largest one it can hold, still disagreeing", () => {
+          const read: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "98Wh", volts: 14, milliampHours: 7000, wattHours: 98 };
+          const s = store();
+          s.setDestination("CA");
+          const id = s.addRead({ ...outcome(read, "on_device"), fullLabelText: "98Wh 1000000Wh" }, "k");
+          const wh = s.getState().items[0]?.labelFigures?.wh ?? [];
+          expect(Math.max(...wh)).toBeLessThan(100000);
+          expect(ruleIds(s, id)).toContain("DATA-LABEL-NUMBERS");
+        });
+
         it("a typed Wh matching the read does not settle a larger figure the label names", () => {
           const read: ItemRead = { ...phone, category: "laptop", itemName: "Laptop", labelText: "98Wh", volts: 14, milliampHours: 7000, wattHours: 98 };
           const s = store();

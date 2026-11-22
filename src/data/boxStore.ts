@@ -229,8 +229,10 @@ function secondLookIdentity(i: BoxItem, sameKind: boolean, found: ReadDisputes):
 // The Wh and lithium-grams figures a label names, kept with the item (the label text is not). Left out when none.
 // Kept figures written back as label text, so they join a new label's figures the same way.
 const figuresText = (f: NonNullable<BoxItem["labelFigures"]>) => [...f.wh.map((n) => `${n}Wh`), ...f.grams.map((n) => `${n}g`)].join(" ");
+const fits = (n: number) => Math.min(n, 99999);
 const figuresOf = (...labels: string[]): Pick<BoxItem, "labelFigures"> => {
-  const all = labels.map(labelFiguresOf);
+  // A figure the saved list cannot hold (Firestore takes them below 100000) is kept as 99999, still disagreeing.
+  const all = labels.map(labelFiguresOf).map((f) => ({ wh: f.wh.map(fits), grams: f.grams.map(fits) }));
   const wh = [...new Set(all.flatMap((f) => f.wh))].slice(0, 8);
   const grams = [...new Set(all.flatMap((f) => f.grams))].slice(0, 8);
   return wh.length + grams.length > 0 ? { labelFigures: { wh, grams } } : {};

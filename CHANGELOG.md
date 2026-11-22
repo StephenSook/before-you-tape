@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- A weight on the label ("NET WT 80g", "Weight: 80 g", "N.W. 80g") is no longer read as a lithium-grams figure, so a correctly read 0.1 g coin cell is not held for it, and a label figure the saved list cannot hold (Firestore takes figures below 100000) is kept as 99999, so the save goes through and the figure still disagrees. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 2). Verified: the vector and the store test failed first, full gate.
+
 - A typed battery number now settles the label's figures only when it is at least every Wh or lithium-grams figure the label names: typing a module's 98 Wh beside the pack's 185 Wh, or 18.5 Wh under a label that says 185 Wh, holds with "The label text says 185 Wh but the number typed is 98 Wh", while typing the largest figure settles it at the stricter number. A read number must still agree with every figure. The shared vector for typed numbers settling a label mismatch now types the label's own numbers, a new one holds 18.5 Wh typed under 185 Wh, and the committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 2). Verified: the vectors and the store test failed first, full gate.
 
 - Fix this reading counts a battery number the sender typed again as it was shown as their own, so retyping 16 Wh confirms the numbers instead of saving nothing, and clearing a number both reads agreed on keeps the second look behind the others (a cleared number is no number), so it no longer turns an OK item into a hold. Source: second-model review of revision 7 (round 2). Verified: the form and store tests failed first, full gate.
