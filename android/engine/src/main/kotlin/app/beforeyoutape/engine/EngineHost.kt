@@ -89,6 +89,19 @@ class EngineHost(private val runtime: JsRuntime, bundle: String, expectedSha256:
     fun labelTags(labelText: String): List<String> =
         json.decodeFromJsonElement(ListSerializer(String.serializer()), call("labelTagsJson", labelText))
 
+    /**
+     * The label figures an item keeps, from the engine's own parser: [texts] are the full label as read and any label
+     * text the sender typed, [kept] the item's figures so far. Null means none, and the field is left out.
+     */
+    fun labelFigures(texts: List<String>, kept: LabelFigures? = null): LabelFigures? {
+        val input = buildJsonObject {
+            put("texts", json.encodeToJsonElement(ListSerializer(String.serializer()), texts))
+            if (kept != null) put("kept", json.encodeToJsonElement(LabelFigures.serializer(), kept))
+        }
+        val figures = call("labelFiguresJson", input.toString()).jsonObject["labelFigures"]
+        return if (figures == null || figures is JsonNull) null else json.decodeFromJsonElement(LabelFigures.serializer(), figures)
+    }
+
     /** A model's reply checked by the web app's own parser; a bad reply is an EngineError("InvalidReadError"). */
     fun parseItemRead(text: String): ItemReadWire = json.decodeFromJsonElement(ItemReadWire.serializer(), call("parseItemReadJson", text))
 
