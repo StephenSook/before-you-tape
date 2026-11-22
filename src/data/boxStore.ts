@@ -223,8 +223,12 @@ function withShownNumbers(i: BoxItem, patch: Partial<ItemRead>): Partial<ItemRea
 }
 // What the rules are told: a second look stands behind the numbers only when no one typed or picked them. This holds
 // for an item saved by an earlier version too, and changes nothing that is saved.
+// Whether a matching second look still stands behind the item: no one typed its numbers or picked between readings.
+// The card says so when it does, as the rules count it.
+export const secondLookStands = (i: BoxItem): boolean =>
+  i.identityConfirmedBy === "second_look" && !typesNumbers(i.overrides) && !numbersDisputed(i.disputes);
 const forRules = (i: BoxItem): BoxItem => {
-  const who = i.identityConfirmedBy === "second_look" && (typesNumbers(i.overrides) || numbersDisputed(i.disputes)) ? { ...i, identityConfirmedBy: "sender" as const } : i;
+  const who = i.identityConfirmedBy === "second_look" && !secondLookStands(i) ? { ...i, identityConfirmedBy: "sender" as const } : i;
   // A typed item's numbers are the sender's own; any other read's are a model's (left out, the engine counts them read).
   return i.readSource === "manual" ? { ...who, numbersFrom: "typed" } : who;
 };
@@ -597,7 +601,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       items = [...items, {
         itemId, read, overrides: read.alcoholOnLabel ? { alcoholOnLabel: true } : {}, answers: {}, quantity: 1, identityConfirmedBy: "sender",
         labelTags: tagsOf(read.labelText), tagsVersion: wordsVersion(), readSource: "manual", readMs: 0, secondLook: null, cropKey: null, customs: { ...EMPTY_CUSTOMS },
-        addedAt: clock(),
+        // The label's figures are kept, as for a photo read: the label text itself is not saved.
+        addedAt: clock(), ...figuresOf([read.labelText]),
       }];
       lastRecheckMs = null;
       commit();

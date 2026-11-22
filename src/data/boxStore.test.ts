@@ -54,6 +54,24 @@ const phoneItem: BoxItem = {
 const savedItemWithOldVerdict: BoxItem = { ...phoneItem, itemId: "saved-1", readSource: "on_device" };
 
 describe("createBoxStore", () => {
+  it("keeps a typed item's label figures, so a Wh below the label's still holds after a reload", async () => {
+    const phone: ItemRead = { ...base, itemName: "Phone", category: "phone", labelText: "3.85V 4000mAh PACK 154Wh", volts: 3.85,
+      milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" };
+    const ruleIdsOf = (st: ReturnType<typeof store>, id: string) => st.getState().result.items[id]?.hits.map((h) => h.ruleId) ?? [];
+    const p = spyPersistence();
+    const s = store({ persistence: p });
+    s.setDestination("CA");
+    const id = s.addManual(phone);
+    s.answer(id, "device_condition", "new_sealed");
+    s.answer(id, "cell_count", "one");
+    expect(ruleIdsOf(s, id)).toContain("DATA-LABEL-NUMBERS");
+    await s.ready;
+    await vi.waitFor(() => expect(p.saved()?.items?.[0]?.labelFigures?.wh).toContain(154));
+    const again = store({ persistence: spyPersistence(p.saved()) });
+    await again.ready;
+    expect(ruleIdsOf(again, id)).toContain("DATA-LABEL-NUMBERS");
+  });
+
   it("re-checks on a country change with no model call", () => {
     const s = store();
     s.setDestination("CA");
