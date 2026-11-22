@@ -27,7 +27,7 @@ The apps use the pinned edition only when its id and hash match and its revision
 
 Done on 2026-11-21 for revision 5 (`byt-1e330a4fdf37`, SHA-256 `b63c55afc6a0c77b7c32a1457ff593f9cc13992b2821363291ade2cfab3038bc`) from main 50bbf3b: the document was written and read back (hash match, revision 5), and Remote Config went from version 5 to version 6 with exactly the two pin keys changed. On a Samsung A16, the published android-judge-3 (built with revision 4) showed "Rules edition: byt-1e330a4fdf37" on its About screen 15 seconds after a relaunch (21:48 UTC), with no notice ([`docs/evidence/android/a16-2026-11-21/README.md`](evidence/android/a16-2026-11-21/README.md)).
 
-Done on 2026-11-21 for revision 6 (`byt-08f3b8c7ff31`, SHA-256 `292dbc6615008a737b8676514e72fcf6bff69c8725b6f49a9c59a33fe37ce4d7`, 43,461 bytes) from main 260a42c: the document was written and read back with a matching hash, and Remote Config went to version 7. Before the pin, the shared vectors passed on revision 6 with the Android emulator's engine and with the iPhone build's engine. A run on the A16 is not recorded yet.
+Done on 2026-11-21 for revision 6 (`byt-08f3b8c7ff31`, SHA-256 `292dbc6615008a737b8676514e72fcf6bff69c8725b6f49a9c59a33fe37ce4d7`, 43,461 bytes) from main 260a42c: the document was written and read back with a matching hash, and Remote Config went to version 7. Before the pin, the shared vectors passed on revision 6 with the Android emulator's engine and with the iPhone build's engine. After it, iPhone build 2 had revision 6 active on the device at 23:50:48 UTC: Remote Config's active edition was `byt-08f3b8c7ff31`, the document was in its read-only cache, and the Ready check showed no notice. A run on the A16 is not recorded yet.
 
 ## After every deploy
 
