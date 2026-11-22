@@ -6,6 +6,7 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The service worker browser checks' test server (tests/e2e/swServer.ts) now records a close that stalls: past 5 s it prints SW-KILL CLOSE STALL with the open connection count (getConnections) and each open socket's address and age, then ends the connections. It is a stopgap: one CI close waited out the two-minute test limit, the cause is unknown, and it did not reproduce locally (24 of 24 runs). Source: the CI failure of the kill-worker check. Verified: tests/swServer.test.ts failed first (a request whose headers never finish held the close), the service worker specs pass, full gate.
 - The revision 6 pin record in docs/PRODUCTION-CHECKLIST.md adds that iPhone build 2 had revision 6 active on the device at 23:50:48 UTC (Remote Config's active edition byt-08f3b8c7ff31, the document in its read-only cache, no notice on the Ready check). Source: the iPhone check after the pin. Verified: hygiene, tone and the full gate.
 
 - docs/PRODUCTION-CHECKLIST.md links the A16 evidence for the revision 5 pin, and records the revision 6 pin (byt-08f3b8c7ff31, from main 260a42c): document written and read back with a matching hash, Remote Config version 7, the shared vectors passed on revision 6 with the Android emulator's and the iPhone build's engines, and no A16 run recorded yet. Source: the revision 6 pin. Verified: the linked file exists, hygiene, tone and the full gate.
