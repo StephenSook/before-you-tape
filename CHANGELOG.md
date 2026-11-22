@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- Known limits now say the verdict trusts what the sender's own device saves: items, typed numbers, label figures and answers are written by the sender's own browser or phone, the server rules check only their shape, and a changed client changes only its own sender's verdict. Source: second-model review of revision 7 (round 2). Verified: hygiene and tone, full gate.
+
 - The rc-publish pin guard now checks every pin the template would publish, in a default value, a conditional value or a parameter group, since clients read all three. A pin left exactly as it is live is not checked, and the new --keep-live-pin copies the live pin into the template, so a kill_cloud flip from a checkout holding revision 7 keeps the phones pinned to revision 6 instead of dropping the pin or being refused. The production checklist's kill_cloud step uses it. Source: second-model review of revision 7 (round 2), and the kill_cloud path found while fixing it. Verified: the guard and rc-publish tests failed first, full gate.
 
 - A weight on the label ("NET WT 80g", "Weight: 80 g", "N.W. 80g") is no longer read as a lithium-grams figure, so a correctly read 0.1 g coin cell is not held for it, and a label figure the saved list cannot hold (Firestore takes figures below 100000) is kept as 99999, so the save goes through and the figure still disagrees. The committed iOS engine bundle is rebuilt. Source: second-model review of revision 7 (round 2). Verified: the vector and the store test failed first, full gate.
