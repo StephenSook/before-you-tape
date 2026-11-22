@@ -4,7 +4,7 @@ Before You Tape checks the items you plan to mail abroad with USPS before you ta
 page says what stays on your device, what can leave it and when, and how to delete it. It covers
 the web app, the iPhone app and the Android app.
 
-Last updated: November 21, 2026.
+Last updated: November 22, 2026.
 
 ## What stays on your device
 
@@ -41,7 +41,7 @@ Last updated: November 21, 2026.
 4. **Your saved box list, on the web.** Your box list is saved in Cloud Firestore, so it is still
    there after a reload. The box holds your random user ID, your destination country and the rule
    edition. For each item it holds the kind of item, which is also saved as its name (the name
-   read from the label stays on your device), how many, its battery numbers, the yes-or-no facts
+   read from the label stays on your device), how many, its battery numbers, the Wh and lithium-grams figures its label names (numbers only), the yes-or-no facts
    the read found (for example liquid or flammable), your answers, the rule words found on its
    label, whether it was read on the device or in the cloud, how long the reads took, and any
    verdict you report as wrong. It never holds the photo, the label text or a name you typed: the
