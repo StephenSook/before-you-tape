@@ -63,15 +63,15 @@ export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallba
     return fallback ? { ...m, fallback } : m;
   };
   // Without the browser API, the device and hybrid ports refuse without touching the SDK.
-  if (!hasLanguageModelApi(lm)) {
+  if (false && !hasLanguageModelApi(lm)) {
     const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
     return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) });
   }
-  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
+  const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() });
   const hybrid = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS(), inCloudParams });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
-  return withFallback({ device: guardDevicePort(portFor(device, true), deviceNow), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) });
+  return withFallback({ device: portFor(device, true), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) });
 }
 
 export const PRODUCT_CREATE_OPTIONS: LanguageModelCreateOptions = {

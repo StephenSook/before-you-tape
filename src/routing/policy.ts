@@ -17,7 +17,7 @@ export function cloudAllowed(i: CloudInputs): boolean {
 export function chooseReadRoute(i: CloudInputs & { gate: GateState }): ReadRoute {
   const cloud = cloudAllowed(i);
   if (i.gate === "available") return cloud ? "hybrid" : "device_only";
-  return cloud ? "cloud_only" : "blocked";
+  return cloud ? "cloud_only" : "device_only";
 }
 
 // A frame the camera read by itself, because an item sat still, never leaves this device: it is read on
