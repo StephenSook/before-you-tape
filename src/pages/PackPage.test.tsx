@@ -1017,6 +1017,19 @@ describe("PackPage", () => {
       await expectNoAllClear();
     });
 
+    // Accepted: a box read only from the cache stays not whole until a reload, so the reload is one tap away.
+    it("offers a reload for a box read only from this browser's cache", async () => {
+      const onReload = vi.fn();
+      const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "found", box: { items: [] }, fromServer: false }) },
+        now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => true });
+      setup({ store, onReload });
+      await store.ready;
+      const notice = await screen.findByTestId("cache-only");
+      expect(notice).toHaveTextContent("Showing the copy kept in this browser. Reload once you're online to check the whole box.");
+      await userEvent.click(within(notice).getByRole("button", { name: "Reload page" }));
+      expect(onReload).toHaveBeenCalledTimes(1);
+    });
+
     it("never says it while App Check refuses this browser, refused box or not", async () => {
       const refusedBox = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "failed", error: "Missing or insufficient permissions." }) }, async () => false);
       await refusedBox.ready;
