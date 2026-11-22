@@ -1124,6 +1124,30 @@ describe("createBoxStore", () => {
       expect(c.getState().incomplete).toBe(true);
     });
 
+    it("is not whole once saving stops because the page is out of date", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: true });
+      p.putMeta.mockRejectedValue(refused());
+      p.putItem.mockRejectedValue(refused());
+      const s = store({ persistence: p, verified: async () => true });
+      await s.ready;
+      s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
+      await s.settled();
+      await vi.waitFor(() => expect(s.getState().outOfDate).toBe(true));
+      expect(s.getState().incomplete).toBe(true);
+    });
+
+    it("is not whole while the box is being deleted, and whole again when the delete is undone", async () => {
+      const p = spyPersistence();
+      p.loadBox.mockResolvedValueOnce({ status: "found", box: { items: [] }, fromServer: true });
+      const s = store({ persistence: p });
+      await s.ready;
+      await s.close();
+      expect(s.getState().incomplete).toBe(true);
+      s.reopen();
+      expect(s.getState().incomplete ?? false).toBe(false);
+    });
+
     it("is not whole when kept only in this browser, or when App Check refuses this browser", async () => {
       const local = Object.assign(spyPersistence(), { localOnly: () => true });
       const l = store({ persistence: local });

@@ -79,8 +79,9 @@ export interface BoxState {
   // it. A box the cache did not hold may still be on the server, so it is not a new box.
   readFromCache?: "found" | "missing";
   // The box shown may not be the whole saved box: it is still loading, its read failed, it was read only from this
-  // browser's cache, it is kept only in this browser, or App Check refuses this browser. Hidden items may be hazards,
-  // so the page never calls such a box ready to tape.
+  // browser's cache, it is kept only in this browser, App Check refuses this browser, saving stopped because the page
+  // is out of date, or the box is being deleted. Hidden items may be hazards, so the page never calls such a box ready
+  // to tape. An edit of the sender's own that has not reached the server yet does not count: it is what they packed.
   incomplete?: true;
 }
 
@@ -315,13 +316,17 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   let cachedCopy: { destinationCode: string; items: BoxItem[] } | undefined;
   let cachedRead = false;
   let readFromCache: BoxState["readFromCache"];
+  // Set by close(): the box is being deleted, so nothing more is kept or sent.
+  let closed = false;
+  // An edit was made while closed, so reopen() has something to keep and send.
+  let editedWhileClosed = false;
   const snapshot = (result: BoxResult): BoxState => ({
     boxId, destinationCode, items, result, cloudConsent, sources, lastRecheckMs, errors, unsaved, loadState,
     destinationKnown: loadState === "ready" || chosenDestination !== null, ...(outOfDate ? { outOfDate } : {}),
     ...(unverified ? { unverified } : {}),
     ...(cachedCopy ? { cachedCopy: { ...cachedCopy, result: evaluateFor(cachedCopy.items, cachedCopy.destinationCode) } } : {}),
     ...(readFromCache ? { readFromCache } : {}),
-    ...(loadState !== "ready" || readFromCache !== undefined || unverified || deps.persistence.localOnly?.() === true
+    ...(loadState !== "ready" || readFromCache !== undefined || unverified || outOfDate || closed || deps.persistence.localOnly?.() === true
       ? { incomplete: true as const } : {}),
   });
   let state: BoxState = snapshot(evaluate());
@@ -335,10 +340,6 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
   const failed = new Set<string>();
   // Items whose write is on its way: until it settles, the server may or may not have them.
   const inFlight = new Set<string>();
-  // Set by close(): the box is being deleted, so nothing more is kept or sent.
-  let closed = false;
-  // An edit was made while closed, so reopen() has something to keep and send.
-  let editedWhileClosed = false;
   const metaOf = (): BoxMeta => ({ destinationCode, sources, lastRecheckMs });
   const storedJson = (i: BoxItem) => stableJson(forStorage(i));
   const keepJournal = () => deps.journal?.write(boxId, journal);
@@ -354,7 +355,7 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
       if (!ok) { if (serverAnswers === asked) markUnverified(); return; }
       if (outOfDate) return;
       outOfDate = true;
-      state = { ...state, outOfDate };
+      state = snapshot(state.result);
       publish();
     });
   };
@@ -794,6 +795,8 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     },
     async close() {
       closed = true;
+      state = snapshot(state.result);
+      publish();
       while (flushing) await flushing;
     },
     // Writes only when an edit was made while closed: the journal is shared by this browser's tabs, so writing this
@@ -801,7 +804,9 @@ export function createBoxStore(deps: BoxStoreDeps): BoxStore {
     reopen() {
       if (!closed) return;
       closed = false;
-      if (editedWhileClosed) { editedWhileClosed = false; commit(); }
+      if (editedWhileClosed) { editedWhileClosed = false; commit(); return; }
+      state = snapshot(state.result);
+      publish();
     },
     setConsent(v) {
       if (v === false) localNos++;
