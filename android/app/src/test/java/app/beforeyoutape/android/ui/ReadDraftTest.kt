@@ -87,4 +87,15 @@ class ReadDraftTest {
         val patch = ReadDrafts.changed(bank, d.copy(numbers = d.numbers + ("wattHours" to "18.5"), labelText = "Li-ion 18.5Wh"))
         assertEquals(mapOf("wattHours" to JsonPrimitive(18.5), "labelText" to JsonPrimitive("Li-ion 18.5Wh")), patch)
     }
+
+    /**
+     * A battery number the sender typed into is theirs even when it is the same as the read, if it is above 0: they
+     * read it off the label. One typed into and left empty is not saved, and an untouched number never is.
+     */
+    @Test fun aBatteryNumberTypedIntoIsSavedEvenUnchanged() {
+        val d = ReadDrafts.of(bank)
+        assertEquals(mapOf("volts" to JsonPrimitive(3.7)), ReadDrafts.changed(bank, d.copy(typed = setOf("volts"))))
+        assertTrue(ReadDrafts.changed(bank, d.copy(typed = setOf("wattHours"))).isEmpty())
+        assertTrue(ReadDrafts.changed(bank, d).isEmpty())
+    }
 }

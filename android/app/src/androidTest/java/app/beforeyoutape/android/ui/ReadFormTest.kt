@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextClearance
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.beforeyoutape.engine.ItemCategoryWire
 import org.junit.Assert.assertEquals
@@ -67,6 +68,22 @@ class ReadFormTest {
         field("Watt-hours").performScrollTo().performTextInput("18.5")
         rule.onNodeWithText(ReadCopy.ADD).performScrollTo().assertIsEnabled().performClick()
         assertEquals(ItemCategoryWire.power_bank, saved!!.category)
+        assertEquals("18.5", saved!!.numbers.getValue("wattHours"))
+    }
+
+    /**
+     * Typing into a battery number marks it as typed, even typing back the same value (cleared, then typed, as a person
+     * does); an untouched one is not.
+     */
+    @Test fun aBatteryNumberTypedIntoIsMarkedTyped() {
+        var saved: ReadDraft? = null
+        val read = app.beforeyoutape.engine.ItemReadWire("Power bank", ItemCategoryWire.power_bank, "", 3.7, 5000.0, 18.5, 0.0,
+            true, false, false, false, false, false, false, app.beforeyoutape.engine.RetailBoxWire.cannot_tell, app.beforeyoutape.engine.EvidenceWire.label_read)
+        rule.setContent { ReadForm(start = read, nameLabel = ReadCopy.NAME_OPTIONAL, saveLabel = ReadCopy.SAVE, onSave = { saved = it }) }
+        field("Watt-hours").performScrollTo().performTextClearance()
+        field("Watt-hours").performTextInput("18.5")
+        rule.onNodeWithText(ReadCopy.SAVE).performScrollTo().performClick()
+        assertEquals(setOf("wattHours"), saved!!.typed)
         assertEquals("18.5", saved!!.numbers.getValue("wattHours"))
     }
 }

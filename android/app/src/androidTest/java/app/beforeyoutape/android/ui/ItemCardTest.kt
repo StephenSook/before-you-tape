@@ -1,9 +1,16 @@
 package app.beforeyoutape.android.ui
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -18,6 +25,7 @@ import app.beforeyoutape.engine.ItemCategoryWire
 import app.beforeyoutape.engine.ItemReadWire
 import app.beforeyoutape.engine.RetailBoxWire
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -82,5 +90,33 @@ class ItemCardTest {
             assertTrue("$name is ${b.right - b.left} wide", b.right - b.left >= 48.dp)
             assertTrue("$name is ${b.bottom - b.top} tall", b.bottom - b.top >= 48.dp)
         }
+    }
+
+    /**
+     * A phone whose numbers come from one photo is held, and its card asks for the Wh printed on the label in an empty
+     * field. The button waits for a number above 0; a comma is a decimal point; the field empties once it is checked.
+     */
+    @Test fun aHeldBatteryAsksForTheWhPrintedOnItsLabel() {
+        val item = box.state.items.single()
+        val verdict = box.state.result!!.items.getValue("a")
+        assertTrue("premise: held on one read (${verdict.hits.map { it.ruleId }})", verdict.hits.any { it.ruleId == "USPS-INTL-LI-ONE-READ" })
+        val checked = mutableListOf<Pair<String, Double>>()
+        rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }, onConfirmNumber = { _, f, v -> checked += f to v }) }
+        val field = rule.onNode(hasSetTextAction() and hasText(Copy.TYPE_LABEL_WH, substring = true))
+        field.assertTextContains(Copy.TYPE_LABEL_WH, substring = true)
+        rule.onNodeWithText(Copy.CHECK_THE_NUMBER).assertIsNotEnabled()
+        field.performTextInput("15,4")
+        rule.onNodeWithText(Copy.CHECK_THE_NUMBER).assertIsEnabled().performClick()
+        assertEquals(listOf("wattHours" to 15.4), checked)
+        rule.onNodeWithText(Copy.CHECK_THE_NUMBER).assertIsNotEnabled()
+    }
+
+    /** With a second look that read the same numbers, nothing is held on one read, and the card asks for nothing. */
+    @Test fun aBatteryNotHeldOnOneReadAsksForNoNumber() {
+        val item = secondLooked()
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
+        assertTrue("premise: not held on one read", verdict.hits.none { it.ruleId == "USPS-INTL-LI-ONE-READ" })
+        rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }, onConfirmNumber = { _, _, _ -> }) }
+        rule.onNodeWithText(Copy.CHECK_THE_NUMBER).assertDoesNotExist()
     }
 }
