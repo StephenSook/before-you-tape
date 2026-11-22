@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { canonicalJson, sha256Hex } from "../src/engine/edition";
-import { checkPinSet, checkTemplatePin } from "./pin-guard";
+import { checkPublishPin } from "./pin-guard";
 
 const PROJECT = "before-you-tape-2026";
 const URL = `https://firebaseremoteconfig.googleapis.com/v1/projects/${PROJECT}/remoteConfig`;
@@ -70,6 +70,18 @@ export function applySets(t: RcTemplate, sets: Record<string, string>): RcTempla
   return { ...t, parameters };
 }
 
+// The template with the live pin in place of its own (--keep-live-pin): a publish of other keys then leaves the
+// phones on the edition they are pinned to.
+const PIN_KEYS = ["rules_edition_id", "rules_edition_sha256"] as const;
+export function keepLivePin(t: RcTemplate, live: RcTemplate): RcTemplate {
+  const parameters = { ...(t.parameters ?? {}) };
+  for (const key of PIN_KEYS) {
+    const p = live.parameters?.[key];
+    if (p) parameters[key] = p;
+  }
+  return { ...t, parameters };
+}
+
 // Every live value that would change or vanish, unless named in allow.
 export function refusals(plan: PublishPlan, allow: ReadonlySet<string>): string[] {
   return [...plan.changed.map((c) => c.key), ...plan.dropped].filter((k) => !allow.has(k)).sort();
@@ -98,16 +110,18 @@ async function main(): Promise<void> {
   if (!token) throw new Error("ACCESS_TOKEN is not set");
   const args = process.argv.slice(2);
   const sets = parseSets(args);
-  // A pin may only name this checkout's edition, and only one every live app build's engine can read.
+  const keep = args.includes("--keep-live-pin");
+  if (keep && PIN_KEYS.some((k) => k in sets)) throw new Error("--keep-live-pin cannot go with --set of the pin");
   const edition = JSON.parse(readFileSync("rules/edition.json", "utf8")) as { editionId: string };
-  checkPinSet(sets, edition);
   const allow = new Set([...args.flatMap((a, i) => (a === "--allow" && args[i + 1] ? [args[i + 1]!] : [])), ...Object.keys(sets)]);
-  const local = applySets(JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate, sets);
-  // The same for the pin the whole template would publish, with or without --set.
-  checkTemplatePin(local, edition, await sha256Hex(canonicalJson(edition)));
 
   const live = await call("GET", token);
   if (!live.etag) throw new Error("the live template came back with no ETag; nothing was published");
+  const template = applySets(JSON.parse(readFileSync("remoteconfig.template.json", "utf8")) as RcTemplate, sets);
+  const local = keep ? keepLivePin(template, live.body) : template;
+  // A new pin, set or already in the template, may only name this checkout's edition, and only one every live app
+  // build's engine can read; the live pin kept as it is is not checked.
+  checkPublishPin(local, live.body, sets, edition, await sha256Hex(canonicalJson(edition)));
   const plan = planPublish(live.body, local);
   console.log(`live version ${live.body.version?.versionNumber ?? "?"}`);
   for (const k of plan.added) console.log(`  add     ${k}`);

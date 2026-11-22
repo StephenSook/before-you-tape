@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applySets, parseSets, planPublish, refusals, type RcTemplate } from "./rc-publish";
+import { applySets, keepLivePin, parseSets, planPublish, refusals, type RcTemplate } from "./rc-publish";
+import { checkPublishPin } from "./pin-guard";
 
 const p = (value: string, valueType = "STRING", extra: Record<string, unknown> = {}) => ({ defaultValue: { value }, valueType, description: "a key", ...extra });
 const live: RcTemplate = { parameters: { kill_cloud: p("true", "BOOLEAN"), cloud_model_item: p("gemini-3.5-flash-lite"), live_only: p("x") } };
@@ -59,5 +60,28 @@ describe("--set", () => {
     const plan = planPublish(live, applySets(template, { rules_edition_id: "byt-1" }));
     expect(plan.changed).toEqual([{ key: "rules_edition_id", live: "", local: "byt-1" }]);
     expect(refusals(plan, new Set(Object.keys({ rules_edition_id: "byt-1" })))).toEqual([]);
+  });
+});
+
+describe("keeping the live pin", () => {
+  const pin = (id: string, sha: string): RcTemplate => ({ parameters: { kill_cloud: p("false", "BOOLEAN"),
+    rules_edition_id: p(id), rules_edition_sha256: p(sha) } });
+  const livePin = pin("byt-08f3b8c7ff31", "a".repeat(64));
+  const here = { editionId: "byt-56273cd51d25" };
+
+  it("--keep-live-pin copies the live pin into the template, so a kill_cloud flip keeps it", () => {
+    const flipped = applySets(pin("", ""), { kill_cloud: "true" });
+    const kept = keepLivePin(flipped, livePin);
+    expect(kept.parameters?.rules_edition_id?.defaultValue?.value).toBe("byt-08f3b8c7ff31");
+    expect(kept.parameters?.rules_edition_sha256?.defaultValue?.value).toBe("a".repeat(64));
+    expect(kept.parameters?.kill_cloud?.defaultValue?.value).toBe("true");
+    expect(refusals(planPublish(livePin, kept), new Set(["kill_cloud"]))).toEqual([]);
+  });
+
+  it("does not check a pin left as it is live, but checks any other", () => {
+    // The live pin names an edition this checkout does not hold: kept unchanged, it is no new pin.
+    expect(() => checkPublishPin(keepLivePin(pin("", ""), livePin), livePin, {}, here, "b".repeat(64))).not.toThrow();
+    expect(() => checkPublishPin(pin("byt-0000000000ab", "c".repeat(64)), livePin, {}, here, "b".repeat(64))).toThrow(/rules\/edition\.json/);
+    expect(() => checkPublishPin(pin("", ""), livePin, { rules_edition_id: "byt-0000000000ab" }, here, "b".repeat(64))).toThrow(/rules_edition_id/);
   });
 });

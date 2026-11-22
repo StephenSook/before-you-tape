@@ -42,4 +42,20 @@ describe("pin guard", () => {
     expect(() => checkTemplatePin(template("byt-0000000000ab", sha), bundled, sha, known)).toThrow(/rules\/edition\.json/);
     expect(() => checkTemplatePin(template(bundled.editionId, "0".repeat(64)), bundled, sha, known)).toThrow(/rules_edition_sha256/);
   });
+
+  it("checks a pin in a conditional value or a parameter group too, since clients read both", async () => {
+    const sha = await sha256Hex(canonicalJson(bundled));
+    const conditional = { parameters: {
+      rules_edition_id: { defaultValue: { value: "" }, conditionalValues: { phones: { value: bundled.editionId } } },
+      rules_edition_sha256: { defaultValue: { value: "" }, conditionalValues: { phones: { value: sha } } } } };
+    expect(() => checkTemplatePin(conditional, bundled, sha)).toThrow(/battery\.numbersFrom/);
+    const grouped = { parameters: {}, parameterGroups: { pins: { parameters: {
+      rules_edition_id: { defaultValue: { value: bundled.editionId } }, rules_edition_sha256: { defaultValue: { value: sha } } } } } };
+    expect(() => checkTemplatePin(grouped, bundled, sha)).toThrow(/battery\.numbersFrom/);
+    const known = new Set([...live.facts, "battery.numbersFrom"]);
+    expect(() => checkTemplatePin(conditional, bundled, sha, known)).not.toThrow();
+    const wrongHash = { parameters: { rules_edition_id: { defaultValue: { value: bundled.editionId } },
+      rules_edition_sha256: { defaultValue: { value: sha }, conditionalValues: { phones: { value: "0".repeat(64) } } } } };
+    expect(() => checkTemplatePin(wrongHash, bundled, sha, known)).toThrow(/rules_edition_sha256/);
+  });
 });
