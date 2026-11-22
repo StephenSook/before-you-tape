@@ -530,5 +530,13 @@
       "read": { "category": "battery_toy", "labelText": "CR2032 3V 0.1g / NET WT (80g)", "volts": 3, "lithiumGrams": 0.1, "batteryWords": true, "retailBox": "sealed" },
       "answers": { "device_condition": "new_sealed", "cell_count": "one" } }],
     "expect": {}, "notRules": { "cell": ["DATA-LABEL-NUMBERS"] }
+  },
+  {
+    "name": "a_label_figure_a_little_over_the_limit_holds_both_reads", "code": "CA", "today": "2026-11-20",
+    "source": "Two reads agree on 100 Wh but the label text says 100.4Wh, over the 100 Wh limit: any figure above the number holds",
+    "items": [{ "itemId": "laptop", "identityConfirmedBy": "second_look",
+      "read": { "category": "laptop", "labelText": "LI-ION 11.1V 9009mAh 100.4Wh", "volts": 11.1, "milliampHours": 9009, "wattHours": 100, "batteryWords": true, "retailBox": "sealed" },
+      "answers": { "device_condition": "new_sealed", "cell_count": "more_than_one" } }],
+    "expect": { "laptop": "check" }, "expectRules": { "laptop": ["DATA-LABEL-NUMBERS"] }
   }
 ]

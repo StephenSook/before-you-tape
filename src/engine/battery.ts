@@ -83,9 +83,9 @@ const agrees = (a: number, b: number, tolerancePct: number) => (Math.abs(a - b) 
 // A figure the label names that the number in use disagrees with. A read number must agree with every figure: one
 // that matches does not hide another, such as a module's rating beside the pack's. A typed number must be at least
 // every figure, so typing the module's rating still holds while typing the pack's, the larger, settles it. Either
-// way a figure above the number holds beyond rounding (half a percent), never within the tolerance: 101 Wh beside
-// 99 Wh is over 100 Wh.
-const above = (f: number, n: number) => f > n * 1.005;
+// way any figure above the number holds, never within the tolerance or a rounding margin: 100.4 Wh beside 100 Wh is
+// over the 100 Wh limit. Typing the larger figure settles it.
+const above = (f: number, n: number) => f > n + 1e-9;
 // With no printed Wh, a Wh figure is checked against volts times capacity, and with neither it holds. A grams
 // figure with no lithium grams holds when the grams were cleared or the label says lithium metal (a device label's
 // weight in grams is no reason to hold an item with no grams).

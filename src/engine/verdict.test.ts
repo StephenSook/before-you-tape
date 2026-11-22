@@ -157,6 +157,7 @@ describe("evaluateBox", () => {
       "a_net_weight_is_not_a_lithium_figure", "a_label_figure_just_over_the_limit_is_not_hidden_by_the_tolerance",
       "clearing_the_grams_keeps_the_label_lithium_figure", "a_label_wh_with_no_printed_wh_read_is_checked_against_volts_times_capacity",
       "a_lithium_metal_weight_is_a_lithium_figure", "a_net_weight_in_brackets_is_not_a_lithium_figure",
+      "a_label_figure_a_little_over_the_limit_holds_both_reads",
     ]);
     for (const v of vectors) {
       const r = run(v.items.map((i) => input(i as ItemSpec)), v.code, v.today);
