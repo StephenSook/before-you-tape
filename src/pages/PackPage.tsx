@@ -639,6 +639,13 @@ export function PackPage(p: PackPageProps) {
           </p>
         )}
         {state.unverified && <SecurityCheckFailed onReload={p.onReload} />}
+        {/* Another tab changed the box after this one read it; only a reload reads it again. */}
+        {state.changedElsewhere && (
+          <p data-testid="changed-elsewhere" role="alert">
+            This box changed in another tab.{" "}
+            <button type="button" onClick={() => (p.onReload ?? (() => window.location.reload()))()}>Reload page</button>
+          </p>
+        )}
         {/* A browser that did not pass the security check is told that instead: the cause, not the symptom. */}
         {state.loadState === "failed" && !state.unverified && (
           <p role="alert">

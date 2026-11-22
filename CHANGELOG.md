@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- The Pack page says when another tab of this browser changed the box: This box changed in another tab., with a Reload page button, and the box is never called ready until the reload. Source: review (a second tab's new item went unseen). Verified: a new Pack page test failed first and passes: Ready to tape before the change, the notice and no all clear after it, and the button reloads.
+
 - This browser's tabs on the same box now tell each other when it changes (src/data/boxChanges.ts: BroadcastChannel, or the storage event where a browser lacks it). Each edit in one tab is announced, and every other open tab marks its box changed (BoxState.changedElsewhere) and not whole until a reload, since a tab reads its box once and another tab may have added a hazard. A deleted box was already told apart and still is. Source: review (round 1 on the Ready to tape change: a second tab's new item went unseen). Verified: new boxChanges tests (another tab on the same box hears it, the writing tab and other boxes do not, the storage fallback, blocked storage) and store tests failed first and pass.
 
 - A box is also not whole once saving stops because the page is out of date, or while it is being deleted (src/data/boxStore.ts), so neither shows Ready to tape; close, reopen and the out-of-date notice now refresh the state, so the flag never goes stale. An edit of the sender's own that has not reached the server yet still counts as the box they packed. Source: review (round 1 on the Ready to tape change). Verified: two new store tests failed first and pass.

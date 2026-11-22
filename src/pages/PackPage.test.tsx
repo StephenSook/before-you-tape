@@ -999,6 +999,24 @@ describe("PackPage", () => {
       await expectNoAllClear();
     });
 
+    it("says the box changed in another tab, offers a reload, and never calls it ready", async () => {
+      let heard: (() => void) | null = null;
+      const changes = { announce: vi.fn(), onChange: (f: () => void) => { heard = f; return () => {}; } };
+      const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "missing", fromServer: true }) },
+        now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, changes });
+      const onReload = vi.fn();
+      setup({ store, onReload });
+      await store.ready;
+      act(() => { store.addManual(shirt); });
+      expect(await screen.findByTestId("ready-to-tape")).toBeInTheDocument();
+      act(() => { heard?.(); });
+      const notice = await screen.findByTestId("changed-elsewhere");
+      expect(notice).toHaveTextContent("This box changed in another tab.");
+      await userEvent.click(within(notice).getByRole("button", { name: "Reload page" }));
+      expect(onReload).toHaveBeenCalledTimes(1);
+      await expectNoAllClear();
+    });
+
     it("never says it while App Check refuses this browser, refused box or not", async () => {
       const refusedBox = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "failed", error: "Missing or insufficient permissions." }) }, async () => false);
       await refusedBox.ready;
