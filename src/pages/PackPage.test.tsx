@@ -953,6 +953,71 @@ describe("PackPage", () => {
     expect(putMeta).toHaveBeenCalledTimes(2);
   });
 
+  // A box that may not be the whole saved box can hide items, hazards among them: never Ready to tape.
+  describe("a box that may not be the whole saved box", () => {
+    const shirt: ItemRead = { ...liquidLotionLabelRead, itemName: "Shirt", category: "clothing", labelText: "", liquid: false, evidence: "item_seen" };
+    const withShirt = async (ops: ReturnType<typeof noPersistence>, verified?: () => Promise<boolean>) => {
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, ...(verified ? { verified } : {}) });
+      setup({ store });
+      act(() => { store.addManual(shirt); });
+      await screen.findByTestId("item-card");
+      return store;
+    };
+    const expectNoAllClear = async () => {
+      expect(await screen.findByTestId("box-incomplete")).toHaveTextContent("Can't check the whole box until it syncs.");
+      expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+      expect(within(screen.getByTestId("box-summary")).queryByText(/OK to pack/)).toBeNull();
+    };
+
+    it("says Ready to tape for the whole box, as a control", async () => {
+      const store = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "missing", fromServer: true }) });
+      await store.ready;
+      expect(await screen.findByTestId("ready-to-tape")).toBeInTheDocument();
+      expect(screen.queryByTestId("box-incomplete")).toBeNull();
+    });
+
+    it("never says it while the saved box is still loading", async () => {
+      await withShirt({ ...noPersistence(), loadBox: () => new Promise<LoadResult>(() => {}) });
+      await expectNoAllClear();
+    });
+
+    it("never says it after the saved box could not be read", async () => {
+      const store = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "failed", error: "offline" }) });
+      await store.ready;
+      await expectNoAllClear();
+    });
+
+    it("never says it for a box read only from this browser's cache", async () => {
+      const store = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "found", box: { items: [] }, fromServer: false }) });
+      await store.ready;
+      await expectNoAllClear();
+    });
+
+    it("never says it for a box kept only in this browser", async () => {
+      const store = await withShirt({ ...noPersistence(), localOnly: () => true });
+      await store.ready;
+      await expectNoAllClear();
+    });
+
+    it("never says it while App Check refuses this browser, refused box or not", async () => {
+      const refusedBox = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "failed", error: "Missing or insufficient permissions." }) }, async () => false);
+      await refusedBox.ready;
+      await screen.findByTestId("unverified");
+      await expectNoAllClear();
+      cleanup();
+      // Not synced: the box was read from the server, then a save was refused for App Check.
+      const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+      let ok = true;
+      const notSynced = await withShirt({ ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "found", box: { items: [] }, fromServer: true }),
+        putMeta: async () => { if (!ok) throw refused; }, putItem: async () => { if (!ok) throw refused; } }, async () => ok);
+      await notSynced.ready;
+      ok = false;
+      act(() => { notSynced.addManual({ ...shirt, itemName: "Socks" }); });
+      await screen.findByTestId("unverified");
+      await expectNoAllClear();
+    });
+  });
+
   describe("a browser App Check cannot verify", () => {
     // A real item, made the way the page makes one.
     const anItem = () => {

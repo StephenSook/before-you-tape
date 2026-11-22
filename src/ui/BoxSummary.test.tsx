@@ -85,3 +85,30 @@ describe("BoxSummary ready state", () => {
     expect(screen.queryByTestId("ready-to-tape")).toBeNull();
   });
 });
+
+// A box that may not be the whole saved box (BoxState.incomplete) can hide items, hazards among them.
+describe("BoxSummary for a box that may be incomplete", () => {
+  const shirt = input("s", { ...base, category: "clothing" });
+  const allOk = evaluateBox([shirt], ed, resolveDestination(ed, "CA"), "2026-11-20");
+
+  it("never says Ready to tape or counts the box all clear, and says why instead", () => {
+    render(<BoxSummary limits={ed.limits} result={allOk} itemCount={1} recheck={null} incomplete />);
+    expect(screen.queryByTestId("ready-to-tape")).toBeNull();
+    expect(screen.queryByText(/OK to pack/)).toBeNull();
+    expect(screen.getByTestId("box-incomplete")).toHaveTextContent("Can't check the whole box until it syncs.");
+  });
+
+  it("still counts what must come out or be checked, and counts lithium only in the items shown", () => {
+    render(<BoxSummary limits={ed.limits} result={result} itemCount={3} recheck={null} incomplete />);
+    const s = screen.getByTestId("box-summary");
+    expect(s).toHaveTextContent(`${result.counts.takeOut} to take out`);
+    expect(s).toHaveTextContent("Lithium in the items shown: 1 of 4 cells");
+    expect(s).not.toHaveTextContent("OK to pack");
+  });
+
+  // Every page starts loading its box; with nothing in it there is no all clear to hold back, so nothing flashes.
+  it("says nothing more while there are no items", () => {
+    render(<BoxSummary limits={ed.limits} result={evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-20")} itemCount={0} recheck={null} incomplete />);
+    expect(screen.queryByTestId("box-incomplete")).toBeNull();
+  });
+});

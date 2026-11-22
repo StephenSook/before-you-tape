@@ -6,13 +6,16 @@ import type { BoxResult } from "../engine/verdict";
 const range = ({ min, max }: { min: number; max: number }) => (min === max ? `${max}` : `${min} to ${max}`);
 
 // unknownBox: the saved box could not be read (App Check refused this browser), so no items is not an empty box.
-export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = false }: {
+// incomplete: the box shown may not be the whole saved box (BoxState.incomplete). Hidden items may be hazards, so
+// it is never called ready or counted all clear, and its lithium count covers only the items shown.
+export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = false, incomplete = false }: {
   result: BoxResult; itemCount: number; recheck: { ms: number; country: string } | null; limits: LithiumLimits; unknownBox?: boolean;
+  incomplete?: boolean;
 }) {
   const { counts, lithium } = result;
   // Ready only when every item is OK to pack, the lithium count fits, and mail to the country is open.
   const lithiumBlocks = lithium.status === "over" || lithium.status === "mixed" || lithium.status === "depends";
-  const ready = itemCount > 0 && counts.takeOut === 0 && counts.check === 0 && !lithiumBlocks && !result.destination.suspended;
+  const ready = !incomplete && itemCount > 0 && counts.takeOut === 0 && counts.check === 0 && !lithiumBlocks && !result.destination.suspended;
   const lithiumParts: string[] = [];
   if (lithium.cells.max > 0) lithiumParts.push(`${range(lithium.cells)} of ${limits.maxCells} cells`);
   if (lithium.batteries.max > 0) lithiumParts.push(`${range(lithium.batteries)} of ${limits.maxBatteries} batteries`);
@@ -23,12 +26,13 @@ export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = fa
         <ul className="count-chips">
           {counts.takeOut > 0 && <li className="chip count-chip chip-take_out">{counts.takeOut} to take out</li>}
           {counts.check > 0 && <li className="chip count-chip chip-check">{counts.check} to check</li>}
-          {counts.ok > 0 && <li className="chip count-chip chip-ok">{counts.ok} OK to pack</li>}
+          {counts.ok > 0 && !incomplete && <li className="chip count-chip chip-ok">{counts.ok} OK to pack</li>}
         </ul>
       )}
-      {lithiumParts.length > 0 && <p>Lithium: {lithiumParts.join(", ")}</p>}
+      {lithiumParts.length > 0 && <p>{incomplete ? "Lithium in the items shown" : "Lithium"}: {lithiumParts.join(", ")}</p>}
       {lithiumBlocks && <p>{lithium.text}</p>}
       {ready && <p data-testid="ready-to-tape" className="ready">Ready to tape. Everything here is OK to pack.</p>}
+      {incomplete && itemCount > 0 && <p data-testid="box-incomplete">Can't check the whole box until it syncs.</p>}
       {recheck && <p data-testid="recheck-line">Re-checked {itemCount} {itemCount === 1 ? "item" : "items"} for {recheck.country} in {recheck.ms} ms. 0 model calls.</p>}
     </section>
   );

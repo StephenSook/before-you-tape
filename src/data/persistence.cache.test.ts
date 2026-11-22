@@ -17,7 +17,8 @@ import { firestorePersistence } from "./persistence";
 const db = {} as Firestore;
 const item = { itemId: "i1", quantity: 2, read: { itemName: "Clothing" } };
 const snap = (data: Record<string, unknown> | null, fromCache = true) => ({ exists: () => data !== null, data: () => data ?? undefined, metadata: { fromCache } });
-const docs = (list: Array<Record<string, unknown> & { itemId: string }>) => ({ docs: list.map((d) => ({ id: d.itemId, data: () => d })) });
+const docs = (list: Array<Record<string, unknown> & { itemId: string }>, fromCache = false) =>
+  ({ docs: list.map((d) => ({ id: d.itemId, data: () => d })), metadata: { fromCache } });
 
 describe("firestorePersistence loadCached", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -54,5 +55,14 @@ describe("firestorePersistence loadBox", () => {
     expect(await firestorePersistence(db, "u", "ed-1").loadBox("b1")).toEqual({ status: "missing", fromServer: false });
     vi.mocked(getDoc).mockResolvedValueOnce(snap(null, false) as never);
     expect(await firestorePersistence(db, "u", "ed-1").loadBox("b1")).toEqual({ status: "missing", fromServer: true });
+  });
+
+  // The box can come from the server and its items from the cache, if the connection drops between the reads.
+  it("says a box came from the server only when its items and disputes did too", async () => {
+    vi.mocked(getDoc).mockResolvedValue(snap({ destinationCode: "CA" }, false) as never);
+    vi.mocked(getDocs).mockImplementation((async (q: { path: string }) => docs([], q.path.endsWith("items"))) as never);
+    expect(await firestorePersistence(db, "u", "ed-1").loadBox("b1")).toMatchObject({ status: "found", fromServer: false });
+    vi.mocked(getDocs).mockImplementation((async (q: { path: string }) => docs([], q.path.endsWith("disputes"))) as never);
+    expect(await firestorePersistence(db, "u", "ed-1").loadBox("b1")).toMatchObject({ status: "found", fromServer: false });
   });
 });

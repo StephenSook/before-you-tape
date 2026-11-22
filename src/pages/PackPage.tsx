@@ -712,7 +712,7 @@ export function PackPage(p: PackPageProps) {
                 : "Not synced: your saved box can't be shown until this browser passes the security check."}
             </p>
           )}
-          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox}
+          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox} incomplete={state.incomplete === true}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
             const verdict = state.result.items[item.itemId];
