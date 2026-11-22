@@ -77,6 +77,25 @@ class EngineHostTest {
         }
     }
 
+    /**
+     * labelFigures is optional too: left out unless it is set, and when set it is exactly { wh, grams }, which is the
+     * only shape the engine takes.
+     */
+    @Test fun labelFiguresAreSentOnlyWhenSetAndInTheEnginesShape() {
+        RepoFiles.host().use { host ->
+            val base = RepoFiles.obj("tests/vectors/defaults.json").getValue("baseRead").jsonObject
+            val read = host.parseItemRead(Json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), base))
+            val item = BoxItemInput("a", read, kotlinx.serialization.json.JsonObject(emptyMap()), emptyMap(), 1.0, "sender", emptyList())
+            val writesDefaults = Json { encodeDefaults = true }
+            assertTrue("labelFigures" !in writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), item).jsonObject)
+            val figured = item.copy(labelFigures = LabelFigures(wh = listOf(99.0, 15.4), grams = emptyList()))
+            val sent = writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), figured).jsonObject.getValue("labelFigures").jsonObject
+            assertEquals(setOf("wh", "grams"), sent.keys)
+            assertEquals(listOf(99.0, 15.4), Json.decodeFromJsonElement(LabelFigures.serializer(), sent).wh)
+            assertTrue(host.evaluateBox(listOf(figured), "CA", "2026-11-20").items.containsKey("a"))
+        }
+    }
+
     @Test fun aLabelWithQuotesBackslashesAndLineSeparatorsRoundTrips() {
         val label = "PERFUME \"EAU\" 50 ml\\n\nALCOHOL </script>"
         RepoFiles.host().use { host ->
