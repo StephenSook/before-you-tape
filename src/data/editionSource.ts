@@ -12,7 +12,6 @@ export interface EditionChoice { edition: RuleEdition; from: "bundled" | "remote
 const NOT_LOADED = "A newer rule edition could not be loaded. Using the built-in edition.";
 const FAILED_CHECK = "A newer rule edition failed its integrity check. Using the built-in edition.";
 const NOT_READ = "A newer rule edition could not be read. Using the built-in edition.";
-const OLDER = "The pinned rule edition is older than this build's. Using the built-in edition.";
 const OLDER_THAN_IN_USE = "The pinned rule edition is older than the one in use. Keeping the one in use.";
 
 export async function chooseEdition(i: {
@@ -48,8 +47,10 @@ export async function chooseEdition(i: {
   } catch {
     return keep(NOT_READ);
   }
-  // A pin that is not newer than the rules in use would bring back rules a later edition fixed.
-  if ((edition.revision ?? 0) <= (running.revision ?? 0)) return keep(running === i.bundled ? OLDER : OLDER_THAN_IN_USE);
+  // A pin that is not newer than the rules in use would bring back rules a later edition fixed. A pin older than
+  // this build's own edition is the usual state (the pin is for phone builds made before this one), so it says
+  // nothing; one older than a newer edition already in use says it is kept.
+  if ((edition.revision ?? 0) <= (running.revision ?? 0)) return keep(running === i.bundled ? null : OLDER_THAN_IN_USE);
   return { edition, from: "remote", notice: null };
 }
 
