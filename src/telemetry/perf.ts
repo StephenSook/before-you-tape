@@ -3,7 +3,7 @@
 // it sends the AI call traces (src/telemetry/aiTrace.ts) and nothing else of its own.
 import type { FirebaseApp } from "firebase/app";
 import type { FirebasePerformance } from "firebase/performance";
-import type { TraceSink } from "./aiTrace";
+import { aiTracer, NO_AI_TRACE, type AiTracer, type TraceSink } from "./aiTrace";
 
 export type PerfModule = Pick<typeof import("firebase/performance"), "initializePerformance" | "trace">;
 
@@ -17,4 +17,12 @@ export function perfSink(app: FirebaseApp, load: () => Promise<PerfModule> = () 
       void ready.then(({ m, perf }) => m.trace(perf, name).record(startMs, durationMs, options)).catch(() => undefined);
     },
   };
+}
+
+// The app's tracer. An emulator build has no real project to send to, and an automated browser (navigator.webdriver:
+// the Playwright runs and the deploy gate's live checks) is a test, so neither sends traces and test reads never mix
+// into the numbers of real reads.
+export function appAiTracer(app: FirebaseApp, where: { emulators: boolean; automated: boolean }, sink: () => TraceSink = () => perfSink(app)): AiTracer {
+  if (where.emulators || where.automated) return NO_AI_TRACE;
+  return aiTracer(sink());
 }
