@@ -59,9 +59,10 @@ Last updated: November 23, 2026.
    how long it took. A read that is tried again sends a record for each try. The record never holds the photo, the label text, your answers or your box.
    With it, Performance Monitoring receives a random installation ID, general device information
    (such as the device or browser type, the system version, network type and language) and your IP
-   address, which it uses to work out your country. On the web it also receives the page's address
-   without anything after a question mark, and the app sends records only from its Pack and sample
-   box pages. On Android it also receives a random session ID, the app version, memory and mobile
+   address, which it uses to work out your country. On the web it also receives the address of the
+   page open when the record goes out, without anything after a question mark. The app makes
+   records only on its Pack and sample box pages, but the first one can go out a few seconds later,
+   so it can carry the address of a page you opened next. On Android it also receives a random session ID, the app version, memory and mobile
    carrier, and records how long the app takes to start and how smoothly its screens draw.
    Performance Monitoring keeps records linked to an IP address for 30 days and the rest for 60
    days. The iPhone app sends no such records.
