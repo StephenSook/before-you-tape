@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- eval/runs/README.md: the on-device and cloud rows of the results table now give their hazard count, 0 of 28 each, instead of blank cells. Source: review. Verified: recounted from models-2026-11-21.public.json with the project's own computeEvalReport, putting each path's verdict in the shipped slot; the same recount reproduces every published cell (agreement 69, 60 and 64 of 80; shipped 0 of 28 and 14 of 80), and one planted unsafe OK on the device path moves its count to 1 of 28; hygiene and tone.
+
 - README: the Samsung A16 link for the android-judge-5 file now points at docs/evidence/android/a16-2026-11-22/judge-5.md, the record of that exact file, and the wording about the earlier android-judge-4 check is gone. Source: review. Verified: the evidence file names the same APK and SHA-256; full gate, hygiene and tone.
 
 - rules/live-engines.json lists android-judge-5 beside android-judge-3 and android-judge-4, so the pin guard names it among the live builds a pin must not break. The facts list is unchanged: it is what every live build knows, and android-judge-5 knows all of them. Source: review. Verified: the pin-guard test failed first without android-judge-5, then passed with publish-edition's tests; full gate, hygiene and tone.

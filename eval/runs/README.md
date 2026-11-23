@@ -34,8 +34,8 @@ accuracy.
 | --- | --- | --- | --- |
 | Always "Check this" (no model) | 5 of 80 | 0 of 28 | 80 of 80 |
 | Rules only (no model) | 71 of 80 | 0 of 28 | 14 of 80 |
-| On the device only | 60 of 80 | | |
-| In the cloud only | 64 of 80 | | |
+| On the device only | 60 of 80 | 0 of 28 | |
+| In the cloud only | 64 of 80 | 0 of 28 | |
 | The shipped route | 69 of 80 | 0 of 28 | 14 of 80 |
 
 - **Safety.** The shipped route called no hazard item "OK to pack" (0 of 28; the exact one-sided 95% upper bound is
