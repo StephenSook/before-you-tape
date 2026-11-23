@@ -31,4 +31,15 @@ class PerfBuildsTest {
         assertTrue(sink.contains("newTrace(AiTrace.NAME)"))
         assertTrue(sink.contains("putMetric(AiTrace.LATENCY, latencyMs)"))
     }
+
+    /** AiClient builds a real Firebase model, so like PromptsTest this reads its source. */
+    @Test fun everySdkCallTheAppMakesIsTraced() {
+        val client = File(app, "main/java/app/beforeyoutape/android/ai/AiClient.kt").readText()
+        val traced = client.indexOf("AiTrace.traced(traces, mode, traceModels(v)")
+        assertTrue("AiClient.read runs its SDK call inside AiTrace.traced", traced >= 0)
+        assertTrue("the generateObject call is the traced block", client.indexOf(".generateObject(", traced) > traced)
+        assertTrue(client.indexOf(".generateObject(") > traced)
+        val vm = File(app, "main/java/app/beforeyoutape/android/BoxViewModel.kt").readText()
+        assertTrue("the app's client sends to Performance Monitoring", vm.contains("AiClient(FirebaseAiTraceSink())"))
+    }
 }

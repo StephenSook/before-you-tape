@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.beforeyoutape.android.ai.AiClient
+import app.beforeyoutape.android.ai.FirebaseAiTraceSink
 import app.beforeyoutape.android.ai.CloudState
 import app.beforeyoutape.android.ai.DeviceModelStatus
 import app.beforeyoutape.android.ai.FailReason
@@ -83,7 +84,7 @@ class BoxViewModel(app: Application) : AndroidViewModel(app), HomeActions {
     // Nothing is saved until the saved box is restored, so an early change cannot overwrite it.
     @Volatile private var restored = false
     private val rc: RcStore? = if (FirebaseApp.getApps(app).isNotEmpty()) RcStore(FirebaseRcSource(Firebase.remoteConfig)).also { it.start() } else null
-    private val ai: AiClient? = rc?.let { r -> AiClient { r.current() } }
+    private val ai: AiClient? = rc?.let { r -> AiClient(FirebaseAiTraceSink()) { r.current() } }
     /** True while this build is older than Remote Config's minimum_version_android: the app shows only the update screen. */
     val needsUpdate: StateFlow<Boolean> = rc?.values?.map { it.needsUpdate(BuildConfig.VERSION_NAME) }
         ?.stateIn(viewModelScope, SharingStarted.Eagerly, false) ?: MutableStateFlow(false)
