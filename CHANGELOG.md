@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- rules/live-engines.json lists android-judge-6 beside android-judge-3, 4 and 5, so the pin guard names it among the live builds a pin must not break; android-judge-5 stays, since judges may still have it installed. The facts list is unchanged: android-judge-6 carries the same rules engine bundle (34bb0e2, fdebfc6d36ce) and edition as android-judge-5. Source: review (the judge-6 release). Verified: the pin-guard test failed first without android-judge-6, then passed; the A16 and emulator rule tests on the judge-6 file ran bundle fdebfc6d36ce; full gate.
+
 - The judge page's Android app (APK) link now opens the android-judge-6 release (before-you-tape-android-1d5e13c.apk, SHA-256 795253ba7bbea983b7ae1c887be28014039b850ce57031424a7642bfc6d173d1, built from 1d5e13c with rule edition revision 7 and the Performance Monitoring traces), which passed the release gate on the Samsung A16. Source: review (the judge-6 release). Verified: the JudgePage test failed first on the old link, then passed; the release's tag points at 1d5e13c and its downloaded APK matches the SHA-256; full gate.
 
 - README: How it works, item 2, says each AI Logic call also sends one Performance Monitoring trace, ai_read, with the route the SDK reported, the model, the outcome and the latency, because AI monitoring shows cloud calls only, and links the first live one, an on-device read, in docs/evidence/perf/. Source: review (the README may name the traces once a live trace shows in the console). Verified: the sentence matches src/telemetry/aiTrace.ts and the evidence record; full gate.
