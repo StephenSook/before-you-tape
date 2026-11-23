@@ -19,10 +19,21 @@ export function perfSink(app: FirebaseApp, load: () => Promise<PerfModule> = () 
   };
 }
 
+// The pages that read items. Performance Monitoring sends the page's address (without its query) with each trace,
+// so a trace that ends anywhere else is dropped: /blind/<token> holds a secret session token in its path.
+const READ_PAGES = new Set(["/", "/judge"]);
+
+const currentPage = () => globalThis.location?.pathname ?? "";
+// "/judge/" opens the same page as "/judge".
+const isReadPage = (path: string) => READ_PAGES.has(path.replace(/\/+$/, "") || "/");
+
 // The app's tracer. An emulator build has no real project to send to, and an automated browser (navigator.webdriver:
 // the Playwright runs and the deploy gate's live checks) is a test, so neither sends traces and test reads never mix
 // into the numbers of real reads.
-export function appAiTracer(app: FirebaseApp, where: { emulators: boolean; automated: boolean }, sink: () => TraceSink = () => perfSink(app)): AiTracer {
+export function appAiTracer(
+  app: FirebaseApp, where: { emulators: boolean; automated: boolean }, sink: () => TraceSink = () => perfSink(app), page: () => string = currentPage,
+): AiTracer {
   if (where.emulators || where.automated) return NO_AI_TRACE;
-  return aiTracer(sink());
+  const inner = sink();
+  return aiTracer({ record: (...args) => { if (isReadPage(page())) inner.record(...args); } });
 }

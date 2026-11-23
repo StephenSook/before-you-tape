@@ -43,12 +43,30 @@ describe("perfSink", () => {
 describe("appAiTracer", () => {
   const call = { mode: "only_in_cloud", cloudModel: "gemini-3.5-flash-lite" } as const;
 
-  it("sends real reads to Performance Monitoring", () => {
+  it("sends real reads to Performance Monitoring from the two pages that read", () => {
     const record = vi.fn();
     const sink: TraceSink = { record };
-    const tracer = appAiTracer(app, { emulators: false, automated: false }, () => sink);
+    let page = "/";
+    const tracer = appAiTracer(app, { emulators: false, automated: false }, () => sink, () => page);
     tracer.start(call).ok("in_cloud");
-    expect(record).toHaveBeenCalledOnce();
+    page = "/judge";
+    tracer.start(call).ok("in_cloud");
+    page = "/judge/";
+    tracer.start(call).ok("in_cloud");
+    expect(record).toHaveBeenCalledTimes(3);
+  });
+
+  it("drops a trace that ends on any other page, so the address it carries never holds a blind session's token", () => {
+    const record = vi.fn();
+    let page = "/";
+    const tracer = appAiTracer(app, { emulators: false, automated: false }, () => ({ record }), () => page);
+    // A read still running when the sender goes Back to a blind session opened earlier in this tab.
+    const t = tracer.start(call);
+    page = "/blind/secret-token";
+    t.failed(new Error("withdrawn"), true);
+    page = "/about";
+    tracer.start(call).ok("in_cloud");
+    expect(record).not.toHaveBeenCalled();
   });
 
   it("sends nothing from an emulator build or an automated browser, so test runs never mix into real reads", () => {
