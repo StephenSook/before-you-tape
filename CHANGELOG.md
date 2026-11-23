@@ -6,6 +6,8 @@ All notable changes to this project are listed here.
 
 ### Added
 
+- src/telemetry/aiTrace.ts builds one Performance Monitoring trace per Firebase AI Logic call: the route the SDK reported in inferenceSource (on_device, in_cloud, or unreported when it named none), the SDK mode asked, the model that route used (the browser's built-in model, or the cloud model its parameters name; unknown when the SDK named no route on a mode that can run in both places), and the outcome (ok, refused for 400, 401, 403 or 429, withdrawn, failed), with the latency. It never takes the photo, prompt, label text or answer, and a failing sink never reaches the read. itemRead.ts exports its httpStatus reader so both use one status rule. Not wired to any call yet. Source: review (Performance Monitoring around every AI call, as the Firebase team shows in its build session). Verified: 9 new tests failed first with the module missing, then passed; full gate.
+
 - eval/runs/README.md: the on-device and cloud rows of the results table now give their hazard count, 0 of 28 each, instead of blank cells. Source: review. Verified: recounted from models-2026-11-21.public.json with the project's own computeEvalReport, putting each path's verdict in the shipped slot; the same recount reproduces every published cell (agreement 69, 60 and 64 of 80; shipped 0 of 28 and 14 of 80), and one planted unsafe OK on the device path moves its count to 1 of 28; hygiene and tone.
 
 - README: the Samsung A16 link for the android-judge-5 file now points at docs/evidence/android/a16-2026-11-22/judge-5.md, the record of that exact file, and the wording about the earlier android-judge-4 check is gone. Source: review. Verified: the evidence file names the same APK and SHA-256; full gate, hygiene and tone.

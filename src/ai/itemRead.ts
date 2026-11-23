@@ -54,7 +54,7 @@ const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e)).r
 // The HTTP status of a failed cloud call: the SDK's AIError carries it in customErrorData.status, and when that
 // field is set it is the status, whatever the message says. Only without it is the first 4xx or 5xx in the
 // message read. A network failure has neither.
-function httpStatus(e: unknown): string | undefined {
+export function httpStatus(e: unknown): string | undefined {
   const field = (e as { customErrorData?: { status?: unknown } } | null | undefined)?.customErrorData?.status;
   if (typeof field === "number" && Number.isInteger(field)) return String(field);
   return /\b(4\d\d|5\d\d)\b/.exec(messageOf(e))?.[1];
