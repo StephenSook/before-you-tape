@@ -75,6 +75,13 @@ describe("aiTracer", () => {
     expect(calls[0]?.options).toMatchObject({ attributes: { outcome: "refused", source: "none" } });
   });
 
+  it("records a call that ended within the same millisecond as 1 ms, since Performance Monitoring refuses a zero duration", () => {
+    const { calls, sink } = recording();
+    const tracer = aiTracer(sink, { mono: () => 7, wall: () => 1_700_000_000_000 });
+    tracer.start(cloud).failed(new Error("aborted at once"), true);
+    expect(calls[0]).toMatchObject({ start: 1_700_000_000_000 - 1, duration: 1, options: { metrics: { latency_ms: 1 } } });
+  });
+
   it("never throws into the read when telemetry fails", () => {
     const tracer = aiTracer({ record: () => { throw new Error("performance monitoring is off"); } });
     expect(() => tracer.start(cloud).ok("in_cloud")).not.toThrow();

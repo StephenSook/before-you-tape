@@ -96,7 +96,9 @@ export function aiTracer(sink: TraceSink, clock: TraceClock = browserClock): AiT
       const record = (r: AiCallResult) => {
         if (done) return;
         done = true;
-        const ms = Math.max(0, Math.round(clock.mono() - t0));
+        // Performance Monitoring refuses a trace whose duration is not above zero, so a call that ended within the same
+        // millisecond (one aborted before it started, say) counts as 1 ms instead of being lost.
+        const ms = Math.max(1, Math.round(clock.mono() - t0));
         try {
           sink.record(AI_TRACE, Math.round(clock.wall()) - ms, ms, { attributes: { ...aiTraceAttributes(call, r) }, metrics: { latency_ms: ms } });
         } catch {
