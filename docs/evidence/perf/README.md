@@ -20,5 +20,7 @@ Not shown yet:
 
 - An `in_cloud` sample. On the web, the judge page reads in the cloud only where the browser has no built-in model,
   after the sender allows cloud checks. No such read was run for this record.
-- Android traces. They come only from release builds made from 1d5e13c or later; debug builds send none, and the
-  `android-judge-5` build predates the traces.
+- Android traces. They come only from release builds made from 1d5e13c or later; debug builds send none. The
+  `android-judge-6` build carries them and passed its release gate on the Samsung A16
+  ([`../android/a16-2026-11-23/judge-6.md`](../android/a16-2026-11-23/judge-6.md)), but no read has run in that app
+  yet: the A16 has no on-device model, and its cloud question is still unanswered.
