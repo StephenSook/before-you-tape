@@ -197,6 +197,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.config)
     implementation(libs.firebase.firestore)
+    // Custom traces only (ai/AiTrace.kt); without its Gradle plugin, network requests are not instrumented.
+    implementation(libs.firebase.perf)
     debugImplementation(libs.firebase.appcheck.debug)
     ksp(libs.firebase.ai.ksp.processor)
     implementation(libs.serialization.json)
