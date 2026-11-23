@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import manifest from "../../eval/set/manifest.json";
 import { AboutPage } from "./AboutPage";
+import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 
 describe("AboutPage", () => {
   it("says what the app does and what leaves the device, in plain words", () => {
@@ -11,6 +12,8 @@ describe("AboutPage", () => {
     expect(screen.getByText(/only if you allow it/)).toBeInTheDocument();
     expect(screen.getByText("Photos and label text stay on this device. Your box list is saved so it survives a reload. It holds each item's category, how many, its battery numbers, the Wh and lithium-grams figures its label names, your answers and the rule words found on its label, never the photo or the label text.")).toBeInTheDocument();
     expect(screen.getByText(/Not affiliated with or approved by the US Postal Service/)).toBeInTheDocument();
+    // Every model read, on the device or in the cloud, sends its timing record.
+    expect(screen.getByText(READ_TIMING_SENT)).toBeInTheDocument();
   });
 
   it("links the public source code", () => {

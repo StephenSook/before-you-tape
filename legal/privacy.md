@@ -4,7 +4,7 @@ Before You Tape checks the items you plan to mail abroad with USPS before you ta
 page says what stays on your device, what can leave it and when, and how to delete it. It covers
 the web app, the iPhone app and the Android app.
 
-Last updated: November 22, 2026.
+Last updated: November 23, 2026.
 
 ## What stays on your device
 
@@ -53,6 +53,19 @@ Last updated: November 22, 2026.
    published rule editions. To pick the settings, Remote Config receives a random installation
    ID, the app's version and your language. The phone apps also send your country and time zone
    settings and the system version.
+6. **A timing record of each read, on the web and Android.** Each time the app asks a model to
+   read an item, on your device or in the cloud, it sends Firebase Performance Monitoring a
+   record: whether the read ran on the device or in the cloud, the model, whether it worked, and
+   how long it took. A read that is tried again sends a record for each try. The record never holds the photo, the label text, your answers or your box.
+   With it, Performance Monitoring receives a random installation ID, general device information
+   (such as the device or browser type, the system version, network type and language) and your IP
+   address, which it uses to work out your country. On the web it also receives the address of the
+   page open when the record goes out, without anything after a question mark. The app makes
+   records only on its Pack and sample box pages, but the first one can go out a few seconds later,
+   so it can carry the address of a page you opened next. On Android it also receives a random session ID, the app version, memory and mobile
+   carrier, and records how long the app takes to start and how smoothly its screens draw.
+   Performance Monitoring keeps records linked to an IP address for 30 days and the rest for 60
+   days. The iPhone app sends no such records.
 
 Like any online service, Google's servers see your IP address with each request.
 
@@ -60,8 +73,9 @@ Like any online service, Google's servers see your IP address with each request.
 
 - No ads.
 - We do not sell your data or share it for ads.
-- No tracking across other apps or websites, and no analytics SDK. Google's libraries send their
-  own diagnostics, such as versions, errors and timings.
+- No tracking across other apps or websites, and no analytics SDK. Performance Monitoring (item 6)
+  records how reads perform, not what you check. Google's libraries send their own diagnostics,
+  such as versions, errors and timings.
 
 ## How to delete it
 
@@ -76,6 +90,8 @@ Like any online service, Google's servers see your IP address with each request.
   anonymous sign-in. If the sign-in can't be deleted right away, Firebase may delete it automatically
   any time after it is 30 days old.
 - The photo and words from a cloud check are not kept by Before You Tape.
+- Timing records (item 6) hold no photo, words or box, so they cannot be found by your box and
+  deleted one by one. Performance Monitoring removes them after 30 or 60 days, as above.
 
 ## Contact
 

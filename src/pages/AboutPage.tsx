@@ -4,6 +4,7 @@ import manifest from "../../eval/set/manifest.json";
 import type { SetManifest } from "../eval/loadSet";
 import { OWN_PHOTO_LICENSE } from "../eval/manifest";
 import { BOX_LIST_SAVED } from "../ui/boxListCopy";
+import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 import { SOURCE_URL } from "../ui/sourceLink";
 
 const items = (manifest as SetManifest).items;
@@ -30,6 +31,7 @@ export function AboutPage() {
           again at any time.
         </li>
         <li>{BOX_LIST_SAVED}</li>
+        <li>{READ_TIMING_SENT}</li>
       </ul>
       <p>Not affiliated with or approved by the US Postal Service.</p>
       <p>

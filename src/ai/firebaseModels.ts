@@ -9,23 +9,38 @@ import { guardDevicePort, ReadFailure } from "./itemRead";
 import type { ItemModels, ModelPort } from "./port";
 import { PRODUCT_TEXT_SYSTEM } from "./productText";
 import { ITEM_READ_SYSTEM } from "./prompts";
+import { NO_AI_TRACE, type AiCall, type AiTracer } from "../telemetry/aiTrace";
+
+// Ports built without a tracer (the extension's product reads) send no trace, so their call details are never read.
+const UNTRACED: AiCall = { mode: "only_in_cloud", cloudModel: "" };
 
 // Sends the prompt, plus the photo when there is one, and reports where the SDK says it ran. A reply
 // without an inference source is counted as cloud, so nothing is ever claimed on-device by default,
-// and is marked unreported so the card does not claim the cloud either.
-function portFor(model: GenerativeModel, withImage: boolean): ModelPort {
+// and is marked unreported so the card does not claim the cloud either. Each SDK call is one
+// Performance Monitoring trace (src/telemetry/aiTrace.ts) with the route the SDK reported.
+function portFor(model: GenerativeModel, withImage: boolean, tracer: AiTracer = NO_AI_TRACE, call: AiCall = UNTRACED): ModelPort {
   return {
     async generate(prompt, image, opts) {
       const parts: Array<string | Part> = withImage && image
         ? [prompt, { type: "inlineData", inlineData: { mimeType: image.mimeType, data: image.base64 } }]
         : [prompt];
-      // The SDK checks the signal before it gets its tokens and again before the request (its hybrid
-      // mode's own cloud step included), so a withdrawn read sends nothing.
-      const { response } = opts?.signal ? await model.generateContent(parts, { signal: opts.signal }) : await model.generateContent(parts);
-      const where = response.inferenceSource;
-      if (where === "on_device") return { text: response.text(), source: "on_device" };
-      if (where === "in_cloud") return { text: response.text(), source: "in_cloud" };
-      return { text: response.text(), source: "in_cloud", unreported: true };
+      const trace = tracer.start(call);
+      let where: unknown;
+      let text: string;
+      try {
+        // The SDK checks the signal before it gets its tokens and again before the request (its hybrid
+        // mode's own cloud step included), so a withdrawn read sends nothing.
+        const { response } = opts?.signal ? await model.generateContent(parts, { signal: opts.signal }) : await model.generateContent(parts);
+        where = response.inferenceSource;
+        text = response.text();
+      } catch (e) {
+        trace.failed(e, opts?.signal?.aborted === true, where);
+        throw e;
+      }
+      trace.ok(where);
+      if (where === "on_device") return { text, source: "on_device" };
+      if (where === "in_cloud") return { text, source: "in_cloud" };
+      return { text, source: "in_cloud", unreported: true };
     },
   };
 }
@@ -51,27 +66,34 @@ const itemCloudParams = (model: string): ModelParams => ({
 });
 
 // The fallback is a cloud-only model of its own; none when it is empty or the same as the main model.
-function fallbackPort(ai: AI, cloudModel: string, fallbackModel: string): ModelPort | undefined {
+function fallbackPort(ai: AI, cloudModel: string, fallbackModel: string, tracer: AiTracer): ModelPort | undefined {
   if (!fallbackModel || fallbackModel === cloudModel) return undefined;
-  return portFor(getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: itemCloudParams(fallbackModel) }), true);
+  const model = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: itemCloudParams(fallbackModel) });
+  return portFor(model, true, tracer, { mode: "only_in_cloud", cloudModel: fallbackModel });
 }
 
-export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallbackModel = ""): ItemModels {
+// tracer: where each SDK call's trace goes; the app passes Performance Monitoring, tools and tests nothing.
+export function createItemModels(ai: AI, cloudModel: string, lm: unknown, fallbackModel = "", tracer: AiTracer = NO_AI_TRACE): ItemModels {
   const inCloudParams = itemCloudParams(cloudModel);
   const withFallback = (m: ItemModels): ItemModels => {
-    const fallback = fallbackPort(ai, cloudModel, fallbackModel);
+    const fallback = fallbackPort(ai, cloudModel, fallbackModel, tracer);
     return fallback ? { ...m, fallback } : m;
   };
+  const cloudCall: AiCall = { mode: "only_in_cloud", cloudModel };
   // Without the browser API, the device and hybrid ports refuse without touching the SDK.
   if (!hasLanguageModelApi(lm)) {
     const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
-    return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true) });
+    return withFallback({ device: NO_DEVICE, hybrid: NO_DEVICE, cloud: portFor(cloud, true, tracer, cloudCall) });
   }
   const device = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS() }, ON_DEVICE_ONLY_REQUESTS);
   const hybrid = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE, onDeviceParams: ON_DEVICE_PARAMS(), inCloudParams });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams });
   const deviceNow = () => checkGate((globalThis as { LanguageModel?: unknown }).LanguageModel);
-  return withFallback({ device: guardDevicePort(portFor(device, true), deviceNow), hybrid: portFor(hybrid, true), cloud: portFor(cloud, true) });
+  return withFallback({
+    device: guardDevicePort(portFor(device, true, tracer, { mode: "only_on_device", cloudModel: "" }), deviceNow),
+    hybrid: portFor(hybrid, true, tracer, { mode: "prefer_on_device", cloudModel }),
+    cloud: portFor(cloud, true, tracer, cloudCall),
+  });
 }
 
 export const PRODUCT_CREATE_OPTIONS: LanguageModelCreateOptions = {

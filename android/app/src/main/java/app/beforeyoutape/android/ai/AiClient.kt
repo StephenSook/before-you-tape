@@ -19,10 +19,11 @@ import kotlinx.coroutines.flow.map
  * Every Firebase AI Logic call in the app goes through this file, on the Gemini Developer API
  * backend, with App Check (limited-use tokens behind Remote Config). The model name comes from
  * Remote Config. A cloud-capable read refuses to start while kill_cloud is on or no cloud model
- * is set; the route guard in front of it decides whether the cloud may be used at all.
+ * is set; the route guard in front of it decides whether the cloud may be used at all. Each SDK call
+ * is one Performance Monitoring trace (ai/AiTrace.kt) when [traces] is the app's sink.
  */
 @OptIn(PublicPreviewAPI::class)
-class AiClient(private val rc: () -> RcValues) : LabelModel {
+class AiClient(private val traces: AiTraceSink = NoAiTrace, private val rc: () -> RcValues) : LabelModel {
 
     private fun ai(v: RcValues): FirebaseAI = Firebase.ai(
         backend = GenerativeBackend.googleAI(),
@@ -41,13 +42,15 @@ class AiClient(private val rc: () -> RcValues) : LabelModel {
         if (mode != SdkMode.ONLY_ON_DEVICE && (v.killCloud || v.cloudModelItem.isEmpty())) throw CloudPausedException()
         val t0 = System.nanoTime()
         val r = try {
-            model(v, AiMapping.mode(mode)).generateObject(
-                LabelRead.firebaseAISchema(),
-                content {
-                    image(bitmap)
-                    text(prompt)
-                },
-            )
+            AiTrace.traced(traces, mode, traceModels(v), { it.response.inferenceSource }) {
+                model(v, AiMapping.mode(mode)).generateObject(
+                    LabelRead.firebaseAISchema(),
+                    content {
+                        image(bitmap)
+                        text(prompt)
+                    },
+                )
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -71,6 +74,8 @@ class AiClient(private val rc: () -> RcValues) : LabelModel {
     } catch (e: Exception) {
         DeviceModelStatus.UNKNOWN
     }
+
+    private fun traceModels(v: RcValues) = AiTrace.Models(cloud = v.cloudModelItem, device = AiTrace.deviceModel(v.onDeviceModelOption))
 
     private companion object {
         /** Used only when no cloud model is set, so the SDK can build an on-device-only model. */
