@@ -46,11 +46,14 @@ object AiMapping {
     fun source(s: InferenceSource): Source = if (s == InferenceSource.ON_DEVICE) Source.ON_DEVICE else Source.IN_CLOUD
 
     /** The Remote Config option string; anything unknown is the stable model. */
-    fun modelOption(option: String): OnDeviceModelOption = when (option) {
+    fun modelOption(option: String): OnDeviceModelOption = when (modelOptionName(option)) {
         "preview" -> OnDeviceModelOption.PREVIEW
         "preview_fast" -> OnDeviceModelOption.PREVIEW_FAST
         else -> OnDeviceModelOption.STABLE
     }
+
+    /** The option the SDK is given, by name: "preview", "preview_fast", or "stable" for anything else. */
+    fun modelOptionName(option: String): String = if (option == "preview" || option == "preview_fast") option else "stable"
 
     fun read(obj: LabelRead?): ItemReadWire? = obj?.toWire()
 
