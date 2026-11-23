@@ -12,6 +12,8 @@ rule behind it and the date that rule was checked.
 - Asks you a question when the label alone cannot decide, and uses your answer.
 - Sends a photo, or typed label words on iPhone, to the cloud only if you allow it. See
   [Privacy](/privacy/).
+- On the web and Android, sends a timing record of each read: where it ran, the model, whether it
+  worked and how long it took, never the photo or the label text.
 
 ## What it does not do
 
@@ -26,8 +28,8 @@ rule behind it and the date that rule was checked.
 **Why does an item say "Check this"?** The rules need something the label does not show, or a rule
 it depends on is out of date. Open the item to see why and answer its question.
 
-**Why does it ask about the cloud?** Your device could not read that item by itself. Nothing goes
-to the cloud unless you tap Allow, and you can turn cloud checks off again.
+**Why does it ask about the cloud?** Your device could not read that item by itself. No photo or
+label words go to the cloud unless you tap Allow, and you can turn cloud checks off again.
 
 **My iPhone does not read photos.** Photos are read on the iPhone on iOS 27 when Apple
 Intelligence is on, its model has downloaded, and the iPhone's language is one it supports

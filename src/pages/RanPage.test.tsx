@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { EvalSummary } from "../ran/evalSummary";
 import type { Measured } from "../ran/summarize";
 import { RanPage } from "./RanPage";
+import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 
 const row = (action: RegExp) => screen.getAllByRole("row").find((r) => action.test(within(r).queryAllByRole("cell")[0]?.textContent ?? ""))!;
 
@@ -26,6 +27,19 @@ describe("RanPage", () => {
     expect(within(row(/Type an item/)).getByText("Nothing goes to a model. The box list is saved, as the line below the table says.")).toBeInTheDocument();
     expect(within(row(/Change the country/)).getByText("Nothing goes to a model. The new country is saved with the box list.")).toBeInTheDocument();
     for (const r of screen.getAllByRole("row")) expect(r.textContent, r.textContent ?? "").not.toMatch(/Nothing\.$/);
+  });
+
+  it("says every model read sends its timing record, and never says nothing leaves for one", () => {
+    render(<RanPage />);
+    expect(screen.getByText(READ_TIMING_SENT)).toBeInTheDocument();
+    for (const action of [/Hold an item still/, /Check now/, /second look/]) {
+      expect(row(action).textContent, String(action)).toMatch(/timing record/);
+      expect(row(action).textContent, String(action)).not.toMatch(/Nothing/);
+    }
+    expect(within(row(/Hold an item still/)).getByText(/never the cloud/)).toBeInTheDocument();
+    // Turning cloud checks off stops photos and label text; reads on this device still send their timing record.
+    expect(row(/Turn off cloud checks/).textContent).not.toMatch(/Nothing more/);
+    expect(row(/Turn off cloud checks/).textContent).toMatch(/timing record/);
   });
 
   it("says what the saved box list holds, and that it never holds the photo or the label text", () => {

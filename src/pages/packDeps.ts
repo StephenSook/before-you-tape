@@ -21,6 +21,7 @@ import { firestorePersistence, persistenceAfterSignIn } from "../data/persistenc
 import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import { ensureSignedIn, initFirebase, type FirebaseEnv } from "../firebase/app";
 import { localDay } from "../shared/localDay";
+import { appAiTracer } from "../telemetry/perf";
 
 export interface PackDeps {
   ai: AI;
@@ -39,7 +40,10 @@ let built: PackDeps | Error | null = null;
 export function buildDeps(): PackDeps | Error {
   if (built) return built;
   try {
-    const fb = initFirebase(import.meta.env as unknown as FirebaseEnv);
+    const env = import.meta.env as unknown as FirebaseEnv;
+    const fb = initFirebase(env);
+    // One Performance Monitoring trace per AI Logic call (src/telemetry/aiTrace.ts).
+    const tracer = appAiTracer(fb.app, { emulators: env.VITE_USE_EMULATORS === "true", automated: globalThis.navigator?.webdriver === true });
     const ai = fb.getAi(true);
     const lm = (globalThis as { LanguageModel?: unknown }).LanguageModel;
     const edition = parseEdition(bundledEdition);
@@ -70,7 +74,7 @@ export function buildDeps(): PackDeps | Error {
       const key = `${name}|${fallback}`;
       let m = byName.get(key);
       // Cloud-capable ports wait for anonymous sign-in, so AI Logic can require a signed-in user.
-      if (!m) { m = afterSignIn(createItemModels(ai, name, lm, fallback), signIn); byName.set(key, m); }
+      if (!m) { m = afterSignIn(createItemModels(ai, name, lm, fallback, tracer), signIn); byName.set(key, m); }
       return m;
     };
     const source = remoteConfigSource(fb.app);

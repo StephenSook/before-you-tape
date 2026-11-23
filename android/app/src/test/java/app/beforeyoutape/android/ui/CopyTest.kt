@@ -94,6 +94,12 @@ class CopyTest {
         assertEquals("Read on this phone", Copy.readLine("phone_on_device", 0.0))
     }
 
+    /** A release build sends each read's timing record (ai/AiTrace.kt), so no screen says nothing at all leaves the phone. */
+    @Test fun noCopySaysNothingAtAllLeavesThePhone() {
+        for (text in Copy.ALL) assertFalse(text, Regex("nothing leaves (it|the phone|this phone)\\.", RegexOption.IGNORE_CASE).containsMatchIn(text))
+        assertEquals("This phone can get its own model to read labels, so no photo leaves it.", Copy.MODEL_CAN_DOWNLOAD)
+    }
+
     @Test fun noCopyUsesADashOrACurlyQuote() {
         for (text in Copy.ALL) {
             assertTrue(text, text.none { it in "\u2013\u2014\u2018\u2019\u201C\u201D" })

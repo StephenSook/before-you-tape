@@ -53,7 +53,7 @@ object Copy {
     const val ASK_AGAIN = "Ask me again about cloud reads"
     const val REMOVE = "Remove"
     const val ONE_MORE = "One more"
-    const val MODEL_CAN_DOWNLOAD = "This phone can get its own model to read labels, so nothing leaves it."
+    const val MODEL_CAN_DOWNLOAD = "This phone can get its own model to read labels, so no photo leaves it."
     const val GET_MODEL = "Get the model on this phone"
     const val MODEL_DOWNLOADING = "Getting the model on this phone. Type the item meanwhile."
     const val MODEL_DOWNLOAD_FAILED = "The model could not be downloaded. Type the item, or try again later."

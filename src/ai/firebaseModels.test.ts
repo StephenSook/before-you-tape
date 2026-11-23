@@ -14,6 +14,7 @@ import { DEVICE_CREATE_OPTIONS } from "./gate";
 import type { ImagePart } from "./port";
 import { PRODUCT_TEXT_SYSTEM } from "./productText";
 import { ITEM_READ_SYSTEM } from "./prompts";
+import { ON_DEVICE_MODEL, type AiCall, type AiTracer } from "../telemetry/aiTrace";
 
 let n = 0;
 const fakeAi = (): AI => getAI(initializeApp({ apiKey: "test-key", projectId: "demo-byt", appId: "1:1:web:1" }, `models-${n++}`), { backend: new GoogleAIBackend() });
@@ -131,6 +132,80 @@ describe("createItemModels", () => {
     expect(device.generateContent).not.toHaveBeenCalled();
     vi.stubGlobal("LanguageModel", { availability: async () => "available" });
     await expect(m.device.generate("p", img)).resolves.toMatchObject({ source: "on_device" });
+  });
+});
+
+describe("tracing each SDK call", () => {
+  beforeEach(() => { spy.mockClear(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  type Event = { call: AiCall; ok?: unknown; error?: unknown; aborted?: boolean; source?: unknown };
+  const recording = () => {
+    const events: Event[] = [];
+    const tracer: AiTracer = {
+      start: (call) => ({
+        ok: (source) => { events.push({ call, ok: source }); },
+        failed: (error, aborted, source) => { events.push({ call, error, aborted, source }); },
+      }),
+    };
+    return { events, tracer };
+  };
+
+  it("traces every call with its mode, its cloud model and the route the SDK reported", async () => {
+    const { events, tracer } = recording();
+    spy.mockReturnValueOnce(fakeModel({ text: "{}", inferenceSource: "on_device" }))
+      .mockReturnValueOnce(fakeModel({ text: "{}", inferenceSource: "on_device" }))
+      .mockReturnValueOnce(fakeModel({ text: "{}", inferenceSource: "in_cloud" }))
+      .mockReturnValueOnce(fakeModel({ text: "{}" }));
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm, "gemini-3.8-flash", tracer);
+    vi.stubGlobal("LanguageModel", { availability: async () => "available" });
+    await m.device.generate("p", img);
+    await m.hybrid.generate("p", img);
+    await m.cloud.generate("p", img);
+    await m.fallback?.generate("p", img);
+    expect(events).toEqual([
+      { call: { mode: "only_on_device", cloudModel: "" }, ok: "on_device" },
+      { call: { mode: "prefer_on_device", cloudModel: "gemini-3.5-flash-lite" }, ok: "on_device" },
+      { call: { mode: "only_in_cloud", cloudModel: "gemini-3.5-flash-lite" }, ok: "in_cloud" },
+      { call: { mode: "only_in_cloud", cloudModel: "gemini-3.8-flash" }, ok: undefined },
+    ]);
+    expect(ON_DEVICE_MODEL).toBe("browser-built-in");
+  });
+
+  it("traces a call that threw, rethrows the same error, and says when the read was taken back", async () => {
+    const { events, tracer } = recording();
+    const boom = Object.assign(new Error("[503] overloaded"), { customErrorData: { status: 503 } });
+    const cloud = { generateContent: vi.fn(async () => { throw boom; }) } as unknown as ReturnType<typeof getGenerativeModel>;
+    spy.mockReturnValueOnce(cloud);
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", undefined, "", tracer);
+    await expect(m.cloud.generate("p", img)).rejects.toBe(boom);
+    const withdrawn = new AbortController();
+    withdrawn.abort();
+    await expect(m.cloud.generate("p", img, { signal: withdrawn.signal })).rejects.toBe(boom);
+    expect(events).toEqual([
+      { call: { mode: "only_in_cloud", cloudModel: "gemini-3.5-flash-lite" }, error: boom, aborted: false, source: undefined },
+      { call: { mode: "only_in_cloud", cloudModel: "gemini-3.5-flash-lite" }, error: boom, aborted: true, source: undefined },
+    ]);
+  });
+
+  it("keeps the route of a reply whose text throws", async () => {
+    const { events, tracer } = recording();
+    const blocked = new Error("response was blocked");
+    const cloud = { generateContent: vi.fn(async () => ({ response: { inferenceSource: "in_cloud", text: () => { throw blocked; } } })) } as unknown as ReturnType<typeof getGenerativeModel>;
+    spy.mockReturnValueOnce(cloud);
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", undefined, "", tracer);
+    await expect(m.cloud.generate("p", img)).rejects.toBe(blocked);
+    expect(events).toEqual([{ call: { mode: "only_in_cloud", cloudModel: "gemini-3.5-flash-lite" }, error: blocked, aborted: false, source: "in_cloud" }]);
+  });
+
+  it("traces nothing when no SDK call is made", async () => {
+    const { events, tracer } = recording();
+    const m = createItemModels(fakeAi(), "gemini-3.5-flash-lite", fakeLm, "", tracer);
+    vi.stubGlobal("LanguageModel", undefined);
+    await expect(m.device.generate("p", img)).rejects.toMatchObject({ kind: "device_failed" });
+    const none = createItemModels(fakeAi(), "gemini-3.5-flash-lite", undefined, "", tracer);
+    await expect(none.hybrid.generate("p", img)).rejects.toMatchObject({ kind: "device_failed" });
+    expect(events).toEqual([]);
   });
 });
 
