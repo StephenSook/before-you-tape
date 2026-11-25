@@ -1,0 +1,34 @@
+type=OBJECT format=null nullable=false title=null enum=null required=[itemName, category, labelText, volts, milliampHours, wattHours, lithiumGrams, batteryWords, liquid, pressurized, alcoholOnLabel, flammableOnLabel, glassContainer, powder, retailBox, evidence] items=false anyOf=null description=What a model reads off one item and its label: the web app's 16 item-read fields, in the same
+ order. On-device and hybrid modes need a
+  itemName:
+    type=STRING format=null nullable=false title=itemName enum=null required=null items=false anyOf=null description=null
+  category:
+    type=STRING format=enum nullable=false title=category enum=[perfume_fragrance, nail_polish, aerosol_spray, hand_sanitizer, lotion_cream, liquid_toiletry, makeup, powder, medicine, alcohol_drink, food_packaged, chocolate, coffee, cooking_oil, meat_product, phone, tablet, laptop, smartwatch, earbuds, power_bank, loose_battery, battery_toy, musical_card, other_electronics, lighter_matches, e_cigarette, glue_paint, knife_tool, toy_gun, candle, jewelry_watch, clothing, shoes, book_paper, toy, ceramic, other] required=null items=false anyOf=null description=null
+  labelText:
+    type=STRING format=null nullable=false title=labelText enum=null required=null items=false anyOf=null description=null
+  volts:
+    type=NUMBER format=null nullable=false title=volts enum=null required=null items=false anyOf=null description=null
+  milliampHours:
+    type=NUMBER format=null nullable=false title=milliampHours enum=null required=null items=false anyOf=null description=null
+  wattHours:
+    type=NUMBER format=null nullable=false title=wattHours enum=null required=null items=false anyOf=null description=null
+  lithiumGrams:
+    type=NUMBER format=null nullable=false title=lithiumGrams enum=null required=null items=false anyOf=null description=null
+  batteryWords:
+    type=BOOLEAN format=null nullable=false title=batteryWords enum=null required=null items=false anyOf=null description=null
+  liquid:
+    type=BOOLEAN format=null nullable=false title=liquid enum=null required=null items=false anyOf=null description=null
+  pressurized:
+    type=BOOLEAN format=null nullable=false title=pressurized enum=null required=null items=false anyOf=null description=null
+  alcoholOnLabel:
+    type=BOOLEAN format=null nullable=false title=alcoholOnLabel enum=null required=null items=false anyOf=null description=null
+  flammableOnLabel:
+    type=BOOLEAN format=null nullable=false title=flammableOnLabel enum=null required=null items=false anyOf=null description=null
+  glassContainer:
+    type=BOOLEAN format=null nullable=false title=glassContainer enum=null required=null items=false anyOf=null description=null
+  powder:
+    type=BOOLEAN format=null nullable=false title=powder enum=null required=null items=false anyOf=null description=null
+  retailBox:
+    type=STRING format=enum nullable=false title=retailBox enum=[sealed, open_or_none, cannot_tell] required=null items=false anyOf=null description=null
+  evidence:
+    type=STRING format=enum nullable=false title=evidence enum=[label_read, item_seen, not_sure] required=null items=false anyOf=null description=null
