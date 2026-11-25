@@ -31,7 +31,7 @@ class BoxLogicTest {
         }
     }
 
-    private fun controller(engine: BoxEngine) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-20" })
+    private fun controller(engine: BoxEngine) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-25" })
 
     /** A newer rules edition re-checks the box, so its verdict follows the rules now in use. */
     @Test fun newRulesRecheckTheBox() {

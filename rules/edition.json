@@ -1,6 +1,6 @@
 {
-  "editionId": "byt-56273cd51d25",
-  "revision": 7,
+  "editionId": "byt-f083f028e045",
+  "revision": 8,
   "service": "Priority Mail International",
   "sources": [
     {
@@ -2275,7 +2275,7 @@
   },
   "suspensions": {
     "updated": "2026-11-20",
-    "checkedOn": "2026-11-20",
+    "checkedOn": "2026-11-25",
     "url": "https://about.usps.com/newsroom/service-alerts/international/",
     "codes": [
       "AF",

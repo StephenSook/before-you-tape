@@ -47,7 +47,7 @@ class PackScreenTest {
     @Before fun setUp() {
         host = EngineAssets.load(InstrumentationRegistry.getInstrumentation().targetContext)
         val engine = BoxEngine { items, code, today -> checks++; host.evaluateBox(items, code, today) }
-        box = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-20" })
+        box = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-25" })
         for (id in listOf("a", "b", "c")) {
             box.addRead(phone, host.labelTags(phone.labelText), Source.IN_CLOUD, 900, id)
             box.answer(id, "device_condition", "new_sealed")

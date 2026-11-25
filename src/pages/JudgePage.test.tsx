@@ -16,7 +16,7 @@ const verdict = (name: string) => within(card(name)).getByTestId("verdict-chip")
 
 describe("JudgePage", () => {
   it("shows nine real items with their photos and credits, judged for the Philippines", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe("JudgePage", () => {
   });
 
   it("re-checks the whole box for Canada with no model call", async () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Body lotion")).toHaveTextContent("OK to pack");
     expect(verdict("Power bank")).toHaveTextContent("Take it out");
@@ -52,7 +52,7 @@ describe("JudgePage", () => {
   });
 
   it("shows the post office's Canada suspension as a live example, before and after it starts", async () => {
-    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stops taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
     expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
@@ -67,7 +67,7 @@ describe("JudgePage", () => {
   });
 
   it("asks what the label cannot show, and the verdict follows the answer", async () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     // In the Philippines perfume (a liquid in glass) is out whatever the label says; Canada asks.
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Perfume")).toHaveTextContent("Check this");
@@ -77,14 +77,14 @@ describe("JudgePage", () => {
   });
 
   it("says plainly that cloud checks stay off when the browser blocks Firebase settings", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(screen.getByTestId("cloud-settings-note")).toHaveTextContent("If your browser blocks Firebase settings, cloud checks stay off. Checks on this device still work.");
   });
 
   it("shows recorded on-device reads only from a record it is given, closed, and says it is a replay", () => {
     const recorded = { ranAt: "2026-11-21T10:00:00.000Z", sha: "a".repeat(40), chromeVersion: "157.0.8103.80", os: "macOS 27.0",
       reads: [{ itemId: "own-18", category: "lotion_cream", ms: 2900 }, { itemId: "own-01", category: "power_bank", ms: 3100 }] };
-    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={recorded} />);
+    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-25" recorded={recorded} />);
     const block = screen.getByTestId("recorded-reads");
     expect(block.tagName).toBe("DETAILS");
     expect(block).not.toHaveAttribute("open");
@@ -100,38 +100,38 @@ describe("JudgePage", () => {
     expect(within(block).getAllByRole("listitem")[1]).not.toHaveTextContent("first read");
     unmount();
     const withMachine = { ...recorded, machine: { model: "Mac17,9", chip: "Apple M5 Pro", memoryGb: 48 } };
-    const second = render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={withMachine} />);
+    const second = render(<JudgePage edition={ed} index={index} today="2026-11-25" recorded={withMachine} />);
     expect(screen.getByTestId("recorded-reads")).toHaveTextContent("Chrome 157.0.8103.80 on macOS 27.0, Apple M5 Pro, 48 GB memory (Mac17,9).");
     second.unmount();
-    render(<JudgePage edition={ed} index={index} today="2026-11-21" recorded={null} />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" recorded={null} />);
     expect(screen.queryByTestId("recorded-reads")).toBeNull();
   });
 
   it("links the public source code", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
     expect(screen.getByRole("link", { name: "Android app (APK)" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-7");
   });
 
   it("says why the Android app holds a device's battery numbers, beside its link", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(screen.getByTestId("android-battery-note")).toHaveTextContent(
       "In the Android app, battery numbers read from a photo show Check this until you type them from the label. A photo can misread a label's numbers about ten times too low, so only numbers you type, or a cloud second look that reads the same ones, confirm them, and the Android app runs no second look.");
   });
 
   it("names the rule and its section behind each verdict", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     const link = within(card("Power bank")).getByRole("link", { name: "Pub 52 622.5" });
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
 
   it("marks Canada in the country buttons with the suspension the post office has announced", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
   });
 
   it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     const grid = screen.getByTestId("sample-grid");
     expect(within(grid).getAllByTestId("sample-card")).toHaveLength(9);
     const c = card("Body lotion");
@@ -153,7 +153,7 @@ describe("JudgePage", () => {
       milliampHours: 0, wattHours: 0, batteryWords: false, liquid: true };
     const side = (label: string, r: ItemRead, answer: string) => ({ label, photo: "/eval/items/i06.jpg", width: 1200, height: 1600, photoAlt: label,
       credit: "Photo by the project owner", read: r, answers: { device_condition: answer } });
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[{ id: "p", title: "Lotion and a used phone", left: side("Lotion", lotion, "new_sealed"), right: side("Used phone", read, "used") }]} />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" pairs={[{ id: "p", title: "Lotion and a used phone", left: side("Lotion", lotion, "new_sealed"), right: side("Used phone", read, "used") }]} />);
     // The lotion follows the country picked: out to the Philippines, which takes no liquids, OK to Canada. The used
     // phone is out to both.
     const pair = screen.getByTestId("matched-pair");
@@ -163,13 +163,13 @@ describe("JudgePage", () => {
   });
 
   it("shows no matched pairs section when none is given", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" pairs={[]} />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" pairs={[]} />);
     expect(screen.queryByTestId("matched-pair")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Same item, one thing different" })).toBeNull();
   });
 
   it("never says a card's question twice: a reason that only restates the question is left out", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     const phone = card("Smartphone");
     expect(within(phone).queryByText(/^Is it new\? Answer to finish this check\./)).toBeNull();
     expect(within(phone).getAllByText("Is it new?")).toHaveLength(1);
@@ -179,7 +179,7 @@ describe("JudgePage", () => {
 
   it("offers one live read below the sample box, which loads nothing until it is pressed", () => {
     const liveRead = vi.fn();
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" liveRead={liveRead} />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" liveRead={liveRead} />);
     expect(screen.getByRole("button", { name: "Run one live read" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Run one live read" })).toHaveAttribute("href", "#live-read");
     expect(liveRead).not.toHaveBeenCalled();
@@ -191,7 +191,7 @@ describe("JudgePage", () => {
       gate: async () => "available", consent: { get: () => true, set: () => {} }, paused: async () => false,
       models: () => ({ device: reply, hybrid: reply, cloud: reply }), sample: async () => ({ mimeType: "image/jpeg", base64: "/9j/AAAA" }),
     };
-    render(<JudgePage edition={ed} index={index} today="2026-11-20" liveRead={async () => deps} />);
+    render(<JudgePage edition={ed} index={index} today="2026-11-25" liveRead={async () => deps} />);
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     const result = await screen.findByTestId("live-read-result");
     expect(within(result).getByTestId("verdict-chip")).toHaveTextContent("Take it out");

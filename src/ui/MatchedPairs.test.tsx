@@ -21,7 +21,7 @@ const pair: MatchedPair = { id: "phone", title: "The same phone, new in its box 
 
 describe("MatchedPairs", () => {
   it("shows nothing when no pair is given", () => {
-    const { container } = render(<MatchedPairs pairs={[]} edition={ed} destinationCode="PH" today="2026-11-21" />);
+    const { container } = render(<MatchedPairs pairs={[]} edition={ed} destinationCode="PH" today="2026-11-25" />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -38,7 +38,7 @@ describe("MatchedPairs", () => {
   });
 
   it("judges a side fixed to a country for that country, whatever the page has picked", () => {
-    render(<MatchedPairs pairs={MATCHED_PAIRS} edition={ed} destinationCode="PH" today="2026-11-21" />);
+    render(<MatchedPairs pairs={MATCHED_PAIRS} edition={ed} destinationCode="PH" today="2026-11-25" />);
     const sides = screen.getAllByTestId("pair-side");
     expect(within(sides[0]!).getByText("To Canada")).toBeInTheDocument();
     expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("OK to pack");
@@ -47,7 +47,7 @@ describe("MatchedPairs", () => {
   });
 
   it("judges each side with the app's own rules, and names the rule that decides it", () => {
-    render(<MatchedPairs pairs={[pair]} edition={ed} destinationCode="PH" today="2026-11-21" />);
+    render(<MatchedPairs pairs={[pair]} edition={ed} destinationCode="PH" today="2026-11-25" />);
     const sides = within(screen.getByTestId("matched-pair")).getAllByTestId("pair-side");
     expect(sides).toHaveLength(2);
     expect(within(sides[0]!).getByText("New, in its sealed box")).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("MatchedPairs", () => {
     // Opened against sealed, by the answer alone (both photos read sealed), so each side's rule comes from its answer.
     const answers: MatchedPair = { id: "opened", title: "The same phone, new, opened or sealed",
       left: side("New, box opened", "new_opened", "sealed"), right: side("New, in its sealed box", "new_sealed", "sealed") };
-    render(<MatchedPairs pairs={[answers]} edition={ed} destinationCode="CA" today="2026-11-21" />);
+    render(<MatchedPairs pairs={[answers]} edition={ed} destinationCode="CA" today="2026-11-25" />);
     const sides = within(screen.getByTestId("matched-pair")).getAllByTestId("pair-side");
     expect(within(sides[0]!).getByTestId("pair-reason")).toHaveTextContent("Pack this one back in its own box.");
     expect(within(sides[0]!).getByTestId("verdict-chip")).toHaveTextContent("Check this");

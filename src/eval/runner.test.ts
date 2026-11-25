@@ -34,7 +34,7 @@ const now = () => (t += 100);
 describe("evalRows", () => {
   it("reads each item on the device, in the cloud and on the shipped route, and judges each read for every destination", async () => {
     const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now });
     expect(out.failures).toEqual([]);
     expect(out.rows.map((r) => r.destination)).toEqual(["CA", "PH"]);
     // Each path used only its own model, once.
@@ -52,7 +52,7 @@ describe("evalRows", () => {
 
   it("runs the app's second look on the shipped route when an on-device read needs one", async () => {
     const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud: answers(phoneCloud, "in_cloud") };
-    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now });
+    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-25", models, images: { "own-01": image }, now });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: true });
     // The read the shipped route shows, after its second look, and its time.
     expect(out.rows[0]!.shipped.read?.category).toBe("phone");
@@ -66,7 +66,7 @@ describe("evalRows", () => {
   it("keeps the shipped read and its verdict when only the second look fails, as the app keeps the item", async () => {
     const cloud: Spy = { generate: vi.fn(async () => { throw new Error("Failed to fetch"); }) };
     const models = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud };
-    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now });
+    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-25", models, images: { "own-01": image }, now });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: false });
     expect(out.rows[0]!.shipped.source).not.toBe("failed");
     expect(out.failures.map((f) => `${f.itemId}:${f.path}`)).toEqual(["own-01:cloud", "own-01:second_look"]);
@@ -74,7 +74,7 @@ describe("evalRows", () => {
 
   it("records a failed path instead of guessing, and the shipped route as Check this when its read fails", async () => {
     const models = { device: failing("no device model"), hybrid: failing("no device model"), cloud: failing("Failed to fetch") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now });
     expect(out.rows[0]!.device).toBeNull();
     expect(out.rows[0]!.cloud).toBeNull();
     expect(out.rows[0]!.shipped).toEqual({ level: "check", source: "failed", secondLook: false });
@@ -83,14 +83,14 @@ describe("evalRows", () => {
 
   it("lets the shipped route recover in the cloud as the app does when the hybrid call fails", async () => {
     const models = { device: answers(base, "on_device"), hybrid: failing("Failed to fetch"), cloud: answers(base, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now });
     expect(out.failures).toEqual([]);
     expect(out.rows[0]!.shipped).toMatchObject({ level: "ok", source: "in_cloud" });
   });
 
   it("times each path as many times as asked, keeping the first read", async () => {
     const models = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, repeat: 3 });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now, repeat: 3 });
     expect(out.rows[0]!.device!.msRuns).toHaveLength(3);
     expect(out.rows[0]!.cloud!.msRuns).toHaveLength(3);
     expect(models.device.generate).toHaveBeenCalledTimes(3);
@@ -98,7 +98,7 @@ describe("evalRows", () => {
 
   it("runs only the paths asked for, and marks the others as not run, never guessed", async () => {
     const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, paths: ["cloud"] });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now, paths: ["cloud"] });
     expect(models.cloud.generate).toHaveBeenCalledTimes(1);
     expect(models.device.generate).not.toHaveBeenCalled();
     expect(models.hybrid.generate).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe("evalRows", () => {
   it("gives no verdict for a read of no item, as the Pack page adds no card for it", async () => {
     const nothing: ItemRead = { ...base, itemName: "unknown", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
     const models = { device: answers(nothing, "on_device"), hybrid: answers(nothing, "on_device"), cloud: answers(nothing, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, repeat: 2 });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now, repeat: 2 });
     // The read is kept, marked, and timed every run, so its numbers and its time still count.
     expect(out.rows[0]!.device).toMatchObject({ noItem: true, level: "check" });
     expect(out.rows[0]!.device!.msRuns).toHaveLength(2);
@@ -126,7 +126,7 @@ describe("evalRows", () => {
   it("gives no verdict for a read past the time limit, and goes on to the next item", async () => {
     const hung: Spy = { generate: vi.fn(() => new Promise<never>(() => undefined)) };
     const models = { device: hung, hybrid: hung, cloud: hung };
-    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, limitMs: 30 });
+    const out = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now, limitMs: 30 });
     expect(out.rows[0]!.device).toBeNull();
     expect(out.rows[0]!.cloud).toBeNull();
     expect(out.rows[0]!.shipped).toMatchObject({ source: "too_slow" });
@@ -137,25 +137,25 @@ describe("evalRows", () => {
   it("keeps the first verdict when the second look runs past the time limit, as the Pack page does", async () => {
     const hung: Spy = { generate: vi.fn(() => new Promise<never>(() => undefined)) };
     const models = { device: answers(phoneDevice, "on_device"), hybrid: answers(phoneDevice, "on_device"), cloud: hung };
-    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-21", models, images: { "own-01": image }, now, limitMs: 30, paths: ["shipped"] });
+    const out = await evalRows({ set: set(["own-01"]), edition: ed, date: "2026-11-25", models, images: { "own-01": image }, now, limitMs: 30, paths: ["shipped"] });
     expect(out.rows[0]!.shipped).toMatchObject({ source: "on_device", secondLook: false });
     expect(out.failures.map((f) => f.path)).toEqual(["second_look"]);
   });
 
   it("with a cold call, reads once on each path before the first item and reports that time apart", async () => {
     const models: ItemModels & Record<"device" | "hybrid" | "cloud", Spy> = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
-    const out = await evalRows({ set: set(["own-18", "own-20"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image, "own-20": image }, now, coldCall: true });
+    const out = await evalRows({ set: set(["own-18", "own-20"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image, "own-20": image }, now, coldCall: true });
     expect(models.device.generate).toHaveBeenCalledTimes(3);
     expect(models.cloud.generate).toHaveBeenCalledTimes(3);
     expect(out.cold.device).toBeGreaterThan(0);
     expect(out.cold.cloud).toBeGreaterThan(0);
     expect(out.rows.every((r) => r.device!.msRuns.length === 1 && r.cloud!.msRuns.length === 1)).toBe(true);
-    const plain = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: { "own-18": image }, now, paths: ["shipped"] });
+    const plain = await evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: { "own-18": image }, now, paths: ["shipped"] });
     expect(plain.cold).toEqual({ device: null, cloud: null });
   });
 
   it("refuses an item with no photo", async () => {
     const models = { device: answers(base, "on_device"), hybrid: answers(base, "on_device"), cloud: answers(base, "in_cloud") };
-    await expect(evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-21", models, images: {}, now })).rejects.toThrow(/own-18: no photo/);
+    await expect(evalRows({ set: set(["own-18"]), edition: ed, date: "2026-11-25", models, images: {}, now })).rejects.toThrow(/own-18: no photo/);
   });
 });

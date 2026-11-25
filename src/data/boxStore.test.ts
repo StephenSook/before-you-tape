@@ -42,7 +42,7 @@ const spyPersistence = (loaded: Partial<BoxState> | null = null) => {
 const writes = (p: ReturnType<typeof spyPersistence>) => p.putMeta.mock.calls.length + p.putItem.mock.calls.length + p.deleteItem.mock.calls.length;
 let ids = 0;
 const store = (o: { persistence?: BoxOps; verified?: () => Promise<boolean>; changes?: BoxChangesDep } = {}) => createBoxStore({
-  edition: () => ed, persistence: o.persistence ?? spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
+  edition: () => ed, persistence: o.persistence ?? spyPersistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`,
   ...(o.verified ? { verified: o.verified } : {}),
   ...(o.changes ? { changes: o.changes } : {}),
 });
@@ -160,7 +160,7 @@ describe("createBoxStore", () => {
 
   it("stamps each new item with the time it was added", () => {
     let t = 1_795_000_000_000;
-    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, clock: () => t++ });
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`, clock: () => t++ });
     s.addManual(shirtRead);
     s.addRead(outcome(liquidLotionRead, "in_cloud"), "crop-1");
     expect(s.getState().items.map((i) => i.addedAt)).toEqual([1_795_000_000_000, 1_795_000_000_001]);
@@ -347,7 +347,7 @@ describe("createBoxStore", () => {
     const remembered: Record<string, Record<string, { read: string; override?: string }>> = {};
     const deviceNames = { remember: (boxId: string, names: Record<string, { read: string; override?: string }>) => { remembered[boxId] = { ...names }; }, recall: (boxId: string) => remembered[boxId] ?? {} };
     const persistence = spyPersistence();
-    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
     s.setConsent(true);
     const read = s.addRead(outcome(lotion, "on_device"), "k");
     const typed = s.addManual({ ...lotion, itemName: "My aunt's lotion" });
@@ -363,7 +363,7 @@ describe("createBoxStore", () => {
     // This device keeps the real names, and a reload puts them back.
     expect(remembered["names-box"]?.[read]).toEqual({ read: lotion.itemName, override: "Grandma's rose water" });
     expect(remembered["names-box"]?.[typed]).toEqual({ read: "My aunt's lotion" });
-    const back = createBoxStore({ edition: () => ed, persistence: spyPersistence({ items: saved() }), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
+    const back = createBoxStore({ edition: () => ed, persistence: spyPersistence({ items: saved() }), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`, boxId: "names-box", deviceNames });
     await back.ready;
     const again = back.getState().items.find((i) => i.itemId === read);
     expect(again?.read.itemName).toBe(lotion.itemName);
@@ -376,7 +376,7 @@ describe("createBoxStore", () => {
     const consent = deviceConsent(localStorage);
     consent.set(true);
     const persistence = spyPersistence();
-    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent });
+    const s = createBoxStore({ edition: () => ed, persistence, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`, consent });
     expect(s.getState().cloudConsent).toBe(true);
     const saves = writes(persistence);
     s.setConsent(false);
@@ -388,7 +388,7 @@ describe("createBoxStore", () => {
 
   it("hears another tab on this device change the answer, reads it fresh, and tells listeners", () => {
     localStorage.clear();
-    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`, consent: deviceConsent(localStorage) });
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`, consent: deviceConsent(localStorage) });
     s.setConsent(true);
     const heard = vi.fn();
     s.subscribe(heard);
@@ -1012,7 +1012,7 @@ describe("createBoxStore", () => {
 
   it("adds a sample's recorded read under its own source, and counts it as no read made on this device", async () => {
     let k = 0;
-    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `r-${k++}` });
+    const s = createBoxStore({ edition: () => ed, persistence: spyPersistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `r-${k++}` });
     await s.ready;
     const id = s.addRecorded(liquidLotionRead, 3997, "sample-key");
     const item = s.getState().items.find((i) => i.itemId === id)!;
@@ -1117,7 +1117,7 @@ describe("createBoxStore", () => {
       const tabs = otherTabs();
       const p = spyPersistence();
       const kept = { ...phoneItem, itemId: "kept-1" };
-      const s = createBoxStore({ edition: () => ed, persistence: p, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${ids++}`,
+      const s = createBoxStore({ edition: () => ed, persistence: p, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${ids++}`,
         journal: { read: () => ({ meta: null, items: { "kept-1": kept } }), write: () => {} }, changes: tabs });
       await s.ready;
       await s.settled();

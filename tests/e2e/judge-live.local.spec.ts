@@ -13,7 +13,7 @@ const modelReply = {
 };
 
 test("the /judge live read asks nothing of Google until pressed, then reads the sample after Allow", async ({ page }) => {
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   const googleBeforePress: string[] = [];
   let pressed = false;
   page.on("request", (r) => { if (!pressed && /googleapis\.com|google\.com\/recaptcha|gstatic\.com\/recaptcha/.test(r.url())) googleBeforePress.push(new URL(r.url()).host); });
