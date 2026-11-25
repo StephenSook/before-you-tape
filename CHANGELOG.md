@@ -1269,6 +1269,7 @@ Source: plan Task 29. Verified by `src/eval/metrics.test.ts` (8 tests, including
 
 ### Changed
 
+- `rules/live-engines.json` lists `android-judge-8` among the live app builds the pin guard names. Its known facts are unchanged: the list keeps only the facts every live build's engine knows, and `android-judge-3` to `-6` and iPhone build 2 do not know `battery.numbersFrom`, so a pin of revision 7 or later is still refused. Source: `android-judge-8` is published as Latest. Verified: the pin-guard test failed first without the build, then passed; the pin-guard and publish-edition tests, typecheck, lint, tone, hygiene and edition:check pass.
 - The /judge "Android app (APK)" link (`src/ui/sourceLink.ts`) and the README's Android line now point at the `android-judge-8` release (`before-you-tape-android-d39d8ad.apk`, SHA-256 `72890037...2ad6`, rule edition revision 8), and the README gives that file's own results: it passed the release checks on a Samsung A16, and on a Pixel 10's own model it read 26 of our 40 eval photos and called 1 of the 24 hazard items it read "OK to pack". Source: the release `android-judge-8` is published as Latest. Verified: the JudgePage link test failed first on the judge-7 link, then passed; typecheck, lint, tone, hygiene and the unit tests pass.
 - `src/shared/secondLook.ts` now holds the second look's pure parts: `needsSecondLook` (with `SecondLookPolicy`,
   `SecondLookReason` and `SECOND_LOOK_DEFAULT`), `mergeReads` and `readDisputes`, moved word for word from
