@@ -64,6 +64,17 @@ describe("ItemCard", () => {
     expect(screen.getByTestId("source-glyph")).toHaveAccessibleName("Read on this device, then checked in the cloud");
   });
 
+  it("never claims a cloud check for a saved item whose second look field is missing", () => {
+    // The Firestore rules let a saved item leave secondLook out, and the loader passes it through as undefined.
+    for (const [source, name] of [["manual", "Typed by you"], ["on_device", "Read on this device"]] as const) {
+      const saved = { ...item("sv", shirtSeen.read, { readSource: source }), secondLook: undefined } as unknown as BoxItem;
+      render(<ItemCard item={saved} verdict={verdictFor(saved)} crop={jpeg} />);
+      expect(screen.getByTestId("source-glyph"), source).toHaveAccessibleName(name);
+      expect(screen.getByTestId("source-glyph"), source).toHaveTextContent(new RegExp(`^${name}$`));
+      cleanup();
+    }
+  });
+
   it("shows the crop, the first reason, the source and the four layers", () => {
     expect(takeOut.level).toBe("take_out");
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
