@@ -5,7 +5,11 @@ For every photo in src/judge/brandMasks.json, the published photo in public/eval
 region (a box or a polygon, as fractions of the photo) is pixelated and blurred, and a 240 px and a 480 px wide
 WebP go to public/judge/thumbs/ with no Exif or XMP block (an ICC color profile is kept). src/judge/judgeThumbs.json
 records each file's size and SHA-256. The published photos, their manifest and public/eval/thumbs/ are not
-changed, and a model never reads these copies.
+changed, and the eval never reads these copies.
+
+The sample lotion photo (own-18) also gets a full-size masked JPEG in public/judge/samples/, recorded in
+src/judge/maskedSamples.json, which the Pack page's sample and the /judge live read show and read instead of the
+measured photo.
 
 Needs Python 3 with Pillow. Run from the repository root:
   python3 scripts/judge-thumbs.py
@@ -22,6 +26,10 @@ QUALITY = 80
 MASKS = os.path.join("src", "judge", "brandMasks.json")
 OUT_DIR = os.path.join("public", "judge", "thumbs")
 INDEX = os.path.join("src", "judge", "judgeThumbs.json")
+SAMPLES = ("own-18",)
+SAMPLE_DIR = os.path.join("public", "judge", "samples")
+SAMPLE_INDEX = os.path.join("src", "judge", "maskedSamples.json")
+SAMPLE_QUALITY = 90
 
 
 def region(mask, w, h):
@@ -54,7 +62,9 @@ def blurred(im, masks):
 def main() -> None:
     masks = json.load(open(MASKS))["masks"]
     os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(SAMPLE_DIR, exist_ok=True)
     index = {}
+    samples = {}
     for item_id, item_masks in masks.items():
         photo = os.path.join("public", "eval", "items", f"{item_id}.jpg")
         with Image.open(photo) as im:
@@ -77,8 +87,22 @@ def main() -> None:
                 sizes.append({"src": f"/judge/thumbs/{name}", "width": width, "height": height,
                               "sha256": hashlib.sha256(data).hexdigest()})
             index[item_id] = {"photoWidth": im.width, "photoHeight": im.height, "masks": len(item_masks), "sizes": sizes}
+            if item_id in SAMPLES:
+                buf = io.BytesIO()
+                options = {"quality": SAMPLE_QUALITY}
+                if icc:
+                    options["icc_profile"] = icc
+                hidden.save(buf, "JPEG", **options)
+                data = buf.getvalue()
+                with open(os.path.join(SAMPLE_DIR, f"{item_id}.jpg"), "wb") as f:
+                    f.write(data)
+                samples[item_id] = {"photo": f"/judge/samples/{item_id}.jpg", "sha256": hashlib.sha256(data).hexdigest(),
+                                    "widthPx": hidden.width, "heightPx": hidden.height, "masks": len(item_masks)}
     with open(INDEX, "w") as f:
         json.dump(index, f, indent=2)
+        f.write("\n")
+    with open(SAMPLE_INDEX, "w") as f:
+        json.dump(samples, f, indent=2)
         f.write("\n")
     print(f"wrote {len(index)} photos to {OUT_DIR} and {INDEX}")
 

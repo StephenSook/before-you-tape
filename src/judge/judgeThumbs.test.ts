@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import masks from "./brandMasks.json";
 import judgeThumbs from "./judgeThumbs.json";
-import { judgeThumbOf } from "./judgePhotos";
+import manifest from "../../eval/set/manifest.json";
+import { judgeThumbOf, MASKED_SAMPLE } from "./judgePhotos";
+import maskedSamples from "./maskedSamples.json";
 import { SAMPLE_BOX } from "./sampleBox";
 import thumbs from "./thumbs.json";
 
@@ -51,5 +53,22 @@ describe("the /judge copies of the sample photos", () => {
     expect(judgeThumbOf("own-18")).toEqual({ src: "/judge/thumbs/own-18-480.webp", width: 480, height: 640,
       srcSet: "/judge/thumbs/own-18-240.webp 240w, /judge/thumbs/own-18-480.webp 480w" });
     expect(judgeThumbOf("own-01")).toBeNull();
+  });
+});
+
+// The full-size sample photo the pages show and the live read reads, with the same masks: never the measured photo.
+describe("the masked sample photo", () => {
+  it("is a full-size JPEG of the lotion with its masks, recorded by its SHA-256, and not the measured photo", () => {
+    expect(Object.keys(maskedSamples)).toEqual(["own-18"]);
+    const s = maskedSamples["own-18"];
+    expect(s.photo).toBe("/judge/samples/own-18.jpg");
+    const b = file(s.photo);
+    expect([b[0], b[1]]).toEqual([0xff, 0xd8]);
+    expect(b.includes(Buffer.from("Exif\0\0")), "no Exif block").toBe(false);
+    expect(createHash("sha256").update(b).digest("hex")).toBe(s.sha256);
+    expect([s.widthPx, s.heightPx]).toEqual([1200, 1600]);
+    expect(s.masks).toBe(maskList["own-18"]!.length);
+    expect(s.sha256).not.toBe(manifest.items.find((i) => i.itemId === "own-18")!.photoSha256);
+    expect(MASKED_SAMPLE).toEqual({ url: "/judge/samples/own-18.jpg", sha256: s.sha256 });
   });
 });
