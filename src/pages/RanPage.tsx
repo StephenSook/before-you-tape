@@ -9,6 +9,8 @@ import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 // Our own test, written by scripts/ran-eval.ts, and the saved-box totals, written by scripts/measure-routes.ts. Until a
 // saved-box totals file is committed there is none, and the page says so.
 const FILE: unknown = Object.values(import.meta.glob("../ran/measured.json", { eager: true, import: "default" }))[0];
+// The re-score of our test's saved reads, written by scripts/eval-rescore.ts; with none, the page says a verdict can differ.
+const RESCORED: unknown = Object.values(import.meta.glob("../ran/rescore.json", { eager: true, import: "default" }))[0];
 
 const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Type an item", runs: "No model. The rules run in your browser.", leaves: "Nothing goes to a model. The box list is saved, as the line below the table says." },
@@ -20,11 +22,12 @@ const ROWS: { action: string; runs: string; leaves: string }[] = [
   { action: "Turn off cloud checks", runs: "Every read that starts after it stays on this device. A read already running makes no further cloud call.", leaves: "No more photos or label text. A read on this device still sends its timing record." },
 ];
 
-// ranEval and measured: the eval summary and the saved-box totals to show (the committed ones unless a test passes its
-// own); today: this device's date.
-export function RanPage(p: { ranEval?: unknown; measured?: unknown; today?: string }) {
+// ranEval, rescored and measured: the eval summary, its re-score summary and the saved-box totals to show (the committed
+// ones unless a test passes its own); today: this device's date.
+export function RanPage(p: { ranEval?: unknown; rescored?: unknown; measured?: unknown; today?: string }) {
   const file = "measured" in p ? p.measured : FILE;
   const evalFile = "ranEval" in p ? p.ranEval : EVAL;
+  const rescoreFile = "rescored" in p ? p.rescored : RESCORED;
   return (
     <div className="ran">
       <h1>What ran where</h1>
@@ -37,7 +40,7 @@ export function RanPage(p: { ranEval?: unknown; measured?: unknown; today?: stri
       </table>
       <p>{BOX_LIST_SAVED}</p>
       <p>{READ_TIMING_SENT}</p>
-      <MeasuredSection evalFile={evalFile} file={file} today={p.today ?? localDay()} />
+      <MeasuredSection evalFile={evalFile} rescoreFile={rescoreFile} file={file} today={p.today ?? localDay()} />
     </div>
   );
 }

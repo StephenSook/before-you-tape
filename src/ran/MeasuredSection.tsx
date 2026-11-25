@@ -3,6 +3,7 @@
 // at all from a file it cannot read; the saved-box totals also show none once they are stale (src/ran/measured.ts).
 import bundledEdition from "../../rules/edition.json";
 import { longDate } from "../engine/destination";
+import { readRescoreSummary, type RescoreSummary } from "../eval/rescoreRecord";
 import { readEval, type EvalSummary } from "./evalSummary";
 import { readMeasured } from "./measured";
 import type { Count, Measured, Timed } from "./summarize";
@@ -16,7 +17,18 @@ const span = (w: NonNullable<Measured["window"]>) =>
 // The rule edition this build runs, to say beside our test's numbers when the test ran on an earlier one.
 const CURRENT = { editionId: bundledEdition.editionId, revision: bundledEdition.revision };
 
-function OurTest({ e }: { e: EvalSummary }) {
+// Beside an earlier edition: what re-scoring the test's saved reads on the edition this build runs found
+// (src/eval/rescoreRecord.ts), or, with no re-score for this edition, that a verdict today can differ.
+function editionNote(e: EvalSummary, r: RescoreSummary | null): string {
+  if (e.editionId === CURRENT.editionId) return "";
+  const now = `, an earlier edition: the app now runs ${CURRENT.editionId} (revision ${CURRENT.revision})`;
+  if (!r || r.editionId !== CURRENT.editionId || r.runId !== e.runId) return `${now}, so a verdict today can differ.`;
+  const found = r.shippedChanged === 0 ? "no verdict changed" : `${r.shippedChanged} of ${r.shippedRows} verdicts changed`;
+  return `${now}. Re-scored on it with the saved reads: ${found} for the ${r.shippedItems} items without a second look. ` +
+    `The ${r.notRescoredItems} items that got one could not be re-scored: the run did not save the reads the second look compared.`;
+}
+
+function OurTest({ e, rescored }: { e: EvalSummary; rescored: RescoreSummary | null }) {
   const onDevice = e.readOnDevice === e.checks ? `All ${e.checks} checks were` : `${e.readOnDevice} of ${e.checks} checks were`;
   const looks = `${e.secondLookItems} ${e.secondLookItems === 1 ? "item" : "items"} also got a second look in the cloud`;
   const w = e.withoutRuleChanges;
@@ -43,9 +55,7 @@ function OurTest({ e }: { e: EvalSummary }) {
           <li>Models: {e.models}</li>
           <li>
             Rules: edition {e.editionId}
-            {e.editionId !== CURRENT.editionId
-              ? `, an earlier edition: the app now runs ${CURRENT.editionId} (revision ${CURRENT.revision}), so a verdict today can differ.`
-              : ""}
+            {editionNote(e, rescored)}
           </li>
         </ul>
         <p>Source: {e.source}. These are our own test photos, not visitors'.</p>
@@ -82,15 +92,16 @@ function Visitors({ m }: { m: Measured }) {
   );
 }
 
-// evalFile and file: the eval summary and the saved-box totals to show; today: this device's date.
-export function MeasuredSection({ evalFile, file, today }: { evalFile: unknown; file: unknown; today: string }) {
+// evalFile, rescoreFile and file: the eval summary, its re-score summary and the saved-box totals to show; today: this
+// device's date.
+export function MeasuredSection({ evalFile, rescoreFile, file, today }: { evalFile: unknown; rescoreFile: unknown; file: unknown; today: string }) {
   const e = readEval(evalFile);
   const r = readMeasured(file, today);
   return (
     <section aria-labelledby="measured-heading">
       <h2 id="measured-heading">Measured</h2>
       <h3>Our test</h3>
-      {e.ok ? <OurTest e={e.data} /> : <p data-testid="eval-measured">Our test numbers are not shown: the file could not be read.</p>}
+      {e.ok ? <OurTest e={e.data} rescored={readRescoreSummary(rescoreFile)} /> : <p data-testid="eval-measured">Our test numbers are not shown: the file could not be read.</p>}
       <h3>Saved boxes, our own checks included</h3>
       {r.ok ? <Visitors m={r.data} /> : (
         <p data-testid="measured">
