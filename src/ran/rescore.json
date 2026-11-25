@@ -8,5 +8,11 @@
   "shippedRows": 52,
   "shippedChanged": 0,
   "secondLookItems": 13,
-  "clippedItems": 1
+  "clippedItems": 1,
+  "upcoming": [
+    {
+      "name": "Canada",
+      "from": "2026-11-29"
+    }
+  ]
 }

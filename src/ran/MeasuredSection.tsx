@@ -28,7 +28,10 @@ function editionNote(e: EvalSummary, r: RescoreSummary | null): string {
     ? `The ${r.secondLookItems} items that got a second look could not be re-scored: the run did not save the reads the second look compared.`
     : `It could not re-score ${r.secondLookItems + r.clippedItems} items: ${r.secondLookItems} got a second look, whose compared reads the run did ` +
       `not save, and ${r.clippedItems} had ${r.clippedItems === 1 ? "its" : "their"} saved label cut short.`;
-  return `${now}. Re-scored on it with the saved reads: ${found} for the ${r.shippedItems} items it could re-score. ${gaps}`;
+  const ahead = r.upcoming.map((u) => ` USPS has announced a suspension of mail to ${u.name} from ${longDate(u.from)}: from that day, our ` +
+    `test's "OK to pack" verdicts for ${u.name} read "Check this".`).join("");
+  return `${now}. Re-scored on it with the saved reads, applying the rules as of ${longDate(r.date)}: ${found} for the ` +
+    `${r.shippedItems} items it could re-score. ${gaps}${ahead}`;
 }
 
 function OurTest({ e, rescored }: { e: EvalSummary; rescored: RescoreSummary | null }) {

@@ -1,6 +1,8 @@
 // The public record of a re-score (scripts/eval-rescore.ts) and the short summary /ran reads from it. The record holds
 // levels, rule ids, item ids and editions only. Its first block is the run's own edition and date; the last block is
 // the edition the summary speaks for, compared with the first on the shipped route.
+import { isCalendarDate, resolveDestination } from "../engine/edition";
+import type { RuleEdition } from "../engine/types";
 import type { RescoredRow } from "./rescore";
 
 export interface RescoreBlock {
@@ -27,11 +29,15 @@ export interface RescoreSummary {
   // save, or the saved label was cut at LABEL_TEXT_MAX characters.
   secondLookItems: number;
   clippedItems: number;
+  // A suspension of mail to a destination that the edition announces for after the re-score's date: from then the
+  // verdicts for it differ from the ones re-scored.
+  upcoming: { name: string; from: string }[];
 }
 
 export const RESCORE_SOURCE = "eval/runs/models-2026-11-21.rescored.public.json";
 
-export function rescoreSummary(record: RescoreRecord): RescoreSummary {
+// edition: the last block's edition, for the suspensions it announces.
+export function rescoreSummary(record: RescoreRecord, edition: RuleEdition): RescoreSummary {
   const first = record.blocks[0];
   const last = record.blocks[record.blocks.length - 1];
   if (!first || !last) throw new Error("a re-score record needs at least one block");
@@ -49,11 +55,17 @@ export function rescoreSummary(record: RescoreRecord): RescoreSummary {
     return b.level !== (r.shipped as { level: string }).level;
   });
   const items = (rows: RescoredRow[]) => new Set(rows.map((r) => r.itemId)).size;
+  if (edition.editionId !== last.editionId) throw new Error(`edition ${edition.editionId} is not the last block's ${last.editionId}`);
+  const upcoming = [...new Set(last.rows.map((r) => r.destination))].flatMap((code) => {
+    const d = resolveDestination(edition, code, undefined, last.date);
+    return d.suspendsFrom ? [{ name: d.name, from: d.suspendsFrom }] : [];
+  });
   return {
     runId: record.runId, source: RESCORE_SOURCE, editionId: last.editionId, revision: last.revision, date: last.date,
     shippedItems: items(rescored), shippedRows: rescored.length, shippedChanged: changed.length,
     secondLookItems: items(last.rows.filter((r) => reason(r) === "second_look")),
     clippedItems: items(last.rows.filter((r) => reason(r) === "clipped_label")),
+    upcoming,
   };
 }
 
@@ -64,10 +76,14 @@ const isCount = (v: unknown): v is number => typeof v === "number" && Number.isI
 export function readRescoreSummary(file: unknown): RescoreSummary | null {
   if (typeof file !== "object" || file === null || Array.isArray(file)) return null;
   const f = file as Record<string, unknown>;
-  const keys = ["runId", "source", "editionId", "revision", "date", "shippedItems", "shippedRows", "shippedChanged", "secondLookItems", "clippedItems"];
+  const keys = ["runId", "source", "editionId", "revision", "date", "shippedItems", "shippedRows", "shippedChanged", "secondLookItems", "clippedItems", "upcoming"];
   if (Object.keys(f).sort().join() !== [...keys].sort().join()) return null;
   if (![f.runId, f.source, f.editionId, f.date].every(isText)) return null;
   if (![f.revision, f.shippedItems, f.shippedRows, f.shippedChanged, f.secondLookItems, f.clippedItems].every(isCount)) return null;
   if ((f.shippedChanged as number) > (f.shippedRows as number)) return null;
+  if (!isCalendarDate(f.date as string) || !Array.isArray(f.upcoming)) return null;
+  const isUpcoming = (u: unknown) => typeof u === "object" && u !== null && Object.keys(u).sort().join() === "from,name"
+    && isText((u as { name: unknown }).name) && isText((u as { from: unknown }).from) && isCalendarDate((u as { from: string }).from);
+  if (!f.upcoming.every(isUpcoming)) return null;
   return f as unknown as RescoreSummary;
 }

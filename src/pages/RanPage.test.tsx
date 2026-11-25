@@ -127,7 +127,8 @@ describe("RanPage", () => {
 
   const rescored = (over: Partial<RescoreSummary> = {}): RescoreSummary => ({
     runId: "models-2026-11-21", source: "eval/runs/models-2026-11-21.rescored.public.json", editionId: bundled.editionId,
-    revision: bundled.revision, date: "2026-11-25", shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1, ...over,
+    revision: bundled.revision, date: "2026-11-25", shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1,
+    upcoming: [{ name: "Canada", from: "2026-11-29" }], ...over,
   });
   const editionLine = () => within(screen.getByText("How our test was run").closest("details")!).getByText(/^Rules: edition /);
 
@@ -135,8 +136,9 @@ describe("RanPage", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored()} today="2026-11-21" />);
     expect(editionLine()).toHaveTextContent(
       `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}). ` +
-      "Re-scored on it with the saved reads: no verdict changed for the 26 items it could re-score. " +
-      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had its saved label cut short.");
+      "Re-scored on it with the saved reads, applying the rules as of November 25, 2026: no verdict changed for the 26 items it could re-score. " +
+      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had its saved label cut short. " +
+      "USPS has announced a suspension of mail to Canada from November 29, 2026: from that day, our test's \"OK to pack\" verdicts for Canada read \"Check this\".");
     expect(editionLine()).not.toHaveTextContent("can differ");
   });
 
@@ -148,7 +150,13 @@ describe("RanPage", () => {
 
   it("counts the verdicts a re-score changed", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedChanged: 2 })} today="2026-11-21" />);
-    expect(editionLine()).toHaveTextContent("Re-scored on it with the saved reads: 2 of 52 verdicts changed for the 26 items it could re-score.");
+    expect(editionLine()).toHaveTextContent("applying the rules as of November 25, 2026: 2 of 52 verdicts changed for the 26 items it could re-score.");
+  });
+
+  it("says nothing of a suspension when none is announced after the re-score's date", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ upcoming: [] })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent(/cut short\.$/);
+    expect(editionLine()).not.toHaveTextContent("suspension");
   });
 
   it("keeps saying a verdict can differ when the re-score is for another edition, or cannot be read", () => {

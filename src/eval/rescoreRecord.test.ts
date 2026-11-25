@@ -148,26 +148,36 @@ describe("the published re-score", () => {
     expect(BRANDS.filter((b) => brandWord(b).test(recordText))).toEqual([]);
   });
 
-  it("gives /ran the summary of its last block", () => {
+  it("gives /ran the summary of its last block, dated, with the suspension announced after that date", () => {
     const summary = read("src/ran/rescore.json");
-    expect(summary).toEqual(rescoreSummary(record));
+    const edition = parseEdition(read(last.editionFile));
+    expect(summary).toEqual(rescoreSummary(record, edition));
+    expect(last.date).toBe("2026-11-25");
+    expect(rescoreSummary(record, edition)).toMatchObject({ date: "2026-11-25", upcoming: [{ name: "Canada", from: "2026-11-29" }] });
+    // A suspension already in force by the re-score's date is in its verdicts, so it is not announced as ahead.
+    expect(rescoreSummary({ ...record, blocks: [first, { ...last, date: "2026-11-29" }] }, edition).upcoming).toEqual([]);
     expect(readRescoreSummary(summary)).toEqual(summary);
-    expect(rescoreSummary(record)).toMatchObject({ shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1 });
+    expect(rescoreSummary(record, edition)).toMatchObject({ shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1 });
   });
 
   it("refuses to sum a block with a gap that is neither a second look nor a cut label, or a verdict the first block lacks", () => {
     const withLast = (rows: RescoredRow[]): RescoreRecord => ({ ...record, blocks: [first, { ...last, rows }] });
     const gap = last.rows.map((r, i) => (i === 0 ? { ...r, shipped: { notRescored: "no_verdict" as const } } : r));
-    expect(() => rescoreSummary(withLast(gap))).toThrow(/not re-scored \(no_verdict\)/);
+    const edition = parseEdition(read(last.editionFile));
+    expect(() => rescoreSummary(withLast(gap), edition)).toThrow(/not re-scored \(no_verdict\)/);
     const i = first.rows.findIndex((r) => reason(r.shipped) === "second_look");
     const extra = last.rows.map((r, k) => (k === i ? { ...r, shipped: { level: "check" as const, rules: [], question: null } } : r));
-    expect(() => rescoreSummary(withLast(extra))).toThrow(/no verdict on the run's own edition/);
+    expect(() => rescoreSummary(withLast(extra), edition)).toThrow(/no verdict on the run's own edition/);
   });
 });
 
 describe("readRescoreSummary", () => {
-  const good = rescoreSummary(record);
+  const good = rescoreSummary(record, parseEdition(read(last.editionFile)));
   it("refuses a file that is missing, has other fields, or counts more changes than rows", () => {
+    expect(readRescoreSummary({ ...good, upcoming: [{ name: "Canada", from: "2026-11-31" }] })).toBeNull();
+    expect(readRescoreSummary({ ...good, upcoming: [{ name: "", from: "2026-11-29" }] })).toBeNull();
+    expect(readRescoreSummary({ ...good, upcoming: "Canada" })).toBeNull();
+    expect(readRescoreSummary({ ...good, date: "2026-11-31" })).toBeNull();
     expect(readRescoreSummary(undefined)).toBeNull();
     expect(readRescoreSummary({ ...good, extra: 1 })).toBeNull();
     expect(readRescoreSummary({ ...good, shippedRows: "54" })).toBeNull();

@@ -63,7 +63,9 @@ function main(): void {
   if (editions.length !== dates.length) throw new Error("give one --date after each --edition");
   const root = repoRoot();
   const record = buildRecord(root, runPath, editions.map((editionPath, i) => ({ editionPath, date: dates[i]! })));
-  const files: [string, string][] = [[RECORD, json(record)], [SUMMARY, json(rescoreSummary(record))]];
+  const lastEdition = parseEdition(JSON.parse(readFileSync(join(root, record.blocks[record.blocks.length - 1]!.editionFile), "utf8")));
+  const summary = rescoreSummary(record, lastEdition);
+  const files: [string, string][] = [[RECORD, json(record)], [SUMMARY, json(summary)]];
   if (argv.includes("--check")) {
     const stale = files.filter(([p, text]) => readFileSync(join(root, p), "utf8") !== text).map(([p]) => p);
     if (stale.length) throw new Error(`differs from the re-score of ${record.runId}: ${stale.join(", ")}`);
@@ -71,7 +73,7 @@ function main(): void {
     return;
   }
   for (const [p, text] of files) writeFileSync(join(root, p), text);
-  console.log(JSON.stringify(rescoreSummary(record)));
+  console.log(JSON.stringify(summary));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();

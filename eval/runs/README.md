@@ -77,6 +77,11 @@ own-20 on the shipped route): the run judged label words from the whole label, a
 One rule hit is new: USPS-INTL-LI-ONE-READ ("Check this") now also fires on the device path for i02, i03 and i05,
 whose verdicts stay the same.
 
+The finding holds for the rules as of 2026-11-25. USPS has announced a suspension of mail to Canada from 2026-11-29,
+and revision 8 lists it: applied on that day or later, it adds DEST-SUSPENDED ("Check this") to every Canada item, so
+from then none of the test's Canada verdicts is "OK to pack". Applied on each day from 2026-11-25 to 2026-12-16, the
+last day of judging, nothing else changed.
+
 The re-score first re-scores the run on its own edition and date, and gives back every published level it re-scores:
 the 80 device rows, the 80 cloud rows, the 80 rules-only rows and the 54 shipped rows. The two cut labels are
 re-scored there only, where the published level checks them. `src/eval/rescoreRecord.test.ts`
