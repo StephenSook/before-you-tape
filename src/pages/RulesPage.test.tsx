@@ -24,11 +24,22 @@ describe("RulesPage", () => {
   });
 
   it("gives each country's lines and says who read them", () => {
-    render(<RulesPage edition={ed} index={index} />);
+    render(<RulesPage edition={ed} index={index} reviews={{ listings: {} }} />);
     const ph = screen.getByRole("region", { name: "Philippines" });
     expect(within(ph).getByText(/read from the USPS page on 2026-11-17, not yet checked by a person/)).toBeInTheDocument();
     expect(within(ph).getByText(/No liquids, nothing that turns runny easily/)).toBeInTheDocument();
     expect(within(ph).getByRole("link", { name: "Philippines listing" })).toHaveAttribute("href", "https://pe.usps.com/text/imm/ps_006.htm");
+  });
+
+  // rules/reviews.json: two AI reviews of each line and the project owner's approval of the lines as a whole. The page
+  // says exactly that, and never that a person checked the lines one by one.
+  it("says the lines were checked by two AI reviews and approved by the project owner as a whole", () => {
+    render(<RulesPage edition={ed} index={index} />);
+    for (const name of ["Canada", "Philippines"]) {
+      const region = screen.getByRole("region", { name });
+      expect(region).toHaveTextContent("Rules read from the USPS page on 2026-11-17. Each line was checked against the USPS listing by two AI reviews, and approved by the project owner on November 21, 2026, as a whole, not line by line.");
+      expect(region).not.toHaveTextContent(/Checked by a person/i);
+    }
   });
 
   it("shows every observation line in full, as each one's reason says", () => {
