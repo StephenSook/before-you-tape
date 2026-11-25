@@ -13,6 +13,8 @@ binary, in a new profile that had never downloaded Chrome's model, against the l
   AI Logic `generateContent` request for `gemini-3.5-flash-lite` answered 200 at 13:57:46.315. The page showed "Read in
   the cloud, 3.5 s", "Take it out for the Philippines" and "The model read: eos body lotion"
   ([`after-allow.png`](after-allow.png)). Performance Monitoring's settings fetch and its upload then answered 200.
+  This read was of the sample photo as taken, and the page then showed the item name the model read. From 2026-11-25
+  the live read reads a copy of the photo with its brand blurred and shows the category the model picked instead.
 - **Checked again** at 13:59:23 in the same tab: the same three lines, the cloud choice stored, and the model still
   "downloadable".
 

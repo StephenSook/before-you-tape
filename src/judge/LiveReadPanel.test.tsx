@@ -41,6 +41,9 @@ describe("LiveReadPanel", () => {
     // The model's category, in the app's words; never the item name it read off the label, which can carry a brand.
     expect(screen.getByTestId("live-read-name")).toHaveTextContent("The model read it as: Lotion or cream");
     expect(screen.getByTestId("live-read-result")).not.toHaveTextContent(SAMPLE_READ.read.itemName);
+    // It reads the copy with the brand blurred, and says so where the read is shown.
+    expect(screen.getByTestId("live-read-photo")).toHaveTextContent("Read from the sample photo with the brand blurred.");
+    expect(screen.getByText(/Reads the sample lotion photo, with its brand blurred,/)).toBeInTheDocument();
     expect(m.device.generate).toHaveBeenCalledTimes(1);
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });

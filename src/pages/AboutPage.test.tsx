@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import manifest from "../../eval/set/manifest.json";
+import { BRANDS, brandWord } from "../judge/brands.fixture";
 import { AboutPage } from "./AboutPage";
 import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 
@@ -29,5 +30,17 @@ describe("AboutPage", () => {
     expect(within(commons).getByRole("link", { name: "CC BY-SA 4.0" })).toHaveAttribute("href", expect.stringMatching(/^https:\/\/creativecommons\.org\//));
     expect(within(commons).getByRole("link", { name: "source" })).toHaveAttribute("href", expect.stringMatching(/^https:\/\/commons\.wikimedia\.org\//));
     expect(credits.filter((c) => c.textContent?.includes("Photo by the project owner"))).toHaveLength(13);
+  });
+
+  // Each photo by its brand-free name: the measured set's own descriptions name brands and makers. The credit itself
+  // keeps each creator's name as the license asks, even where an account is named after a company.
+  it("names each credited photo without its brand, maker or model", () => {
+    render(<AboutPage />);
+    const items = within(screen.getByRole("list", { name: "Photo credits" })).getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent(/^Power bank, back label: Photo by the project owner/);
+    for (const li of items) {
+      const name = (li.textContent ?? "").split(":")[0]!;
+      for (const b of BRANDS) expect(brandWord(b).test(name), `${name} names ${b}`).toBe(false);
+    }
   });
 });

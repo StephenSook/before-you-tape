@@ -45,7 +45,8 @@ export interface CameraStageProps {
   autoRead?: boolean;
   // A tracked test photo a sender with no camera or no item can try. It goes through the same crop step and the
   // same upload path as a photo they add, so the same route and consent decide where it is read.
-  sample?: { url: string; sha256: string; alt: string };
+  // note: said with the sample wherever it shows, such as how the photo differs from the one the read came from.
+  sample?: { url: string; sha256: string; alt: string; note?: string };
   loadSample?: (url: string) => Promise<ArrayBuffer>;
   // When the page has the sample's recorded read, a sample photo goes to it instead of a model.
   onSampleSend?: (part: ImagePart) => void;
@@ -218,7 +219,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
   if (picked) {
     return (
       <section data-testid="stage" className="stage" aria-label="Camera">
-        {fromSample && sample && <p data-testid="sample-note" className="stage-line">Sample photo from our test set: {sample.alt}. It is not your item.</p>}
+        {fromSample && sample && <p data-testid="sample-note" className="stage-line">Sample photo from our test set: {sample.alt}. It is not your item.{sample.note ? ` ${sample.note}` : ""}</p>}
         <PhotoCrop source={picked} initialBox={PHOTO_BOX} cropPart={cropPart ?? cropWithLimits} onError={(e) => onError?.(plain(e, true))}
           onSend={(part) => { closePicked(); setSampleSent(fromSample); onImage(part, "upload"); }} onCancel={closePicked} />
       </section>
@@ -264,7 +265,7 @@ export function CameraStage({ openCamera, onImage, forcedEvent, phoneReady, phon
       </p>
       {sampleSent && <p data-testid="sample-sent" className="stage-line">{onSampleSend
         ? "The last check showed a recorded read of a sample photo from our test set, not your item."
-        : "The last check used a sample photo from our test set, not your item."}</p>}
+        : "The last check used a sample photo from our test set, not your item."}{sample?.note ? ` ${sample.note}` : ""}</p>}
     </section>
   );
 }

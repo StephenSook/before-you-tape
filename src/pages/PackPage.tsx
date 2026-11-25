@@ -32,11 +32,13 @@ import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
 import { SecurityCheckFailed } from "../ui/SecurityCheckFailed";
 import { VerdictChip } from "../ui/VerdictChip";
-import manifest from "../../eval/set/manifest.json";
+import { judgeNameOf } from "../judge/brandFree";
+import { MASKED_SAMPLE } from "../judge/judgePhotos";
 
-// A tracked eval photo (the /judge sample's body lotion) for a sender with no camera or no item at hand.
-const SAMPLE_ITEM = manifest.items.find((i) => i.itemId === "own-18")!;
-const SAMPLE_PHOTO = { url: SAMPLE_ITEM.photo, sha256: SAMPLE_ITEM.photoSha256, alt: SAMPLE_ITEM.alt };
+// The /judge sample's body lotion, with its brand blurred, for a sender with no camera or no item at hand. Its
+// recorded read (evidence/sample-read/own-18.json) was made from the photo as taken, and the page says so.
+const SAMPLE_PHOTO = { url: MASKED_SAMPLE.url, sha256: MASKED_SAMPLE.sha256, alt: judgeNameOf("own-18"),
+  note: "The photo is shown with its brand blurred; its read was recorded from the photo as taken." };
 
 export interface PackConfig {
   killCloud: boolean;
