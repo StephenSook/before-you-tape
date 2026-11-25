@@ -5,6 +5,21 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-25
 
+### docs(ios): the README presents the iPhone app as part of the entry and says how to get it
+- What: `ios/README.md` drops "Work in progress" and calls the app one of Before You Tape's three
+  parts. It keeps the limits (the box stays on the phone; joining a web box is not built; iPhone
+  only, iOS 27 or later) and adds how to get it: 1.0.0 (build 2) is waiting for App Review, released
+  on approval in every region except France and China mainland, and there is no public TestFlight
+  link. It says which rules build 2 runs and when its suspension list goes out of date, and updates
+  the test status to the 2026-11-25 run.
+- Source: the iPhone app joins the entry beside the web and Android apps.
+- Verified: App Store Connect read on 2026-11-25 (read only): version 1.0.0 WAITING_FOR_REVIEW with
+  build 2, submitted 2026-11-21T21:00Z; available in 173 regions, not CHN or FRA. Remote Config
+  `rules_edition_id` is byt-08f3b8c7ff31 (revision 6). Build 2's commit 31fd8c5 builds in revision 4;
+  revision 6's suspensions.json is checked on 2026-11-20 with a 21-day limit (rules/limits.json), and
+  src/engine/layers.ts marks a layer stale when its age is over the limit. Docs only;
+  `bash ios/scripts/ci-local-ios.sh` exit 0 at d39d8ad, the same iOS code as this branch.
+
 ### test(ios): judge test boxes on 2026-11-25, on or after every rule layer's check date
 - What: `BoxStoreTests` and `ContractTests` pass the engine "today" as 2026-11-25 instead of 2026-11-20, with
   the shared vectors (tests/vectors) moved the same way. The app builds in rules/edition.json, and the next
