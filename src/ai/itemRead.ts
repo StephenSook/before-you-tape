@@ -157,8 +157,11 @@ function parseOrFail(reply: ModelReply): { read: ItemRead; fullLabelText: string
   }
 }
 
+// onCloud: called when a hybrid read that did not finish on the device goes on to the cloud, before that call, so
+// a page showing where the read runs can say so.
 export async function readItem(
   models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
+  onCloud?: () => void,
 ): Promise<ReadOutcome> {
   const start = now();
   const w = withdrawal(stillAllowed, signal);
@@ -197,6 +200,7 @@ export async function readItem(
       if (w.aborted()) throw blocked();
       recoveredFrom = errorName(e);
     }
+    onCloud?.();
     const cloud = await callCloud(models, image, w);
     return done(cloud.reply, recoveredFrom, cloud.fallbackAfter);
   }

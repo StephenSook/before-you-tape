@@ -1143,6 +1143,40 @@ describe("PackPage", () => {
     expect(box).toHaveTextContent("Nothing in the box yet.");
   });
 
+  it("clears the reading line when a device read runs out of time, even if the model never answers", async () => {
+    const device = { generate: vi.fn(() => new Promise<ModelReply>(() => {})) };
+    const { store } = setup({ models: { ...spyModels(), device }, gate: "available", readTimeoutMs: 50 }, false);
+    await store.ready;
+    await addPhoto();
+    expect(await screen.findByText("The check took too long. Try again or type the item.")).toBeInTheDocument();
+    expect(within(screen.getByTestId("box-summary")).getByTestId("read-status")).toBeEmptyDOMElement();
+  });
+
+  it("keeps saying a read is running while an older one runs, when a newer one ends first with no item", async () => {
+    const releases: ((r: ModelReply) => void)[] = [];
+    const cloud = { generate: vi.fn(() => new Promise<ModelReply>((r) => { releases.push(r); })) };
+    const { store } = setup({ models: { ...spyModels(), cloud } });
+    await store.ready;
+    await addPhoto();
+    await addPhoto();
+    await waitFor(() => expect(releases).toHaveLength(2));
+    const nothing: ItemRead = { ...liquidLotionLabelRead, itemName: "", category: "other", labelText: "", liquid: false, evidence: "not_sure" };
+    act(() => releases[1]?.({ text: JSON.stringify(nothing), source: "in_cloud" }));
+    expect(await screen.findByText("Nothing to check there. Hold one item inside the box.")).toBeInTheDocument();
+    expect(within(screen.getByTestId("box-summary")).getByTestId("read-status")).toHaveTextContent("Reading in the cloud");
+    expect(screen.getByTestId("box-summary")).not.toHaveTextContent("Nothing in the box yet.");
+  });
+
+  it("says the cloud once a read that started on this device goes on to the cloud", async () => {
+    const hybrid = { generate: vi.fn(async (): Promise<ModelReply> => { throw new Error("on-device model failed"); }) };
+    const cloud = { generate: vi.fn(() => new Promise<ModelReply>(() => {})) };
+    const { store } = setup({ models: { ...spyModels(), hybrid, cloud }, gate: "available" });
+    await store.ready;
+    await addPhoto();
+    await waitFor(() => expect(cloud.generate).toHaveBeenCalled());
+    await waitFor(() => expect(within(screen.getByTestId("box-summary")).getByTestId("read-status")).toHaveTextContent("Reading in the cloud"));
+  });
+
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
     const { store } = setup();
     await store.ready;
