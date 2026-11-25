@@ -7,6 +7,7 @@ import { readItem, ReadFailure, type ReadFailureKind } from "../ai/itemRead";
 import type { GateState, ImagePart, ItemModels } from "../ai/port";
 import type { VerdictLevel } from "../engine/types";
 import type { ItemRead } from "../shared/itemRead";
+import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ConsentNotice } from "../ui/ConsentNotice";
 import { inCountry } from "../ui/countryName";
 import { VerdictChip } from "../ui/VerdictChip";
@@ -130,7 +131,8 @@ export function LiveReadPanel({ load, judge, country, now = () => performance.no
         <div data-testid="live-read-result">
           <p data-testid="live-read-where">{view.inCloud ? "Read in the cloud" : "Read on this device"}, {seconds(view.ms)} s</p>
           <p data-testid="live-read-verdict"><VerdictChip level={judge(view.read)} /> for {inCountry(country)}</p>
-          <p data-testid="live-read-name">The model read: {view.read.itemName}</p>
+          {/* The category the model picked, in the app's words. The item name it read off the label is not shown: it can carry a brand. */}
+          <p data-testid="live-read-name">The model read it as: {CATEGORY_LABELS[view.read.category]}</p>
           <details>
             <summary>Details</summary>
             <p>Start: {seconds(view.steps.start)} s. Photo: {seconds(view.steps.photo)} s. Model: {seconds(view.steps.model)} s.</p>
