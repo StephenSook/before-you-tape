@@ -49,9 +49,9 @@ npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval b
 
 ## Release gate
 
-`npm run release:gate` fails while any country listing has not been checked line by line by a person, or while any rule layer would be past its limit on the last judging day. It is run before a release, not on every commit.
+`npm run release:gate` fails while any country listing has neither a person's line-by-line check nor an approval as a whole in [`rules/reviews.json`](rules/reviews.json) (two AI reviews of each line, then the project owner's approval of those same lines), or while any rule layer would be past its limit on the last judging day (2026-12-16). It is run before a release, not on every commit.
 
-It fails today, on purpose, for two reasons. No person has checked the Canada and Philippines listings yet. And the USPS service alerts were last read on 2026-11-20, so that layer reads stale from 2026-12-12, before the last judging day (2026-12-16). It passes once a person has checked both listings and the alerts have been read again on or after 2026-11-25.
+It passes today. The Canada and Philippines listings are approved as a whole in `rules/reviews.json` (checked by two AI reviews and approved by the project owner on 2026-11-21); no person has checked them line by line yet. The USPS service alerts were read again on 2026-11-25, so with their 21-day limit that layer reads checked through 2026-12-16.
 
 ## Security you can check
 
