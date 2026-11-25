@@ -5,6 +5,7 @@ import type { Measured } from "../ran/summarize";
 import { RanPage } from "./RanPage";
 import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 import bundled from "../../rules/edition.json";
+import type { RescoreSummary } from "../eval/rescoreRecord";
 
 const row = (action: RegExp) => screen.getAllByRole("row").find((r) => action.test(within(r).queryAllByRole("cell")[0]?.textContent ?? ""))!;
 
@@ -104,7 +105,7 @@ describe("RanPage", () => {
   });
 
   it("leads with our own test, before the saved-box totals, with its detail behind a disclosure", () => {
-    render(<RanPage ranEval={ranEval()} measured={measured()} today="2026-11-21" />);
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={null} today="2026-11-21" />);
     const ours = screen.getByTestId("eval-measured");
     expect(ours).toHaveTextContent(
       "40 items for 2 countries. All 80 checks were read on the device by Chrome's built-in model, 13 items also got a second look in the cloud, and no hazard was called OK to pack (0 of 28). Run November 21, 2026.");
@@ -122,6 +123,54 @@ describe("RanPage", () => {
       `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}), so a verdict today can differ.`,
     ]) expect(within(detail).getByText(line)).toBeInTheDocument();
     expect(within(detail).getByText(/Source: eval\/runs\/models-2026-11-21\.public\.json\. These are our own test photos, not visitors'\./)).toBeInTheDocument();
+  });
+
+  const rescored = (over: Partial<RescoreSummary> = {}): RescoreSummary => ({
+    runId: "models-2026-11-21", source: "eval/runs/models-2026-11-21.rescored.public.json", editionId: bundled.editionId,
+    revision: bundled.revision, date: "2026-11-25", shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1,
+    upcoming: [{ name: "Canada", from: "2026-11-29" }], ...over,
+  });
+  const editionLine = () => within(screen.getByText("How our test was run").closest("details")!).getByText(/^Rules: edition /);
+
+  it("says what a re-score on the edition the app runs found, in place of a verdict that can differ", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored()} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent(
+      `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}). ` +
+      "Re-scored on it with the saved reads, applying the rules as of November 25, 2026: no verdict changed for the 26 items it could re-score. " +
+      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had a saved label at the 160-character limit, so part of it may be missing. " +
+      "USPS has announced a suspension of mail to Canada from November 29, 2026: from that day, our test's \"OK to pack\" verdicts for Canada read \"Check this\".");
+    expect(editionLine()).not.toHaveTextContent("can differ");
+  });
+
+  it("names only the second looks when no saved label was cut", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedItems: 27, shippedRows: 54, clippedItems: 0 })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent(
+      "no verdict changed for the 27 items it could re-score. The 13 items that got a second look could not be re-scored: the run did not save the reads the second look compared.");
+  });
+
+  it("counts the verdicts a re-score changed", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedChanged: 2 })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent("applying the rules as of November 25, 2026: 2 of 52 verdicts changed for the 26 items it could re-score.");
+  });
+
+  it("says nothing of a suspension when none is announced after the re-score's date", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ upcoming: [] })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent(/so part of it may be missing\.$/);
+    expect(editionLine()).not.toHaveTextContent("suspension");
+  });
+
+  it("says the same of several labels at the limit", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedItems: 25, shippedRows: 50, clippedItems: 2 })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent("It could not re-score 15 items: 13 got a second look, whose compared reads the run did not save, and 2 had saved labels at the 160-character limit, so part of them may be missing.");
+  });
+
+  it("keeps saying a verdict can differ when the re-score is for another edition, or cannot be read", () => {
+    for (const r of [rescored({ editionId: "byt-000000000000" }), { broken: true }]) {
+      const { unmount } = render(<RanPage ranEval={ranEval()} measured={measured()} rescored={r} today="2026-11-21" />);
+      expect(editionLine()).toHaveTextContent("so a verdict today can differ.");
+      expect(editionLine()).not.toHaveTextContent("Re-scored");
+      unmount();
+    }
   });
 
   it("says nothing more about the edition when the test ran on the edition the app runs", () => {
