@@ -2,15 +2,18 @@
 // nothing blocks the box, and, after a country change, the line that says the box was re-checked by the rules alone.
 import type { LithiumLimits } from "../engine/types";
 import type { BoxResult } from "../engine/verdict";
+import { ReadStatus, type ReadLine } from "./ReadStatus";
 
 const range = ({ min, max }: { min: number; max: number }) => (min === max ? `${max}` : `${min} to ${max}`);
 
 // unknownBox: the saved box could not be read (App Check refused this browser), so no items is not an empty box.
 // incomplete: the box shown may not be the whole saved box (BoxState.incomplete). Hidden items may be hazards, so
 // it is never called ready or counted all clear, and its lithium count covers only the items shown.
-export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = false, incomplete = false }: {
+// read: a photo being read now, or where the newest read ran (src/ui/ReadStatus.tsx); while one runs, the box is
+// not called empty.
+export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = false, incomplete = false, read = null, now = () => performance.now() }: {
   result: BoxResult; itemCount: number; recheck: { ms: number; country: string } | null; limits: LithiumLimits; unknownBox?: boolean;
-  incomplete?: boolean;
+  incomplete?: boolean; read?: ReadLine | null; now?: () => number;
 }) {
   const { counts, lithium } = result;
   // Ready only when every item is OK to pack, the lithium count fits, and mail to the country is open.
@@ -22,7 +25,8 @@ export function BoxSummary({ result, itemCount, recheck, limits, unknownBox = fa
   return (
     <section data-testid="box-summary" aria-label="Your box">
       <h2 id="box-heading" tabIndex={-1}>Your box</h2>
-      {itemCount === 0 ? (unknownBox ? null : <p>Nothing in the box yet.</p>) : (
+      <ReadStatus line={read} now={now} />
+      {itemCount === 0 ? (unknownBox || read?.kind === "reading" ? null : <p>Nothing in the box yet.</p>) : (
         <ul className="count-chips">
           {counts.takeOut > 0 && <li className="chip count-chip chip-take_out">{counts.takeOut} to take out</li>}
           {counts.check > 0 && <li className="chip count-chip chip-check">{counts.check} to check</li>}

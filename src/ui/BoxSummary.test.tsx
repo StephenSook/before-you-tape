@@ -111,4 +111,12 @@ describe("BoxSummary for a box that may be incomplete", () => {
     render(<BoxSummary limits={ed.limits} result={evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-25")} itemCount={0} recheck={null} incomplete />);
     expect(screen.queryByTestId("box-incomplete")).toBeNull();
   });
+
+  it("never calls the box empty while a read is running, and says where it runs", () => {
+    render(<BoxSummary limits={ed.limits} result={evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-25")} itemCount={0} recheck={null}
+      read={{ kind: "reading", inCloud: false, start: 0 }} now={() => 0} />);
+    const s = screen.getByTestId("box-summary");
+    expect(s).not.toHaveTextContent("Nothing in the box yet.");
+    expect(within(s).getByTestId("read-status")).toHaveTextContent("Reading on this device");
+  });
 });
