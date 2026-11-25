@@ -1,0 +1,173 @@
+{
+  "own-18": {
+    "photoWidth": 1200,
+    "photoHeight": 1600,
+    "masks": 4,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/own-18-240.webp",
+        "width": 240,
+        "height": 320,
+        "sha256": "52d95446b9377d84341e38011ca738779f81d6333bb18b554c5ae0139180a208"
+      },
+      {
+        "src": "/judge/thumbs/own-18-480.webp",
+        "width": 480,
+        "height": 640,
+        "sha256": "3eaba9dc589e02ae44dd027bdf5a026c5e35c5117507bb72b434272534e41024"
+      }
+    ]
+  },
+  "i26": {
+    "photoWidth": 1200,
+    "photoHeight": 1600,
+    "masks": 2,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i26-240.webp",
+        "width": 240,
+        "height": 320,
+        "sha256": "8f357cdef2b1edc88e4cd6dff8a3326a0288f2187f6b0f4c396155276137a160"
+      },
+      {
+        "src": "/judge/thumbs/i26-480.webp",
+        "width": 480,
+        "height": 640,
+        "sha256": "25fff5ea91d5a05c0d6b9143d3f17839dc1832806cb667df308e71615c1fca1c"
+      }
+    ]
+  },
+  "i13": {
+    "photoWidth": 1600,
+    "photoHeight": 1200,
+    "masks": 1,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i13-240.webp",
+        "width": 240,
+        "height": 180,
+        "sha256": "16aa839115e67425a87d1439f4ea9c5471cb33d8c88aded3399896cdd82e6fec"
+      },
+      {
+        "src": "/judge/thumbs/i13-480.webp",
+        "width": 480,
+        "height": 360,
+        "sha256": "8ef547df818065b8014a02f53a616753c6663f1ca5646a901c312647b90d3822"
+      }
+    ]
+  },
+  "i01": {
+    "photoWidth": 1600,
+    "photoHeight": 1200,
+    "masks": 2,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i01-240.webp",
+        "width": 240,
+        "height": 180,
+        "sha256": "c8e12441f2d6a8c006d761c81f72455948e28492b28fcdc3012cbbba6aa29643"
+      },
+      {
+        "src": "/judge/thumbs/i01-480.webp",
+        "width": 480,
+        "height": 360,
+        "sha256": "e1100201d5a84a770de2542108cf716da90325c0dfa35337d44656f14061c76a"
+      }
+    ]
+  },
+  "own-25": {
+    "photoWidth": 1200,
+    "photoHeight": 1600,
+    "masks": 2,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/own-25-240.webp",
+        "width": 240,
+        "height": 320,
+        "sha256": "0ff549a279109856e470f29246dcf699f7411210077c23b964b788f427888fbc"
+      },
+      {
+        "src": "/judge/thumbs/own-25-480.webp",
+        "width": 480,
+        "height": 640,
+        "sha256": "7eb4e34d5f084d49ec1934e59218f6085afdaea9c362c0bc7649d95fd1e54b6d"
+      }
+    ]
+  },
+  "i06": {
+    "photoWidth": 1600,
+    "photoHeight": 900,
+    "masks": 1,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i06-240.webp",
+        "width": 240,
+        "height": 135,
+        "sha256": "272069a6952eb527240552ada3139894a5aab31f794e6691628c27a4ea184dcc"
+      },
+      {
+        "src": "/judge/thumbs/i06-480.webp",
+        "width": 480,
+        "height": 270,
+        "sha256": "0bedc141eb2c13131b1fd6cd4200edc1251f9114a28d91447cc371141561f1c1"
+      }
+    ]
+  },
+  "i12": {
+    "photoWidth": 1200,
+    "photoHeight": 1600,
+    "masks": 2,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i12-240.webp",
+        "width": 240,
+        "height": 320,
+        "sha256": "efcfe62077bf1ae39c00b67802ea7a7f95f54c2c3f84d312875a37726946b093"
+      },
+      {
+        "src": "/judge/thumbs/i12-480.webp",
+        "width": 480,
+        "height": 640,
+        "sha256": "5df9a665375140c90e706387892c3b4dab9a30419a76ea69eeaa1238d227c21e"
+      }
+    ]
+  },
+  "i25": {
+    "photoWidth": 900,
+    "photoHeight": 1600,
+    "masks": 3,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i25-240.webp",
+        "width": 240,
+        "height": 427,
+        "sha256": "a0a4e66edb68471a61f6b540d4cc089697d9d76fd9ded324305851d06b81513f"
+      },
+      {
+        "src": "/judge/thumbs/i25-480.webp",
+        "width": 480,
+        "height": 853,
+        "sha256": "f9e8c01a7a7dd9e4e4980dd589da2e44d692416d42d346c348e88638febd972f"
+      }
+    ]
+  },
+  "i20": {
+    "photoWidth": 1533,
+    "photoHeight": 1600,
+    "masks": 0,
+    "sizes": [
+      {
+        "src": "/judge/thumbs/i20-240.webp",
+        "width": 240,
+        "height": 250,
+        "sha256": "65fe0efdab3381b33dbdeb15239022241064ca1ad31d6b915d041d918c3c27c3"
+      },
+      {
+        "src": "/judge/thumbs/i20-480.webp",
+        "width": 480,
+        "height": 501,
+        "sha256": "fc3a4208fb5ed1ad251a016e4217c5f2b3afd00352b6b870ac0b48aff56a965a"
+      }
+    ]
+  }
+}

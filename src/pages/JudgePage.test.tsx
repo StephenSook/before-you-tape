@@ -24,8 +24,11 @@ describe("JudgePage", () => {
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
     // A small WebP copy, with its size, so the page loads fast and does not shift as photos arrive.
     const img = within(card("Body lotion")).getByRole("img");
-    expect(img).toHaveAttribute("src", "/eval/thumbs/own-18-480.webp");
-    expect(img).toHaveAttribute("srcset", "/eval/thumbs/own-18-240.webp 240w, /eval/thumbs/own-18-480.webp 480w");
+    // The /judge copy, with the brand blurred; never the measured photo or the plain small copy.
+    expect(img).toHaveAttribute("src", "/judge/thumbs/own-18-480.webp");
+    expect(img).toHaveAttribute("srcset", "/judge/thumbs/own-18-240.webp 240w, /judge/thumbs/own-18-480.webp 480w");
+    for (const photo of within(screen.getByTestId("sample-grid")).getAllByRole("img")) expect(photo.getAttribute("src")).toMatch(/^\/judge\/thumbs\//);
+    expect(screen.getByText(/Brand names and logos are blurred in these photos/)).toBeInTheDocument();
     expect(img).toHaveAttribute("sizes", "(max-width: 700px) 50vw, 240px");
     expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
     expect(img).toHaveAttribute("alt", "Body lotion, 473 mL");
