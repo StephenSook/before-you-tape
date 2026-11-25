@@ -11,10 +11,10 @@ import { evaluateBox } from "../engine/verdict";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
-import manifest from "../../eval/set/manifest.json";
 import { MATCHED_PAIRS, type MatchedPair } from "../judge/matchedPairs";
 import { LiveReadPanel, type LiveReadDeps } from "../judge/LiveReadPanel";
 import type { RecordedReads } from "../judge/recordedReads";
+import { judgeNameOf } from "../judge/brandFree";
 import { SAMPLE_BOX } from "../judge/sampleBox";
 import { thumbOf } from "../judge/thumbs";
 import type { ItemCategory, ItemRead } from "../shared/itemRead";
@@ -41,8 +41,6 @@ export interface JudgePageProps {
   // makes no request to Google.
   liveRead?: () => Promise<LiveReadDeps>;
 }
-
-const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
 
 // A card's photo: its small WebP copy at its own size, so the page loads fast and nothing shifts as photos arrive.
 function CardPhoto({ itemId, photo, alt }: { itemId: string; photo: string; alt: string }) {
@@ -158,7 +156,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
           <ul>
             {recorded.reads.map((r, i) => (
               <li key={r.itemId}>
-                {PHOTO_ALT.get(r.itemId) ?? r.itemId}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
+                {judgeNameOf(r.itemId)}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
                 {r.ms.toLocaleString("en-US")} ms{i === 0 ? " (first read, includes the model's start)" : ""}
               </li>
             ))}

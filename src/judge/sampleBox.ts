@@ -6,6 +6,7 @@ import manifest from "../../eval/set/manifest.json";
 import type { SetManifest } from "../eval/loadSet";
 import { creditLine } from "../eval/manifest";
 import type { ItemRead } from "../shared/itemRead";
+import { judgeNameOf } from "./brandFree";
 
 const blank: ItemRead = {
   itemName: "", category: "other", labelText: "", volts: 0, milliampHours: 0, wattHours: 0, lithiumGrams: 0, batteryWords: false,
@@ -36,5 +37,5 @@ const items = (manifest as SetManifest).items;
 export const SAMPLE_BOX: readonly SampleItem[] = READS.map(({ itemId, read }) => {
   const m = items.find((i) => i.itemId === itemId);
   if (!m) throw new Error(`sample item ${itemId} is not in the eval set`);
-  return { itemId, read, photo: m.photo, alt: m.alt, credit: creditLine(m) };
+  return { itemId, read, photo: m.photo, alt: judgeNameOf(itemId), credit: creditLine(m) };
 });
