@@ -137,7 +137,7 @@ describe("RanPage", () => {
     expect(editionLine()).toHaveTextContent(
       `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}). ` +
       "Re-scored on it with the saved reads, applying the rules as of November 25, 2026: no verdict changed for the 26 items it could re-score. " +
-      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had its saved label cut short. " +
+      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had a saved label at the 160-character limit, so part of it may be missing. " +
       "USPS has announced a suspension of mail to Canada from November 29, 2026: from that day, our test's \"OK to pack\" verdicts for Canada read \"Check this\".");
     expect(editionLine()).not.toHaveTextContent("can differ");
   });
@@ -155,8 +155,13 @@ describe("RanPage", () => {
 
   it("says nothing of a suspension when none is announced after the re-score's date", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ upcoming: [] })} today="2026-11-21" />);
-    expect(editionLine()).toHaveTextContent(/cut short\.$/);
+    expect(editionLine()).toHaveTextContent(/so part of it may be missing\.$/);
     expect(editionLine()).not.toHaveTextContent("suspension");
+  });
+
+  it("says the same of several labels at the limit", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedItems: 25, shippedRows: 50, clippedItems: 2 })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent("It could not re-score 15 items: 13 got a second look, whose compared reads the run did not save, and 2 had saved labels at the 160-character limit, so part of them may be missing.");
   });
 
   it("keeps saying a verdict can differ when the re-score is for another edition, or cannot be read", () => {

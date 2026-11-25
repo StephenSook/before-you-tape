@@ -4,6 +4,7 @@
 import bundledEdition from "../../rules/edition.json";
 import { longDate } from "../engine/destination";
 import { readRescoreSummary, type RescoreSummary } from "../eval/rescoreRecord";
+import { LABEL_TEXT_MAX } from "../shared/itemRead";
 import { readEval, type EvalSummary } from "./evalSummary";
 import { readMeasured } from "./measured";
 import type { Count, Measured, Timed } from "./summarize";
@@ -27,7 +28,8 @@ function editionNote(e: EvalSummary, r: RescoreSummary | null): string {
   const gaps = r.clippedItems === 0
     ? `The ${r.secondLookItems} items that got a second look could not be re-scored: the run did not save the reads the second look compared.`
     : `It could not re-score ${r.secondLookItems + r.clippedItems} items: ${r.secondLookItems} got a second look, whose compared reads the run did ` +
-      `not save, and ${r.clippedItems} had ${r.clippedItems === 1 ? "its" : "their"} saved label cut short.`;
+      `not save, and ${r.clippedItems} had ${r.clippedItems === 1 ? "a saved label" : "saved labels"} at the ${LABEL_TEXT_MAX}-character limit, ` +
+      `so part of ${r.clippedItems === 1 ? "it" : "them"} may be missing.`;
   const ahead = r.upcoming.map((u) => ` USPS has announced a suspension of mail to ${u.name} from ${longDate(u.from)}: from that day, our ` +
     `test's "OK to pack" verdicts for ${u.name} read "Check this".`).join("");
   return `${now}. Re-scored on it with the saved reads, applying the rules as of ${longDate(r.date)}: ${found} for the ` +
