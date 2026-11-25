@@ -1,0 +1,11 @@
+{
+  "runId": "models-2026-11-21",
+  "source": "eval/runs/models-2026-11-21.rescored.public.json",
+  "editionId": "byt-f083f028e045",
+  "revision": 8,
+  "date": "2026-11-25",
+  "shippedItems": 27,
+  "shippedRows": 54,
+  "shippedChanged": 0,
+  "notRescoredItems": 13
+}

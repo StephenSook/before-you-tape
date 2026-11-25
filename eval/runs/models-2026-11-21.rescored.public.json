@@ -1,0 +1,4273 @@
+{
+  "runId": "models-2026-11-21",
+  "runSha256": "1969e741c6249595c6a9819dd9d82866405edffa912bb9ff7498d3ec32f30871",
+  "setId": "eval-v1",
+  "blocks": [
+    {
+      "editionId": "byt-3b5f5508968f",
+      "revision": 2,
+      "date": "2026-11-21",
+      "editionFile": "eval/runs/editions/byt-3b5f5508968f.json",
+      "editionSha256": "1c8daae0c427ab4052191da8b67a31d8c96ea739350a79e2c5555bf3e5853ad4",
+      "rows": [
+        {
+          "itemId": "own-01",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-01",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-03",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-WH-MISMATCH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-03",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-WH-MISMATCH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-04",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-04",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-14",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-14",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-16",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-16",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-18",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-18",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-20",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-20",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-23",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-23",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-25",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-25",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-27",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-27",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-30",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-30",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-32",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-32",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-33",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-33",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i01",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DATA-LABEL-NUMBERS:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i01",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DATA-LABEL-NUMBERS:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i02",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i02",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i03",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i03",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i04",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i04",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i05",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-METAL-BATTERY-OVER:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i05",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-METAL-BATTERY-OVER:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i06",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i06",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i07",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "CA-P-06:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "CA-P-06:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i07",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i08",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i08",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i09",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i09",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i10",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i10",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i11",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i11",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i12",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i12",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i13",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i13",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i14",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i14",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i15",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i15",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i16",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i16",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i17",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i17",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i18",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i18",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i19",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i19",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i20",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i20",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i21",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i21",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i22",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i22",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i23",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "battery_installed"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i23",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "battery_installed"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i24",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "battery_installed"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i24",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "battery_installed"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i25",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i25",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i26",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i26",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i27",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i27",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        }
+      ]
+    },
+    {
+      "editionId": "byt-f083f028e045",
+      "revision": 8,
+      "date": "2026-11-25",
+      "editionFile": "eval/runs/editions/byt-f083f028e045.json",
+      "editionSha256": "f56f617351a0b4900291124e13e19311d718e1c24f82f55699144557b5b4bd3b",
+      "rows": [
+        {
+          "itemId": "own-01",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-01",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-03",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-WH-MISMATCH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-03",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-WH-MISMATCH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "own-04",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-04",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-14",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-14",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-16",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-16",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-18",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-18",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-20",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-20",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-23",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-23",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-25",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-25",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-27",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "label_alcohol"
+          }
+        },
+        {
+          "itemId": "own-27",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-30",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-30",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-32",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-32",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-33",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "CA-P-01:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "own-33",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-ALCOHOL-DRINK:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i01",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DATA-LABEL-NUMBERS:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i01",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DATA-LABEL-NUMBERS:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i02",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-ONE-READ:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i02",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-ONE-READ:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i03",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-ONE-READ:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i03",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-ONE-READ:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i04",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i04",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i05",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-METAL-BATTERY-OVER:take_out",
+              "USPS-INTL-LI-ONE-READ:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i05",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-METAL-BATTERY-OVER:take_out",
+              "USPS-INTL-LI-ONE-READ:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-LI-LOOSE:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i06",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i06",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i07",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "CA-P-06:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "CA-P-06:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i07",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-ENDS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i08",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i08",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i09",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i09",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-AEROSOL:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i10",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i10",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "USPS-INTL-AEROSOL:take_out",
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i11",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "CA-P-02:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i11",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-MATCHES-LIGHTERS:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i12",
+          "destination": "CA",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "CA-P-03:take_out",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i12",
+          "destination": "PH",
+          "rulesOnly": "take_out",
+          "device": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "take_out",
+            "rules": [
+              "USPS-INTL-FLAMMABLE-LIQUID:take_out",
+              "PH-P-01:take_out"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i13",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i13",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i14",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i14",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i15",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i15",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i16",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i16",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i17",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i17",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i18",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i18",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i19",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i19",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i20",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i20",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i21",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i21",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i22",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i22",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i23",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "battery_installed"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i23",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "battery_installed"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i24",
+          "destination": "CA",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "battery_installed"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check",
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i24",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "battery_installed"
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "DATA-IDENTITY:check",
+              "USPS-INTL-LI-NO-WH:check",
+              "DATA-NEEDS-ANSWER:check"
+            ],
+            "question": "device_condition"
+          },
+          "shipped": {
+            "notRescored": "second_look"
+          }
+        },
+        {
+          "itemId": "i25",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i25",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "PH-P-01:check"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i26",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i26",
+          "destination": "PH",
+          "rulesOnly": "check",
+          "device": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "check",
+            "rules": [
+              "PH-R-01:check"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i27",
+          "destination": "CA",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [
+              "DEST-SUSPENSION-AHEAD:note"
+            ],
+            "question": null
+          }
+        },
+        {
+          "itemId": "i27",
+          "destination": "PH",
+          "rulesOnly": "ok",
+          "device": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "cloud": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          },
+          "shipped": {
+            "level": "ok",
+            "rules": [],
+            "question": null
+          }
+        }
+      ]
+    }
+  ]
+}
