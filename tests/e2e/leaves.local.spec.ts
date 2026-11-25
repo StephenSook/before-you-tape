@@ -19,7 +19,7 @@ type Body = { contents?: { parts?: Part[] }[]; systemInstruction?: string | { pa
 
 test("a cloud read sends what the page says leaves the device: the part inside the box, with no text but our own prompts", async ({ page }) => {
   // The page judges by its own date, and USPS suspends mail to Canada from 2026-11-29: a fixed day before that.
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   await page.goto("/ran");
   const row = page.getByRole("row").filter({ hasText: "Check now, or add a photo and press Check this part" });
   await expect(row).toContainText("Only if it goes to the cloud: the part inside the box and the words on its label.");
@@ -55,7 +55,7 @@ test("a cloud read sends what the page says leaves the device: the part inside t
 });
 
 test("a read on the device sends nothing to a model in the cloud", async ({ page }) => {
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   // Stands in for Chrome's built-in model, so the app's own on-device path runs; the reply is the read above.
   await page.addInitScript((reply) => {
     const w = window as unknown as { LanguageModel: unknown; __devicePrompts: number };
@@ -82,7 +82,7 @@ test("a read on the device sends nothing to a model in the cloud", async ({ page
 });
 
 test("a cloud second look sends the same part the page showed, with no text but our own prompts", async ({ page }) => {
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   // The device read's Wh does not match volts times capacity, so the rules ask for a second look in the cloud.
   const deviceRead = { ...lotionRead, itemName: "Phone", category: "phone", labelText: "LI-ION 3.85V 4000mAh 25Wh", volts: 3.85,
     milliampHours: 4000, wattHours: 25, batteryWords: true, liquid: false, retailBox: "sealed" };
