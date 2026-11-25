@@ -11,8 +11,11 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
   rule revision records the suspension list read on 2026-11-25; the engine reads a layer checked after "today"
   as missing, so a fixed earlier date would turn every OK into Check this.
 - Source: the rule revision that keeps the rules fresh through judging.
-- Verified: the web suite (1234) and the Android gate (246) pass on this tree with the current edition;
-  `bash ios/scripts/ci-local-ios.sh` is run on this branch before it merges.
+- Verified: the web suite (1234) and the Android gate (246) pass on this tree with the current edition.
+  `bash ios/scripts/ci-local-ios.sh` on db971b8 (with revision 8): exit 65 at 04:54Z while the Mac's local date
+  was still 2026-11-24 (8 app tests that use the real clock read the 11-25 suspension layer as not yet checked);
+  exit 0 at 05:05Z after local midnight with no code change (292 app tests: 291 passed, 1 skipped; BYTCore 38;
+  the unsigned device build passed). So revision 8 ships only once 2026-11-25 has begun in every time zone.
 
 ## 2026-11-22
 
