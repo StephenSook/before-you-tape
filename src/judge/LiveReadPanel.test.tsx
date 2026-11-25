@@ -38,7 +38,9 @@ describe("LiveReadPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Run one live read" }));
     expect(await screen.findByTestId("live-read-where")).toHaveTextContent("Read on this device, 1.5 s");
     expect(screen.getByTestId("verdict-chip")).toHaveTextContent("Take it out");
-    expect(screen.getByTestId("live-read-name")).toHaveTextContent(SAMPLE_READ.read.itemName);
+    // The model's category, in the app's words; never the item name it read off the label, which can carry a brand.
+    expect(screen.getByTestId("live-read-name")).toHaveTextContent("The model read it as: Lotion or cream");
+    expect(screen.getByTestId("live-read-result")).not.toHaveTextContent(SAMPLE_READ.read.itemName);
     expect(m.device.generate).toHaveBeenCalledTimes(1);
     expect(m.cloud.generate).not.toHaveBeenCalled();
   });

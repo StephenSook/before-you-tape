@@ -4,6 +4,7 @@ import { ed } from "../../tests/engine/helpers";
 import { resolveDestination } from "../engine/edition";
 import { labelTagsOf } from "../engine/facts";
 import { evaluateBox } from "../engine/verdict";
+import { BRANDS, brandWord } from "./brands.fixture";
 import { SAMPLE_BOX } from "./sampleBox";
 
 // The answers a sender gives on the page. The perfume's label does not print "alcohol", so the engine asks;
@@ -17,6 +18,16 @@ describe("the sample box", () => {
     for (const s of SAMPLE_BOX) {
       expect(s.photo).toBe(`/eval/items/${s.itemId}.jpg`);
       expect(s.credit).toMatch(/^Photo/);
+    }
+  });
+
+  // The label words keep what the rules read (sizes, alcohol, battery figures) and leave out brand, maker and model.
+  it("types no brand, maker or model into a label or an item name", () => {
+    for (const s of SAMPLE_BOX) {
+      for (const b of BRANDS) {
+        expect(brandWord(b).test(s.read.labelText), `${s.itemId} label names ${b}`).toBe(false);
+        expect(brandWord(b).test(s.read.itemName), `${s.itemId} name names ${b}`).toBe(false);
+      }
     }
   });
 
