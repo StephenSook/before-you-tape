@@ -185,7 +185,7 @@ export function ItemCard({ item, verdict, crop, onConfirm, onAnswer, onFix, onCo
       <VerdictChip level={verdict.level} />
       {reason && <p>{reason}</p>}
       {numbers && <p data-testid="battery-numbers">{numbers}</p>}
-      <SourceGlyph source={item.readSource} />
+      <SourceGlyph source={item.readSource} checkedInCloud={item.secondLook !== null} />
       {checking && <p role="status">Checking again in the cloud.</p>}
       {!checking && item.secondLook && <p data-testid="second-look">{item.secondLook.reason}</p>}
       {!checking && secondLookStands(item) && (

@@ -14,4 +14,10 @@ describe("SourceGlyph", () => {
       unmount();
     }
   });
+
+  it("names both reads once a second look in the cloud has run", () => {
+    render(<SourceGlyph source="on_device" checkedInCloud />);
+    expect(screen.getByTestId("source-glyph")).toHaveAccessibleName("Read on this device, then checked in the cloud");
+    expect(screen.getByTestId("source-glyph")).toHaveTextContent("Read on this device, then checked in the cloud");
+  });
 });
