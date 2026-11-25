@@ -43,7 +43,8 @@ The phone: Pixel 10 (`frankel`), Android 17 (build CP3A.261005.005).
   16:11:59 to 16:14:13. It reported rule edition `byt-f083f028e045` and the on-device model's status as
   `AVAILABLE`, and the app's engine judged each read for Canada and the Philippines on 2026-11-25. The test package
   was removed afterwards.
-  - 26 of 40 photos were read on the phone (source `ON_DEVICE`), with a median of 4,670 ms.
+  - 26 of 40 photos were read on the phone (source `ON_DEVICE`), with a median of 4,450.5 ms (the mean of the two
+    middle reads, 4,231 and 4,670 ms).
   - 14 were not read, and gave no verdict. 13 stopped in about 210 to 280 ms with AICore's error "[ErrorCode 9]
     Request cannot be processed. Either your app is out of usage quota (try again later) or ...". These started
     at the 26th read in a row, with 2 reads still going through between them, so a full run needs pauses between
