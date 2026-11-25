@@ -1,0 +1,2 @@
+11-25 11:20:09.705 I/BYT-PARITY(17197): device=SM-A166U sdk=36 box=80 guards=64 destinations=25 all passed
+11-25 11:20:14.442 I/BYT-PARITY(17197): device=SM-A166U sdk=36 webview=157.0.8103.50 bundle=fdebfc6d36ce inputs=481 labels=312 equal
