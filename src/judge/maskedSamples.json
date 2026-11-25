@@ -1,0 +1,9 @@
+{
+  "own-18": {
+    "photo": "/judge/samples/own-18.jpg",
+    "sha256": "7f234cba03e839a2b665456f54dd0b5debe5b187910ee46f3c27b68fcf7c4805",
+    "widthPx": 1200,
+    "heightPx": 1600,
+    "masks": 4
+  }
+}

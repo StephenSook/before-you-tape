@@ -1,0 +1,23 @@
+{
+  "note": "Who checked each destination's rule lines. linesSha256 is the SHA-256 of the canonical JSON of that country's lines in the rule edition; an approval covers only those lines. These lines are the ones on the revision 5 desk-pass sheet (edition byt-1e330a4fdf37) and have not changed since. Not a line-by-line check by a person: that is the edition's personReviewedOn, still null.",
+  "listings": {
+    "CA": {
+      "linesSha256": "79c7ec37cb6f36301c23359e98e2c1ba471b796722c8497dfbc31df75cfb5733",
+      "aiCheckedOn": "2026-11-21",
+      "aiCheck": "Two AI reviews (Claude and Codex) checked each of the 35 Canada lines against the USPS sentence it comes from.",
+      "personApprovedOn": "2026-11-21",
+      "personApprovedBy": "the project owner",
+      "personApproval": "The project owner looked over the Canada and Philippines rule lines on the desk-pass sheet and approved them as a whole, not line by line.",
+      "restatedOn": "2026-11-25"
+    },
+    "PH": {
+      "linesSha256": "301c0ddbccbd0ea862b9672a8f9fbddacf41f2ee0dacc1a2987f47bea4882df4",
+      "aiCheckedOn": "2026-11-21",
+      "aiCheck": "Two AI reviews (Claude and Codex) checked each of the 12 Philippines lines against the USPS sentence it comes from.",
+      "personApprovedOn": "2026-11-21",
+      "personApprovedBy": "the project owner",
+      "personApproval": "The project owner looked over the Canada and Philippines rule lines on the desk-pass sheet and approved them as a whole, not line by line.",
+      "restatedOn": "2026-11-25"
+    }
+  }
+}

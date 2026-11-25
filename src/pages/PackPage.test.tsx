@@ -8,10 +8,10 @@ import type { ItemModels, ModelPort, ModelReply } from "../ai/port";
 import { noPersistence, type BoxMeta, type LoadResult } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
 import type { ItemRead } from "../shared/itemRead";
+import { MASKED_SAMPLE } from "../judge/judgePhotos";
 import { PackPage, type PackPageProps } from "./PackPage";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import manifest from "../../eval/set/manifest.json";
 import { deviceConsent } from "../data/deviceConsent";
 
 const liquidLotionLabelRead: ItemRead = {
@@ -36,8 +36,8 @@ const addPhoto = async () => {
   await userEvent.click(send);
 };
 
-// The tracked sample photo's own bytes, as the page would fetch them.
-const sampleBytes = readFileSync(join(process.cwd(), "public", manifest.items.find((i) => i.itemId === "own-18")!.photo));
+// The sample photo's own bytes, as the page would fetch them: the lotion with its brand blurred.
+const sampleBytes = readFileSync(join(process.cwd(), "public", MASKED_SAMPLE.url));
 const loadSample = async () => sampleBytes.buffer.slice(sampleBytes.byteOffset, sampleBytes.byteOffset + sampleBytes.byteLength);
 // Presses "Try a sample photo", then "Check this part" on the crop step, as a judge with no camera does.
 // With a recorded read, the sample goes straight to it; with none, it takes the crop step like any photo.
@@ -453,6 +453,8 @@ describe("PackPage", () => {
     expect(models.device.generate).not.toHaveBeenCalled();
     expect(store.getState().items[0]).toMatchObject({ readSource: "sample_recorded", readMs: 3997 });
     expect(screen.getByTestId("sample-sent")).toHaveTextContent("recorded read");
+    // The photo is the masked copy, and the page says its read was recorded from the photo as taken.
+    expect(screen.getByTestId("sample-sent")).toHaveTextContent("The photo is shown with its brand blurred; its read was recorded from the photo as taken.");
   });
 
   it("clears a blocked alert when the sample's recorded read gives a verdict", async () => {

@@ -1,13 +1,14 @@
 // /about: what the app does, what stays on the device and what can leave it, and the credits for every
 // published test photo, each open license and source linked as those licenses ask.
-import manifest from "../../eval/set/manifest.json";
-import type { SetManifest } from "../eval/loadSet";
+import manifest from "../../eval/set/manifest.public.json";
+import type { PublicSetManifest } from "../eval/loadSet";
 import { OWN_PHOTO_LICENSE } from "../eval/manifest";
+import { judgeNameOf } from "../judge/brandFree";
 import { BOX_LIST_SAVED } from "../ui/boxListCopy";
 import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 import { SOURCE_URL } from "../ui/sourceLink";
 
-const items = (manifest as SetManifest).items;
+const items = (manifest as PublicSetManifest).items;
 
 export function AboutPage() {
   return (
@@ -44,7 +45,7 @@ export function AboutPage() {
       <ul aria-label="Photo credits" className="credits">
         {items.map((i) => (
           <li key={i.itemId}>
-            {i.alt}:{" "}
+            {judgeNameOf(i.itemId)}:{" "}
             {i.provenance.license === OWN_PHOTO_LICENSE ? "Photo by the project owner" : (
               <>
                 Photo: {i.provenance.author},{" "}

@@ -15,6 +15,11 @@ export interface SetManifestItem {
   provenance: Provenance;
 }
 
+// The copy the web app ships (eval/set/manifest.public.json, scripts/eval-public-manifest.ts): the same, with no
+// descriptions, which name brands and makers.
+export type PublicSetManifestItem = Omit<SetManifestItem, "alt">;
+export type PublicSetManifest = Omit<SetManifest, "items"> & { items: PublicSetManifestItem[] };
+
 export interface SetManifest {
   setId: string;
   destinations: { code: string; name: string }[];

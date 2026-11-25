@@ -4,6 +4,7 @@ import type { EvalSummary } from "../ran/evalSummary";
 import type { Measured } from "../ran/summarize";
 import { RanPage } from "./RanPage";
 import { READ_TIMING_SENT } from "../ui/readTimingCopy";
+import bundled from "../../rules/edition.json";
 
 const row = (action: RegExp) => screen.getAllByRole("row").find((r) => action.test(within(r).queryAllByRole("cell")[0]?.textContent ?? ""))!;
 
@@ -117,9 +118,17 @@ describe("RanPage", () => {
       "Time to a verdict: median 4.9 s, 90th percentile 7.7 s, second look included",
       "Computer: Apple M5 Pro, 48 GB, Chrome 157.0.8103.80",
       "Models: device: Chrome built-in model; cloud: a cloud model",
-      "Rules: edition byt-3b5f5508968f",
+      // The test ran on an earlier rule edition than the app runs now, and the page says so beside the numbers.
+      `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}), so a verdict today can differ.`,
     ]) expect(within(detail).getByText(line)).toBeInTheDocument();
     expect(within(detail).getByText(/Source: eval\/runs\/models-2026-11-21\.public\.json\. These are our own test photos, not visitors'\./)).toBeInTheDocument();
+  });
+
+  it("says nothing more about the edition when the test ran on the edition the app runs", () => {
+    render(<RanPage ranEval={{ ...ranEval(), editionId: bundled.editionId }} measured={measured()} today="2026-11-21" />);
+    const detail = screen.getByText("How our test was run").closest("details")!;
+    expect(within(detail).getByText(`Rules: edition ${bundled.editionId}`)).toBeInTheDocument();
+    expect(detail).not.toHaveTextContent("an earlier edition");
   });
 
   it("says plainly when not every check was read on the device, or a hazard was called OK", () => {

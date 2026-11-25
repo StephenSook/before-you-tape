@@ -3,8 +3,10 @@ import thumbs from "./thumbs.json";
 
 export interface Thumb { src: string; width: number; height: number; srcSet: string }
 
-export function thumbOf(itemId: string): Thumb | null {
-  const t = (thumbs as Record<string, { sizes: { src: string; width: number; height: number }[] }>)[itemId];
+export type ThumbIndex = Record<string, { sizes: { src: string; width: number; height: number }[] }>;
+
+export function thumbOf(itemId: string, index: ThumbIndex = thumbs): Thumb | null {
+  const t = index[itemId];
   if (!t || t.sizes.length === 0) return null;
   const largest = t.sizes[t.sizes.length - 1]!;
   return { src: largest.src, width: largest.width, height: largest.height, srcSet: t.sizes.map((s) => `${s.src} ${s.width}w`).join(", ") };

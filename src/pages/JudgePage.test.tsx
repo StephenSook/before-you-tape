@@ -20,13 +20,19 @@ describe("JudgePage", () => {
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
+    expect(screen.getByText(/We typed in what each label says, without brand names,/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
     // A small WebP copy, with its size, so the page loads fast and does not shift as photos arrive.
     const img = within(card("Body lotion")).getByRole("img");
-    expect(img).toHaveAttribute("src", "/eval/thumbs/own-18-480.webp");
-    expect(img).toHaveAttribute("srcset", "/eval/thumbs/own-18-240.webp 240w, /eval/thumbs/own-18-480.webp 480w");
+    // The /judge copy, with the brand blurred; never the measured photo or the plain small copy.
+    expect(img).toHaveAttribute("src", "/judge/thumbs/own-18-480.webp");
+    expect(img).toHaveAttribute("srcset", "/judge/thumbs/own-18-240.webp 240w, /judge/thumbs/own-18-480.webp 480w");
+    for (const photo of within(screen.getByTestId("sample-grid")).getAllByRole("img")) expect(photo.getAttribute("src")).toMatch(/^\/judge\/thumbs\//);
+    expect(screen.getByTestId("brand-note")).toHaveTextContent("Brand names and logos are blurred in these photos. The measured photo set keeps the photos as taken; the live read reads the sample lotion photo with its brand blurred.");
     expect(img).toHaveAttribute("sizes", "(max-width: 700px) 50vw, 240px");
     expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
+    expect(img).toHaveAttribute("alt", "Body lotion, 473 mL");
+    for (const photo of screen.getAllByRole("img")) expect(photo.getAttribute("alt")).not.toMatch(/eos|Hanes|Bellavita|Blackview|Bronner|Lindt|Bellarom|Pineng/i);
     expect(within(card("Body lotion")).getByText("Photo by the project owner")).toBeInTheDocument();
     expect(within(card("Power bank")).getByText(/^Photo: .*CC BY-SA 4\.0/)).toBeInTheDocument();
     expect(verdict("Body lotion")).toHaveTextContent("Take it out");
@@ -85,6 +91,9 @@ describe("JudgePage", () => {
     expect(within(block).getByText("Recorded on-device reads")).toBeInTheDocument();
     expect(block).toHaveTextContent("Recorded November 21, 2026, Chrome 157.0.8103.80 on macOS 27.0. A replay, not a live read.");
     expect(within(block).getAllByRole("listitem")).toHaveLength(2);
+    // Each photo by its brand-free name, never the measured set's own description with its brand.
+    expect(within(block).getAllByRole("listitem")[0]).toHaveTextContent(/^Body lotion, 473 mL: read as Lotion or cream/);
+    expect(block).not.toHaveTextContent(/eos|shea better/i);
     // The first read also starts the model, so its time is marked and never reads as a typical one.
     expect(within(block).getAllByRole("listitem")[0]).toHaveTextContent("2,900 ms (first read, includes the model's start)");
     expect(within(block).getAllByRole("listitem")[1]).toHaveTextContent("3,100 ms");

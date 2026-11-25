@@ -1,0 +1,681 @@
+{
+  "setId": "eval-v1",
+  "destinations": [
+    {
+      "code": "CA",
+      "name": "Canada"
+    },
+    {
+      "code": "PH",
+      "name": "Philippines"
+    }
+  ],
+  "publishing": {
+    "maxSide": 1600,
+    "jpegQuality": 88
+  },
+  "protocolSha256": "1e02182a2f84f65ab027cfe471af3bdc7e8da09cb236bd1c8318fde8379f4575",
+  "labelsSha256": "860a8d73dd9ca8b75b43d7cf5c1d3c4868b2e9e02e0bd4b19f2ee5e83930721c",
+  "items": [
+    {
+      "itemId": "own-01",
+      "photo": "/eval/items/own-01.jpg",
+      "photoSha256": "50ddec66b05e947838dc0b8950b62a201fc60629905dbccf20a0ebdcc5de1f44",
+      "photoSha256Original": "5bfa6e16157c57553dda1c9cc2c247992d0cfbfd719b07f48c067cc78b010ce0",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": {
+        "volts": 3.7,
+        "milliampHours": 50000,
+        "wattHours": 185
+      },
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-03",
+      "photo": "/eval/items/own-03.jpg",
+      "photoSha256": "0bf42146b43f28d9638d7c3abb914690702e52687ce8b4db90d0bab752595dea",
+      "photoSha256Original": "99a011b3327cf8f93a0b4d4939aefd5cf6416b29b59d5a0443598ffbc461f39d",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-04",
+      "photo": "/eval/items/own-04.jpg",
+      "photoSha256": "1fc6be2a69dd3bc124212efa17edf00ff69aae394eb15f9f1b4b814681d6a589",
+      "photoSha256Original": "532422bb11a527ab0e6f2b8dada8821ed677784fd02abe177c8be92af66e537b",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-14",
+      "photo": "/eval/items/own-14.jpg",
+      "photoSha256": "5fd557ae78ae4be2b4cc55793139c7c82f62dadc073e19d0970db4bfbd47d12e",
+      "photoSha256Original": "0c410506f4b8eb4384e795978f563d358e074369826939940f5e158291dad1ea",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-16",
+      "photo": "/eval/items/own-16.jpg",
+      "photoSha256": "748b8120c46434ca7d11491428a87eabae312cf2d8c0f54d43899d152c7ebeba",
+      "photoSha256Original": "f2343ad88fb0d515b68feacf6ee1e7395df10e75656c09db79823da39d665712",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-18",
+      "photo": "/eval/items/own-18.jpg",
+      "photoSha256": "31b8f140884553ba9bf8fc9b70227ef76c665d726c067d4dc2193d28e54cf998",
+      "photoSha256Original": "408c7dc9909e9330da1436aefa8c18aa237c1b060c6bf6ddfbde9bceb5541438",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-20",
+      "photo": "/eval/items/own-20.jpg",
+      "photoSha256": "afc6895e401582da1190d9044145bd95fb7bfcd82d03ab8a637a9f012945466c",
+      "photoSha256Original": "1d911bb61ea17fecdb16dbc1ea653c0376abd38ba0c6538c51bf3d5e294a93d2",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-23",
+      "photo": "/eval/items/own-23.jpg",
+      "photoSha256": "732c51b2a728579c67831ac47035f58906c8c1113d25a5b5e4b7f9d1c0fc98e7",
+      "photoSha256Original": "6403b7820ce2c3df88d522d5c15f8b059f63b390ec0494c85c5514afc1928366",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-25",
+      "photo": "/eval/items/own-25.jpg",
+      "photoSha256": "ae6465113d4f5d3cdbfbec0968c540264b7aa15ca3257c99bf8ee6f955dd4b2a",
+      "photoSha256Original": "3b495279628d6fabba9df8f501e2564d68cff3ea7ece79cc4c776651939d4147",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-27",
+      "photo": "/eval/items/own-27.jpg",
+      "photoSha256": "fdcbb47da111125adf784413abdd36beb79c16be6edfa03d4a543f3ff709e42b",
+      "photoSha256Original": "39f13c1ecd28a654dffee2478daee1d13a6354a584f5733f841ee0aa6ed2fd4d",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-30",
+      "photo": "/eval/items/own-30.jpg",
+      "photoSha256": "d34f71633e8589fad596cba288ccb2f9ab88060295434f1d8e3216475b8d1291",
+      "photoSha256Original": "fccf8f3e2cebd3da7d6c855e4ddda7b08cd3bd99839ad43819839b3885d360f8",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-32",
+      "photo": "/eval/items/own-32.jpg",
+      "photoSha256": "8255683e1c2724a495fcdfd65e0462d2005f3d53a58beae376c7f102b5c14fd7",
+      "photoSha256Original": "32ea362cb524f9258f9d4bb51c55b955a3eefabce6f4779429028f420b61f164",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "own-33",
+      "photo": "/eval/items/own-33.jpg",
+      "photoSha256": "f8eca64f94c7efe9a1c3b8c8393ca195963b2f96d3d42c1c504af4d503c9ccb5",
+      "photoSha256Original": "e1b7a31a86bada79a37bb0f4609f92e06f3abeec4abc197bba71326667857f18",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "",
+        "author": "Stephen Sookra (project owner)",
+        "license": "own photo (owner-provided for this project)",
+        "licenseUrl": "",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i01",
+      "photo": "/eval/items/i01.jpg",
+      "photoSha256": "d95c823a71ab3782a342d6159150455ad016311e7304be412e77cf655f5b9c66",
+      "photoSha256Original": "ecb9f3083548e35f0191f6e208eeb94dda01d97c16481c8c884437a03e540c03",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": {
+        "volts": 3.7,
+        "milliampHours": 10000,
+        "wattHours": 37
+      },
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=89415311",
+        "author": "Bindydad123",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i02",
+      "photo": "/eval/items/i02.jpg",
+      "photoSha256": "b217f9dbe5dcd60cf7205f096e49f7127dd42c526fae236eb92885fb7528eea4",
+      "photoSha256Original": "3fd5176df327a188cdb1dff9f9897611d2db0d8851746a95a11646b23a0ed9bc",
+      "widthPx": 1600,
+      "heightPx": 900,
+      "printed": {
+        "volts": 3.7,
+        "milliampHours": 7800,
+        "wattHours": 0
+      },
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=153844988",
+        "author": "Raimond Spekking",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i03",
+      "photo": "/eval/items/i03.jpg",
+      "photoSha256": "63f48593a801def36575ff30d29b613b0023b59837370161fa380395264f7dcd",
+      "photoSha256Original": "8bba3f4926e33d272cf68b853a8958aace2eb910b40494a9459d7eeba624bf94",
+      "widthPx": 1600,
+      "heightPx": 900,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=96048790",
+        "author": "Raimond Spekking",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i04",
+      "photo": "/eval/items/i04.jpg",
+      "photoSha256": "133921244f751153e5cd2b8e57fbb3fd7d3f9b958cb22368b69ca37e03b8369e",
+      "photoSha256Original": "28512ac901b20738c7f26fc74567f2123691db0a8c0663f8a4fe24a4c1947d8d",
+      "widthPx": 1600,
+      "heightPx": 1188,
+      "printed": {
+        "volts": 3,
+        "milliampHours": 0,
+        "wattHours": 0
+      },
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=131070076",
+        "author": "Raimond Spekking",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i05",
+      "photo": "/eval/items/i05.jpg",
+      "photoSha256": "c5196ba6c3112a1681defc5c43a4608153a7077dd307454571fd63196856b90b",
+      "photoSha256Original": "08fdd50868797921eb2a9e8a390a804df65703b6577ae1a40d04d469511cd7f9",
+      "widthPx": 900,
+      "heightPx": 1600,
+      "printed": {
+        "volts": 3.7,
+        "milliampHours": 3000,
+        "wattHours": 0
+      },
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=146170055",
+        "author": "N2e",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i06",
+      "photo": "/eval/items/i06.jpg",
+      "photoSha256": "bf099793a9f0ceece248490c44bbebafadba5231c085b6c672810592def641fb",
+      "photoSha256Original": "828a617eeaa180f56e6ca907817358bd915537092f05fb4d1734524414cfee07",
+      "widthPx": 1600,
+      "heightPx": 900,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=91307470",
+        "author": "Acabashi",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i07",
+      "photo": "/eval/items/i07.jpg",
+      "photoSha256": "f263d0a306158191d1f543275e1ac42bac31e27d7ac3cbc6e4b95a9480809725",
+      "photoSha256Original": "f21be4c86984c822baed9c934fe840c2b5c35664cc4ea0c3773f443e1527d905",
+      "widthPx": 1600,
+      "heightPx": 919,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=131558719",
+        "author": "Jacek Halicki",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i08",
+      "photo": "/eval/items/i08.jpg",
+      "photoSha256": "32f7656b43090e291fcf35cc53974b0c5f55a94ef25d0b34f725f0b19fbd9738",
+      "photoSha256Original": "e4089e4a2095b83a50027a0ce19593b66098aa45c578c0fcb0aa72c621e7b99d",
+      "widthPx": 1067,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=196772709",
+        "author": "Hardcast from Wylie, TX, United States",
+        "license": "CC BY 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i09",
+      "photo": "/eval/items/i09.jpg",
+      "photoSha256": "a358af452578fd2a876b847c54e3a5f2d31da7911f11f9ac7adce6aac966ac62",
+      "photoSha256Original": "cd7cc482675a2e3ae5d3a568c9934a95242c35c685c820c09b65217520849c9a",
+      "widthPx": 1205,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://world.openbeautyfacts.org/product/8720181028755",
+        "author": "oke0003 (an Open Beauty Facts contributor)",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i10",
+      "photo": "/eval/items/i10.jpg",
+      "photoSha256": "e2766584edd50b0d4c6e8d563655437c2dfbaf21bf2ebaccfc9227b8cea77188",
+      "photoSha256Original": "98aba5646771a580baf81ebe688ecfabf831e129b39e6b9ed634058747ae4ab7",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=143304325",
+        "author": "Dmitry G",
+        "license": "Public domain",
+        "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i11",
+      "photo": "/eval/items/i11.jpg",
+      "photoSha256": "84a23b661c29122cc6a14fdda322507e95be7d2302d1574964a726c9c15d5540",
+      "photoSha256Original": "133282e4862e1e598fbe580420c228812194d11b598a884f6aedb6256e580ec1",
+      "widthPx": 1600,
+      "heightPx": 1153,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=45663456",
+        "author": "RenseNBM",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i12",
+      "photo": "/eval/items/i12.jpg",
+      "photoSha256": "1a7b033ee5c6044ae4259c7049deb1590857f3c26d79e7bedf81df848e0e22b8",
+      "photoSha256Original": "ccf42c02c0b0e776f37400a3843cc64d12dca886eea02a49a882a2c3faad6ac7",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://world.openbeautyfacts.org/product/0018787506110",
+        "author": "maddoxschmidlkofer (an Open Beauty Facts contributor)",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i13",
+      "photo": "/eval/items/i13.jpg",
+      "photoSha256": "42a836cda039e5acfc105e4502a6c7a992688a7efe53b3e9cf3fa4af751a6a4b",
+      "photoSha256Original": "9f769901a37d2c1f9dbc16f9c298326e947a2d18c36f55bca6ad40a149c577c6",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=202146747",
+        "author": "Quercus acuta",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i14",
+      "photo": "/eval/items/i14.jpg",
+      "photoSha256": "395b883993f0090db66dcb7fe7437dad13e45b45a8726c39554672cfe7edd6d0",
+      "photoSha256Original": "0fa346e70c833d3eb9a6336086f5d7c09230bfd6cb8db506ffff2846e3514711",
+      "widthPx": 1440,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=192687656",
+        "author": "Akkbula",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i15",
+      "photo": "/eval/items/i15.jpg",
+      "photoSha256": "3b65af4e6e2cc5b9381f9e3c9251a6a9ef6e0308f9546e28fa918fb3506cd4dd",
+      "photoSha256Original": "0c1a2cb93b5837235a28c3cd2fbb606c6a0baedd87f73b70ad6f0481a9aaef98",
+      "widthPx": 1600,
+      "heightPx": 1067,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=156767743",
+        "author": "W.carter",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i16",
+      "photo": "/eval/items/i16.jpg",
+      "photoSha256": "52e36dcbf5edddcaaade107cb1096540e2c8697179c7d8b8da79b6e0bd6f95ca",
+      "photoSha256Original": "8a0d47a94d9f68e88dd3d38bd7dbd830d8d78005bd731e6c8a9e4c35a4fc5d8d",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=184936789",
+        "author": "Mizael Contreras",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i17",
+      "photo": "/eval/items/i17.jpg",
+      "photoSha256": "d48321d9347031ee49bedde88440aeaafb09bf78597b9225d49e923a49f143e9",
+      "photoSha256Original": "18e723f4aa4e4e5cb9bee6547ef6fa536e0e605d70dbb7ffb788482238a6ee41",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=148484333",
+        "author": "Blue.painting",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i18",
+      "photo": "/eval/items/i18.jpg",
+      "photoSha256": "366030894b0f4623f30e88dd4ec03dd38e8cf9ce64cdd0c75dcbc50ae00f75a2",
+      "photoSha256Original": "e5ddb29df03a56acc3a868edbf21c710390fceaecb9c8291415fee831358f067",
+      "widthPx": 1600,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=22283125",
+        "author": "Clément Bucco-Lechat",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i19",
+      "photo": "/eval/items/i19.jpg",
+      "photoSha256": "63bf0fe38021550787db50254d528e5efc1fdec0bd07009af2551588e5f8e650",
+      "photoSha256Original": "7b39eccce927f65bac82dd17cb009a1dc99e2b49e3718aa5517a04f0f142ee55",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=76003334",
+        "author": "Gausanchennai",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i20",
+      "photo": "/eval/items/i20.jpg",
+      "photoSha256": "865107d1f1be1f8b78c37e169efa57f65ccc584de7565ffd5d977c6983eda92f",
+      "photoSha256Original": "054aa11af55fb1ab2434bac6aa6a2b1ad99d20a0348490ab0d3dd2c16159df15",
+      "widthPx": 1533,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=25302364",
+        "author": "Stephen B Calvert Clariosophic",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "changes": "metadata removed, resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i21",
+      "photo": "/eval/items/i21.jpg",
+      "photoSha256": "ce5ce6e30f975a9e73b77bfdad5403efbf67af6c7126cda7cf5ae7586f19c0a2",
+      "photoSha256Original": "8ced6a596e1ae5b6c30c74e75e2226c642de617cae93265257b55a25f6edae55",
+      "widthPx": 1600,
+      "heightPx": 1064,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=57410331",
+        "author": "Jamie",
+        "license": "CC BY 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i22",
+      "photo": "/eval/items/i22.jpg",
+      "photoSha256": "9661d7a8e19812d0fbc232f739d98d3d88d87afa1650ee542b2bf7909780c549",
+      "photoSha256Original": "cdeea9d23001631daf6d1fd19d49540df7be098fe69b1ef1e0489da9b8aa7003",
+      "widthPx": 1600,
+      "heightPx": 1200,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=56424313",
+        "author": "Amin",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i23",
+      "photo": "/eval/items/i23.jpg",
+      "photoSha256": "44546069ae7697dcad6fbdd479358da856acde2f9b039b5fbc30d944baad76b3",
+      "photoSha256Original": "f92b4fc12e3b9f47fcfee3eee30562b2cba0725590bef0a293d22aefc72d37b7",
+      "widthPx": 1600,
+      "heightPx": 1205,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=201084526",
+        "author": "Gpkp",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i24",
+      "photo": "/eval/items/i24.jpg",
+      "photoSha256": "c4ce071a1ee9df80ac6475dc8b6cfd3df6ce09a840d0ee944efce2b54088cfbf",
+      "photoSha256Original": "d44a4a8956e03515f5771d3f7ef70594e5d1de681682263a8b1d457ee93cee6b",
+      "widthPx": 1600,
+      "heightPx": 1065,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://commons.wikimedia.org/w/index.php?curid=74762808",
+        "author": "Alejandro SG97",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i25",
+      "photo": "/eval/items/i25.jpg",
+      "photoSha256": "be9fc6978806d92a83b967193bc2ab3a02e3933a41ff9402702871040cf7038f",
+      "photoSha256Original": "1ab300f79301c654f39ea39cfb8a666336d6a9ac4c1fffc67933bb6f28052cce",
+      "widthPx": 900,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://world.openfoodfacts.org/product/3046920028363",
+        "author": "pixelized (an Open Food Facts contributor)",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i26",
+      "photo": "/eval/items/i26.jpg",
+      "photoSha256": "2e18e4818365c3c225b3b52465e80ca596de7b4f95fe18854303d1b836d3233e",
+      "photoSha256Original": "346e75046f17301049ec2e8a5b8092cea39da0e9eee4fbbffca6dff91ffaa1d2",
+      "widthPx": 1200,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://world.openfoodfacts.org/product/4056489608578",
+        "author": "joepie91 (an Open Food Facts contributor)",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    },
+    {
+      "itemId": "i27",
+      "photo": "/eval/items/i27.jpg",
+      "photoSha256": "52cd8ca99116a641c8c19f4bdbf0fc4d062a9fe09d7a77df1fed8eeffafb40c6",
+      "photoSha256Original": "a0fe01ddbd1e5399205d1578747140e3c90028ce721bf2c0aff08a4d3aca7089",
+      "widthPx": 1205,
+      "heightPx": 1600,
+      "printed": null,
+      "provenance": {
+        "sourcePage": "https://world.openfoodfacts.org/product/5022374046663",
+        "author": "hungergames (an Open Food Facts contributor)",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "changes": "resized to 1600 px on the long side, re-encoded"
+      }
+    }
+  ]
+}

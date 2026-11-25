@@ -11,12 +11,12 @@ import { evaluateBox } from "../engine/verdict";
 import { labelTagsOf } from "../engine/facts";
 import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
-import manifest from "../../eval/set/manifest.json";
 import { MATCHED_PAIRS, type MatchedPair } from "../judge/matchedPairs";
 import { LiveReadPanel, type LiveReadDeps } from "../judge/LiveReadPanel";
 import type { RecordedReads } from "../judge/recordedReads";
+import { judgeNameOf } from "../judge/brandFree";
 import { SAMPLE_BOX } from "../judge/sampleBox";
-import { thumbOf } from "../judge/thumbs";
+import { judgeThumbOf } from "../judge/judgePhotos";
 import type { ItemCategory, ItemRead } from "../shared/itemRead";
 import { CATEGORY_LABELS } from "../ui/categoryLabels";
 import { ANDROID_RELEASE_URL, SOURCE_URL } from "../ui/sourceLink";
@@ -42,12 +42,11 @@ export interface JudgePageProps {
   liveRead?: () => Promise<LiveReadDeps>;
 }
 
-const PHOTO_ALT = new Map(manifest.items.map((i) => [i.itemId, i.alt]));
-
-// A card's photo: its small WebP copy at its own size, so the page loads fast and nothing shifts as photos arrive.
-function CardPhoto({ itemId, photo, alt }: { itemId: string; photo: string; alt: string }) {
-  const t = thumbOf(itemId);
-  if (!t) return <img src={photo} alt={alt} loading="lazy" />;
+// A card's photo: its small WebP copy with any brand blurred, at its own size, so the page loads fast and nothing
+// shifts as photos arrive. A photo with no such copy shows none; the measured photo is never shown here.
+function CardPhoto({ itemId, alt }: { itemId: string; alt: string }) {
+  const t = judgeThumbOf(itemId);
+  if (!t) return null;
   return <img src={t.src} srcSet={t.srcSet} sizes="(max-width: 700px) 50vw, 240px" width={t.width} height={t.height} alt={alt} loading="lazy" decoding="async" />;
 }
 
@@ -93,8 +92,12 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
     <div className="judge">
       <h1>Try the sample box</h1>
       <p>
-        Nine real items from our test photos. We typed in what each label says, so this page needs no camera, no built-in
-        model and no sign-in. The app's own rules decide each verdict, here in your browser.
+        Nine real items from our test photos. We typed in what each label says, without brand names, so this page needs
+        no camera, no built-in model and no sign-in. The app's own rules decide each verdict, here in your browser.
+      </p>
+      <p data-testid="brand-note">
+        Brand names and logos are blurred in these photos. The measured photo set keeps the photos as taken; the live read
+        reads the sample lotion photo with its brand blurred.
       </p>
       <p>
         <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>
@@ -126,7 +129,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         return (
           <article key={item.itemId} data-testid="sample-card" className="card sample-card">
             <div className="sample-photo">
-              <CardPhoto itemId={item.itemId} photo={sample.photo} alt={sample.alt} />
+              <CardPhoto itemId={item.itemId} alt={sample.alt} />
               <VerdictChip level={verdict.level} />
             </div>
             <p className="item-name">{item.read.itemName}</p>
@@ -158,7 +161,7 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
           <ul>
             {recorded.reads.map((r, i) => (
               <li key={r.itemId}>
-                {PHOTO_ALT.get(r.itemId) ?? r.itemId}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
+                {judgeNameOf(r.itemId)}: read as {r.category ? CATEGORY_LABELS[r.category as ItemCategory] ?? r.category : "no category"}, in{" "}
                 {r.ms.toLocaleString("en-US")} ms{i === 0 ? " (first read, includes the model's start)" : ""}
               </li>
             ))}

@@ -23,7 +23,8 @@ Runs of the eval set in `eval/set/`, under the protocol in `eval/PROTOCOL.md`.
 The model run `models-2026-11-21` ran on 2026-11-21 from 00:58 to 01:23 UTC on an Apple M5 Pro laptop (48 GB,
 macOS 27.0) in Chrome 157.0.8103.80, with Chrome's built-in model on the device. Its cloud reads used
 gemini-3.5-flash-lite (fallback gemini-3.8-flash) on a separate eval Firebase project, as the live app is set. It
-used rule edition byt-3b5f5508968f, read 40 items for 2 destinations (80 rows), and timed each item and path three
+used rule edition byt-3b5f5508968f (revision 2; the app has run later revisions since, listed in
+tests/rules/revisions.json, so a verdict today can differ), read 40 items for 2 destinations (80 rows), and timed each item and path three
 times.
 
 Verdict labels: drafted in a build session (author not verified), adopted by the developer 2026-11-20 without a
