@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import bundled from "../../rules/edition.json";
 import type { ItemRead } from "../shared/itemRead";
@@ -131,6 +133,11 @@ describe("labelTagsOf", () => {
       "JUGO DE GRANADA 100%", "TRAINING PANTS SIZE 4T", "Training Day DVD", "MOCK NECK SWEATER", "ROUND TABLE COVER", "MINE CRAFT HOODIE"]) {
       expect(labelTagsOf(label, ed), label).not.toContain("replica_explosive");
     }
+  });
+
+  it("docs/LIMITS.md gives the number of label words the shipped edition has", () => {
+    const limits = readFileSync(join(process.cwd(), "docs", "LIMITS.md"), "utf8");
+    expect(limits).toContain(`The label words the rules look for (${bundled.labelWords.length} of them,`);
   });
 
   it("needs a medicine cue to read medicine, not the word tablet or capsule alone", () => {
