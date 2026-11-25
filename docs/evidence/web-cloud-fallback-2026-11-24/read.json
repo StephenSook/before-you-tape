@@ -1,0 +1,86 @@
+{
+ "what": "The web app's cloud fallback on the demo Mac's own Chrome, in a profile with no built-in model: the live /judge page's Run one live read",
+ "site": {
+  "url": "https://before-you-tape-2026.web.app/judge",
+  "commit": "19ec8ec6fd838abcf1435b0c35caff5c5a60cd4a",
+  "entry_script": "index-rj9Zri78.js"
+ },
+ "browser": {
+  "chrome": "158.0.8127.38, the Mac's installed Google Chrome",
+  "profile": "a new throwaway --user-data-dir, deleted afterwards; the everyday profile was not used or changed",
+  "navigator_webdriver": false,
+  "LanguageModel_availability": "downloadable"
+ },
+ "steps": [
+  {
+   "t": "2026-11-24T13:57:16+00:00",
+   "step": "Run one live read pressed"
+  },
+  {
+   "t": null,
+   "step": "the cloud question shown",
+   "text": "To read items this device can't, and to check a read again when the rules ask, the cropped photo goes to Google's Gemini. Allow?\n\nAllow Check on this device only"
+  },
+  {
+   "t": "2026-11-24T13:57:39.649+00:00",
+   "step": "Allow clicked, on the project owner's go"
+  }
+ ],
+ "network": [
+  {
+   "t": "2026-11-24T13:57:46.043+00:00",
+   "method": "POST",
+   "url": "https://content-firebaseappcheck.googleapis.com/v1/projects/before-you-tape-2026/apps/1:481254717481:web:f7658d448b785de0740438:exchangeRecaptchaEnterpriseToken",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:46.046+00:00",
+   "method": "POST",
+   "url": "https://www.google.com/recaptcha/enterprise/clr",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:46.293+00:00",
+   "method": "OPTIONS",
+   "url": "https://firebasevertexai.googleapis.com/v1beta/projects/before-you-tape-2026/models/gemini-3.5-flash-lite:generateContent",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:46.315+00:00",
+   "method": "POST",
+   "url": "https://firebasevertexai.googleapis.com/v1beta/projects/before-you-tape-2026/models/gemini-3.5-flash-lite:generateContent",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:48.211+00:00",
+   "method": "POST",
+   "url": "https://firebaseremoteconfig.googleapis.com/v1/projects/before-you-tape-2026/namespaces/fireperf:fetch",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:48.211+00:00",
+   "method": "OPTIONS",
+   "url": "https://firebaseremoteconfig.googleapis.com/v1/projects/before-you-tape-2026/namespaces/fireperf:fetch",
+   "status": 200
+  },
+  {
+   "t": "2026-11-24T13:57:54.317+00:00",
+   "method": "POST",
+   "url": "https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/log",
+   "status": 200
+  }
+ ],
+ "panel": {
+  "route": "Read in the cloud, 3.5 s",
+  "verdict": "Take it out, for the Philippines",
+  "model_read": "eos body lotion"
+ },
+ "checked_again": {
+  "t": "2026-11-24T13:59:23.426Z",
+  "panel": "Read in the cloud, 3.5 s / Take it out for the Philippines / The model read: eos body lotion",
+  "entry_script": "index-rj9Zri78.js, the live entry for 19ec8ec",
+  "LanguageModel_availability": "downloadable",
+  "cloud_consent_stored": true
+ },
+ "screenshot": "after-allow.png"
+}
