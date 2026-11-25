@@ -12,28 +12,31 @@ export type ReadLine =
   | { kind: "reading"; inCloud: boolean; start: number }
   | { kind: "read"; source: ReadSource; ms: number };
 
-// Every read the page has running, oldest first, and the newest one that ended with a card. Each read has a number,
-// so one that ends never takes another's line; the newest still running is the one shown.
+// Every read the page has running, oldest first, the newest one that ended with a card, and the number of the newest
+// read started. Each read has a number, so one that ends never takes another's line; the newest still running is the
+// one shown.
 export interface Reads {
   running: { id: number; inCloud: boolean; start: number }[];
   done: { id: number; itemId: string; source: ReadSource; ms: number } | null;
+  lastStart: number;
 }
-export const NO_READS: Reads = { running: [], done: null };
-// A new read hides what the last one found until it ends.
+export const NO_READS: Reads = { running: [], done: null, lastStart: 0 };
 export const readStarted = (s: Reads, id: number, inCloud: boolean, start: number): Reads =>
-  ({ running: [...s.running, { id, inCloud, start }], done: null });
+  ({ ...s, running: [...s.running, { id, inCloud, start }], lastStart: Math.max(s.lastStart, id) });
 export const readToCloud = (s: Reads, id: number): Reads =>
   ({ ...s, running: s.running.map((r) => (r.id === id ? { ...r, inCloud: true } : r)) });
 // An older read that ends after a newer one does not replace the newer one's line.
 export const readDone = (s: Reads, id: number, itemId: string, source: ReadSource, ms: number): Reads =>
-  ({ running: s.running.filter((r) => r.id !== id), done: s.done && s.done.id > id ? s.done : { id, itemId, source, ms } });
+  ({ ...s, running: s.running.filter((r) => r.id !== id), done: s.done && s.done.id > id ? s.done : { id, itemId, source, ms } });
 export const readEnded = (s: Reads, id: number): Reads =>
   (s.running.some((r) => r.id === id) ? { ...s, running: s.running.filter((r) => r.id !== id) } : s);
-// The line to show: the newest read still running, else where the last one ran while its item is in the box.
+// The line to show: the newest read still running; else where the newest read ran, while it is also the newest read
+// started (a later read hides it, even one that ended with no card) and its item is in the box.
 export function shownRead(s: Reads, inBox: (itemId: string) => boolean): ReadLine | null {
   const r = s.running.at(-1);
   if (r) return { kind: "reading", inCloud: r.inCloud, start: r.start };
-  return s.done && inBox(s.done.itemId) ? { kind: "read", source: s.done.source, ms: s.done.ms } : null;
+  const d = s.done;
+  return d && d.id === s.lastStart && inBox(d.itemId) ? { kind: "read", source: d.source, ms: d.ms } : null;
 }
 
 export function ReadStatus({ line, now }: { line: ReadLine | null; now: () => number }) {

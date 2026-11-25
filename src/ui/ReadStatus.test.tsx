@@ -41,12 +41,27 @@ describe("ReadStatus", () => {
     expect(shownRead(s, inBox)).toEqual({ kind: "reading", inCloud: false, start: 10 });
     s = readToCloud(s, 1);
     expect(shownRead(s, inBox)).toEqual({ kind: "reading", inCloud: true, start: 10 });
-    s = readDone(s, 1, "a", "in_cloud", 3000);
+    // The older read ends with a card, but a later read was started since: its line is not shown.
+    expect(shownRead(readDone(s, 1, "a", "in_cloud", 3000), inBox)).toBeNull();
+    // With no later read, a finished read shows while its item is in the box.
+    s = readDone(readStarted(NO_READS, 5, true, 0), 5, "a", "in_cloud", 3000);
     expect(shownRead(s, inBox)).toEqual({ kind: "read", source: "in_cloud", ms: 3000 });
     expect(shownRead(s, () => false)).toBeNull();
     // An older read that ends after a newer one keeps the newer one's line.
     s = readDone(readStarted(readStarted(NO_READS, 3, false, 0), 4, false, 0), 4, "b", "on_device", 1000);
     expect(shownRead(readDone(s, 3, "a", "on_device", 9000), inBox)).toEqual({ kind: "read", source: "on_device", ms: 1000 });
+  });
+
+  it("never lets an older read's result stand in for a newer one, across a third read that ends with no card", () => {
+    const inBox = () => true;
+    let s = readStarted(readStarted(NO_READS, 1, false, 0), 2, false, 0);
+    s = readDone(s, 2, "b", "on_device", 2000);
+    s = readEnded(readStarted(s, 3, false, 0), 3);
+    s = readDone(s, 1, "a", "in_cloud", 9000);
+    expect(shownRead(s, inBox)).toBeNull();
+    // A later read that ends with a card shows again.
+    s = readDone(readStarted(s, 4, false, 0), 4, "d", "on_device", 1500);
+    expect(shownRead(s, inBox)).toEqual({ kind: "read", source: "on_device", ms: 1500 });
   });
 
   it("stays mounted and empty when no read is running, so the next one is announced", () => {

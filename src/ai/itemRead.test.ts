@@ -58,6 +58,15 @@ describe("readItem", () => {
     expect(stays).not.toHaveBeenCalled();
   });
 
+  it("does not say a hybrid read went on to the cloud when the cloud is closed by then", async () => {
+    const onCloud = vi.fn();
+    const m = models({ hybrid: fails("QuotaExceededError"), device: ok("on_device") });
+    let open = true;
+    m.hybrid.generate.mockImplementation(async () => { open = false; throw Object.assign(new Error("x"), { name: "QuotaExceededError" }); });
+    await expect(readItem(m, img, "hybrid", clock(0, 2), () => open, undefined, onCloud)).rejects.toMatchObject({ kind: "blocked" });
+    expect(onCloud).not.toHaveBeenCalled();
+  });
+
   it("returns the on-device read with its time", async () =>
     expect(await readItem(models({ hybrid: ok("on_device") }), img, "hybrid", clock(0, 1300))).toMatchObject({ source: "on_device", ms: 1300, recoveredFrom: null, route: "hybrid", read: validRead }));
 
