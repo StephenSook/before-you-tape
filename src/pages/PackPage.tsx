@@ -30,6 +30,7 @@ import { localDay } from "../shared/localDay";
 import { AddByHand, savedDraft } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
+import { NO_READS, readDone, readEnded, readStarted, readToCloud, shownRead, type Reads } from "../ui/ReadStatus";
 import { SecurityCheckFailed } from "../ui/SecurityCheckFailed";
 import { VerdictChip } from "../ui/VerdictChip";
 import { judgeNameOf } from "../judge/brandFree";
@@ -264,6 +265,10 @@ export function PackPage(p: PackPageProps) {
   }, [config.pauseUnknown, settingsNoticeMs]);
   // Each press gets a number, so a read that ran out of time does not cover the notice of a newer one.
   const presses = useRef(0);
+  // The reads running now, and where the newest one ran, for the line in "Your box" (src/ui/ReadStatus.tsx).
+  const [reads, setReads] = useState<Reads>(NO_READS);
+  const readIds = useRef(0);
+  const updateReads = (next: (r: Reads) => Reads) => { if (!gone.current) setReads(next); };
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
   // again, so every decision to use the cloud reads the source itself when there is one.
   const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
@@ -549,9 +554,12 @@ export function PackPage(p: PackPageProps) {
     }
     // Registered now, so taking back consent, a pause or leaving the page ends the read.
     const work = cloudWork();
-    const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === owner) setNotice(TOO_SLOW); });
+    const readId = ++readIds.current;
+    updateReads((r) => readStarted(r, readId, route === "cloud_only", now()));
+    // A device read does not hear the abort, so its line ends here, not when the model answers.
+    const limit = timeLimit(readTimeoutMs, work, () => { updateReads((r) => readEnded(r, readId)); if (presses.current === owner) setNotice(TOO_SLOW); });
     try {
-      const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
+      const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal, () => updateReads((r) => readToCloud(r, readId)));
       limit.clear();
       if (gone.current || limit.over) return;
       if (isNoItem(outcome.read)) { say(NO_ITEM); return; }
@@ -559,6 +567,7 @@ export function PackPage(p: PackPageProps) {
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));
       const added = store.getState().items.find((i) => i.itemId === itemId);
+      updateReads((r) => readDone(r, readId, itemId, added?.readSource ?? outcome.source, outcome.ms));
       const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, live.current.secondLook) : null;
       if (reason) decideLook(itemId, { reason, read: outcome.read, part, how, nos: nosAtRead });
       // The crop and its label text stay on this device; a failure here never loses the verdict.
@@ -569,6 +578,8 @@ export function PackPage(p: PackPageProps) {
       say(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
     } finally {
       work.end();
+      // A read that ended without a card (no item, a failure, too slow) leaves no line behind.
+      updateReads((r) => readEnded(r, readId));
     }
   };
 
@@ -618,6 +629,7 @@ export function PackPage(p: PackPageProps) {
     const t = setTimeout(() => setSheetGone(newestId), p.newestSheetMs ?? 8000);
     return () => clearTimeout(t);
   }, [newestId, p.newestSheetMs]);
+  const readShown = shownRead(reads, (id) => state.items.some((i) => i.itemId === id));
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
     const r = rulesReadBy(resolveDestination(edition, d.code));
@@ -728,7 +740,7 @@ export function PackPage(p: PackPageProps) {
                 : "Not synced: your saved box can't be shown until this browser passes the security check."}
             </p>
           )}
-          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox} incomplete={state.incomplete === true}
+          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox} incomplete={state.incomplete === true} read={readShown} now={now}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
             const verdict = state.result.items[item.itemId];

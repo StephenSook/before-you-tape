@@ -126,9 +126,11 @@ function withdrawal(stillAllowed: StillAllowed, signal?: AbortSignal): Withdrawa
   return { opts: signal ? { allowed: stillAllowed, signal } : { allowed: stillAllowed }, aborted, withdrawn, settle: (call) => untilAborted(call, signal), stillOpen };
 }
 
-async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal): Promise<CloudReply> {
+// onEnter: called once, after the first check that the cloud is still allowed and before the first cloud call.
+async function callCloud(models: ItemModels, image: ImagePart, w: Withdrawal, onEnter?: () => void): Promise<CloudReply> {
   for (let attempt = 1; ; attempt++) {
     if (!w.stillOpen()) throw blocked();
+    if (attempt === 1) onEnter?.();
     try {
       return { reply: await w.settle(models.cloud.generate(ITEM_READ_PROMPT, image, w.opts)) };
     } catch (e) {
@@ -157,8 +159,11 @@ function parseOrFail(reply: ModelReply): { read: ItemRead; fullLabelText: string
   }
 }
 
+// onCloud: called when a hybrid read that did not finish on the device goes on to the cloud, once the cloud is
+// confirmed still allowed and before that call, so a page showing where the read runs can say so.
 export async function readItem(
   models: ItemModels, image: ImagePart, route: ReadRoute, now: () => number, stillAllowed: StillAllowed = () => true, signal?: AbortSignal,
+  onCloud?: () => void,
 ): Promise<ReadOutcome> {
   const start = now();
   const w = withdrawal(stillAllowed, signal);
@@ -197,7 +202,7 @@ export async function readItem(
       if (w.aborted()) throw blocked();
       recoveredFrom = errorName(e);
     }
-    const cloud = await callCloud(models, image, w);
+    const cloud = await callCloud(models, image, w, onCloud);
     return done(cloud.reply, recoveredFrom, cloud.fallbackAfter);
   }
 
