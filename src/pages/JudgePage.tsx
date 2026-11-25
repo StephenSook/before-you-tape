@@ -91,8 +91,8 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
     <div className="judge">
       <h1>Try the sample box</h1>
       <p>
-        Nine real items from our test photos. We typed in what each label says, so this page needs no camera, no built-in
-        model and no sign-in. The app's own rules decide each verdict, here in your browser.
+        Nine real items from our test photos. We typed in what each label says, without brand names, so this page needs
+        no camera, no built-in model and no sign-in. The app's own rules decide each verdict, here in your browser.
       </p>
       <p>
         <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>

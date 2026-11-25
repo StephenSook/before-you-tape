@@ -20,6 +20,7 @@ describe("JudgePage", () => {
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Philippines/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeInTheDocument();
     expect(screen.getByText(/no camera, no built-in model and no sign-in/)).toBeInTheDocument();
+    expect(screen.getByText(/We typed in what each label says, without brand names,/)).toBeInTheDocument();
     expect(screen.getAllByTestId("sample-card")).toHaveLength(9);
     // A small WebP copy, with its size, so the page loads fast and does not shift as photos arrive.
     const img = within(card("Body lotion")).getByRole("img");
