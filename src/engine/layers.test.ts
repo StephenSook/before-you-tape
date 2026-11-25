@@ -24,11 +24,11 @@ describe("layerStatuses", () => {
   });
 
   it("names each layer with its edition and check date", () => {
-    const [usps, dest, susp, customs] = layerStatuses(ed, resolveDestination(ed, "PH"), "2026-11-20");
+    const [usps, dest, susp, customs] = layerStatuses(ed, resolveDestination(ed, "PH"), "2026-11-25");
     expect(usps).toMatchObject({ label: "USPS export rules", checkedOn: "2026-11-17" });
     expect(usps?.edition).toContain("August 2026");
     expect(dest).toMatchObject({ edition: "IMM 2026-11-02", checkedOn: "2026-11-17" });
-    expect(susp).toMatchObject({ label: "Service suspensions", edition: "Updated 2026-11-20", checkedOn: "2026-11-20" });
+    expect(susp).toMatchObject({ label: "Service suspensions", edition: "Updated 2026-11-20", checkedOn: "2026-11-25" });
     expect(customs).toMatchObject({ label: "Philippines customs", checkedOn: "2026-11-17" });
   });
 
@@ -60,8 +60,8 @@ describe("layerStatuses", () => {
     expect(states("2026-99-99")).toEqual(["missing", "missing", "missing", "missing"]);
     expect(states("2026-02-30")).toEqual(["missing", "missing", "missing", "missing"]);
     expect(states("2026-11-10")).toEqual(["missing", "missing", "missing", "missing"]);
-    // The suspension list was checked on 2026-11-20, so on 2026-11-17 that check is still ahead.
-    expect(states("2026-11-17")).toEqual(["checked", "checked", "missing", "checked"]);
-    expect(states("2026-11-20")).toEqual(["checked", "checked", "checked", "checked"]);
+    // The suspension list was read again on 2026-11-25, so on 2026-11-20 that check is still ahead.
+    expect(states("2026-11-20")).toEqual(["checked", "checked", "missing", "checked"]);
+    expect(states("2026-11-25")).toEqual(["checked", "checked", "checked", "checked"]);
   });
 });

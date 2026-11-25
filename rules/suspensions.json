@@ -1,6 +1,6 @@
 {
   "updated": "2026-11-20",
-  "checkedOn": "2026-11-20",
+  "checkedOn": "2026-11-25",
   "url": "https://about.usps.com/newsroom/service-alerts/international/",
   "codes": ["AF", "BT", "CU", "HT", "IR", "KI", "SC", "SS", "SD", "TM", "YE"],
   "upcoming": [{ "code": "CA", "from": "2026-11-29" }]
