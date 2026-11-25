@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseEdition } from "../engine/edition";
+import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import { BRANDS, brandWord } from "../judge/brands.fixture";
 import { rulesOnlyRun, typedCategoriesOf } from "./baselines";
 import { buildEvalSet, type SetLabels, type SetManifest } from "./loadSet";
@@ -27,6 +27,14 @@ const truth = (r: { itemId: string; destination: string }) => set.items.find((i)
 const first = record.blocks[0]!;
 const last = record.blocks[record.blocks.length - 1]!;
 const verdict = (v: RescoredRow["shipped"]): Verdict | null => ("level" in v ? v : null);
+// The exact bytes of each edition copy the record may name. A copy edited under the same id fails here, whatever hash
+// the record gives it.
+const EDITION_SHA256: Record<string, string> = {
+  "byt-3b5f5508968f": "1c8daae0c427ab4052191da8b67a31d8c96ea739350a79e2c5555bf3e5853ad4",
+  "byt-f083f028e045": "f56f617351a0b4900291124e13e19311d718e1c24f82f55699144557b5b4bd3b",
+};
+// How many rows of each block have a verdict on each path. Only the published second-look rows may lack a shipped one.
+const VERDICTS = { rulesOnly: 80, device: 80, cloud: 80, shipped: 54 };
 
 describe("the published re-score", () => {
   it("re-scores the published run, starting from the run's own edition and date", () => {
@@ -69,11 +77,28 @@ describe("the published re-score", () => {
     expect(first.rows.map((r) => r.rulesOnly)).toEqual(published.rows.map((r) => r.shipped.level));
   });
 
-  it("names each edition by a committed copy whose hash and id match, and gives that edition's rules-only verdicts", () => {
+  it("has a verdict on every row of every block, but the published second-look rows of the shipped route", () => {
+    for (const b of record.blocks) {
+      const counts = {
+        rulesOnly: b.rows.filter((r) => typeof r.rulesOnly === "string").length,
+        device: b.rows.filter((r) => r.device && "level" in r.device).length,
+        cloud: b.rows.filter((r) => r.cloud && "level" in r.cloud).length,
+        shipped: b.rows.filter((r) => verdict(r.shipped)).length,
+      };
+      expect(counts).toEqual(VERDICTS);
+      expect(b.rows.map((r) => verdict(r.shipped) === null)).toEqual(run.rows.map((r) => r.shipped.secondLook));
+    }
+  });
+
+  it("names each edition by a committed copy whose bytes are pinned here and whose id is the hash of its content", async () => {
     const typed = typedCategoriesOf(labels, manifest);
     for (const b of record.blocks) {
       const bytes = readFileSync(b.editionFile);
-      expect(createHash("sha256").update(bytes).digest("hex")).toBe(b.editionSha256);
+      const sha = createHash("sha256").update(bytes).digest("hex");
+      expect(sha).toBe(EDITION_SHA256[b.editionId]);
+      expect(sha).toBe(b.editionSha256);
+      const { editionId, ...body } = JSON.parse(bytes.toString("utf8")) as { editionId: string };
+      expect(`byt-${(await sha256Hex(canonicalJson(body))).slice(0, 12)}`).toBe(editionId);
       const edition = parseEdition(JSON.parse(bytes.toString("utf8")));
       expect([edition.editionId, edition.revision]).toEqual([b.editionId, b.revision]);
       expect(b.editionFile).toBe(`eval/runs/editions/${b.editionId}.json`);
