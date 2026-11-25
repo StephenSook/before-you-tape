@@ -5,6 +5,27 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-25
 
+### fix(ios): keep "Read these words" reachable with the keyboard up, and read on Return
+- What: on "Check an item" the live camera view puts the label words field low on the screen. With
+  the keyboard up, the keyboard covered "Read these words", Return put a newline in the words, and
+  nothing but Back closed the keyboard, so typed words could not be read. Now the page scrolls the
+  button to just above the keyboard when it opens and as the words grow; Return (typed on its own or
+  over selected words) reads the words and closes the keyboard, and keeps any selected words; the
+  button closes the keyboard too, so the verdict under it shows; swiping the page down closes the
+  keyboard. A second tap or Return during a read reads nothing twice. Scan Text that brings several
+  lines keeps them.
+- Source: a judge-facing bug seen on a real iPhone 17 Pro (iOS 27.2.1) while filming, on Ad Hoc
+  build 1.0.0 (3). App Store build 2 has it too.
+- Verified: new UI tests `LabelWordsKeyboardUITests` (largest text size, which puts the field low on
+  the simulator, which has no camera) failed before the fix (button bottom at y 841 under the
+  keyboard top at y 590; Return did not read) and pass after it, including a check that Return calls
+  the reader once. With the keyboard-show scroll and the swipe-to-close modifier taken out, the
+  button and swipe tests fail again. New unit tests `LabelWordsReturnTests` (10) cover what counts
+  as Return. Second-model review: two medium findings; Return over a selection is fixed here, a
+  pasted lone newline reads like Return by design. Not yet checked on a real iPhone.
+  `bash ios/scripts/ci-local-ios.sh` exit 0 on this tree (1303 web tests, 38 BYTCore tests, every app
+  test, and the unsigned device build).
+
 ### docs(ios): the README presents the iPhone app as part of the entry and says how to get it
 - What: `ios/README.md` drops "Work in progress" and calls the app one of Before You Tape's three
   parts. It keeps the limits (the box stays on the phone; joining a web box is not built; iPhone
