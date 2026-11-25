@@ -1,6 +1,6 @@
 // /judge with the rule edition built into the app and the countries whose rules it carries. Nothing here
 // signs in, opens a camera or calls a model.
-import manifest from "../../eval/set/manifest.json";
+import manifest from "../../eval/set/manifest.public.json";
 import bundledEdition from "../../rules/edition.json";
 import destinationIndex from "../../rules/destinations/index.json";
 import { parseEdition } from "../engine/edition";

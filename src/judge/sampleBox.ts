@@ -2,8 +2,8 @@
 // photo's label says into the same fields a model read fills, leaving out brand, maker and model names, so the
 // page needs no camera, no built-in model and no sign-in; the app's own rules engine judges them in the browser.
 // A test pins every verdict here to the set's frozen labels for both destinations.
-import manifest from "../../eval/set/manifest.json";
-import type { SetManifest } from "../eval/loadSet";
+import manifest from "../../eval/set/manifest.public.json";
+import type { PublicSetManifest } from "../eval/loadSet";
 import { creditLine } from "../eval/manifest";
 import type { ItemRead } from "../shared/itemRead";
 import { judgeNameOf } from "./brandFree";
@@ -33,7 +33,7 @@ const READS: { itemId: string; read: ItemRead }[] = [
 
 export interface SampleItem { itemId: string; read: ItemRead; photo: string; alt: string; credit: string }
 
-const items = (manifest as SetManifest).items;
+const items = (manifest as PublicSetManifest).items;
 export const SAMPLE_BOX: readonly SampleItem[] = READS.map(({ itemId, read }) => {
   const m = items.find((i) => i.itemId === itemId);
   if (!m) throw new Error(`sample item ${itemId} is not in the eval set`);
