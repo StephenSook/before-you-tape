@@ -45,7 +45,9 @@ export function buildRecord(root: string, runPath: string, blocks: { editionPath
       return {
         editionId: edition.editionId, revision, date,
         editionFile: relative(root, resolve(editionPath)), editionSha256: sha256(bytes),
-        rows: rescore(run, set, typed, edition, date),
+        // On the run's own edition and date, a read whose saved label was cut is re-scored too: the published level it
+        // must give back checks it. On any other edition it is not (src/eval/rescore.ts).
+        rows: rescore(run, set, typed, edition, date, { scoreClipped: i === 0 }),
       };
     }),
   };

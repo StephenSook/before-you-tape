@@ -127,7 +127,7 @@ describe("RanPage", () => {
 
   const rescored = (over: Partial<RescoreSummary> = {}): RescoreSummary => ({
     runId: "models-2026-11-21", source: "eval/runs/models-2026-11-21.rescored.public.json", editionId: bundled.editionId,
-    revision: bundled.revision, date: "2026-11-25", shippedItems: 27, shippedRows: 54, shippedChanged: 0, notRescoredItems: 13, ...over,
+    revision: bundled.revision, date: "2026-11-25", shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1, ...over,
   });
   const editionLine = () => within(screen.getByText("How our test was run").closest("details")!).getByText(/^Rules: edition /);
 
@@ -135,14 +135,20 @@ describe("RanPage", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored()} today="2026-11-21" />);
     expect(editionLine()).toHaveTextContent(
       `Rules: edition byt-3b5f5508968f, an earlier edition: the app now runs ${bundled.editionId} (revision ${bundled.revision}). ` +
-      "Re-scored on it with the saved reads: no verdict changed for the 27 items without a second look. " +
-      "The 13 items that got one could not be re-scored: the run did not save the reads the second look compared.");
+      "Re-scored on it with the saved reads: no verdict changed for the 26 items it could re-score. " +
+      "It could not re-score 14 items: 13 got a second look, whose compared reads the run did not save, and 1 had its saved label cut short.");
     expect(editionLine()).not.toHaveTextContent("can differ");
+  });
+
+  it("names only the second looks when no saved label was cut", () => {
+    render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedItems: 27, shippedRows: 54, clippedItems: 0 })} today="2026-11-21" />);
+    expect(editionLine()).toHaveTextContent(
+      "no verdict changed for the 27 items it could re-score. The 13 items that got a second look could not be re-scored: the run did not save the reads the second look compared.");
   });
 
   it("counts the verdicts a re-score changed", () => {
     render(<RanPage ranEval={ranEval()} measured={measured()} rescored={rescored({ shippedChanged: 2 })} today="2026-11-21" />);
-    expect(editionLine()).toHaveTextContent("Re-scored on it with the saved reads: 2 of 54 verdicts changed for the 27 items without a second look.");
+    expect(editionLine()).toHaveTextContent("Re-scored on it with the saved reads: 2 of 52 verdicts changed for the 26 items it could re-score.");
   });
 
   it("keeps saying a verdict can differ when the re-score is for another edition, or cannot be read", () => {

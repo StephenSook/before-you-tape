@@ -70,13 +70,16 @@ accuracy.
 ## Re-scored on revision 8, rules applied on 2026-11-25
 
 Re-scored from the run's saved reads on revision 8 (byt-f083f028e045) with no model call: no verdict changed on the
-device path, the cloud path or the rules-only baseline (80 rows each), or on the shipped route for the 27 items
-without a second look (54 rows). The 13 items that got a second look could not be re-scored: the run did not save the
-reads the second look compared. One rule hit is new: USPS-INTL-LI-ONE-READ ("Check this") now also fires on the device
-path for i02, i03 and i05, whose verdicts stay the same.
+device path (78 rows), the cloud path or the rules-only baseline (80 rows each), or on the shipped route for the 26
+items it could re-score (52 rows). It did not re-score the 13 items that got a second look, since the run did not save
+the reads the second look compared, nor 2 reads whose saved label reached 160 characters (own-01 on the device path,
+own-20 on the shipped route): the run judged label words from the whole label, and saved only those 160 characters.
+One rule hit is new: USPS-INTL-LI-ONE-READ ("Check this") now also fires on the device path for i02, i03 and i05,
+whose verdicts stay the same.
 
 The re-score first re-scores the run on its own edition and date, and gives back every published level it re-scores:
-the 80 device rows, the 80 cloud rows, the 80 rules-only rows and the 54 shipped rows. `src/eval/rescoreRecord.test.ts`
+the 80 device rows, the 80 cloud rows, the 80 rules-only rows and the 54 shipped rows. The two cut labels are
+re-scored there only, where the published level checks them. `src/eval/rescoreRecord.test.ts`
 checks the record against the published run and the edition copies; `npx tsx scripts/eval-rescore.ts --run
 eval/runs/private/models-2026-11-21.json --edition eval/runs/editions/byt-3b5f5508968f.json --date 2026-11-21
 --edition eval/runs/editions/byt-f083f028e045.json --date 2026-11-25 --check` rebuilds it from the private run and

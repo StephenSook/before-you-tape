@@ -23,8 +23,10 @@ export interface RescoreSummary {
   shippedItems: number;
   shippedRows: number;
   shippedChanged: number;
-  // Items whose shipped verdict rests on a second look, which the run did not save the reads for.
-  notRescoredItems: number;
+  // Items whose shipped verdict was not re-scored: it rests on a second look, whose compared reads the run did not
+  // save, or the saved label was cut at LABEL_TEXT_MAX characters.
+  secondLookItems: number;
+  clippedItems: number;
 }
 
 export const RESCORE_SOURCE = "eval/runs/models-2026-11-21.rescored.public.json";
@@ -33,17 +35,25 @@ export function rescoreSummary(record: RescoreRecord): RescoreSummary {
   const first = record.blocks[0];
   const last = record.blocks[record.blocks.length - 1];
   if (!first || !last) throw new Error("a re-score record needs at least one block");
-  const rescored = last.rows.filter((r) => "level" in r.shipped);
+  // Only a second look or a cut label leaves a shipped verdict out; any other gap is refused, never counted as one.
+  const reason = (r: RescoredRow) => ("notRescored" in r.shipped ? r.shipped.notRescored : null);
+  for (const r of last.rows) {
+    const why = reason(r);
+    if (why !== null && why !== "second_look" && why !== "clipped_label") throw new Error(`${r.itemId} ${r.destination}: not re-scored (${why})`);
+  }
+  const rescored = last.rows.filter((r) => reason(r) === null);
   const before = new Map(first.rows.map((r) => [`${r.itemId}|${r.destination}`, r.shipped]));
   const changed = rescored.filter((r) => {
     const b = before.get(`${r.itemId}|${r.destination}`);
-    return !b || !("level" in b) || b.level !== (r.shipped as { level: string }).level;
+    if (!b || !("level" in b)) throw new Error(`${r.itemId} ${r.destination}: re-scored, but with no verdict on the run's own edition`);
+    return b.level !== (r.shipped as { level: string }).level;
   });
   const items = (rows: RescoredRow[]) => new Set(rows.map((r) => r.itemId)).size;
   return {
     runId: record.runId, source: RESCORE_SOURCE, editionId: last.editionId, revision: last.revision, date: last.date,
     shippedItems: items(rescored), shippedRows: rescored.length, shippedChanged: changed.length,
-    notRescoredItems: items(last.rows.filter((r) => "notRescored" in r.shipped)),
+    secondLookItems: items(last.rows.filter((r) => reason(r) === "second_look")),
+    clippedItems: items(last.rows.filter((r) => reason(r) === "clipped_label")),
   };
 }
 
@@ -54,10 +64,10 @@ const isCount = (v: unknown): v is number => typeof v === "number" && Number.isI
 export function readRescoreSummary(file: unknown): RescoreSummary | null {
   if (typeof file !== "object" || file === null || Array.isArray(file)) return null;
   const f = file as Record<string, unknown>;
-  const keys = ["runId", "source", "editionId", "revision", "date", "shippedItems", "shippedRows", "shippedChanged", "notRescoredItems"];
+  const keys = ["runId", "source", "editionId", "revision", "date", "shippedItems", "shippedRows", "shippedChanged", "secondLookItems", "clippedItems"];
   if (Object.keys(f).sort().join() !== [...keys].sort().join()) return null;
   if (![f.runId, f.source, f.editionId, f.date].every(isText)) return null;
-  if (![f.revision, f.shippedItems, f.shippedRows, f.shippedChanged, f.notRescoredItems].every(isCount)) return null;
+  if (![f.revision, f.shippedItems, f.shippedRows, f.shippedChanged, f.secondLookItems, f.clippedItems].every(isCount)) return null;
   if ((f.shippedChanged as number) > (f.shippedRows as number)) return null;
   return f as unknown as RescoreSummary;
 }

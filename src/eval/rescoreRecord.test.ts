@@ -9,7 +9,7 @@ import { canonicalJson, parseEdition, sha256Hex } from "../engine/edition";
 import { BRANDS, brandWord } from "../judge/brands.fixture";
 import { rulesOnlyRun, typedCategoriesOf } from "./baselines";
 import { buildEvalSet, type SetLabels, type SetManifest } from "./loadSet";
-import type { RescoredRow, Verdict } from "./rescore";
+import type { NotRescored, RescoredRow, Verdict } from "./rescore";
 import { readRescoreSummary, rescoreSummary, RESCORE_SOURCE, type RescoreRecord } from "./rescoreRecord";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8")) as unknown;
@@ -26,15 +26,19 @@ const set = buildEvalSet(manifest, labels);
 const truth = (r: { itemId: string; destination: string }) => set.items.find((i) => i.itemId === r.itemId)!.truth[r.destination]!.expected;
 const first = record.blocks[0]!;
 const last = record.blocks[record.blocks.length - 1]!;
-const verdict = (v: RescoredRow["shipped"]): Verdict | null => ("level" in v ? v : null);
+const verdict = (v: Verdict | NotRescored | null): Verdict | null => (v && "level" in v ? v : null);
+const reason = (v: Verdict | NotRescored | null) => (v && "notRescored" in v ? v.notRescored : null);
 // The exact bytes of each edition copy the record may name. A copy edited under the same id fails here, whatever hash
 // the record gives it.
 const EDITION_SHA256: Record<string, string> = {
   "byt-3b5f5508968f": "1c8daae0c427ab4052191da8b67a31d8c96ea739350a79e2c5555bf3e5853ad4",
   "byt-f083f028e045": "f56f617351a0b4900291124e13e19311d718e1c24f82f55699144557b5b4bd3b",
 };
-// How many rows of each block have a verdict on each path. Only the published second-look rows may lack a shipped one.
-const VERDICTS = { rulesOnly: 80, device: 80, cloud: 80, shipped: 54 };
+// The reads whose saved label reached 160 characters (src/eval/rescore.ts): re-scored on the run's own edition, where
+// the published level checks them, and not on any other.
+const CUT: Record<"device" | "cloud" | "shipped", string[]> = { device: ["own-01"], cloud: [], shipped: ["own-20"] };
+// How many rows of each block have a verdict on each path.
+const VERDICTS = { first: { rulesOnly: 80, device: 80, cloud: 80, shipped: 54 }, later: { rulesOnly: 80, device: 78, cloud: 80, shipped: 52 } };
 
 describe("the published re-score", () => {
   it("re-scores the published run, starting from the run's own edition and date", () => {
@@ -48,7 +52,7 @@ describe("the published re-score", () => {
 
   it("gives back every published device and cloud level on the run's own edition", () => {
     for (const p of ["device", "cloud"] as const) {
-      const back = first.rows.map((r) => r[p]?.level ?? null);
+      const back = first.rows.map((r) => verdict(r[p])?.level ?? null);
       expect(back).toEqual(run.rows.map((r) => r[p]?.level ?? null));
       expect(back.filter((l) => l !== null)).toHaveLength(80);
     }
@@ -57,10 +61,7 @@ describe("the published re-score", () => {
   it("gives back the 54 published shipped levels with no second look, and re-scores none of the 26 that had one", () => {
     const looked = run.rows.map((r) => r.shipped.secondLook);
     expect(looked.filter(Boolean)).toHaveLength(26);
-    for (const b of record.blocks) {
-      expect(b.rows.map((r) => "notRescored" in r.shipped)).toEqual(looked);
-      for (const r of b.rows.filter((x) => "notRescored" in x.shipped)) expect(r.shipped).toEqual({ notRescored: "second_look" });
-    }
+    expect(first.rows.map((r) => reason(r.shipped))).toEqual(looked.map((l) => (l ? "second_look" : null)));
     const back = first.rows.flatMap((r, i) => (looked[i] ? [] : [[verdict(r.shipped)!.level, run.rows[i]!.shipped.level]]));
     expect(back).toHaveLength(54);
     for (const [got, published] of back) expect(got).toBe(published);
@@ -69,24 +70,29 @@ describe("the published re-score", () => {
   it("gives back the published agreement on the run's own edition: rules only 71, device 60, cloud 64 of 80", () => {
     const agree = (pick: (r: RescoredRow) => string | undefined) => first.rows.filter((r) => pick(r) === truth(r)).length;
     expect(agree((r) => r.rulesOnly)).toBe(71);
-    expect(agree((r) => r.device?.level)).toBe(60);
-    expect(agree((r) => r.cloud?.level)).toBe(64);
+    expect(agree((r) => verdict(r.device)?.level)).toBe(60);
+    expect(agree((r) => verdict(r.cloud)?.level)).toBe(64);
     // Always "Check this" needs no read and no rule: it agrees wherever the label is "Check this".
     expect(first.rows.filter((r) => truth(r) === "check")).toHaveLength(5);
     const published = read("eval/runs/rules_only-2026-11-21.json") as { rows: { shipped: { level: string } }[] };
     expect(first.rows.map((r) => r.rulesOnly)).toEqual(published.rows.map((r) => r.shipped.level));
   });
 
-  it("has a verdict on every row of every block, but the published second-look rows of the shipped route", () => {
-    for (const b of record.blocks) {
+  it("has a verdict on every row of every block, but the published second-look rows and, after the first, the cut labels", () => {
+    for (const [bi, b] of record.blocks.entries()) {
+      for (const p of ["device", "cloud", "shipped"] as const) {
+        const want = run.rows.map((r) => (p === "shipped" && r.shipped.secondLook ? "second_look"
+          : bi > 0 && CUT[p].includes(r.itemId) ? "clipped_label" : null));
+        expect(b.rows.map((r) => reason(r[p]))).toEqual(want);
+        expect(b.rows.every((r) => r[p] !== null)).toBe(true);
+      }
       const counts = {
         rulesOnly: b.rows.filter((r) => typeof r.rulesOnly === "string").length,
-        device: b.rows.filter((r) => r.device && "level" in r.device).length,
-        cloud: b.rows.filter((r) => r.cloud && "level" in r.cloud).length,
+        device: b.rows.filter((r) => verdict(r.device)).length,
+        cloud: b.rows.filter((r) => verdict(r.cloud)).length,
         shipped: b.rows.filter((r) => verdict(r.shipped)).length,
       };
-      expect(counts).toEqual(VERDICTS);
-      expect(b.rows.map((r) => verdict(r.shipped) === null)).toEqual(run.rows.map((r) => r.shipped.secondLook));
+      expect(counts).toEqual(bi === 0 ? VERDICTS.first : VERDICTS.later);
     }
   });
 
@@ -114,8 +120,8 @@ describe("the published re-score", () => {
       const b = last.rows[i]!;
       if (a.rulesOnly !== b.rulesOnly) changed.push(`rulesOnly ${a.itemId} ${a.destination}`);
       for (const p of ["device", "cloud", "shipped"] as const) {
-        const x = p === "shipped" ? verdict(a.shipped) : a[p];
-        const y = p === "shipped" ? verdict(b.shipped) : b[p];
+        const x = verdict(a[p]);
+        const y = verdict(b[p]);
         if (!x || !y) continue;
         if (x.level !== y.level) changed.push(`${p} ${a.itemId} ${a.destination}`);
         else {
@@ -135,7 +141,7 @@ describe("the published re-score", () => {
       expect(Object.keys(b).sort()).toEqual(["date", "editionFile", "editionId", "editionSha256", "revision", "rows"]);
       for (const r of b.rows) {
         expect(Object.keys(r).sort()).toEqual(["cloud", "destination", "device", "itemId", "rulesOnly", "shipped"]);
-        for (const v of [r.device, r.cloud, verdict(r.shipped)]) if (v) expect(Object.keys(v).sort()).toEqual(pathKeys);
+        for (const v of [r.device, r.cloud, r.shipped]) expect(Object.keys(v!).sort()).toEqual(verdict(v) ? pathKeys : ["notRescored"]);
       }
     }
     expect(Object.keys(record).sort()).toEqual(["blocks", "runId", "runSha256", "setId"]);
@@ -146,7 +152,16 @@ describe("the published re-score", () => {
     const summary = read("src/ran/rescore.json");
     expect(summary).toEqual(rescoreSummary(record));
     expect(readRescoreSummary(summary)).toEqual(summary);
-    expect(rescoreSummary(record)).toMatchObject({ shippedItems: 27, shippedRows: 54, shippedChanged: 0, notRescoredItems: 13 });
+    expect(rescoreSummary(record)).toMatchObject({ shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1 });
+  });
+
+  it("refuses to sum a block with a gap that is neither a second look nor a cut label, or a verdict the first block lacks", () => {
+    const withLast = (rows: RescoredRow[]): RescoreRecord => ({ ...record, blocks: [first, { ...last, rows }] });
+    const gap = last.rows.map((r, i) => (i === 0 ? { ...r, shipped: { notRescored: "no_verdict" as const } } : r));
+    expect(() => rescoreSummary(withLast(gap))).toThrow(/not re-scored \(no_verdict\)/);
+    const i = first.rows.findIndex((r) => reason(r.shipped) === "second_look");
+    const extra = last.rows.map((r, k) => (k === i ? { ...r, shipped: { level: "check" as const, rules: [], question: null } } : r));
+    expect(() => rescoreSummary(withLast(extra))).toThrow(/no verdict on the run's own edition/);
   });
 });
 

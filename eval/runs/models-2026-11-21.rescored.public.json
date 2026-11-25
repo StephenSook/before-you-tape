@@ -2145,12 +2145,7 @@
           "destination": "CA",
           "rulesOnly": "take_out",
           "device": {
-            "level": "take_out",
-            "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
-            "question": null
+            "notRescored": "clipped_label"
           },
           "cloud": {
             "level": "take_out",
@@ -2169,11 +2164,7 @@
           "destination": "PH",
           "rulesOnly": "take_out",
           "device": {
-            "level": "take_out",
-            "rules": [
-              "USPS-INTL-LI-LOOSE:take_out"
-            ],
-            "question": null
+            "notRescored": "clipped_label"
           },
           "cloud": {
             "level": "take_out",
@@ -2488,11 +2479,7 @@
             "question": null
           },
           "shipped": {
-            "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
-            "question": null
+            "notRescored": "clipped_label"
           }
         },
         {
@@ -2514,11 +2501,7 @@
             "question": null
           },
           "shipped": {
-            "level": "take_out",
-            "rules": [
-              "PH-P-01:take_out"
-            ],
-            "question": null
+            "notRescored": "clipped_label"
           }
         },
         {

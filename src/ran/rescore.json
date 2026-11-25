@@ -4,8 +4,9 @@
   "editionId": "byt-f083f028e045",
   "revision": 8,
   "date": "2026-11-25",
-  "shippedItems": 27,
-  "shippedRows": 54,
+  "shippedItems": 26,
+  "shippedRows": 52,
   "shippedChanged": 0,
-  "notRescoredItems": 13
+  "secondLookItems": 13,
+  "clippedItems": 1
 }

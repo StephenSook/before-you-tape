@@ -3,7 +3,7 @@ import { ed } from "../../tests/engine/helpers";
 import type { ImagePart, ItemModels, ModelPort } from "../ai/port";
 import type { ItemRead } from "../shared/itemRead";
 import { rulesOnlyRun } from "./baselines";
-import { rescore, type SavedRun } from "./rescore";
+import { rescore, type RescoredRow, type SavedRun } from "./rescore";
 import { evalRows } from "./runner";
 import type { EvalSet } from "./types";
 
@@ -33,6 +33,7 @@ const typed = { "own-18": "lotion_cream", "own-01": "phone" } as const;
 const images: Record<string, ImagePart> = { "own-18": { mimeType: "image/jpeg", base64: "lotion" }, "own-01": { mimeType: "image/jpeg", base64: "phone" } };
 let t = 0;
 const now = () => (t += 100);
+const v = (x: RescoredRow["device"]) => (x && "level" in x ? x : null);
 
 async function savedRun(): Promise<SavedRun> {
   const models: ItemModels = {
@@ -50,8 +51,8 @@ describe("rescore", () => {
     expect(out.map((r) => [r.itemId, r.destination])).toEqual(run.rows.map((r) => [r.itemId, r.destination]));
     for (const [i, r] of out.entries()) {
       const saved = run.rows[i]!;
-      expect(r.device?.level).toBe(saved.device!.level);
-      expect(r.cloud?.level).toBe(saved.cloud!.level);
+      expect(v(r.device)?.level).toBe(saved.device!.level);
+      expect(v(r.cloud)?.level).toBe(saved.cloud!.level);
     }
     // The lotion got no second look: its shipped read is the read judged, so it re-scores to the same level.
     const lotionRows = out.filter((r) => r.itemId === "own-18");
@@ -70,11 +71,37 @@ describe("rescore", () => {
     const run = await savedRun();
     const out = rescore(run, set, typed, ed, run.date);
     const lotionPh = out.find((r) => r.itemId === "own-18" && r.destination === "PH")!;
-    expect(lotionPh.device!.level).toBe("take_out");
-    expect(lotionPh.device!.rules.length).toBeGreaterThan(0);
-    expect(lotionPh.device!.rules.every((id) => /^[A-Z0-9-]+:(check|take_out|note)$/.test(id))).toBe(true);
+    const device = v(lotionPh.device)!;
+    expect(device.level).toBe("take_out");
+    expect(device.rules.length).toBeGreaterThan(0);
+    expect(device.rules.every((id) => /^[A-Z0-9-]+:(check|take_out|note)$/.test(id))).toBe(true);
     const base = rulesOnlyRun(set, typed, ed, { date: run.date, machine: "test", editionId: ed.editionId });
     expect(out.map((r) => r.rulesOnly)).toEqual(base.rows.map((r) => r.shipped.level));
+  });
+
+  it("does not re-score a read whose saved label reached 160 characters, unless asked to on the run's own edition", async () => {
+    const run = await savedRun();
+    // The runner judged label words from the whole label; the saved read keeps 160 characters, so a word past them
+    // could count live and not here.
+    const long = "BODY LOTION ".repeat(20).slice(0, 160);
+    const cut: SavedRun = { ...run, rows: run.rows.map((r) => (r.itemId === "own-18"
+      ? { ...r, device: { ...r.device!, read: { ...r.device!.read!, labelText: long } }, shipped: { ...r.shipped, read: { ...r.shipped.read!, labelText: long } } }
+      : r)) };
+    const skipped = rescore(cut, set, typed, ed, run.date);
+    for (const r of skipped.filter((x) => x.itemId === "own-18")) {
+      expect(r.device).toEqual({ notRescored: "clipped_label" });
+      expect(r.shipped).toEqual({ notRescored: "clipped_label" });
+      expect(r.cloud).toMatchObject({ level: expect.any(String) });
+    }
+    const scored = rescore(cut, set, typed, ed, run.date, { scoreClipped: true });
+    for (const r of scored.filter((x) => x.itemId === "own-18")) {
+      expect(r.device).toMatchObject({ level: expect.any(String) });
+      expect(r.shipped).toMatchObject({ level: expect.any(String) });
+    }
+    // 159 characters were saved whole.
+    const whole: SavedRun = { ...run, rows: run.rows.map((r) => (r.itemId === "own-18"
+      ? { ...r, device: { ...r.device!, read: { ...r.device!.read!, labelText: long.slice(0, 159) } } } : r)) };
+    for (const r of rescore(whole, set, typed, ed, run.date).filter((x) => x.itemId === "own-18")) expect(r.device).toMatchObject({ level: expect.any(String) });
   });
 
   it("keeps a path that did not run as not run, and refuses a shipped verdict with no saved read", async () => {

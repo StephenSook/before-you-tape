@@ -24,8 +24,11 @@ function editionNote(e: EvalSummary, r: RescoreSummary | null): string {
   const now = `, an earlier edition: the app now runs ${CURRENT.editionId} (revision ${CURRENT.revision})`;
   if (!r || r.editionId !== CURRENT.editionId || r.runId !== e.runId) return `${now}, so a verdict today can differ.`;
   const found = r.shippedChanged === 0 ? "no verdict changed" : `${r.shippedChanged} of ${r.shippedRows} verdicts changed`;
-  return `${now}. Re-scored on it with the saved reads: ${found} for the ${r.shippedItems} items without a second look. ` +
-    `The ${r.notRescoredItems} items that got one could not be re-scored: the run did not save the reads the second look compared.`;
+  const gaps = r.clippedItems === 0
+    ? `The ${r.secondLookItems} items that got a second look could not be re-scored: the run did not save the reads the second look compared.`
+    : `It could not re-score ${r.secondLookItems + r.clippedItems} items: ${r.secondLookItems} got a second look, whose compared reads the run did ` +
+      `not save, and ${r.clippedItems} had ${r.clippedItems === 1 ? "its" : "their"} saved label cut short.`;
+  return `${now}. Re-scored on it with the saved reads: ${found} for the ${r.shippedItems} items it could re-score. ${gaps}`;
 }
 
 function OurTest({ e, rescored }: { e: EvalSummary; rescored: RescoreSummary | null }) {
