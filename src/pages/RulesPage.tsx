@@ -6,6 +6,8 @@ import { rulesReadBy } from "../engine/layers";
 import type { RuleEdition } from "../engine/types";
 import committedCustoms from "../../rules/customs-authorities.json";
 import { customsLinesFor, readCustomsAuthorities, type CustomsAuthority } from "../rules/customsAuthorities";
+import committedReviews from "../../rules/reviews.json";
+import { approvalOf, readReviews, type Reviews } from "../rules/reviews";
 import { localDay } from "../shared/localDay";
 import type { DestinationIndexEntry } from "../ui/DestinationPicker";
 
@@ -21,11 +23,13 @@ function countryName(code: string): string {
 
 // What each country's own customs authority says about duty and tax, quoted word for word (rules/customs-authorities.json).
 const CUSTOMS = readCustomsAuthorities(committedCustoms);
+// Who checked each country's lines beyond our own reading (rules/reviews.json): AI reviews and an approval as a whole.
+const REVIEWS = readReviews(committedReviews);
 
 // customs and today: the authority lines to show (the committed ones unless a test passes its own) and this device's
 // date, which decides whether they are still fresh.
-export function RulesPage({ edition, index, customs = CUSTOMS, today = localDay() }: {
-  edition: RuleEdition; index: readonly DestinationIndexEntry[]; customs?: readonly CustomsAuthority[]; today?: string;
+export function RulesPage({ edition, index, customs = CUSTOMS, reviews = REVIEWS, today = localDay() }: {
+  edition: RuleEdition; index: readonly DestinationIndexEntry[]; customs?: readonly CustomsAuthority[]; reviews?: Reviews; today?: string;
 }) {
   const usps = edition.sources.find((s) => s.id === "usps_export");
   const seen = new Set<string>();
@@ -51,12 +55,14 @@ export function RulesPage({ edition, index, customs = CUSTOMS, today = localDay(
       {index.map((d) => {
         const dest = resolveDestination(edition, d.code);
         const readBy = rulesReadBy(dest);
+        const approval = readBy?.by === "usps_page" ? approvalOf(reviews, d.code) : null;
         const lines = dest.edition?.lines ?? [];
         return (
           <section key={d.code} aria-labelledby={`dest-${d.code}`}>
             <h2 id={`dest-${d.code}`}>{d.name}</h2>
             <p>
               {readBy?.by === "person" ? `Checked by a person on ${readBy.on}.`
+                : readBy && approval ? `Rules read from the USPS page on ${readBy.on}. Each line was checked against the USPS listing by two AI reviews, and approved by ${approval.personApprovedBy} on ${longDate(approval.personApprovedOn)}, as a whole, not line by line.`
                 : readBy ? `Rules read from the USPS page on ${readBy.on}, not yet checked by a person.`
                 : "We have not read this country's rules yet."}{" "}
               <a href={d.immUrl} target="_blank" rel="noreferrer">{d.name} listing</a>
