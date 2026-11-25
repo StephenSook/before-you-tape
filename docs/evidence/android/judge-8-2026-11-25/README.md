@@ -61,6 +61,22 @@ The phone: Pixel 10 (`frankel`), Android 17 (build CP3A.261005.005).
     bound is 18.3%). 4 hazard items were not read. This is a different measurement from the web app's controlled
     run in `eval/runs/README.md` (0 of 28 on 2026-11-21, Chrome's built-in model on a laptop, with a second look
     in the cloud), and the Android app runs no second look.
+- **The same 40 photos again, paced:** the same test, with a 15 s pause before each read after the first and up to
+  3 tries again after AICore's usage quota error (a 60 s wait, doubling), from 17:04:28 to 17:18:05. The test also
+  recorded each read's liquid, glass, powder, alcohol and flammable flags. The installed `base.apk` had the
+  attached file's SHA-256 before and after, and the test package was removed.
+  - 39 of 40 photos were read on the phone, with a median of 5,413 ms. No read hit the quota error, so none was
+    tried again. 1 photo, i09, stopped with AICore's policy check, as in the first run.
+  - Of the 78 verdicts, 54 equal our draft labels, 7 are milder and 17 are stricter. The 7 milder ones are the
+    same 7 as in the first run. The 17 stricter ones are on items labelled "OK to pack": 16 say "Check this" and
+    1 says "Take it out". 15 of the 17 are on photos the phone read as an item seen, with no label read
+    (`item_seen`).
+  - own-23 was again read as `makeup`, with `liquid` true, `glass` false and no alcohol or flammable words. It got
+    "OK to pack" for Canada and "Take it out" for the Philippines (PH-P-01, a liquid). A makeup read with no
+    alcohol, fragrance or flammable words is "Take it out" for the Philippines when it is liquid or glass; this
+    read was liquid.
+  - So in this run, 1 of the 27 hazard items it read was called "OK to pack", the same item (the exact one-sided
+    95% upper bound is 16.4%). 1 hazard item was not read.
 
 ## What a failed read on the phone shows
 
