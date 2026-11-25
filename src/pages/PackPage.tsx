@@ -30,6 +30,7 @@ import { localDay } from "../shared/localDay";
 import { AddByHand, savedDraft } from "../ui/AddByHand";
 import { ItemCard } from "../ui/ItemCard";
 import { ReadyButton } from "../ui/ReadyButton";
+import type { ReadLine } from "../ui/ReadStatus";
 import { SecurityCheckFailed } from "../ui/SecurityCheckFailed";
 import { VerdictChip } from "../ui/VerdictChip";
 import { judgeNameOf } from "../judge/brandFree";
@@ -264,6 +265,10 @@ export function PackPage(p: PackPageProps) {
   }, [config.pauseUnknown, settingsNoticeMs]);
   // Each press gets a number, so a read that ran out of time does not cover the notice of a newer one.
   const presses = useRef(0);
+  // The read running now, or where the newest one ran, for the line in "Your box". Each read gets a number, so an
+  // older read that ends never clears a newer one's line; a finished line names its item and goes when the item does.
+  const [readLine, setReadLine] = useState<{ id: number; line: ReadLine; itemId?: string } | null>(null);
+  const readIds = useRef(0);
   // The pause as Remote Config has it now. Props and the ref above lag an update until the page renders
   // again, so every decision to use the cloud reads the source itself when there is one.
   const pausedNow = () => (liveConfig ? liveConfig.get().killCloud : live.current.killCloud);
@@ -550,6 +555,8 @@ export function PackPage(p: PackPageProps) {
     // Registered now, so taking back consent, a pause or leaving the page ends the read.
     const work = cloudWork();
     const limit = timeLimit(readTimeoutMs, work, () => { if (presses.current === owner) setNotice(TOO_SLOW); });
+    const readId = ++readIds.current;
+    setReadLine({ id: readId, line: { kind: "reading", inCloud: route === "cloud_only", start: now() } });
     try {
       const outcome = await readItem(live.current.models, part, route, now, stillAllowed, work.signal);
       limit.clear();
@@ -559,6 +566,7 @@ export function PackPage(p: PackPageProps) {
       const itemId = store.addRead(outcome, key);
       setCrops((c) => ({ ...c, [itemId]: part }));
       const added = store.getState().items.find((i) => i.itemId === itemId);
+      setReadLine((r) => (r?.id === readId ? { id: readId, itemId, line: { kind: "read", source: added?.readSource ?? outcome.source, ms: outcome.ms } } : r));
       const reason = added ? needsSecondLook(deriveFacts(added, edition), outcome, live.current.secondLook) : null;
       if (reason) decideLook(itemId, { reason, read: outcome.read, part, how, nos: nosAtRead });
       // The crop and its label text stay on this device; a failure here never loses the verdict.
@@ -569,6 +577,8 @@ export function PackPage(p: PackPageProps) {
       say(e instanceof ReadFailure ? FAILURE[e.kind] : "Something went wrong reading that photo. Try again, or type the item.");
     } finally {
       work.end();
+      // A read that ended without a card (no item, a failure, too slow) leaves no line behind.
+      if (!gone.current) setReadLine((r) => (r?.id === readId && r.line.kind === "reading" ? null : r));
     }
   };
 
@@ -618,6 +628,7 @@ export function PackPage(p: PackPageProps) {
     const t = setTimeout(() => setSheetGone(newestId), p.newestSheetMs ?? 8000);
     return () => clearTimeout(t);
   }, [newestId, p.newestSheetMs]);
+  const readShown = readLine && (readLine.line.kind === "reading" || state.items.some((i) => i.itemId === readLine.itemId)) ? readLine.line : null;
   const blockedNow = blocked && blocked.when === situationOf({ cloudConsent: state.cloudConsent, killCloud: config.killCloud, online: p.online }) ? blocked.text : null;
   const readBy = Object.fromEntries(index.flatMap((d) => {
     const r = rulesReadBy(resolveDestination(edition, d.code));
@@ -728,7 +739,7 @@ export function PackPage(p: PackPageProps) {
                 : "Not synced: your saved box can't be shown until this browser passes the security check."}
             </p>
           )}
-          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox} incomplete={state.incomplete === true}
+          <BoxSummary result={state.result} itemCount={state.items.length} limits={edition.limits} unknownBox={state.unverified === true && !knownBox} incomplete={state.incomplete === true} read={readShown} now={now}
             recheck={state.lastRecheckMs === null ? null : { ms: Math.round(state.lastRecheckMs), country: countryName(state.destinationCode, index) }} />
           {state.items.map((item) => {
             const verdict = state.result.items[item.itemId];

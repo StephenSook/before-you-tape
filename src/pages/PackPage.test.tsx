@@ -1110,6 +1110,39 @@ describe("PackPage", () => {
     });
   });
 
+  it("says in Your box that a photo is being read in the cloud, then where it ran and how long, until its card goes", async () => {
+    let release!: (r: ModelReply) => void;
+    const cloud = { generate: vi.fn(() => new Promise<ModelReply>((r) => { release = r; })) };
+    let t = 0;
+    const { store } = setup({ models: { ...spyModels(), cloud }, now: () => t });
+    await store.ready;
+    await addPhoto();
+    const box = screen.getByTestId("box-summary");
+    await waitFor(() => expect(within(box).getByTestId("read-status")).toHaveTextContent("Reading in the cloud"));
+    expect(box).not.toHaveTextContent("Nothing in the box yet.");
+    t = 2500;
+    act(() => release({ text: JSON.stringify(liquidLotionLabelRead), source: "in_cloud" }));
+    const card = await screen.findByTestId("item-card");
+    await waitFor(() => expect(within(box).getByTestId("read-status")).toHaveTextContent("Read in the cloud, 2.5 s"));
+    // The line is about that item: once it leaves the box, the line goes too.
+    await userEvent.click(within(card).getByRole("button", { name: /^Remove / }));
+    await waitFor(() => expect(within(screen.getByTestId("box-summary")).getByTestId("read-status")).toBeEmptyDOMElement());
+  });
+
+  it("says a read is running on this device, and clears that line when the read fails", async () => {
+    let fail!: (e: unknown) => void;
+    const device = { generate: vi.fn(() => new Promise<ModelReply>((_, f) => { fail = f; })) };
+    const { store } = setup({ models: { ...spyModels(), device }, gate: "available" }, false);
+    await store.ready;
+    await addPhoto();
+    const box = screen.getByTestId("box-summary");
+    await waitFor(() => expect(within(box).getByTestId("read-status")).toHaveTextContent("Reading on this device"));
+    act(() => fail(new Error("model busy")));
+    expect(await screen.findByText("This device couldn't read that one. Try again, or type the item.")).toBeInTheDocument();
+    expect(within(box).getByTestId("read-status")).toBeEmptyDOMElement();
+    expect(box).toHaveTextContent("Nothing in the box yet.");
+  });
+
   it("moves focus to the next card after a removal, then to the box, and says what was removed", async () => {
     const { store } = setup();
     await store.ready;
