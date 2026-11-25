@@ -3,6 +3,7 @@
 import manifest from "../../eval/set/manifest.json";
 import type { SetManifest } from "../eval/loadSet";
 import { OWN_PHOTO_LICENSE } from "../eval/manifest";
+import { judgeNameOf } from "../judge/brandFree";
 import { BOX_LIST_SAVED } from "../ui/boxListCopy";
 import { READ_TIMING_SENT } from "../ui/readTimingCopy";
 import { SOURCE_URL } from "../ui/sourceLink";
@@ -44,7 +45,7 @@ export function AboutPage() {
       <ul aria-label="Photo credits" className="credits">
         {items.map((i) => (
           <li key={i.itemId}>
-            {i.alt}:{" "}
+            {judgeNameOf(i.itemId)}:{" "}
             {i.provenance.license === OWN_PHOTO_LICENSE ? "Photo by the project owner" : (
               <>
                 Photo: {i.provenance.author},{" "}
