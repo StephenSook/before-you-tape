@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseEdition } from "../src/engine/edition";
+import { isCalendarDate, parseEdition } from "../src/engine/edition";
 import { typedCategoriesOf } from "../src/eval/baselines";
 import { buildEvalSet, type SetLabels, type SetManifest } from "../src/eval/loadSet";
 import { rescore, type SavedRun } from "../src/eval/rescore";
@@ -23,6 +23,7 @@ const sha256 = (b: Buffer | string) => createHash("sha256").update(b).digest("he
 const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
 
 export function buildRecord(root: string, runPath: string, blocks: { editionPath: string; date: string }[]): RescoreRecord {
+  for (const { date } of blocks) if (!isCalendarDate(date)) throw new Error(`${date} is not a calendar date (YYYY-MM-DD)`);
   const runBytes = readFileSync(runPath);
   const run = JSON.parse(runBytes.toString("utf8")) as SavedRun & { setId: string };
   const read = (...p: string[]) => JSON.parse(readFileSync(join(root, ...p), "utf8")) as unknown;
