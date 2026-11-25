@@ -28,7 +28,7 @@ describe("JudgePage", () => {
     expect(img).toHaveAttribute("src", "/judge/thumbs/own-18-480.webp");
     expect(img).toHaveAttribute("srcset", "/judge/thumbs/own-18-240.webp 240w, /judge/thumbs/own-18-480.webp 480w");
     for (const photo of within(screen.getByTestId("sample-grid")).getAllByRole("img")) expect(photo.getAttribute("src")).toMatch(/^\/judge\/thumbs\//);
-    expect(screen.getByText(/Brand names and logos are blurred in these photos/)).toBeInTheDocument();
+    expect(screen.getByTestId("brand-note")).toHaveTextContent("Brand names and logos are blurred in these photos. The measured photo set keeps the photos as taken; the live read reads the sample lotion photo with its brand blurred.");
     expect(img).toHaveAttribute("sizes", "(max-width: 700px) 50vw, 240px");
     expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["480", "640"]);
     expect(img).toHaveAttribute("alt", "Body lotion, 473 mL");

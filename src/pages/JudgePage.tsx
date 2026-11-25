@@ -96,8 +96,8 @@ export function JudgePage({ edition, index, today, now = () => performance.now()
         no camera, no built-in model and no sign-in. The app's own rules decide each verdict, here in your browser.
       </p>
       <p data-testid="brand-note">
-        Brand names and logos are blurred in these photos. The measured photo set and the live read use the photos as
-        taken.
+        Brand names and logos are blurred in these photos. The measured photo set keeps the photos as taken; the live read
+        reads the sample lotion photo with its brand blurred.
       </p>
       <p>
         <a href="/">Check your own box</a> · <a href={SOURCE_URL} target="_blank" rel="noreferrer">Source code on GitHub</a>

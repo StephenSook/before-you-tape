@@ -3,7 +3,8 @@ import type { ImagePart } from "../ai/port";
 import { CONFIG_DEFAULTS } from "../config/defaults";
 import type { AppConfig } from "../config/remoteConfig";
 import { SampleMismatch } from "./LiveReadPanel";
-import { pausedAfterSettings, sampleReader } from "./liveReadDeps";
+import { MASKED_SAMPLE } from "./judgePhotos";
+import { LIVE_SAMPLE, pausedAfterSettings, sampleReader } from "./liveReadDeps";
 
 const bytes = new TextEncoder().encode("the sample photo").buffer as ArrayBuffer;
 const sha = async (b: ArrayBuffer) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", b)), (x) => x.toString(16).padStart(2, "0")).join("");
@@ -40,5 +41,13 @@ describe("pausedAfterSettings", () => {
 
   it("counts settings that never arrive as paused", async () => {
     expect(await pausedAfterSettings(source({ killCloud: true, pauseUnknown: true }, new Promise(() => {})), 20)).toBe(true);
+  });
+});
+
+// The live read reads the sample lotion photo with its brand blurred, never the measured photo.
+describe("the live read's sample", () => {
+  it("is the masked copy of the lotion", () => {
+    expect(LIVE_SAMPLE).toEqual(MASKED_SAMPLE);
+    expect(LIVE_SAMPLE.url).toBe("/judge/samples/own-18.jpg");
   });
 });

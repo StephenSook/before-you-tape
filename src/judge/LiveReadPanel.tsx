@@ -122,7 +122,7 @@ export function LiveReadPanel({ load, judge, country, now = () => performance.no
   return (
     <section id="live-read" data-testid="live-read" aria-labelledby="live-read-heading">
       <h2 id="live-read-heading">One live read</h2>
-      <p>Reads the sample lotion photo with the app's real models: on this device when it can, otherwise in the cloud, after you allow it.</p>
+      <p>Reads the sample lotion photo, with its brand blurred, with the app's real models: on this device when it can, otherwise in the cloud, after you allow it.</p>
       <button type="button" onClick={() => void press()} disabled={busy || cooling}>Run one live read</button>
       {view.kind === "busy" && <p role="status">Reading the sample photo.</p>}
       {view.kind === "asking" && <ConsentNotice onChoice={answer} />}
@@ -133,6 +133,7 @@ export function LiveReadPanel({ load, judge, country, now = () => performance.no
           <p data-testid="live-read-verdict"><VerdictChip level={judge(view.read)} /> for {inCountry(country)}</p>
           {/* The category the model picked, in the app's words. The item name it read off the label is not shown: it can carry a brand. */}
           <p data-testid="live-read-name">The model read it as: {CATEGORY_LABELS[view.read.category]}</p>
+          <p data-testid="live-read-photo">Read from the sample photo with the brand blurred.</p>
           <details>
             <summary>Details</summary>
             <p>Start: {seconds(view.steps.start)} s. Photo: {seconds(view.steps.photo)} s. Model: {seconds(view.steps.model)} s.</p>

@@ -1,16 +1,17 @@
 // The live read's real parts, loaded by /judge only when its button is pressed: the same Firebase AI Logic
-// models (App Check, anonymous sign-in), Remote Config and device consent the Pack page uses, and the tracked
-// sample photo, checked byte for byte against its record before it is read.
-import manifest from "../../eval/set/manifest.json";
+// models (App Check, anonymous sign-in), Remote Config and device consent the Pack page uses, and the sample lotion
+// photo with its brand blurred, checked byte for byte against its record before it is read.
 import { checkGate } from "../ai/gate";
 import type { ImagePart } from "../ai/port";
 import { cropToJpeg, decodePhoto } from "../capture/crop";
 import type { ConfigSource } from "../config/remoteConfig";
 import { buildDeps } from "../pages/packDeps";
 import { CROP_LIMITS } from "../shared/cropLimits";
+import { MASKED_SAMPLE } from "./judgePhotos";
 import { SampleMismatch, type LiveReadDeps } from "./LiveReadPanel";
 
-const SAMPLE_ITEM = manifest.items.find((i) => i.itemId === "own-18")!;
+// The photo the live read reads: the masked copy of the sample lotion, not the measured photo.
+export const LIVE_SAMPLE = MASKED_SAMPLE;
 const WHOLE_PHOTO = { x: 0, y: 0, w: 1, h: 1 };
 // Remote Config usually answers within a second or two; settings still missing after this count as paused.
 const SETTINGS_WAIT_MS = 10_000;
@@ -59,6 +60,6 @@ export async function loadLiveReadDeps(): Promise<LiveReadDeps> {
     consent: { get: () => deps.store.consentNow(), set: (v) => deps.store.setConsent(v) },
     paused: () => pausedAfterSettings(deps.source),
     models: () => { const c = deps.source.get(); return deps.makeModels(c.cloudModelItem, c.cloudModelItemFallback); },
-    sample: sampleReader({ url: SAMPLE_ITEM.photo, sha256: SAMPLE_ITEM.photoSha256 }, fetchBytes),
+    sample: sampleReader(LIVE_SAMPLE, fetchBytes),
   };
 }

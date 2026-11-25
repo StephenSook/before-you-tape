@@ -10,7 +10,8 @@ first ones read back from the console: an on-device read on the web, and a cloud
 - **The browser:** desktop Chrome 157 on a Mac, not driven by a test runner (`navigator.webdriver` false), with
   Chrome's built-in model "available" and cloud checks already allowed in that browser. The tab was reloaded onto the
   new version first.
-- **The read:** on `/judge`, **Run one live read** read the sample lotion photo on the device. The page showed "Read on
+- **The read:** on `/judge`, **Run one live read** read the sample lotion photo (as taken; from 2026-11-25 the live read
+  reads a copy with its brand blurred) on the device. The page showed "Read on
   this device, 15.2 s" and "Take it out for the Philippines". The page then sent one request to Performance
   Monitoring's upload host, `firebaselogging-pa.googleapis.com`, which answered 200.
 - **The console**, read at about 21:14: Performance, the web app, Custom traces, `ai_read`: 1 sample, 15.14 s. Split by
