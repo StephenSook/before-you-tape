@@ -1267,6 +1267,7 @@ Source: plan Task 29. Verified by `src/eval/metrics.test.ts` (8 tests, including
 
 ### Changed
 
+- `rules/live-engines.json` lists `android-judge-8` among the live app builds the pin guard names. Its known facts are unchanged: the list keeps only the facts every live build's engine knows, and `android-judge-3` to `-6` and iPhone build 2 do not know `battery.numbersFrom`, so a pin of revision 7 or later is still refused. Source: `android-judge-8` is published as Latest. Verified: the pin-guard test failed first without the build, then passed; the pin-guard and publish-edition tests, typecheck, lint, tone, hygiene and edition:check pass.
 - `src/shared/secondLook.ts` now holds the second look's pure parts: `needsSecondLook` (with `SecondLookPolicy`,
   `SecondLookReason` and `SECOND_LOOK_DEFAULT`), `mergeReads` and `readDisputes`, moved word for word from
   `src/routing/policy.ts` and `src/ai/secondLook.ts`, which re-export them, so nothing that imports them changes.
