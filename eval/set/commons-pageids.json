@@ -1,0 +1,93 @@
+{
+  "note": "The Wikimedia Commons page id of each eval photo's source file, looked up from its title with the Commons API on 2026-11-25 and checked to give the same title back. The site links each source as https://commons.wikimedia.org/w/index.php?curid=<pageid>, which opens the same file page without the file name.",
+  "pages": {
+    "i01": {
+      "title": "File:Pineng PN-963 Power Bank (3).jpg",
+      "pageid": 89415311
+    },
+    "i02": {
+      "title": "File:Voltcraft PB-16-5850.jpg",
+      "pageid": 153844988
+    },
+    "i03": {
+      "title": "File:JETech Powerbank 10000mAh-5079.jpg",
+      "pageid": 96048790
+    },
+    "i04": {
+      "title": "File:Varta CR123A Lithium battery-0471.jpg",
+      "pageid": 131070076
+    },
+    "i05": {
+      "title": "File:18650 battery, 3000mAh, new in 2024.jpg",
+      "pageid": 146170055
+    },
+    "i06": {
+      "title": "File:Blackview A60 Smartphone Android mobile phone back face.jpg",
+      "pageid": 91307470
+    },
+    "i07": {
+      "title": "File:2023 Lost Vape Ursa Nano Pod.jpg",
+      "pageid": 131558719
+    },
+    "i08": {
+      "title": "File:Edge-Sealer, in a 14 oz aerosol can (15331832695).jpg",
+      "pageid": 196772709
+    },
+    "i10": {
+      "title": "File:Disposable BIC lighter.JPG",
+      "pageid": 143304325
+    },
+    "i11": {
+      "title": "File:Box of matches, German, 1940s.JPG",
+      "pageid": 45663456
+    },
+    "i13": {
+      "title": "File:BEEFY-T - Hanes - 01.jpg",
+      "pageid": 202146747
+    },
+    "i14": {
+      "title": "File:Hand-knitted pullover.jpg",
+      "pageid": 192687656
+    },
+    "i15": {
+      "title": "File:Björn Borg socks 1.jpg",
+      "pageid": 156767743
+    },
+    "i16": {
+      "title": "File:Converse Jack Purcell sneakers on white canvas.jpg",
+      "pageid": 184936789
+    },
+    "i17": {
+      "title": "File:AIP Style Manual 3ed 1978 - Paperback - Standing upright.jpg",
+      "pageid": 148484333
+    },
+    "i18": {
+      "title": "File:Handmade teddy bear.jpg",
+      "pageid": 22283125
+    },
+    "i19": {
+      "title": "File:Plastic car toys 1.jpg",
+      "pageid": 76003334
+    },
+    "i20": {
+      "title": "File:Moustache coffee mug 001.JPG",
+      "pageid": 25302364
+    },
+    "i21": {
+      "title": "File:Composition Notebook (3759240857).jpg",
+      "pageid": 57410331
+    },
+    "i22": {
+      "title": "File:Ralph Lauren wool scarf.jpg",
+      "pageid": 56424313
+    },
+    "i23": {
+      "title": "File:Motorola G62 cover case (2022).jpg",
+      "pageid": 201084526
+    },
+    "i24": {
+      "title": "File:Auriculares Blancos.jpg",
+      "pageid": 74762808
+    }
+  }
+}
