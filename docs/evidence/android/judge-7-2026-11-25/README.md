@@ -27,6 +27,19 @@ The app's choice was "Check on this phone only", so cloud reads were off.
   phone-only route, with the web app's parser, accepted the read (source `ON_DEVICE`, route `DEVICE_ONLY`)
   ([`pixel10-probe.txt`](pixel10-probe.txt)). The test package was removed afterwards, and the app's SHA-256 was
   the same.
+- **Two reads with no network:** airplane mode was turned on and Wi-Fi off from 04:01:17 to 04:08:01, read from
+  the phone's settings at each step (airplane mode 1, Wi-Fi 0, "Active default network: none"). The same item was
+  photographed twice in the app ([`pixel10-offline-logcat.txt`](pixel10-offline-logcat.txt)):
+  - The photo taken at 04:06:35.850 was not read. AICore's own safety check blocked the request at 04:06:36.717
+    ("Safety check blocked request with action DELETE (statusCode = 4)"), and the app showed "This phone's model
+    could not read it." The log does not say what in the photo set off the check.
+  - The photo taken at 04:06:41.314, with the label held closer and flatter, was read on the phone: AICore ran
+    it in 8.41 s (894 input tokens, 200 output tokens, done at 04:06:50.367), and by 04:06:52 the second card read
+    "Isopropyl Alcohol Spray", "Take it out" and "Read on this phone in 8.8 s.", with the airplane icon in the
+    status bar ([`pixel10-offline-reads.png`](pixel10-offline-reads.png); the first card is the 03:51 read).
+
+  So with no network: 2 photos, 1 read on the phone, 1 blocked by AICore's safety check. The app shows that block
+  with the same words as any other on-device error, not as a refusal.
 
 ## On a Samsung A16, the release gate
 

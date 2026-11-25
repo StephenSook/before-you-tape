@@ -1,0 +1,11 @@
+11-24 23:06:11.611 I/adbd    ( 1715): adbd service requested 'shell,v2,TERM=xterm-256color,raw:settings get global airplane_mode_on'
+11-24 23:06:35.850 D/ImageCapture(16733): takePictureInternal
+11-24 23:06:36.601 I/aicore  (10536): I0000 00:00:1795579596.601536   14845 llm_wrapper_jni.cc:106] JNI nativeCreateSession
+11-24 23:06:36.717 E/AiCoreInferenceHelper(10536): runInference onFailure
+11-24 23:06:36.717 E/AiCoreInferenceHelper(10536): com.google.android.apps.aicore.base.InferenceException: Safety check blocked request with action DELETE (statusCode = 4)
+11-24 23:06:41.314 D/ImageCapture(16733): takePictureInternal
+11-24 23:06:41.939 I/aicore  (10536): I0000 00:00:1795579601.938472   14845 llm_wrapper_jni.cc:106] JNI nativeCreateSession
+11-24 23:06:50.366 I/aicore  (10536): I0000 00:00:1795579610.366866   14845 utils.cc:475] input_token_count: 894
+11-24 23:06:50.367 I/aicore  (10536): I0000 00:00:1795579610.367143   14845 utils.cc:475] total_output_token_count: 200
+11-24 23:06:50.367 I/aicore  (10536): I0000 00:00:1795579610.367236   14845 utils.cc:475] total_time: 8.41s
+11-24 23:06:53.028 I/adbd    ( 1715): adbd service requested 'shell,v2,TERM=xterm-256color,raw:settings get global airplane_mode_on'
