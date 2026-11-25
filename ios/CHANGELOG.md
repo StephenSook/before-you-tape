@@ -3,6 +3,17 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-25
+
+### test(ios): judge test boxes on 2026-11-25, on or after every rule layer's check date
+- What: `BoxStoreTests` and `ContractTests` pass the engine "today" as 2026-11-25 instead of 2026-11-20, with
+  the shared vectors (tests/vectors) moved the same way. The app builds in rules/edition.json, and the next
+  rule revision records the suspension list read on 2026-11-25; the engine reads a layer checked after "today"
+  as missing, so a fixed earlier date would turn every OK into Check this.
+- Source: the rule revision that keeps the rules fresh through judging.
+- Verified: the web suite (1234) and the Android gate (246) pass on this tree with the current edition;
+  `bash ios/scripts/ci-local-ios.sh` is run on this branch before it merges.
+
 ## 2026-11-22
 
 ### fix(ios): an off launch logs a skipped account deletion and names the Remote Config listener

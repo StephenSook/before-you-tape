@@ -20,7 +20,7 @@ const items = [
   input("ph", { ...base, category: "phone", labelText: "LI-ION 3.85V 4000mAh 15.4Wh", volts: 3.85, milliampHours: 4000, wattHours: 15.4, batteryWords: true, retailBox: "sealed" },
     { answers: { device_condition: "new_sealed", battery_installed: "installed", cell_count: "one" } }),
 ];
-const result = evaluateBox(items, ed, resolveDestination(ed, "CA"), "2026-11-20");
+const result = evaluateBox(items, ed, resolveDestination(ed, "CA"), "2026-11-25");
 
 describe("BoxSummary", () => {
   it("shows the counts as chips, one per verdict in the box", () => {
@@ -52,7 +52,7 @@ describe("BoxSummary", () => {
   });
 
   it("says the box is empty before anything is added", () => {
-    const empty = evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-20");
+    const empty = evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-25");
     render(<BoxSummary limits={ed.limits} result={empty} itemCount={0} recheck={null} />);
     expect(screen.getByTestId("box-summary")).toHaveTextContent("Nothing in the box yet.");
   });
@@ -62,7 +62,7 @@ describe("BoxSummary ready state", () => {
   const shirt = [input("s", { ...base, category: "clothing" })];
   const lotion = [input("l", { ...base, category: "lotion_cream", labelText: "BODY LOTION 8 FL OZ", liquid: true })];
   const summary = (box: BoxItemInput[], code: string) =>
-    render(<BoxSummary limits={ed.limits} result={evaluateBox(box, ed, resolveDestination(ed, code), "2026-11-20")} itemCount={box.length} recheck={null} />);
+    render(<BoxSummary limits={ed.limits} result={evaluateBox(box, ed, resolveDestination(ed, code), "2026-11-25")} itemCount={box.length} recheck={null} />);
 
   it("says Ready to tape when every item is OK to pack", () => {
     summary([...shirt, ...lotion], "CA");
@@ -89,7 +89,7 @@ describe("BoxSummary ready state", () => {
 // A box that may not be the whole saved box (BoxState.incomplete) can hide items, hazards among them.
 describe("BoxSummary for a box that may be incomplete", () => {
   const shirt = input("s", { ...base, category: "clothing" });
-  const allOk = evaluateBox([shirt], ed, resolveDestination(ed, "CA"), "2026-11-20");
+  const allOk = evaluateBox([shirt], ed, resolveDestination(ed, "CA"), "2026-11-25");
 
   it("never says Ready to tape or counts the box all clear, and says why instead", () => {
     render(<BoxSummary limits={ed.limits} result={allOk} itemCount={1} recheck={null} incomplete />);
@@ -108,7 +108,7 @@ describe("BoxSummary for a box that may be incomplete", () => {
 
   // Every page starts loading its box; with nothing in it there is no all clear to hold back, so nothing flashes.
   it("says nothing more while there are no items", () => {
-    render(<BoxSummary limits={ed.limits} result={evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-20")} itemCount={0} recheck={null} incomplete />);
+    render(<BoxSummary limits={ed.limits} result={evaluateBox([], ed, resolveDestination(ed, "CA"), "2026-11-25")} itemCount={0} recheck={null} incomplete />);
     expect(screen.queryByTestId("box-incomplete")).toBeNull();
   });
 });

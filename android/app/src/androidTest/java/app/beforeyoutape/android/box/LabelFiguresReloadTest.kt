@@ -26,10 +26,10 @@ class LabelFiguresReloadTest {
             val label = "LI-ION 3.85V 4000mAh 15.4Wh PACK 154Wh"
             val read = ItemReadWire("Phone", ItemCategoryWire.phone, label, 3.85, 4000.0, 15.4, 0.0,
                 true, false, false, false, false, false, false, RetailBoxWire.sealed, EvidenceWire.label_read)
-            val box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-20" })
+            val box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-25" })
             box.addRead(read, host.labelTags(label), Source.IN_CLOUD, 900, "p", host.labelFigures(listOf(label)))
             fun rules(input: app.beforeyoutape.engine.BoxItemInput) =
-                host.evaluateBox(listOf(input), "CA", "2026-11-20").items.getValue("p").hits.map { it.ruleId }
+                host.evaluateBox(listOf(input), "CA", "2026-11-25").items.getValue("p").hits.map { it.ruleId }
             assertTrue("DATA-LABEL-NUMBERS" in box.state.result!!.items.getValue("p").hits.map { it.ruleId })
             val reloaded = BoxDocs.itemFromDoc("p", BoxDocs.itemToDoc(box.state.items.single())).input
             assertEquals("", reloaded.read.labelText)
@@ -48,11 +48,11 @@ class LabelFiguresReloadTest {
             val label = "3.85V 4000mAh PACK 154Wh"
             val read = ItemReadWire("Phone", ItemCategoryWire.phone, label, 3.85, 4000.0, 15.4, 0.0,
                 true, false, false, false, false, false, false, RetailBoxWire.sealed, EvidenceWire.label_read)
-            val box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-20" })
+            val box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-25" })
             box.addManual(read, host.labelTags(label), "t", host.labelFigures(listOf(label)))
             box.answer("t", "device_condition", "new_sealed")
             box.answer("t", "cell_count", "one")
-            fun verdict(input: app.beforeyoutape.engine.BoxItemInput) = host.evaluateBox(listOf(input), "CA", "2026-11-20").items.getValue("t")
+            fun verdict(input: app.beforeyoutape.engine.BoxItemInput) = host.evaluateBox(listOf(input), "CA", "2026-11-25").items.getValue("t")
             assertTrue("DATA-LABEL-NUMBERS" in box.state.result!!.items.getValue("t").hits.map { it.ruleId })
             val reloaded = BoxDocs.itemFromDoc("t", BoxDocs.itemToDoc(box.state.items.single())).input
             assertEquals("", reloaded.read.labelText)

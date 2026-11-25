@@ -24,13 +24,13 @@ class OverridesTest {
         override fun evaluate(items: List<BoxItemInput>, code: String, today: String): BoxResult { seen += items; return result }
     }
 
-    private fun withBank(engine: Recorder) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-20" }).apply {
+    private fun withBank(engine: Recorder) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-25" }).apply {
         addRead(bank, listOf("lithium_ion"), Source.IN_CLOUD, 900, "b")
     }
 
     @Test fun aTypedItemIsAddedAsTheSendersAndRechecked() {
         val e = Recorder(result)
-        val c = BoxController(BoxLogic.empty("CA"), e, today = { "2026-11-20" })
+        val c = BoxController(BoxLogic.empty("CA"), e, today = { "2026-11-25" })
         c.addManual(bank.copy(evidence = EvidenceWire.item_seen), listOf("lithium_ion"), "t")
         val item = c.state.items.single()
         assertEquals("manual", item.readSource)

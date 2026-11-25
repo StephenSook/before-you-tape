@@ -25,7 +25,7 @@ describe("the sample box", () => {
     for (const code of ["CA", "PH"]) {
       const items = SAMPLE_BOX.map((s) => ({ itemId: s.itemId, read: s.read, overrides: {}, answers: ANSWERS[s.itemId] ?? {}, quantity: 1,
         identityConfirmedBy: "sender" as const, labelTags: labelTagsOf(s.read.labelText, ed) }));
-      const r = evaluateBox(items, ed, resolveDestination(ed, code), "2026-11-20");
+      const r = evaluateBox(items, ed, resolveDestination(ed, code), "2026-11-25");
       for (const s of SAMPLE_BOX) expect(r.items[s.itemId]?.level, `${s.itemId} ${code}`).toBe(labels.items[s.itemId]![code]!.expected);
     }
   });

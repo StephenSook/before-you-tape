@@ -26,7 +26,7 @@ class BoxSessionTest {
     private val read = ItemReadWire("Lotion", ItemCategoryWire.lotion_cream, "SHEA LOTION 8 FL OZ", 0.0, 0.0, 0.0, 0.0,
         false, true, false, false, false, false, false, RetailBoxWire.cannot_tell, EvidenceWire.label_read)
     private val result = BoxResult(emptyMap(), LithiumBox("none", emptyList(), emptyList(), ""), emptyList(), BoxCounts(0, 0, 0), "byt-x")
-    private fun box() = BoxController(BoxLogic.empty("CA"), { _, _, _ -> result }, today = { "2026-11-20" })
+    private fun box() = BoxController(BoxLogic.empty("CA"), { _, _, _ -> result }, today = { "2026-11-25" })
     private var ids = 0
     private fun session(box: BoxController, outcome: ReadOutcome) =
         BoxSession(box, reader = { outcome }, newId = { "item-${++ids}" }, resetRun = {})

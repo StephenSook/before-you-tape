@@ -5,7 +5,7 @@ import { layerStatuses, rulesReadBy } from "./layers";
 
 describe("layerStatuses", () => {
   it("reports four checked layers when all are fresh", () =>
-    expect(layerStatuses(ed, resolveDestination(ed, "CA"), "2026-11-20").map((l) => `${l.id}:${l.state}`)).toEqual([
+    expect(layerStatuses(ed, resolveDestination(ed, "CA"), "2026-11-25").map((l) => `${l.id}:${l.state}`)).toEqual([
       "usps_export:checked", "destination:checked", "suspensions:checked", "customs:checked",
     ]));
 

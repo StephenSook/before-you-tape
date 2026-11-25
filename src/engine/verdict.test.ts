@@ -15,7 +15,7 @@ type ItemSpec = Partial<Omit<BoxItemInput, "read">> & { itemId: string; read: Pa
 const input = (s: ItemSpec): BoxItemInput => ({
   ...structuredClone(itemDefaults), ...s, read: { ...baseRead, ...s.read },
 });
-const run = (items: BoxItemInput[], code: string, today = "2026-11-20", e: RuleEdition = ed) =>
+const run = (items: BoxItemInput[], code: string, today = "2026-11-25", e: RuleEdition = ed) =>
   evaluateBox(items, e, resolveDestination(e, code), today);
 
 const lotion = input({ itemId: "lotion", read: { category: "lotion_cream", labelText: "SHEA BODY LOTION 8 FL OZ", liquid: true } });
@@ -64,7 +64,7 @@ describe("evaluateBox", () => {
     const noDataRules: RuleEdition = { ...ed, rules: ed.rules.filter((r) => r.layer !== "data") };
     for (const read of [{ category: "toy" as const, evidence: "not_sure" as const }, { category: "other" as const, evidence: "item_seen" as const }]) {
       const thing = input({ itemId: "thing", read, identityConfirmedBy: "sender" });
-      const v = run([thing], "CA", "2026-11-20", noDataRules).items.thing;
+      const v = run([thing], "CA", "2026-11-25", noDataRules).items.thing;
       expect(v?.level, read.category).toBe("check");
       expect(v?.hits.map((h) => h.ruleId)).toContain("DATA-UNSURE");
     }
@@ -83,7 +83,7 @@ describe("evaluateBox", () => {
 
   it("never OK with a missing or stale layer", () => {
     const cases: Array<[RuleEdition, string, string]> = [
-      [ed, "ZZ", "2026-11-20"], [ed, "CA", "2026-12-20"], [withCustomsUnchecked(ed, "CA"), "CA", "2026-11-20"], [ed, "CA", "2027-03-01"],
+      [ed, "ZZ", "2026-11-25"], [ed, "CA", "2026-12-20"], [withCustomsUnchecked(ed, "CA"), "CA", "2026-11-25"], [ed, "CA", "2027-03-01"],
     ];
     for (const [e, code, today] of cases) {
       const v = evaluateBox([shirtConfirmed], e, resolveDestination(e, code), today).items.shirt;
@@ -94,7 +94,7 @@ describe("evaluateBox", () => {
 
   it("a suspended country is never OK", () => {
     const e = withSuspended(ed, ["CA"]);
-    const r = evaluateBox([shirtConfirmed], e, resolveDestination(e, "CA"), "2026-11-20");
+    const r = evaluateBox([shirtConfirmed], e, resolveDestination(e, "CA"), "2026-11-25");
     expect(r.destination.suspended).toBe(true);
     expect(r.items.shirt?.level).toBe("check");
     expect(r.items.shirt?.hits.map((h) => h.ruleId)).toContain("DEST-SUSPENDED");
@@ -236,7 +236,7 @@ describe("evaluateBox", () => {
       rule.outcome = "take_out";
       const watch = input({ itemId: "watch", quantity: 5, read: { category: "smartwatch", batteryWords: true, labelText: "LITHIUM METAL 1.5 g", lithiumGrams: 1.5,
         retailBox: "sealed" }, answers: { device_condition: "new_sealed" } });
-      const v = run([watch], "CA", "2026-11-20", e).items.watch!;
+      const v = run([watch], "CA", "2026-11-25", e).items.watch!;
       if (v.level === "take_out") expect(v.hits.some((h) => h.level === "take_out")).toBe(true);
     });
 
@@ -248,7 +248,7 @@ describe("evaluateBox", () => {
       const steps = (items: BoxItemInput[]) => {
         let reads = 0;
         const counted = new Proxy(ed, { get(target, key, receiver) { reads++; return Reflect.get(target, key, receiver) as unknown; } });
-        evaluateBox(items, counted, resolveDestination(ed, "PH"), "2026-11-20");
+        evaluateBox(items, counted, resolveDestination(ed, "PH"), "2026-11-25");
         return reads;
       };
       const small = box(100);

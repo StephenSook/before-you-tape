@@ -21,7 +21,7 @@ const item = (itemId: string, read: ItemRead, patch: Partial<BoxItem> = {}): Box
   customs: { description: "", lintOk: false, weightOz: null, valueUsd: null, countryOfOrigin: null, upc: null }, ...patch,
 });
 const verdictFor = (i: BoxItem) => {
-  const v = evaluateBox([i], ed, resolveDestination(ed, "CA"), "2026-11-20").items[i.itemId];
+  const v = evaluateBox([i], ed, resolveDestination(ed, "CA"), "2026-11-25").items[i.itemId];
   if (!v) throw new Error("no verdict");
   return v;
 };

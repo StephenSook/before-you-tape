@@ -61,7 +61,7 @@ final class MemoryBoxPersistence: BoxPersistence, @unchecked Sendable {
     func store(_ p: BoxPersistence = MemoryBoxPersistence(), engine: RulesEngine? = nil, idPrefix: String = "id") throws -> BoxStore {
         let engine = try engine ?? Self.bundledEngine()
         var n = 0
-        return BoxStore(engine: engine, persistence: p, today: { "2026-11-20" }, newId: { n += 1; return "\(idPrefix)-\(n)" }, now: { 1000 })
+        return BoxStore(engine: engine, persistence: p, today: { "2026-11-25" }, newId: { n += 1; return "\(idPrefix)-\(n)" }, now: { 1000 })
     }
 
     /// A read as the app's parser hands it over: with the engine's tags for its label (these labels are
