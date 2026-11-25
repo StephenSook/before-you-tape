@@ -1,0 +1,6 @@
+11-25 11:19:17.464 I/BYT-PROBE(16757): appcheck release provider=play_integrity ok length=1037
+11-25 11:19:17.464 I/BYT-PROBE(16757): signin ok
+11-25 11:19:23.293 I/BYT-PROBE(16757): read outcome=Read source=IN_CLOUD route=CLOUD_ONLY category=power_bank
+11-25 11:19:46.344 I/BYT-PROBE(17059): appcheck release provider=play_integrity ok length=1037
+11-25 11:19:46.345 I/BYT-PROBE(17059): signin ok
+11-25 11:19:49.602 I/BYT-PROBE(17059): read outcome=Read source=IN_CLOUD route=CLOUD_ONLY category=power_bank
