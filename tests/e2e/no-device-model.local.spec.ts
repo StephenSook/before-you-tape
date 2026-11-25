@@ -6,7 +6,7 @@ import { expect, test } from "./fixtures";
 const MODEL_CALL = /firebasevertexai\.googleapis\.com|generativelanguage\.googleapis\.com|aiplatform\.googleapis\.com|generateContent|on-device-only\.invalid/;
 
 test("with no on-device model and the cloud declined, a photo sends nothing to any model", async ({ page }) => {
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   await page.addInitScript(() => {
     delete (window as unknown as { LanguageModel?: unknown }).LanguageModel;
     Object.defineProperty(window, "LanguageModel", { value: undefined, configurable: true });

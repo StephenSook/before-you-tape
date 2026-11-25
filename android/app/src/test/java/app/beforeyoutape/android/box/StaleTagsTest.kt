@@ -57,7 +57,7 @@ class StaleTagsTest {
 
     private var current: String? = "byt-new"
 
-    private fun controller(engine: Engine = Engine()) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-21" }, edition = { current })
+    private fun controller(engine: Engine = Engine()) = BoxController(BoxLogic.empty("CA"), engine, today = { "2026-11-25" }, edition = { current })
 
     private fun saved(vararg items: BoxItem) = BoxLogic.empty("CA").copy(items = items.toList())
 

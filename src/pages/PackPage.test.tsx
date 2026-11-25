@@ -24,7 +24,7 @@ const port = (source: "on_device" | "in_cloud"): ModelPort & { generate: ReturnT
 const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"), cloud: port("in_cloud") }) satisfies ItemModels;
 const persistence = () => noPersistence();
 let n = 0;
-const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
@@ -169,19 +169,19 @@ describe("PackPage", () => {
   const holiday = { service: "Priority Mail International", sendBy: "2026-12-09", deliverBy: "2026-12-25", sourceUrl: "https://www.usps.com/holiday/holiday-shipping-dates.htm", checkedOn: "2026-11-21" };
 
   it("says how many days are left to mail by the USPS holiday date, with its page", () => {
-    setup({ config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-21" });
-    expect(screen.getByTestId("deadline-clock")).toHaveTextContent("USPS suggests mailing by December 9 for December 25 (Priority Mail International): 18 days left.");
+    setup({ config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-25" });
+    expect(screen.getByTestId("deadline-clock")).toHaveTextContent("USPS suggests mailing by December 9 for December 25 (Priority Mail International): 14 days left.");
     expect(screen.getByRole("link", { name: "USPS holiday dates" })).toHaveAttribute("href", holiday.sourceUrl);
   });
 
   it("shows no holiday clock for a country whose mail stops first, or with no dates", () => {
     const store = newStore();
     store.setDestination("CA");
-    setup({ store, config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-21" });
+    setup({ store, config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-25" });
     expect(screen.getByTestId("suspension-ahead-banner")).toBeInTheDocument();
     expect(screen.queryByTestId("deadline-clock")).toBeNull();
     cleanup();
-    setup({ today: "2026-11-21" });
+    setup({ today: "2026-11-25" });
     expect(screen.queryByTestId("deadline-clock")).toBeNull();
   });
 
@@ -237,7 +237,7 @@ describe("PackPage", () => {
 
   it("sends nothing when Allow is pressed after another tab said no, even before this page has heard of it", async () => {
     localStorage.clear();
-    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
     const { models } = setup({ store }, null);
     await addPhoto();
     await screen.findByRole("button", { name: "Allow" });
@@ -253,7 +253,7 @@ describe("PackPage", () => {
 
   it("closes a cloud question when another tab turns cloud checks on and off again, though storage only shows the last", async () => {
     localStorage.clear();
-    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
     setup({ store }, false);
     await userEvent.click(screen.getByTestId("cloud-chip"));
     await screen.findByRole("button", { name: "Allow" });
@@ -405,7 +405,7 @@ describe("PackPage", () => {
   it("reads nothing in the cloud when this device's stored answer says no, before the page has heard of it", async () => {
     // Another tab on this device took consent back; its storage event has not reached this page yet.
     localStorage.clear();
-    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+    const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
     const { models } = setup({ store });
     expect(store.getState().cloudConsent).toBe(true);
     localStorage.setItem("byt.cloudConsent.v2", "false");
@@ -533,7 +533,7 @@ describe("PackPage", () => {
 
     it("drops the press when another tab turns cloud checks off and on again while it waits, though storage only shows the last", async () => {
       localStorage.clear();
-      const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
+      const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, consent: deviceConsent(localStorage) });
       store.setConsent(true);
       const models = spyModels();
       const view = render(page(store, models, "checking"));
@@ -704,7 +704,7 @@ describe("PackPage", () => {
   });
 
   it("marks Canada in the country buttons with the suspension the post office has announced", () => {
-    setup({ today: "2026-11-21" });
+    setup({ today: "2026-11-25" });
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
   });
 
@@ -801,7 +801,7 @@ describe("PackPage", () => {
   it("shows no country while the box loads, and offers to read a box again whose read failed", async () => {
     let answer: (r: LoadResult) => void = () => {};
     const loadBox = vi.fn(() => new Promise<LoadResult>((r) => { answer = r; }));
-    const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox }, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox }, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}` });
     setup({ store });
     expect(within(screen.getByTestId("destination-picker")).getAllByRole("radio").map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false"]);
     await act(async () => { answer({ status: "failed", error: "offline" }); await store.ready; });
@@ -814,7 +814,7 @@ describe("PackPage", () => {
 
   it("says a removal is not saved yet when its delete fails, and offers to save again", async () => {
     const ops = { ...noPersistence(), deleteItem: vi.fn<(boxId: string, itemId: string) => Promise<void>>(async () => { throw new Error("offline"); }) };
-    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}` });
     setup({ store });
     await store.ready;
     act(() => { store.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" }); });
@@ -919,7 +919,7 @@ describe("PackPage", () => {
   it("asks for a reload when the server refuses saves this page used to make, instead of offering a retry that cannot work", async () => {
     const refused = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
     const ops = { ...noPersistence(), putMeta: vi.fn(async () => { throw refused; }) };
-    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}` });
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}` });
     const onReload = vi.fn();
     setup({ store, onReload });
     await store.ready;
@@ -937,7 +937,7 @@ describe("PackPage", () => {
     const putMeta = vi.fn<(boxId: string, meta: BoxMeta) => Promise<void>>().mockRejectedValueOnce(refused).mockResolvedValue();
     const ops = { ...noPersistence(), putMeta };
     let ok = false;
-    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => ok });
+    const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => ok });
     const onReload = vi.fn();
     setup({ store, onReload });
     await store.ready;
@@ -959,7 +959,7 @@ describe("PackPage", () => {
   describe("a box that may not be the whole saved box", () => {
     const shirt: ItemRead = { ...liquidLotionLabelRead, itemName: "Shirt", category: "clothing", labelText: "", liquid: false, evidence: "item_seen" };
     const withShirt = async (ops: ReturnType<typeof noPersistence>, verified?: () => Promise<boolean>) => {
-      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, ...(verified ? { verified } : {}) });
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, ...(verified ? { verified } : {}) });
       setup({ store });
       act(() => { store.addManual(shirt); });
       await screen.findByTestId("item-card");
@@ -1005,7 +1005,7 @@ describe("PackPage", () => {
       let heard: (() => void) | null = null;
       const changes = { announce: vi.fn(), onChange: (f: () => void) => { heard = f; return () => {}; } };
       const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "missing", fromServer: true }) },
-        now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, changes });
+        now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, changes });
       const onReload = vi.fn();
       setup({ store, onReload });
       await store.ready;
@@ -1023,7 +1023,7 @@ describe("PackPage", () => {
     it("offers a reload for a box read only from this browser's cache", async () => {
       const onReload = vi.fn();
       const store = createBoxStore({ edition: () => ed, persistence: { ...noPersistence(), loadBox: async (): Promise<LoadResult> => ({ status: "found", box: { items: [] }, fromServer: false }) },
-        now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => true });
+        now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => true });
       setup({ store, onReload });
       await store.ready;
       const notice = await screen.findByTestId("cache-only");
@@ -1054,7 +1054,7 @@ describe("PackPage", () => {
   describe("a browser App Check cannot verify", () => {
     // A real item, made the way the page makes one.
     const anItem = () => {
-      const s = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-20", newId: () => "kept-1" });
+      const s = createBoxStore({ edition: () => ed, persistence: noPersistence(), now: () => 1000, today: () => "2026-11-25", newId: () => "kept-1" });
       s.addManual({ ...liquidLotionLabelRead, itemName: "Lotion" });
       return s.getState().items[0]!;
     };
@@ -1065,7 +1065,7 @@ describe("PackPage", () => {
         loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "failed", error: "Missing or insufficient permissions." })),
         loadCached: vi.fn(async (): Promise<LoadResult> => ({ status: "found", box: { destinationCode: "PH", items: [anItem()] } })),
       };
-      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => false });
       setup({ store, onDeleteBox: vi.fn(async () => ({ ok: false as const, offline: true as const })) });
       await store.ready;
       expect(await screen.findByTestId("unverified")).toHaveTextContent("This browser did not pass the site's security check.");
@@ -1085,7 +1085,7 @@ describe("PackPage", () => {
     // With reCAPTCHA blocked, Firestore gives up on the server and answers from its cache, so the box opens.
     it("marks a box that opened from this browser's cache not synced, and offers no delete", async () => {
       const ops = { ...noPersistence(), loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "found", box: { destinationCode: "PH", items: [anItem()] }, fromServer: false })) };
-      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      const store = createBoxStore({ edition: () => ed, persistence: ops, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => false });
       setup({ store, onDeleteBox: vi.fn(async () => ({ ok: false as const, offline: true as const })) });
       await store.ready;
       expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: you're seeing the copy kept in this browser.");
@@ -1094,7 +1094,7 @@ describe("PackPage", () => {
 
     it("never calls a box new or empty when the cache did not hold it, or it never loaded", async () => {
       const missing = { ...noPersistence(), loadBox: vi.fn(async (): Promise<LoadResult> => ({ status: "missing", fromServer: false })) };
-      const a = createBoxStore({ edition: () => ed, persistence: missing, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      const a = createBoxStore({ edition: () => ed, persistence: missing, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => false });
       const first = render(<PackPage store={a} models={spyModels()} gate="no_api" config={{ killCloud: false }} openCamera={okCamera} index={index}
         saveCrop={async () => {}} deleteCrop={async () => {}} online />);
       await a.ready;
@@ -1102,7 +1102,7 @@ describe("PackPage", () => {
       expect(screen.queryByText("Nothing in the box yet.")).toBeNull();
       first.unmount();
       const pending = { ...noPersistence(), loadBox: vi.fn(() => new Promise<LoadResult>(() => {})) };
-      const b = createBoxStore({ edition: () => ed, persistence: pending, now: () => 1000, today: () => "2026-11-20", newId: () => `id-${n++}`, verified: async () => false });
+      const b = createBoxStore({ edition: () => ed, persistence: pending, now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}`, verified: async () => false });
       setup({ store: b });
       expect(await screen.findByTestId("not-synced")).toHaveTextContent("Not synced: your saved box can't be shown until this browser passes the security check.");
       expect(screen.getByTestId("unverified")).toBeInTheDocument();

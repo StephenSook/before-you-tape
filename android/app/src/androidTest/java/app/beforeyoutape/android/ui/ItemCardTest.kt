@@ -44,7 +44,7 @@ class ItemCardTest {
 
     @Before fun setUp() {
         host = EngineAssets.load(InstrumentationRegistry.getInstrumentation().targetContext)
-        box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-20" })
+        box = BoxController(BoxLogic.empty("CA"), BoxEngine { items, code, today -> host.evaluateBox(items, code, today) }, today = { "2026-11-25" })
         box.addRead(phone, host.labelTags(phone.labelText), Source.IN_CLOUD, 900, "a")
     }
 
@@ -60,7 +60,7 @@ class ItemCardTest {
     /** The card asks its question once: the reason line that restates it is not shown beside it. */
     @Test fun aQuestionIsAskedOnce() {
         val item = secondLooked()
-        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-25").items.getValue("a")
         val question = checkNotNull(verdict.question) { "the engine asked nothing for this phone" }
         val restating = verdict.hits.first().text
         assertTrue("premise: the first reason restates the question ($restating)", restating.startsWith(question.text))
@@ -72,7 +72,7 @@ class ItemCardTest {
     /** As on the web: when the first reason only restates the question, the next reason shows in its place. */
     @Test fun theNextReasonShowsInsteadOfOneThatRestatesTheQuestion() {
         val item = secondLooked()
-        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-25").items.getValue("a")
         val question = checkNotNull(verdict.question)
         val next = verdict.hits.drop(1).firstOrNull { !it.text.startsWith(question.text) }
         assertTrue("premise: a reason other than the restating one (${verdict.hits.map { it.text }})", next != null)
@@ -114,7 +114,7 @@ class ItemCardTest {
     /** With a second look that read the same numbers, nothing is held on one read, and the card asks for nothing. */
     @Test fun aBatteryNotHeldOnOneReadAsksForNoNumber() {
         val item = secondLooked()
-        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-20").items.getValue("a")
+        val verdict = host.evaluateBox(listOf(item.input), "CA", "2026-11-25").items.getValue("a")
         assertTrue("premise: not held on one read", verdict.hits.none { it.ruleId == "USPS-INTL-LI-ONE-READ" })
         rule.setContent { ItemCard(item, verdict, onAnswer = { _, _, _ -> }, onConfirmNumber = { _, _, _ -> }) }
         rule.onNodeWithText(Copy.CHECK_THE_NUMBER).assertDoesNotExist()

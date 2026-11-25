@@ -27,7 +27,7 @@ class EngineHostTest {
     @Test fun evaluateBeforeAnEditionFailsClosed() {
         EngineHost(QuickJsTestRuntime(), RepoFiles.bundle, RepoFiles.bundleSha256).use { host ->
             val item = Vectors.item(Vectors.box.first().getValue("items").let { (it as kotlinx.serialization.json.JsonArray).first().jsonObject })
-            val e = assertThrows(EngineError::class.java) { host.evaluateBox(listOf(item), "CA", "2026-11-20") }
+            val e = assertThrows(EngineError::class.java) { host.evaluateBox(listOf(item), "CA", "2026-11-25") }
             assertEquals("NoEditionError", e.errorName)
         }
     }
@@ -45,7 +45,7 @@ class EngineHostTest {
             }
             fun level(p: TaggedRead): String {
                 val item = BoxItemInput("a", p.read, kotlinx.serialization.json.JsonObject(emptyMap()), emptyMap(), 1.0, null, p.labelTags)
-                return host.evaluateBox(listOf(item), "CA", "2026-11-20").items.getValue("a").level.name
+                return host.evaluateBox(listOf(item), "CA", "2026-11-25").items.getValue("a").level.name
             }
             // The same lotion with no hazard word is OK, so the checks below are not vacuous.
             assertEquals("ok", level(parsed("x".repeat(155) + " LOTION")))
@@ -73,7 +73,7 @@ class EngineHostTest {
             assertTrue("numbersFrom" !in writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), item).jsonObject)
             val typed = item.copy(numbersFrom = "typed")
             assertEquals(JsonPrimitive("typed"), writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), typed).jsonObject["numbersFrom"])
-            assertTrue(host.evaluateBox(listOf(typed), "CA", "2026-11-20").items.containsKey("a"))
+            assertTrue(host.evaluateBox(listOf(typed), "CA", "2026-11-25").items.containsKey("a"))
         }
     }
 
@@ -92,7 +92,7 @@ class EngineHostTest {
             val sent = writesDefaults.encodeToJsonElement(BoxItemInput.serializer(), figured).jsonObject.getValue("labelFigures").jsonObject
             assertEquals(setOf("wh", "grams"), sent.keys)
             assertEquals(listOf(99.0, 15.4), Json.decodeFromJsonElement(LabelFigures.serializer(), sent).wh)
-            assertTrue(host.evaluateBox(listOf(figured), "CA", "2026-11-20").items.containsKey("a"))
+            assertTrue(host.evaluateBox(listOf(figured), "CA", "2026-11-25").items.containsKey("a"))
         }
     }
 

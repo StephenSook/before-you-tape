@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import customsJson from "../rules/customs-authorities.json";
 import edition from "../rules/edition.json";
 import { parseEdition } from "../src/engine/edition";
+import { readCustomsAuthorities } from "../src/rules/customsAuthorities";
 import { ed } from "../tests/engine/helpers";
 import { freshness, REREAD_FROM, staleBeforeJudgingEnds } from "./fresh-through-judging";
+import { LAST_JUDGING_DAY } from "./release-gate";
 
 const withSuspensionsOn = (on: string) => {
   const e = structuredClone(ed);
@@ -29,6 +32,15 @@ describe("rules fresh through judging", () => {
 
   it("reads the bundled edition without throwing", () => {
     expect(() => freshness(parseEdition(edition), "2026-11-21")).not.toThrow();
+  });
+
+  // The shipped rules and Rules page lines stay fresh to the last judging day, so this check (a CI step) passes
+  // on every day from the re-read window on, with no step left to do by hand while judging runs.
+  it("keeps the bundled edition and its customs lines fresh through the last judging day", () => {
+    const customs = readCustomsAuthorities(customsJson);
+    expect(freshness(parseEdition(edition), REREAD_FROM, LAST_JUDGING_DAY, customs)).toEqual({
+      exit: 0, lines: [`rules fresh through ${LAST_JUDGING_DAY}: every layer reads checked`],
+    });
   });
 
   // The customs authority lines on the Rules page follow the same rule, by the edition's customs limit.

@@ -91,7 +91,7 @@ import Testing
         func level(_ p: (read: JSONValue, tags: [String])) throws -> String? {
             let item: JSONValue = .object(["itemId": .string("a"), "read": p.read, "overrides": .object([:]), "answers": .object([:]),
                                            "quantity": .number(1), "identityConfirmedBy": .null, "labelTags": .array(p.tags.map { .string($0) })])
-            let result = try engine.evaluateBox(.object(["items": .array([item]), "code": .string("CA"), "today": .string("2026-11-20")]))
+            let result = try engine.evaluateBox(.object(["items": .array([item]), "code": .string("CA"), "today": .string("2026-11-25")]))
             if case let .string(l)? = result["items"]?["a"]?["level"] { return l }
             return nil
         }

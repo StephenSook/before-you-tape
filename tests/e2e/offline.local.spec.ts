@@ -6,7 +6,7 @@ import { expect, test } from "./fixtures";
 // bundled rule edition, so a reload with no network still opens the page and checks a typed item by the rules.
 test("reloads offline and still checks by rules", async ({ page, context }) => {
   // USPS suspends mail to Canada from 2026-11-29: a fixed day before that keeps the verdict stable.
-  await page.clock.install({ time: new Date("2026-11-20T12:00:00") });
+  await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   await page.goto("/");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);

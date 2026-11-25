@@ -47,7 +47,7 @@ class LabelFiguresVectorsTest {
             assertEquals(listOf(154.0, 15.4), figures?.wh)
             val reloaded = BoxItemInput("p", read.copy(labelText = ""), kotlinx.serialization.json.JsonObject(emptyMap()), emptyMap(), 1.0, null,
                 host.labelTags(full), labelFigures = figures)
-            fun rules(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-20").items.getValue("p").hits.map { it.ruleId }
+            fun rules(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-25").items.getValue("p").hits.map { it.ruleId }
             assertTrue("DATA-LABEL-NUMBERS" in rules(reloaded))
             assertTrue("DATA-LABEL-NUMBERS" !in rules(reloaded.copy(labelFigures = null)))
         }
@@ -69,7 +69,7 @@ class LabelFiguresVectorsTest {
                 "batteryWords" to kotlinx.serialization.json.JsonPrimitive(true), "retailBox" to kotlinx.serialization.json.JsonPrimitive("sealed"),
                 "evidence" to kotlinx.serialization.json.JsonPrimitive("label_read")))))
             val answers = mapOf("device_condition" to "new_sealed", "cell_count" to "one")
-            fun verdict(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-20").items.getValue("t")
+            fun verdict(i: BoxItemInput) = host.evaluateBox(listOf(i), "CA", "2026-11-25").items.getValue("t")
             val typed = BoxItemInput("t", read, kotlinx.serialization.json.JsonObject(emptyMap()), answers, 1.0, "sender", host.labelTags(label),
                 numbersFrom = "typed", labelFigures = host.labelFigures(listOf(label)))
             assertTrue("DATA-LABEL-NUMBERS" in verdict(typed).hits.map { it.ruleId })

@@ -17,7 +17,7 @@ const item = (o: Partial<BoxItemInput> & { itemId: string; tagsVersion?: string 
   overrides: {}, answers: {}, quantity: 1, identityConfirmedBy: null, labelTags: ["label_text"], ...o,
 });
 const judge = (items: Array<BoxItemInput & { tagsVersion?: string }>) => guardStaleTags(
-  evaluateBox(items, ed, resolveDestination(ed, "CA", undefined, "2026-11-20"), "2026-11-20"), items, labelWordsVersion(ed));
+  evaluateBox(items, ed, resolveDestination(ed, "CA", undefined, "2026-11-25"), "2026-11-25"), items, labelWordsVersion(ed));
 
 describe("labelWordsVersion", () => {
   it("names the label words, so an edition with other words has another version", () => {
