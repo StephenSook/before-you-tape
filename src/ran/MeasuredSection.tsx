@@ -1,6 +1,7 @@
 // The measured numbers on /ran: our own controlled test first (src/ran/eval.json), then the totals from visitors'
 // saved boxes (src/ran/measured.json). Each is one line with its detail behind a disclosure, and each shows no number
 // at all from a file it cannot read; the saved-box totals also show none once they are stale (src/ran/measured.ts).
+import bundledEdition from "../../rules/edition.json";
 import { longDate } from "../engine/destination";
 import { readEval, type EvalSummary } from "./evalSummary";
 import { readMeasured } from "./measured";
@@ -11,6 +12,9 @@ const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 const timed = (t: Timed) => ("fewerThan" in t ? "fewer than 5" : `${count(t)}, median ${seconds(t.p50Ms)}, 90th percentile ${seconds(t.p90Ms)}`);
 const span = (w: NonNullable<Measured["window"]>) =>
   w.from.slice(0, 4) === w.to.slice(0, 4) ? `${longDate(w.from).replace(/, \d{4}$/, "")} to ${longDate(w.to)}` : `${longDate(w.from)} to ${longDate(w.to)}`;
+
+// The rule edition this build runs, to say beside our test's numbers when the test ran on an earlier one.
+const CURRENT = { editionId: bundledEdition.editionId, revision: bundledEdition.revision };
 
 function OurTest({ e }: { e: EvalSummary }) {
   const onDevice = e.readOnDevice === e.checks ? `All ${e.checks} checks were` : `${e.readOnDevice} of ${e.checks} checks were`;
@@ -37,7 +41,12 @@ function OurTest({ e }: { e: EvalSummary }) {
           <li>Time to a verdict: median {seconds(e.p50Ms)}, 90th percentile {seconds(e.p90Ms)}, second look included</li>
           <li>Computer: {e.machine}, Chrome {e.chrome}</li>
           <li>Models: {e.models}</li>
-          <li>Rules: edition {e.editionId}</li>
+          <li>
+            Rules: edition {e.editionId}
+            {e.editionId !== CURRENT.editionId
+              ? `, an earlier edition: the app now runs ${CURRENT.editionId} (revision ${CURRENT.revision}), so a verdict today can differ.`
+              : ""}
+          </li>
         </ul>
         <p>Source: {e.source}. These are our own test photos, not visitors'.</p>
       </details>
