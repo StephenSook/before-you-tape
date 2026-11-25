@@ -55,6 +55,26 @@ describe("ItemCard", () => {
     }
   });
 
+  it("says the read was checked in the cloud once a second look has run, so its numbers are not taken for the device's", () => {
+    const pb: ItemRead = { ...base, itemName: "Power bank", category: "power_bank", labelText: "50000mAh 3.7V 185Wh", volts: 3.7, milliampHours: 50000,
+      wattHours: 185, batteryWords: true };
+    const looked = item("pb", pb, { secondLook: { ms: 600, reason: "Battery numbers decide what may be mailed, so the cloud read them again." } });
+    render(<ItemCard item={looked} verdict={verdictFor(looked)} crop={jpeg} />);
+    expect(screen.getByTestId("battery-numbers")).toHaveTextContent("Label read: 3.7 V, 50,000 mAh, 185 Wh");
+    expect(screen.getByTestId("source-glyph")).toHaveAccessibleName("Read on this device, then checked in the cloud");
+  });
+
+  it("never claims a cloud check for a saved item whose second look field is missing", () => {
+    // The Firestore rules let a saved item leave secondLook out, and the loader passes it through as undefined.
+    for (const [source, name] of [["manual", "Typed by you"], ["on_device", "Read on this device"]] as const) {
+      const saved = { ...item("sv", shirtSeen.read, { readSource: source }), secondLook: undefined } as unknown as BoxItem;
+      render(<ItemCard item={saved} verdict={verdictFor(saved)} crop={jpeg} />);
+      expect(screen.getByTestId("source-glyph"), source).toHaveAccessibleName(name);
+      expect(screen.getByTestId("source-glyph"), source).toHaveTextContent(new RegExp(`^${name}$`));
+      cleanup();
+    }
+  });
+
   it("shows the crop, the first reason, the source and the four layers", () => {
     expect(takeOut.level).toBe("take_out");
     render(<ItemCard item={perfume} verdict={takeOut} crop={jpeg} />);
