@@ -6,9 +6,13 @@ import app.beforeyoutape.engine.ItemReadWire
 import app.beforeyoutape.engine.RetailBoxWire
 import com.google.firebase.ai.type.JsonSchema
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LabelReadWireTest {
@@ -68,9 +72,36 @@ class LabelReadWireTest {
         assertEquals(golden, render(LabelRead.firebaseAISchema()))
     }
 
+    /**
+     * The JSON the SDK sends to the cloud for each closed-list field is the JSON the enum fields sent
+     * before: each is compared with the exact builder call the KSP processor wrote for the enum.
+     */
+    @Test fun theClosedListsSendTheCloudTheSameJsonAsTheEnumsDid() {
+        val props = LabelRead.firebaseAISchema().properties!!
+        val before = mapOf(
+            "category" to JsonSchema.enumeration(clazz = ItemCategoryWire::class, values = ItemCategoryWire.entries.map { it.name }, title = "category", nullable = false),
+            "retailBox" to JsonSchema.enumeration(clazz = RetailBoxWire::class, values = RetailBoxWire.entries.map { it.name }, title = "retailBox", nullable = false),
+            "evidence" to JsonSchema.enumeration(clazz = EvidenceWire::class, values = EvidenceWire.entries.map { it.name }, title = "evidence", nullable = false),
+        )
+        for ((name, old) in before) assertEquals(name, wire(old), wire(props.getValue(name)))
+        assertTrue(wire(props.getValue("evidence")).contains("label_read"))
+        // The comparison can fail: a plain string field with the same title sends other JSON.
+        assertNotEquals(wire(before.getValue("category")), wire(JsonSchema.string(title = "category", nullable = false)))
+    }
+
+    /** The JSON the SDK builds for the cloud request (its internal toInternalJson, read by its JVM name). */
+    private fun wire(s: JsonSchema<*>): String {
+        val internal = JsonSchema::class.java.getMethod("toInternalJson\$com_google_firebase_ai_logic_firebase_ai").invoke(s)!!
+        @Suppress("UNCHECKED_CAST")
+        return Json.encodeToString(serializer(internal.javaClass) as KSerializer<Any>, internal)
+    }
+
     private fun render(s: JsonSchema<*>, indent: String = ""): String = buildString {
         append("${indent}type=${s.type} format=${s.format} nullable=${s.nullable} title=${s.title} enum=${s.enum}")
-        append(" required=${s.required} items=${s.items != null} anyOf=${s.anyOf?.size} description=${s.description}\n")
+        append(" required=${s.required} minimum=${s.minimum} maximum=${s.maximum} minItems=${s.minItems} maxItems=${s.maxItems}")
+        append(" description=${s.description}\n")
         s.properties?.forEach { (name, p) -> append("$indent  $name:\n").append(render(p, "$indent    ")) }
+        s.items?.let { append("$indent  items:\n").append(render(it, "$indent    ")) }
+        s.anyOf?.forEachIndexed { i, p -> append("$indent  anyOf[$i]:\n").append(render(p, "$indent    ")) }
     }
 }
