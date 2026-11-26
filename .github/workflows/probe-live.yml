@@ -3,7 +3,8 @@ name: Live probe
 # Twice a day through the judging window, at two offset times, since GitHub delays and drops scheduled runs.
 # The probe job, with no credential: the site serves main, the page
 # loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
-# shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
+# shutdown before the window ends, AI Logic refuses a call with no App Check token, the app starts, and /judge
+# shows its nine sample items.
 # The read job, with the CI App Check debug token: one real read through the live app comes back as a read,
 # once a UTC day. The fresh job fails when no scheduled run before this one finished in the last 26 hours.
 # The probe reports itself retired after 2026-12-17; delete this file then.
@@ -50,7 +51,7 @@ jobs:
       - name: Install the test browser
         run: npx playwright install chromium
 
-      # The fetch checks above cannot see a page that failed to start; this one opens it like a visitor.
+      # The fetch checks above cannot see a page that failed to start; this one opens it, and /judge, like a visitor.
       - name: The live app starts
         env:
           BYT_LIVE: "1"
