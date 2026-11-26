@@ -58,11 +58,33 @@ describe("safeErrorReport", () => {
     for (const line of fake) {
       const r = safeErrorReport(v8Error(`${LABEL}\n${line}`, [real]), ORIGIN);
       expect(r?.stack).toBe(`Error: message removed\n${real}`);
-      // The same when the message was changed after the stack was taken (its first line no longer matches).
+      // When the message was changed after the stack was taken, the header cannot be found, so no frame is kept.
       const e = v8Error(`${LABEL}\n${line}`, [real]);
       e.message = `${e.message} (more)`;
-      expect(safeErrorReport(e, ORIGIN)?.stack).toBe(`Error: message removed\n${real}`);
+      expect(safeErrorReport(e, ORIGIN)?.stack).toBe("Error: message removed");
     }
+  });
+
+  it("keeps no frame when the message was shortened after the stack was taken, so no line of the old one survives", () => {
+    const e = v8Error(`${LABEL}\n    at lotion (${ORIGIN}/assets/index-abc.js:9:9)\n${ITEM}`, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2)`]);
+    e.message = "short";
+    const r = safeErrorReport(e, ORIGIN);
+    expect(r?.stack).toBe("Error: message removed");
+    expect(leaks(JSON.stringify(r))).toEqual([]);
+    expect(JSON.stringify(r)).not.toContain("lotion");
+  });
+
+  it("names only error types it knows, and keeps only Firebase codes of a known shape", () => {
+    const named = (name: string) => safeErrorReport(Object.assign(new Error("x"), { name }), ORIGIN)?.name;
+    expect(["TypeError", "SyntaxError", "AbortError", "FirebaseError", "ReadFailure", "InvalidReadError"].map(named))
+      .toEqual(["TypeError", "SyntaxError", "AbortError", "FirebaseError", "ReadFailure", "InvalidReadError"]);
+    // A one-word item name or box id shaped like an identifier is not sent as a name.
+    expect(["Lotion", "Strawberry", "PowerBank", "box_u1"].map(named)).toEqual(["Error", "Error", "Error", "Error"]);
+    const coded = (code: string) => safeErrorReport(Object.assign(new Error("x"), { name: "FirebaseError", code }), ORIGIN)?.message;
+    expect(coded("permission-denied")).toBe("message removed; code permission-denied");
+    expect(coded("firestore/not-found")).toBe("message removed; code firestore/not-found");
+    expect(coded("appCheck/fetch-status-error")).toBe("message removed; code appCheck/fetch-status-error");
+    for (const free of ["Strawberry", "lotion", "box-u1", "items/lotion", "shop/strawberry-lotion"]) expect(coded(free), free).toBe("message removed");
   });
 
   it("reads Firefox and Safari frames, and strips a query or fragment from a frame's address", () => {
@@ -208,6 +230,34 @@ describe("startErrorReports", () => {
     await settle();
     expect(load).toHaveBeenCalledTimes(2);
     expect(recorded).toHaveLength(1);
+  });
+
+  it("tries the same error again after the SDK failed to load, and a failed load uses no report slot", async () => {
+    const { target, raise } = fakeTarget();
+    const { api, recorded } = fakeCrashlytics();
+    const load = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(api);
+    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    const same = () => v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:1:1)`]);
+    raise(same());
+    await settle();
+    raise(same());
+    await settle();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(recorded).toHaveLength(1);
+  });
+
+  it("keeps all five report slots after five failed loads", async () => {
+    const { target, raise } = fakeTarget();
+    const { api, recorded } = fakeCrashlytics();
+    const load = vi.fn();
+    for (let i = 0; i < 5; i++) load.mockRejectedValueOnce(new Error("offline"));
+    load.mockResolvedValue(api);
+    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    const at = (i: number) => v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:${i}:1)`]);
+    for (let i = 1; i <= 5; i++) { raise(at(i)); await settle(); }
+    for (let i = 6; i <= 10; i++) raise(at(i));
+    await settle();
+    expect(recorded.map((e) => e.stack?.split(":").at(-2))).toEqual(["6", "7", "8", "9", "10"]);
   });
 
   it("stops listening when stopped", async () => {

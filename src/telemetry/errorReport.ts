@@ -29,8 +29,24 @@ export type ErrorReportDeps = {
 const MAX_REPORTS_PER_PAGE = 5;
 const MAX_FRAMES = 40;
 const MAX_FRAME_LENGTH = 500;
-const NAME = /^[A-Za-z][\w$.]{0,63}$/;
-const CODE = /^[A-Za-z0-9-]{1,40}(?:\/[A-Za-z0-9-]{1,60})?$/;
+// The error names a report may carry: the language's and the browser's own error types, Firebase's, and this app's
+// own classes. Any other name, which could be a word from what the user checked, is sent as "Error".
+const NAMES = new Set([
+  "Error", "TypeError", "RangeError", "SyntaxError", "ReferenceError", "EvalError", "URIError", "AggregateError",
+  "AbortError", "NotAllowedError", "NotFoundError", "NotReadableError", "NotSupportedError", "OverconstrainedError",
+  "NetworkError", "QuotaExceededError", "SecurityError", "TimeoutError", "InvalidStateError", "DataError", "DataCloneError",
+  "UnknownError", "OperationError", "DOMException", "FirebaseError", "AIError",
+  "ReadFailure", "CameraError", "CropError", "NotBoxOwner", "EditionError", "FirebaseConfigError", "SampleMismatch",
+  "InvalidReadError", "NoEditionError", "BadInputError",
+]);
+// The codes a report may carry: Firestore's own codes, and a Firebase service's "service/code-words".
+const FIRESTORE_CODES = new Set([
+  "cancelled", "unknown", "invalid-argument", "deadline-exceeded", "not-found", "already-exists", "permission-denied",
+  "resource-exhausted", "failed-precondition", "aborted", "out-of-range", "unimplemented", "internal", "unavailable",
+  "data-loss", "unauthenticated",
+]);
+const SERVICE_CODE = /^(?:firestore|auth|appCheck|app-check|AI|installations|remoteconfig|remote-config|performance|app|storage|functions|messaging|analytics|crashlytics)\/[a-z0-9]+(?:-[a-z0-9]+){0,8}$/;
+const safeCode = (code: unknown) => typeof code === "string" && (FIRESTORE_CODES.has(code) || SERVICE_CODE.test(code));
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -39,10 +55,10 @@ export function safeErrorReport(reason: unknown, origin: string): SafeErrorRepor
   if (reason === null || reason === undefined) return null;
   if (!(reason instanceof Error)) return { name: "Error", message: `non-error value thrown (${typeof reason})`, stack: "" };
 
-  const name = NAME.test(reason.name) ? reason.name : "Error";
+  const name = NAMES.has(reason.name) ? reason.name : "Error";
   const parts = ["message removed"];
   const code = (reason as { code?: unknown }).code;
-  if (typeof code === "string" && CODE.test(code)) parts.push(`code ${code}`);
+  if (safeCode(code)) parts.push(`code ${code as string}`);
   const status = (reason as { customErrorData?: { status?: unknown } }).customErrorData?.status;
   if (typeof status === "number" && Number.isInteger(status) && status >= 100 && status <= 599) parts.push(`status ${status}`);
   const message = parts.join("; ");
@@ -76,14 +92,16 @@ function withoutV8Header(stack: string, e: Error): string[] {
     if (stack === header) return [];
     if (stack.startsWith(`${header}\n`)) return stack.slice(header.length + 1).split("\n");
   }
-  // The message changed after the stack was taken: skip as many lines as the message has. A header line left over
-  // must still pass the frame pattern with this site's address to be kept.
-  return stack.split("\n").slice(Math.max(1, m.split("\n").length));
+  // The message changed after the stack was taken, so where the old one ends is unknown: keep no frame, since a line
+  // of the old message could look like one.
+  return [];
 }
 
 /** Listens for uncaught errors and rejections on the page; returns a function that stops listening. */
 export function startErrorReports(deps: ErrorReportDeps): () => void {
+  // Reports handed to the SDK, and reports waiting for it to load. A load that fails frees its reports' slots.
   const seen = new Set<string>();
+  const pending = new Set<string>();
   let ready: Promise<{ api: CrashlyticsApi; crashlytics: Crashlytics }> | undefined;
 
   const report = (reason: unknown) => {
@@ -91,24 +109,27 @@ export function startErrorReports(deps: ErrorReportDeps): () => void {
       const r = safeErrorReport(reason, deps.origin);
       if (!r) return;
       const key = `${r.name}\n${r.message}\n${r.stack}`;
-      if (seen.has(key) || seen.size >= MAX_REPORTS_PER_PAGE) return;
+      if (seen.has(key) || pending.has(key) || seen.size + pending.size >= MAX_REPORTS_PER_PAGE) return;
       const app = deps.app();
       if (!app) return;
-      seen.add(key);
+      pending.add(key);
       const options: CrashlyticsOptions = { captureUnhandledErrors: false };
       if (deps.appVersion) options.appVersion = deps.appVersion;
       ready ??= deps.load().then((api) => ({ api, crashlytics: api.getCrashlytics(app, options) }));
-      const pending = ready;
-      pending
+      const loading = ready;
+      loading
         .then(({ api, crashlytics }) => {
           const e = new Error(r.message);
           e.name = r.name;
           e.stack = r.stack;
           api.recordError(crashlytics, e);
+          pending.delete(key);
+          seen.add(key);
         })
         .catch(() => {
-          // A report must never break the page; a failed load is tried again on the next error.
-          if (ready === pending) ready = undefined;
+          // A report must never break the page; a failed load is tried again on the next error, this one included.
+          pending.delete(key);
+          if (ready === loading) ready = undefined;
         });
     } catch {
       // dropped on purpose: reporting an error must not raise another one
