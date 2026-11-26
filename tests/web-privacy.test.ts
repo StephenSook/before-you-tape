@@ -16,12 +16,13 @@ it("the web privacy page's error report entry matches the code that sends the re
   expect(page).toContain("The error's message is removed in your browser before anything is sent, and so is anything after a question mark in a page address");
   expect(page).toContain("A visit with no such error sends no report, and one page sends at most five.");
   expect(page).toContain("Reports are kept in our project's Cloud Logging for 30 days.");
+  expect(page).toContain("The session ID is kept for the browser tab, so reports after a reload in that tab carry the same one");
   const report = readFileSync("src/telemetry/errorReport.ts", "utf8");
   expect(report).toContain('const parts = ["message removed"];');
   expect(report).toContain("const MAX_REPORTS_PER_PAGE = 5;");
   expect(report).toContain("captureUnhandledErrors: false");
   expect(report).not.toMatch(/customAttributes|breadcrumbs|setUserId|log\(/);
   const wiring = readFileSync("src/telemetry/crashReports.ts", "utf8");
-  expect(wiring).toContain('await import("firebase/crashlytics")');
+  expect(wiring).toContain('await import("./crashlyticsSdk")');
   expect(readFileSync("src/main.tsx", "utf8")).toContain("if (import.meta.env.PROD) startCrashReports();");
 });
