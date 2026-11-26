@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { safeErrorReport, startErrorReports, type CrashlyticsApi } from "./errorReport";
 
 const ORIGIN = "https://byt.example";
+// The scripts this page loaded, in these tests: the built chunks under /assets/.
+const LOADED = new Set([`${ORIGIN}/assets/index-abc.js`, `${ORIGIN}/assets/PackPage-def.js`]);
+const isScript = (url: string) => LOADED.has(url);
 // What a user checks, which must never reach a report: label text, an item's name, the box, a page address's query.
 const LABEL = "Capacity:50000mAh 3.7V 185Wh";
 const ITEM = "Strawberry dream body lotion";
@@ -21,10 +24,10 @@ const leaks = (text: string) => PLANTED.filter((s) => text.includes(s));
 
 describe("safeErrorReport", () => {
   it("never carries the error's message, even when the message is label text", () => {
-    const r = safeErrorReport(v8Error(`${ITEM}: ${LABEL}`, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2345)`]), ORIGIN);
+    const r = safeErrorReport(v8Error(`${ITEM}: ${LABEL}`, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2345)`]), isScript);
     expect(leaks(JSON.stringify(r))).toEqual([]);
     expect(r?.message).toBe("message removed");
-    expect(r?.stack).toBe(`Error: message removed\n    at readItem (${ORIGIN}/assets/index-abc.js:1:2345)`);
+    expect(r?.stack).toBe(`Error: message removed\n    at ${ORIGIN}/assets/index-abc.js:1:2345`);
   });
 
   it("drops the label a real JSON parse error quotes from the model's answer", () => {
@@ -35,93 +38,78 @@ describe("safeErrorReport", () => {
       parseError = e;
     }
     expect(String((parseError as Error).message)).toContain("Capacity");
-    const r = safeErrorReport(parseError, ORIGIN);
+    const r = safeErrorReport(parseError, isScript);
     expect(r?.name).toBe("SyntaxError");
     expect(leaks(JSON.stringify(r))).toEqual([]);
   });
 
-  it("keeps only frames on this site, so a message line shaped like a frame is still dropped", () => {
-    const e = v8Error(`${LABEL}\n    at lotion (https://elsewhere.example/x.js:1:2)`, [
+  it("keeps only the location of each frame in a script this page loaded, never a function name", () => {
+    const e = v8Error(LABEL, [
       `    at async Promise.all (index 0)`,
       `    at new BoxStore (${ORIGIN}/assets/index-abc.js:3:4)`,
-      `    at Object.run [as go] (blob:${ORIGIN}/0c5e-11aa:5:6)`,
+      `    at Object.lotion [as go] (${ORIGIN}/assets/PackPage-def.js:5:6)`,
       `    at grecaptcha (https://www.gstatic.com/recaptcha/x.js:7:8)`,
+      `    at strawberry (${ORIGIN}/assets/Strawberry-lotion.js:9:9)`,
+      `    at x (blob:${ORIGIN}/0c5e-11aa:5:6)`,
     ]);
-    expect(safeErrorReport(e, ORIGIN)?.stack).toBe(
-      [`Error: message removed`, `    at new BoxStore (${ORIGIN}/assets/index-abc.js:3:4)`, `    at Object.run [as go] (blob:${ORIGIN}/0c5e-11aa:5:6)`].join("\n"),
-    );
+    expect(safeErrorReport(e, isScript)?.stack).toBe([`Error: message removed`, `    at ${ORIGIN}/assets/index-abc.js:3:4`, `    at ${ORIGIN}/assets/PackPage-def.js:5:6`].join("\n"));
   });
 
-  it("drops a message line shaped like a frame on this site, in either browser's shape", () => {
-    const fake = [`    at lotion (${ORIGIN}/assets/index-abc.js:9:9)`, `Strawberry lotion@${ORIGIN}/assets/index-abc.js:8:8`];
-    const real = `    at readItem (${ORIGIN}/assets/index-abc.js:1:2)`;
-    for (const line of fake) {
-      const r = safeErrorReport(v8Error(`${LABEL}\n${line}`, [real]), ORIGIN);
-      expect(r?.stack).toBe(`Error: message removed\n${real}`);
-      // When the message was changed after the stack was taken, the header cannot be found, so no frame is kept.
-      const e = v8Error(`${LABEL}\n${line}`, [real]);
-      e.message = `${e.message} (more)`;
-      expect(safeErrorReport(e, ORIGIN)?.stack).toBe("Error: message removed");
+  it("sends no word of a message that was shortened after its stack was taken, at a line break or not", () => {
+    const old = `${ITEM}\n    at lotion (${ORIGIN}/assets/index-abc.js:9:9)\n${LABEL}`;
+    for (const shorter of [ITEM, "short", ""]) {
+      const e = v8Error(old, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2)`]);
+      e.message = shorter;
+      const r = safeErrorReport(e, isScript);
+      expect(leaks(JSON.stringify(r)), shorter).toEqual([]);
+      // The old message's frame-shaped line gives at most one more of this page's own script addresses.
+      expect(r?.stack.split("\n").slice(1).every((l) => /^ {4}at https:\/\/byt\.example\/assets\/index-abc\.js:\d+:\d+$/.test(l))).toBe(true);
     }
   });
 
-  it("keeps no frame when the message was shortened after the stack was taken, so no line of the old one survives", () => {
-    const e = v8Error(`${LABEL}\n    at lotion (${ORIGIN}/assets/index-abc.js:9:9)\n${ITEM}`, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2)`]);
-    e.message = "short";
-    const r = safeErrorReport(e, ORIGIN);
-    expect(r?.stack).toBe("Error: message removed");
+  it("reads Firefox and Safari frames, and drops a query or fragment from a location", () => {
+    const e = new Error(LABEL);
+    e.stack = [`pack/<@${ORIGIN}/assets/index-abc.js?v=2:10:11`, `Strawberry lotion@${ORIGIN}/assets/PackPage-def.js#x:1:1`, `promiseReactionJob@[native code]`].join("\n");
+    const r = safeErrorReport(e, isScript);
+    expect(r?.stack).toBe([`Error: message removed`, `    at ${ORIGIN}/assets/index-abc.js:10:11`, `    at ${ORIGIN}/assets/PackPage-def.js:1:1`].join("\n"));
     expect(leaks(JSON.stringify(r))).toEqual([]);
-    expect(JSON.stringify(r)).not.toContain("lotion");
   });
 
-  it("names only error types it knows, and keeps only Firebase codes of a known shape", () => {
-    const named = (name: string) => safeErrorReport(Object.assign(new Error("x"), { name }), ORIGIN)?.name;
+  it("drops a location on a page address, which is not a loaded script, with its query", () => {
+    const r = safeErrorReport(v8Error("x", [`    at onImage (${ORIGIN}/pack${QUERY}:4:5)`]), isScript);
+    expect(r?.stack).toBe("Error: message removed");
+  });
+
+  it("names only error types it knows, and keeps only Firebase codes from its list, word for word", () => {
+    const named = (name: string) => safeErrorReport(Object.assign(new Error("x"), { name }), isScript)?.name;
     expect(["TypeError", "SyntaxError", "AbortError", "FirebaseError", "ReadFailure", "InvalidReadError"].map(named))
       .toEqual(["TypeError", "SyntaxError", "AbortError", "FirebaseError", "ReadFailure", "InvalidReadError"]);
     // A one-word item name or box id shaped like an identifier is not sent as a name.
     expect(["Lotion", "Strawberry", "PowerBank", "box_u1"].map(named)).toEqual(["Error", "Error", "Error", "Error"]);
-    const coded = (code: string) => safeErrorReport(Object.assign(new Error("x"), { name: "FirebaseError", code }), ORIGIN)?.message;
+    const coded = (code: string) => safeErrorReport(Object.assign(new Error("x"), { name: "FirebaseError", code }), isScript)?.message;
     expect(coded("permission-denied")).toBe("message removed; code permission-denied");
-    expect(coded("firestore/not-found")).toBe("message removed; code firestore/not-found");
     expect(coded("appCheck/fetch-status-error")).toBe("message removed; code appCheck/fetch-status-error");
-    for (const free of ["Strawberry", "lotion", "box-u1", "items/lotion", "shop/strawberry-lotion"]) expect(coded(free), free).toBe("message removed");
+    expect(coded("AI/fetch-error")).toBe("message removed; code AI/fetch-error");
+    for (const free of ["Strawberry", "lotion", "box-u1", "items/lotion", "storage/strawberry-lotion", "AI/strawberry", "auth/lotion"]) {
+      expect(coded(free), free).toBe("message removed");
+    }
   });
 
-  it("reads Firefox and Safari frames, and strips a query or fragment from a frame's address", () => {
-    const e = new Error(LABEL);
-    e.stack = [`pack/<@${ORIGIN}/assets/index-abc.js?v=2:10:11`, `global code@${ORIGIN}/pack${QUERY}#box:1:1`, `promiseReactionJob@[native code]`].join("\n");
-    const r = safeErrorReport(e, ORIGIN);
-    expect(r?.stack).toBe([`pack/<@${ORIGIN}/assets/index-abc.js:10:11`, `global code@${ORIGIN}/pack:1:1`].join("\n"));
-    expect(leaks(JSON.stringify(r))).toEqual([]);
-  });
-
-  it("strips a query from a V8 frame's address too", () => {
-    const r = safeErrorReport(v8Error("x", [`    at onImage (${ORIGIN}/pack${QUERY}:4:5)`]), ORIGIN);
-    expect(r?.stack).toBe(`Error: message removed\n    at onImage (${ORIGIN}/pack:4:5)`);
-  });
-
-  it("keeps a Firebase error code and an HTTP status, which are fixed words from the SDK", () => {
-    const fs = Object.assign(new Error(`No document to update: boxes/x/items/${ITEM}`), { name: "FirebaseError", code: "firestore/not-found" });
-    expect(safeErrorReport(fs, ORIGIN)).toMatchObject({ name: "FirebaseError", message: "message removed; code firestore/not-found" });
+  it("keeps an HTTP status, a number from the SDK", () => {
     const ai = Object.assign(new Error(LABEL), { name: "FirebaseError", code: "AI/fetch-error", customErrorData: { status: 429 } });
-    expect(safeErrorReport(ai, ORIGIN)?.message).toBe("message removed; code AI/fetch-error; status 429");
-  });
-
-  it("drops a code or a name that is not a plain identifier", () => {
-    const e = Object.assign(new Error("x"), { name: "Strawberry lotion", code: `${ITEM} ${LABEL}` });
-    expect(safeErrorReport(e, ORIGIN)).toMatchObject({ name: "Error", message: "message removed" });
+    expect(safeErrorReport(ai, isScript)?.message).toBe("message removed; code AI/fetch-error; status 429");
   });
 
   it("reports a thrown non-error by its type only", () => {
-    expect(safeErrorReport(LABEL, ORIGIN)).toEqual({ name: "Error", message: "non-error value thrown (string)", stack: "" });
-    expect(safeErrorReport({ box: BOX }, ORIGIN)).toEqual({ name: "Error", message: "non-error value thrown (object)", stack: "" });
-    expect(safeErrorReport(undefined, ORIGIN)).toBeNull();
-    expect(safeErrorReport(null, ORIGIN)).toBeNull();
+    expect(safeErrorReport(LABEL, isScript)).toEqual({ name: "Error", message: "non-error value thrown (string)", stack: "" });
+    expect(safeErrorReport({ box: BOX }, isScript)).toEqual({ name: "Error", message: "non-error value thrown (object)", stack: "" });
+    expect(safeErrorReport(undefined, isScript)).toBeNull();
+    expect(safeErrorReport(null, isScript)).toBeNull();
   });
 
   it("caps the frames it keeps", () => {
     const frames = Array.from({ length: 100 }, (_, i) => `    at f${i} (${ORIGIN}/assets/index-abc.js:${i}:1)`);
-    expect(safeErrorReport(v8Error("x", frames), ORIGIN)?.stack.split("\n")).toHaveLength(41);
+    expect(safeErrorReport(v8Error("x", frames), isScript)?.stack.split("\n")).toHaveLength(41);
   });
 });
 
@@ -137,7 +125,7 @@ function fakeCrashlytics() {
   const instance = { app: {} as FirebaseApp };
   const api: CrashlyticsApi = {
     getCrashlytics: vi.fn(() => instance),
-    recordError: vi.fn((_c, e: unknown) => void recorded.push(e as Error)),
+    recordError: vi.fn((_c: unknown, e: unknown) => void recorded.push(e as Error)),
   };
   return { api, recorded, instance };
 }
@@ -149,24 +137,24 @@ describe("startErrorReports", () => {
   it("sends no label text, item name, box contents or query string, whatever the error holds", async () => {
     const { target, raise, reject } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load: async () => api, appVersion: "byt-build-abc" });
+    startErrorReports({ target, isScript, app: () => APP, load: async () => api, appVersion: "byt-build-abc" });
     raise(v8Error(`${ITEM}\n${LABEL}\n${BOX}`, [`    at readItem (${ORIGIN}/pack${QUERY}:1:2)`, `    at onImage (${ORIGIN}/assets/index-abc.js:3:4)`]));
-    reject(Object.assign(new Error(`${BOX} ${LABEL}`), { name: "FirebaseError", code: "firestore/permission-denied" }));
-    raise(new Error(`${ITEM}${QUERY}`));
+    reject(Object.assign(new Error(`${BOX} ${LABEL}`), { name: "FirebaseError", code: "permission-denied" }));
+    raise(Object.assign(new Error(`${ITEM}${QUERY}`), { name: "Strawberry", code: "storage/strawberry-lotion" }));
     await settle();
     expect(recorded).toHaveLength(3);
     for (const e of recorded) {
       expect(leaks(JSON.stringify([e.name, e.message, e.stack]))).toEqual([]);
       expect(e.message.startsWith("message removed")).toBe(true);
     }
-    expect(recorded[0]?.stack).toBe(`Error: message removed\n    at readItem (${ORIGIN}/pack:1:2)\n    at onImage (${ORIGIN}/assets/index-abc.js:3:4)`);
+    expect(recorded[0]?.stack).toBe(`Error: message removed\n    at ${ORIGIN}/assets/index-abc.js:3:4`);
   });
 
   it("loads nothing until an error happens, then sends it without its message", async () => {
     const { target, raise } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
     const load = vi.fn(async () => api);
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: "byt-build-abc" });
+    startErrorReports({ target, isScript, app: () => APP, load, appVersion: "byt-build-abc" });
     await settle();
     expect(load).not.toHaveBeenCalled();
 
@@ -182,17 +170,17 @@ describe("startErrorReports", () => {
   it("reports an unhandled rejection the same way", async () => {
     const { target, reject } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load: async () => api, appVersion: undefined });
-    reject(Object.assign(new Error(LABEL), { name: "FirebaseError", code: "storage/unauthorized" }));
+    startErrorReports({ target, isScript, app: () => APP, load: async () => api, appVersion: undefined });
+    reject(Object.assign(new Error(LABEL), { name: "FirebaseError", code: "unavailable" }));
     await settle();
     expect(api.getCrashlytics).toHaveBeenCalledWith(APP, { captureUnhandledErrors: false });
-    expect(recorded.map((e) => [e.name, e.message])).toEqual([["FirebaseError", "message removed; code storage/unauthorized"]]);
+    expect(recorded.map((e) => [e.name, e.message])).toEqual([["FirebaseError", "message removed; code unavailable"]]);
   });
 
   it("sends one report per distinct error and at most five a page", async () => {
     const { target, raise } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load: async () => api, appVersion: undefined });
+    startErrorReports({ target, isScript, app: () => APP, load: async () => api, appVersion: undefined });
     const at = (i: number) => v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:${i}:1)`]);
     raise(at(1));
     raise(at(1));
@@ -204,7 +192,7 @@ describe("startErrorReports", () => {
   it("skips an error event with no error object (a cross-origin script error)", async () => {
     const { target, raise } = fakeTarget();
     const load = vi.fn(async () => fakeCrashlytics().api);
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    startErrorReports({ target, isScript, app: () => APP, load, appVersion: undefined });
     raise(null);
     await settle();
     expect(load).not.toHaveBeenCalled();
@@ -213,7 +201,7 @@ describe("startErrorReports", () => {
   it("sends nothing before Firebase has started, and never starts Firebase itself", async () => {
     const { target, raise } = fakeTarget();
     const load = vi.fn(async () => fakeCrashlytics().api);
-    startErrorReports({ target, origin: ORIGIN, app: () => undefined, load, appVersion: undefined });
+    startErrorReports({ target, isScript, app: () => undefined, load, appVersion: undefined });
     raise(new Error("x"));
     await settle();
     expect(load).not.toHaveBeenCalled();
@@ -223,10 +211,10 @@ describe("startErrorReports", () => {
     const { target, raise } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
     const load = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(api);
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
-    expect(() => raise(v8Error("x", [`    at f (${ORIGIN}/a.js:1:1)`]))).not.toThrow();
+    startErrorReports({ target, isScript, app: () => APP, load, appVersion: undefined });
+    expect(() => raise(v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:1:1)`]))).not.toThrow();
     await settle();
-    raise(v8Error("y", [`    at g (${ORIGIN}/a.js:2:1)`]));
+    raise(v8Error("y", [`    at g (${ORIGIN}/assets/index-abc.js:2:1)`]));
     await settle();
     expect(load).toHaveBeenCalledTimes(2);
     expect(recorded).toHaveLength(1);
@@ -236,7 +224,7 @@ describe("startErrorReports", () => {
     const { target, raise } = fakeTarget();
     const { api, recorded } = fakeCrashlytics();
     const load = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(api);
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    startErrorReports({ target, isScript, app: () => APP, load, appVersion: undefined });
     const same = () => v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:1:1)`]);
     raise(same());
     await settle();
@@ -252,7 +240,7 @@ describe("startErrorReports", () => {
     const load = vi.fn();
     for (let i = 0; i < 5; i++) load.mockRejectedValueOnce(new Error("offline"));
     load.mockResolvedValue(api);
-    startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    startErrorReports({ target, isScript, app: () => APP, load, appVersion: undefined });
     const at = (i: number) => v8Error("x", [`    at f (${ORIGIN}/assets/index-abc.js:${i}:1)`]);
     for (let i = 1; i <= 5; i++) { raise(at(i)); await settle(); }
     for (let i = 6; i <= 10; i++) raise(at(i));
@@ -263,7 +251,7 @@ describe("startErrorReports", () => {
   it("stops listening when stopped", async () => {
     const { target, raise } = fakeTarget();
     const load = vi.fn(async () => fakeCrashlytics().api);
-    const stop = startErrorReports({ target, origin: ORIGIN, app: () => APP, load, appVersion: undefined });
+    const stop = startErrorReports({ target, isScript, app: () => APP, load, appVersion: undefined });
     stop();
     raise(new Error("x"));
     await settle();
