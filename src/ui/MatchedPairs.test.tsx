@@ -25,10 +25,10 @@ describe("MatchedPairs", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("lists one real pair today: the published lotion photo, sent to Canada and to the Philippines", () => {
+  it("lists one real pair today: the published lotion photo with its brand blurred, sent to Canada and to the Philippines", () => {
     expect(MATCHED_PAIRS.map((p) => p.id)).toEqual(["lotion-two-countries"]);
     const [lotion] = MATCHED_PAIRS;
-    expect([lotion!.left.photo, lotion!.right.photo]).toEqual(["/eval/items/own-18.jpg", "/eval/items/own-18.jpg"]);
+    expect([lotion!.left.photo, lotion!.right.photo]).toEqual(["/judge/samples/own-18.jpg", "/judge/samples/own-18.jpg"]);
     expect([lotion!.left.destination, lotion!.right.destination]).toEqual(["CA", "PH"]);
     // The stated size is the published file's own, read from its JPEG frame header.
     const jpeg = readFileSync(join(process.cwd(), "public", lotion!.left.photo));
