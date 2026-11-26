@@ -42,7 +42,7 @@ export function pwaOptions(o: { kill: boolean }): Partial<VitePWAOptions> {
     includeManifestIcons: false,
     injectManifest: {
       globPatterns: o.kill ? [] : SHELL,
-      globIgnores: ["assets/extBridge-*"],
+      globIgnores: ["assets/extBridge-*", "assets/crashlyticsSdk-*"],
       rollupFormat: "iife",
       // The build's output folder (vite.config.ts keeps the default).
       manifestTransforms: [sha256Revisions("dist")],

@@ -11,7 +11,7 @@ export function crashReportDeps(target: ErrorReportDeps["target"], origin: strin
     origin,
     app: () => getApps().find((a) => a.name === "[DEFAULT]"),
     load: async () => {
-      const { getCrashlytics, recordError } = await import("firebase/crashlytics");
+      const { getCrashlytics, recordError } = await import("./crashlyticsSdk");
       return { getCrashlytics, recordError };
     },
     appVersion,
