@@ -26,7 +26,9 @@ What was done by hand, as a sender would:
 
 Photos used: `own-01` (power bank), `own-18` (lotion) and `own-25` (perfume), all the project
 owner's own photos, and `i13` (T-shirt, CC BY-SA 4.0), whose image does not appear in any
-screenshot. No CC-licensed image appears in these files.
+screenshot. No CC-licensed image appears in these files. In 02, the power bank label's maker and EU
+representative lines (company names, a street address and an email address) were blurred on
+2026-11-26, as in the published photo; every other pixel of 02 is as captured.
 
 ## Known limits
 
