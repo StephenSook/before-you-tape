@@ -5,6 +5,20 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### test(ios): an opt-in test runs one real cloud second look on an iPhone
+- What: `ios/BYTTests/LiveCloudLookTests.swift` runs only with `TEST_RUNNER_BYT_LIVE_CLOUD=1`, in a Release
+  configuration build (`ENABLE_TESTABILITY=YES`) on a real iPhone, where App Check has only App Attest and
+  Firebase is live. It feeds the public, blurred own-01 power bank photo (added to the test bundle in
+  `ios/project.yml`) to the app's own `readPhoto`, with the app's own reader, Apple's model on the phone and
+  a box kept in memory. It allows cloud checks through `answerConsent(true)` and waits for the second look.
+  Then it prints each model call, the counters and the second-look note, and writes the box and a picture
+  of its screen to the app's tmp/row20 folder. In the normal checks it is skipped. Test-only.
+- Source: the iPhone cloud read had no tracked run (test matrix row 20), and App Attest was not proven on a
+  real device (security row 1b).
+- Verified: `bash ios/scripts/ci-local-ios.sh` exit 0 (1307 web tests, 38 BYTCore tests, 306 app tests with
+  304 passed and 2 skipped, this one among them; unsigned device build). On an iPhone 17 Pro (iOS 27.2.1)
+  it passed in 9.1 s, at main 3250df7 with the test.
+
 ### chore(ios): build 4, with rule edition revision 9 built in
 - What: CURRENT_PROJECT_VERSION goes from 3 to 4. MARKETING_VERSION stays 1.0.0. Build 4 carries rule
   edition revision 9 (`byt-d098b14aa534`, no upcoming suspensions, so no Canada note) built in, in place
