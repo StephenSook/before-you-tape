@@ -3,7 +3,7 @@ import { draftOf } from "../ui/ReadFields";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ed } from "../../tests/engine/helpers";
+import { ed, withUpcoming } from "../../tests/engine/helpers";
 import type { ItemModels, ModelPort, ModelReply } from "../ai/port";
 import { noPersistence, type BoxMeta, type LoadResult } from "../data/boxOps";
 import { createBoxStore } from "../data/boxStore";
@@ -25,6 +25,9 @@ const spyModels = () => ({ device: port("on_device"), hybrid: port("on_device"),
 const persistence = () => noPersistence();
 let n = 0;
 const newStore = () => createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-25", newId: () => `id-${n++}` });
+// Rules with a suspension the post office has announced for Canada from 2026-11-29 (the shipped rules have none).
+const ahead = withUpcoming(ed, "CA", "2026-11-29");
+const aheadStore = (today = "2026-11-25") => createBoxStore({ edition: () => ahead, persistence: persistence(), now: () => 1000, today: () => today, newId: () => `id-${n++}` });
 const okCamera = async () => ({ stream: { getTracks: () => [] } as unknown as MediaStream, stop: () => {} });
 const index = [{ code: "CA", name: "Canada", immUrl: "https://pe.usps.com/text/imm/ce_003.htm" }, { code: "PH", name: "Philippines", immUrl: "https://pe.usps.com/text/imm/ps_006.htm" }];
 const photo = new File(["x"], "lotion.jpg", { type: "image/jpeg" });
@@ -175,7 +178,7 @@ describe("PackPage", () => {
   });
 
   it("shows no holiday clock for a country whose mail stops first, or with no dates", () => {
-    const store = newStore();
+    const store = aheadStore();
     store.setDestination("CA");
     setup({ store, config: { killCloud: false, holidayDates: [holiday] }, today: "2026-11-25" });
     expect(screen.getByTestId("suspension-ahead-banner")).toBeInTheDocument();
@@ -186,14 +189,14 @@ describe("PackPage", () => {
   });
 
   it("says ahead of time when the post office will stop taking mail to the destination, and suspends it from that day", () => {
-    // The bundled edition: USPS announced Canada's suspension from 2026-11-29; the page's date is 2026-11-20.
-    const store = newStore();
+    // Rules where the post office has announced Canada's suspension from 2026-11-29; the page's date is 2026-11-25.
+    const store = aheadStore();
     store.setDestination("CA");
     setup({ store });
     expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
     expect(screen.queryByTestId("suspended-banner")).toBeNull();
     cleanup();
-    const later = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => "2026-11-29", newId: () => `id-${n++}` });
+    const later = aheadStore("2026-11-29");
     later.setDestination("CA");
     setup({ store: later });
     expect(screen.getByTestId("suspended-banner")).toHaveTextContent("Mail service to Canada is suspended.");
@@ -703,9 +706,21 @@ describe("PackPage", () => {
     expect(within(sheet).getByRole("link", { name: "See the card" })).toHaveAttribute("href", `#${card.id}`);
   });
 
-  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
-    setup({ today: "2026-11-25" });
+  it("marks Canada in the country buttons with a suspension the post office has announced", () => {
+    setup({ store: aheadStore(), today: "2026-11-25" });
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
+  it("with the shipped rules, shows no Canada suspension banner or button mark, before or after November 29", () => {
+    for (const today of ["2026-11-25", "2026-11-29", "2026-12-16"]) {
+      const store = createBoxStore({ edition: () => ed, persistence: persistence(), now: () => 1000, today: () => today, newId: () => `id-${n++}` });
+      store.setDestination("CA");
+      setup({ store, today });
+      expect(screen.queryByTestId("suspension-ahead-banner"), today).toBeNull();
+      expect(screen.queryByTestId("suspended-banner"), today).toBeNull();
+      expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }), today).not.toHaveTextContent(/USPS (stops|suspended)/);
+      cleanup();
+    }
   });
 
   it("lets the newest-item sheet be closed, and hides it by itself after a while, so it never covers the stage for long", async () => {

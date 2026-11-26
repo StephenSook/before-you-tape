@@ -34,7 +34,8 @@ representative lines (company names, a street address and an email address) were
 
 - The simulator has no camera, so 02 shows "No camera found. Add a photo instead." above the read.
   A real iPhone shows the camera there. Replace 02 with a 6.9-inch device capture if one is made.
-- 03 and 04 carry the Canada suspension note and the layer dates of rule edition revision 3. From
-  November 29, 2026, the Canada box reads differently, so capture again for a later version.
+- 03 and 04 carry the layer dates of rule edition revision 3, and 03 its Canada suspension note. That
+  note came from an inactive banner on the USPS service alerts page: USPS has not suspended mail to
+  Canada, and rule edition revision 9 drops it. Capture again for a later version.
 - The re-check time in 05 is what this run measured; another run can show a different time (the
   earlier capture showed 1 ms).

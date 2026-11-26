@@ -1,6 +1,6 @@
 {
-  "editionId": "byt-f083f028e045",
-  "revision": 8,
+  "editionId": "byt-d098b14aa534",
+  "revision": 9,
   "service": "Priority Mail International",
   "sources": [
     {
@@ -2290,12 +2290,7 @@
       "TM",
       "YE"
     ],
-    "upcoming": [
-      {
-        "code": "CA",
-        "from": "2026-11-29"
-      }
-    ]
+    "upcoming": []
   },
   "stopWords": [],
   "worksheetFields": []

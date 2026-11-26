@@ -178,7 +178,7 @@ export interface BoxStoreDeps {
   changes?: { announce(): void; onChange(f: () => void): () => void };
 }
 
-// A new box starts in the Philippines: Canada's mail is suspended from 2026-11-29 (rules/suspensions.json).
+// A new box starts in the Philippines.
 const DEFAULT_DESTINATION = "PH";
 
 // Items in the order they were added. The server returns them by id, which is random; an item saved before

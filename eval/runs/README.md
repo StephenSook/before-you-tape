@@ -67,9 +67,9 @@ accuracy.
   run, so the device times may be a little slow.
 - **Cloud calls.** The run made 134 calls to Firebase AI Logic, and all 134 answered with HTTP 200.
 
-## Re-scored on revision 8, rules applied on 2026-11-25
+## Re-scored on revision 9, rules applied on 2026-11-25
 
-Re-scored from the run's saved reads on revision 8 (byt-f083f028e045) with no model call: no verdict changed on the
+Re-scored from the run's saved reads on revision 9 (byt-d098b14aa534) with no model call: no verdict changed on the
 device path (78 rows), the cloud path or the rules-only baseline (80 rows each), or on the shipped route for the 26
 items it could re-score (52 rows). It did not re-score the 13 items that got a second look, since the run did not save
 the reads the second look compared, nor 2 reads whose saved label is at the 160-character limit (own-01 on the device
@@ -78,18 +78,19 @@ saved at most 160 characters of it.
 One rule hit is new: USPS-INTL-LI-ONE-READ ("Check this") now also fires on the device path for i02, i03 and i05,
 whose verdicts stay the same.
 
-The finding holds for the rules as of 2026-11-25. USPS has announced a suspension of mail to Canada from 2026-11-29,
-and revision 8 lists it: applied on that day or later, it adds DEST-SUSPENDED ("Check this") to every Canada item, so
-from then none of the test's Canada verdicts is "OK to pack". Applied on each day from 2026-11-25 to 2026-12-16, the
-last day of judging, nothing else changed.
+Applied on each day from 2026-11-25 to 2026-12-16, the last day of judging, revision 9 gives the same rows. Revision 8
+listed a suspension of mail to Canada from 2026-11-29, read from an "Effective Nov. 29" line on the USPS service alerts
+page that is an inactive leftover banner, not a row of its suspension tables; USPS still accepts mail to Canada.
+Applied on 2026-11-29, revision 8 added DEST-SUSPENDED ("Check this") 105 times. Revision 9 drops it, and on
+2026-11-25 it differs from revision 8 only by the DEST-SUSPENSION-AHEAD note on the Canada rows.
 
 The re-score first re-scores the run on its own edition and date, and gives back every published level it re-scores:
 the 80 device rows, the 80 cloud rows, the 80 rules-only rows and the 54 shipped rows. The two reads at the limit
 are re-scored there only, where the published level checks them. `src/eval/rescoreRecord.test.ts`
 checks the record against the published run and the edition copies; `npx tsx scripts/eval-rescore.ts --run
 eval/runs/private/models-2026-11-21.json --edition eval/runs/editions/byt-3b5f5508968f.json --date 2026-11-21
---edition eval/runs/editions/byt-f083f028e045.json --date 2026-11-25 --check` rebuilds it from the private run and
-fails if it differs. Revision 8 is applied on 2026-11-25, the day its suspension list was checked: on an earlier day
+--edition eval/runs/editions/byt-d098b14aa534.json --date 2026-11-25 --check` rebuilds it from the private run and
+fails if it differs. Revision 9 is applied on 2026-11-25, the day its suspension list was checked: on an earlier day
 that list reads as checked in the future, so no item can be "OK to pack".
 
 Run a baseline with `npm run eval:baseline -- --baseline <always_check|rules_only> --date <YYYY-MM-DD> --out <file>`.
