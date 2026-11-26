@@ -18,7 +18,7 @@ type Part = { text?: string; inlineData?: { mimeType?: string; data?: string } }
 type Body = { contents?: { parts?: Part[] }[]; systemInstruction?: string | { parts?: Part[] } };
 
 test("a cloud read sends what the page says leaves the device: the part inside the box, with no text but our own prompts", async ({ page }) => {
-  // The page judges by its own date, and USPS suspends mail to Canada from 2026-11-29: a fixed day before that.
+  // The page judges by its own date: a fixed day keeps the verdicts stable.
   await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   await page.goto("/ran");
   const row = page.getByRole("row").filter({ hasText: "Check now, or add a photo and press Check this part" });

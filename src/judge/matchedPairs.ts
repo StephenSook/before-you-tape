@@ -4,6 +4,8 @@
 // published photo with what its label says typed in, as in the sample box.
 import type { ItemAnswers } from "../engine/types";
 import type { ItemRead } from "../shared/itemRead";
+import maskedSamples from "./maskedSamples.json";
+import { MASKED_SAMPLE } from "./judgePhotos";
 import { SAMPLE_BOX } from "./sampleBox";
 
 export interface PairSide {
@@ -24,8 +26,10 @@ export interface MatchedPair { id: string; title: string; left: PairSide; right:
 
 const lotion = SAMPLE_BOX.find((s) => s.itemId === "own-18");
 if (!lotion) throw new Error("the sample box has no own-18");
-// The published photo's own size (eval/set/manifest.json), so the page keeps its space before the photo loads.
-const LOTION_SIDE = { photo: lotion.photo, width: 1200, height: 1600, photoAlt: lotion.alt, credit: lotion.credit, read: lotion.read, answers: {} };
+// The sample lotion photo with its brand blurred (public/judge/samples), never the measured photo as taken, at its own
+// size, so the page keeps its space before the photo loads.
+const masked = maskedSamples["own-18"];
+const LOTION_SIDE = { photo: MASKED_SAMPLE.url, width: masked.widthPx, height: masked.heightPx, photoAlt: lotion.alt, credit: lotion.credit, read: lotion.read, answers: {} };
 
 export const MATCHED_PAIRS: readonly MatchedPair[] = [
   { id: "lotion-two-countries", title: "The same lotion, sent to two countries",

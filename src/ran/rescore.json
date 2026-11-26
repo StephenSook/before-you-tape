@@ -1,18 +1,13 @@
 {
   "runId": "models-2026-11-21",
   "source": "eval/runs/models-2026-11-21.rescored.public.json",
-  "editionId": "byt-f083f028e045",
-  "revision": 8,
+  "editionId": "byt-d098b14aa534",
+  "revision": 9,
   "date": "2026-11-25",
   "shippedItems": 26,
   "shippedRows": 52,
   "shippedChanged": 0,
   "secondLookItems": 13,
   "clippedItems": 1,
-  "upcoming": [
-    {
-      "name": "Canada",
-      "from": "2026-11-29"
-    }
-  ]
+  "upcoming": []
 }

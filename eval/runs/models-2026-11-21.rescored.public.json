@@ -2134,11 +2134,11 @@
       ]
     },
     {
-      "editionId": "byt-f083f028e045",
-      "revision": 8,
+      "editionId": "byt-d098b14aa534",
+      "revision": 9,
       "date": "2026-11-25",
-      "editionFile": "eval/runs/editions/byt-f083f028e045.json",
-      "editionSha256": "f56f617351a0b4900291124e13e19311d718e1c24f82f55699144557b5b4bd3b",
+      "editionFile": "eval/runs/editions/byt-d098b14aa534.json",
+      "editionSha256": "92b2ac13d8d2caa4afeb91285fd9195abc812ba1155c703872df0926bacf8cbb",
       "rows": [
         {
           "itemId": "own-01",
@@ -2150,8 +2150,7 @@
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -2185,16 +2184,14 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-WH-MISMATCH:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -2233,8 +2230,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2242,8 +2238,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2251,8 +2246,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -2294,8 +2288,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2303,8 +2296,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2312,8 +2304,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -2355,8 +2346,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2364,8 +2354,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -2373,8 +2362,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -2414,23 +2402,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -2466,16 +2448,12 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
@@ -2511,24 +2489,21 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "shipped": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           }
@@ -2566,24 +2541,21 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "shipped": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           }
@@ -2621,24 +2593,21 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           },
           "shipped": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "label_alcohol"
           }
@@ -2679,8 +2648,7 @@
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-AEROSOL:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2689,8 +2657,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2699,8 +2666,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           }
@@ -2747,8 +2713,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2757,8 +2722,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2767,8 +2731,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           }
@@ -2814,8 +2777,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2824,8 +2786,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           },
@@ -2834,8 +2795,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-ALCOHOL-DRINK:take_out",
-              "CA-P-01:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-01:take_out"
             ],
             "question": null
           }
@@ -2879,8 +2839,7 @@
           "device": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -2888,8 +2847,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-LI-LOOSE:take_out",
-              "DATA-LABEL-NUMBERS:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-LABEL-NUMBERS:check"
             ],
             "question": null
           },
@@ -2928,16 +2886,14 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-ONE-READ:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -2976,16 +2932,14 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-ONE-READ:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -3023,16 +2977,14 @@
           "device": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -3070,16 +3022,14 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-LI-METAL-BATTERY-OVER:take_out",
-              "USPS-INTL-LI-ONE-READ:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-ONE-READ:check"
             ],
             "question": null
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-LI-LOOSE:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-LI-LOOSE:take_out"
             ],
             "question": null
           },
@@ -3118,8 +3068,7 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-NO-WH:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
@@ -3127,8 +3076,7 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-NO-WH:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
@@ -3168,8 +3116,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-ENDS:take_out",
-              "CA-P-06:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-06:take_out"
             ],
             "question": null
           },
@@ -3177,8 +3124,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-ENDS:take_out",
-              "CA-P-06:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-06:take_out"
             ],
             "question": null
           },
@@ -3219,8 +3165,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-AEROSOL:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3229,8 +3174,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-AEROSOL:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3239,8 +3183,7 @@
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
               "USPS-INTL-AEROSOL:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -3284,24 +3227,21 @@
           "device": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-AEROSOL:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-AEROSOL:take_out"
             ],
             "question": null
           },
           "cloud": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-AEROSOL:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-AEROSOL:take_out"
             ],
             "question": null
           },
           "shipped": {
             "level": "take_out",
             "rules": [
-              "USPS-INTL-AEROSOL:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "USPS-INTL-AEROSOL:take_out"
             ],
             "question": null
           }
@@ -3343,8 +3283,7 @@
             "rules": [
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3355,8 +3294,7 @@
               "USPS-INTL-AEROSOL:take_out",
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3365,8 +3303,7 @@
             "rules": [
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -3409,8 +3346,7 @@
             "rules": [
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3419,8 +3355,7 @@
             "rules": [
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3429,8 +3364,7 @@
             "rules": [
               "USPS-INTL-MATCHES-LIGHTERS:take_out",
               "CA-P-02:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -3470,8 +3404,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3479,8 +3412,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           },
@@ -3488,8 +3420,7 @@
             "level": "take_out",
             "rules": [
               "USPS-INTL-FLAMMABLE-LIQUID:take_out",
-              "CA-P-03:take_out",
-              "DEST-SUSPENSION-AHEAD:note"
+              "CA-P-03:take_out"
             ],
             "question": null
           }
@@ -3529,23 +3460,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3576,24 +3501,20 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3627,23 +3548,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3673,24 +3588,19 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3722,23 +3632,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3769,24 +3673,20 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3821,16 +3721,14 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
@@ -3867,16 +3765,14 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
           "cloud": {
             "level": "check",
             "rules": [
-              "DATA-IDENTITY:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-IDENTITY:check"
             ],
             "question": null
           },
@@ -3914,23 +3810,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -3960,23 +3850,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -4008,8 +3892,7 @@
             "level": "check",
             "rules": [
               "USPS-INTL-LI-NO-WH:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
@@ -4017,8 +3900,7 @@
             "level": "check",
             "rules": [
               "DATA-IDENTITY:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "battery_installed"
           },
@@ -4057,8 +3939,7 @@
           "device": {
             "level": "check",
             "rules": [
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "battery_installed"
           },
@@ -4067,8 +3948,7 @@
             "rules": [
               "DATA-IDENTITY:check",
               "USPS-INTL-LI-NO-WH:check",
-              "DATA-NEEDS-ANSWER:check",
-              "DEST-SUSPENSION-AHEAD:note"
+              "DATA-NEEDS-ANSWER:check"
             ],
             "question": "device_condition"
           },
@@ -4106,23 +3986,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -4158,23 +4032,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },
@@ -4210,23 +4078,17 @@
           "rulesOnly": "ok",
           "device": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "cloud": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           },
           "shipped": {
             "level": "ok",
-            "rules": [
-              "DEST-SUSPENSION-AHEAD:note"
-            ],
+            "rules": [],
             "question": null
           }
         },

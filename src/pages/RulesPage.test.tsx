@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ed } from "../../tests/engine/helpers";
+import { ed, withUpcoming } from "../../tests/engine/helpers";
 import committed from "../../rules/customs-authorities.json";
 import { readCustomsAuthorities } from "../rules/customsAuthorities";
 import { RulesPage } from "./RulesPage";
@@ -60,10 +60,17 @@ describe("RulesPage", () => {
   });
 
   it("lists a suspension the post office has announced for a later date, with its start date", () => {
-    render(<RulesPage edition={ed} index={index} />);
+    render(<RulesPage edition={withUpcoming(ed, "CA", "2026-11-29")} index={index} />);
     const s = screen.getByRole("region", { name: "Suspended mail service" });
     expect(s).toHaveTextContent("From November 29, 2026, the post office will not take mail to: Canada.");
     expect(s).not.toHaveTextContent("Congo");
+  });
+
+  it("with the shipped rules, lists no announced suspension and no Canada", () => {
+    render(<RulesPage edition={ed} index={index} />);
+    const s = screen.getByRole("region", { name: "Suspended mail service" });
+    expect(s).not.toHaveTextContent("will not take mail to");
+    expect(s).not.toHaveTextContent("Canada");
   });
 
   const customs = readCustomsAuthorities(committed);

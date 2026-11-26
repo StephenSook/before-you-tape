@@ -14,8 +14,7 @@ const modelReply = {
 };
 
 test("upload, verdict, country flip", async ({ page }) => {
-  // The page judges by its own date, and USPS suspends mail to Canada from 2026-11-29: this checks the
-  // verdict and the country switch on a fixed day before that.
+  // The page judges by its own date: this checks the verdict and the country switch on a fixed day.
   await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   let modelCalls = 0;
   const sentImages: string[] = [];

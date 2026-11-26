@@ -5,6 +5,15 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### docs(ios): App Store screenshot 03's Canada note was a misread
+- What: `app-store/screenshots/README.md` no longer says the Canada box reads differently from November 29,
+  2026. It says screenshot 03's Canada suspension note came from an inactive banner on the USPS service
+  alerts page, that USPS has not suspended mail to Canada, and that rule edition revision 9 drops it.
+  The screenshot and the copy in App Store Connect are unchanged.
+- Source: review (the misread Canada suspension).
+- Verified: against the USPS page read on 2026-11-25 and rules/suspensions.json in revision 9.
+  `ci-local-ios.sh` was not run: no file the app builds from changed in this entry.
+
 ### fix(ios): blur the maker and address lines in App Store screenshot 02
 - What: `app-store/screenshots/02-check-a-photo.png` shows the power bank photo, and at full size its
   label's maker line and EU representative block (company names, a street address, an email address)
