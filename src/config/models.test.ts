@@ -30,7 +30,7 @@ describe("CLOUD_MODELS", () => {
   });
 
   it("is re-read on the models page by its re-check date", () => {
-    expect(MODELS_RECHECK_BY).toBe("2026-11-28");
+    expect(MODELS_RECHECK_BY).toBe("2026-12-22");
     const today = new Date().toISOString().slice(0, 10);
     expect(today <= MODELS_RECHECK_BY, `re-read ${CLOUD_MODELS[0].source} and update the checked dates (due ${MODELS_RECHECK_BY})`).toBe(true);
   });
