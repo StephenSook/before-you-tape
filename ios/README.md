@@ -11,21 +11,20 @@ Limits:
 
 ## Get it
 
-- App Store: version 1.0.0 (build 2) went to App Review on 2026-11-21 and was still waiting for
-  review on 2026-11-25. Apple releases it as soon as it approves it, at
-  <https://apps.apple.com/app/id6837766123>, in every App Store region except France and China
-  mainland. Until then that link does not open.
+- App Store: version 1.0.0 (build 4, from main at 14d6f7c) went to App Review on 2026-11-26 and
+  is waiting for review. The review of build 2 was cancelled. Once Apple approves and releases it,
+  it is at <https://apps.apple.com/app/id6837766123>, in every App Store region except France and
+  China mainland. Until then that link does not open.
 - TestFlight: there is no public test link. Apple's beta review step fails for this developer team,
   so a public TestFlight link cannot be turned on.
 - Until the App Store release: the demo video shows the app on a real iPhone 17 Pro, and the device
   record below shows what it read.
 
-Build 2 has rule revision 4 built in and takes revision 6 from Remote Config; the web app runs
-revision 8. So on build 2 a battery's typed Wh or lithium grams stay at "Check this"
-(docs/LIMITS.md). Its suspension list, read on 2026-11-20, counts as current through 2026-12-11
-by the phone's own date. From 2026-12-12 an out-of-date layer adds "Check this" to every item, so
-build 2 gives no "OK to pack" until a newer build reaches the phone. A newer build carries revision 8 itself, and the app
-never trades the edition it runs for an older pinned one.
+Build 4 has rule edition revision 9 built in, the revision the web app runs, with no Canada
+suspension (docs/LIMITS.md). Its suspension list, read on 2026-11-25, counts as current through
+2026-12-16 by the phone's own date. From 2026-12-17 an out-of-date layer adds "Check this" to every
+item, so build 4 gives no "OK to pack" until a newer edition reaches the phone. The app never trades
+the edition it runs for an older pinned one.
 
 ## How it works
 

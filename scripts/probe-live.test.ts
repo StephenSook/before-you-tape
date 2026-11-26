@@ -38,10 +38,18 @@ describe("isPlainText", () => {
 });
 
 describe("probeRetired", () => {
-  it("retires after the last judging day", () => {
-    expect(PROBE_RETIRES_AFTER).toBe("2026-12-17");
+  it("retires after 2026-12-22, the day after winners are announced", () => {
+    expect(PROBE_RETIRES_AFTER).toBe("2026-12-22");
     expect(probeRetired("2026-12-17")).toBe(false);
-    expect(probeRetired("2026-12-18")).toBe(true);
+    expect(probeRetired("2026-12-22")).toBe(false);
+    expect(probeRetired("2026-12-23")).toBe(true);
+  });
+
+  it("counts a shutdown on or before the retirement day as inside the window", () => {
+    const row = (date: string) => `| \`gemini-3.8-flash\` <br /> x | Shutdown date: ${date} | Shutdown date: --- |`;
+    expect(modelStatus(row("December 20, 2026"), "gemini-3.8-flash")).toMatchObject({ ok: false });
+    expect(modelStatus(row("December 22, 2026"), "gemini-3.8-flash")).toMatchObject({ ok: false });
+    expect(modelStatus(row("December 23, 2026"), "gemini-3.8-flash")).toMatchObject({ ok: true });
   });
 });
 

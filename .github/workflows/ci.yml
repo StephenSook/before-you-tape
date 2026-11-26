@@ -109,7 +109,8 @@ jobs:
         run: npx playwright test --project=local tests/e2e/starts.spec.ts tests/e2e/contrast.spec.ts tests/e2e/judge.spec.ts tests/e2e/offline.local.spec.ts tests/e2e/sw-kill.local.spec.ts tests/e2e/sw-update.local.spec.ts
 
       # The specs that need App Check get it from a debug token kept for CI only ("ci-2026-11", revoke by
-      # 2026-12-17). It is set only for this step, and the workflow never prints it: the fixtures put it in the
+      # 2026-12-23, after the live probe's daily read retires on 2026-12-22). It is set only for this step, and
+      # the workflow never prints it: the fixtures put it in the
       # page with an init script, and only on this app's own origins. The Firebase SDK logs it to the browser
       # console, which these checks do not record (no traces, screenshots, videos or console capture).
       # pack.local and leaves.local answer the model host themselves, so this step makes no model call. A pull

@@ -1,12 +1,13 @@
 // Daily live probe for the judging window, with no credential: the site serves main, the page loads,
 // robots.txt and llms.txt are plain text, the models page still lists each allowed model with no Gemini
 // Developer API shutdown before the window ends, and Firebase AI Logic refuses a call that carries the
-// public web key but no App Check token. Retires itself after the last judging day.
+// public web key but no App Check token. Retires itself after 2026-12-22: judging runs 2026-12-10 to 12-16 and
+// winners are announced on 2026-12-21, so the site stays watched until the day after.
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CLOUD_MODELS } from "../src/config/models";
 
-export const PROBE_RETIRES_AFTER = "2026-12-17";
+export const PROBE_RETIRES_AFTER = "2026-12-22";
 const DEFAULT_SITE = "https://before-you-tape-2026.web.app";
 const MODELS_PAGE = "https://firebase.google.com/docs/ai-logic/models.md.txt";
 const WINDOW_END = Date.parse(`${PROBE_RETIRES_AFTER}T23:59:59Z`);

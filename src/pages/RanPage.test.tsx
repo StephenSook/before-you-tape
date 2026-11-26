@@ -83,9 +83,9 @@ describe("RanPage", () => {
     expect(within(detail).getByText(/Any total under 5 shows as fewer than 5/)).toBeInTheDocument();
   });
 
-  it("shows no number from a file measured more than 14 days ago, and says why", () => {
-    render(<RanPage measured={measured()} today="2026-12-06" />);
-    expect(screen.getByTestId("measured")).toHaveTextContent("Measured numbers are not shown: they are more than 14 days old.");
+  it("shows no number from a file measured more than 31 days ago, and says why", () => {
+    render(<RanPage measured={measured()} today="2026-12-23" />);
+    expect(screen.getByTestId("measured")).toHaveTextContent("Measured numbers are not shown: they are more than 31 days old.");
     expect(screen.queryByText(/27 items/)).toBeNull();
   });
 

@@ -3,10 +3,11 @@ name: Live probe
 # Twice a day through the judging window, at two offset times, since GitHub delays and drops scheduled runs.
 # The probe job, with no credential: the site serves main, the page
 # loads, robots.txt and llms.txt are plain text, the models page still lists each allowed model with no
-# shutdown before the window ends, AI Logic refuses a call with no App Check token, and the app starts.
+# shutdown before the window ends, AI Logic refuses a call with no App Check token, the app starts, and /judge
+# shows its nine sample items.
 # The read job, with the CI App Check debug token: one real read through the live app comes back as a read,
 # once a UTC day. The fresh job fails when no scheduled run before this one finished in the last 26 hours.
-# The probe reports itself retired after 2026-12-17; delete this file then.
+# The probe reports itself retired after 2026-12-22, the day after winners are announced; delete this file then.
 # A manual run can probe another site, so a wrong URL proves the probe fails.
 on:
   schedule:
@@ -50,7 +51,7 @@ jobs:
       - name: Install the test browser
         run: npx playwright install chromium
 
-      # The fetch checks above cannot see a page that failed to start; this one opens it like a visitor.
+      # The fetch checks above cannot see a page that failed to start; this one opens it, and /judge, like a visitor.
       - name: The live app starts
         env:
           BYT_LIVE: "1"
@@ -118,14 +119,14 @@ jobs:
       contents: read
       actions: read
     steps:
-      # Retired with the probe after the judging window: no model calls and no token use after it. A scheduled
+      # Retired with the probe after 2026-12-22: no model calls and no token use after it. A scheduled
       # run also skips the read when a scheduled run already passed this UTC day.
       - name: Still in the judging window, and not read yet today
         id: window
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$(date -u +%Y%m%d)" -gt 20261217 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "The live read retired after 2026-12-17."; exit 0; fi
+          if [ "$(date -u +%Y%m%d)" -gt 20261222 ]; then echo "open=false" >> "$GITHUB_OUTPUT"; echo "The live read retired after 2026-12-22."; exit 0; fi
           if [ "${{ github.event_name }}" = "schedule" ]; then
             passed=$(gh api -X GET "repos/${{ github.repository }}/actions/workflows/probe-live.yml/runs" -f event=schedule -f status=success \
               -f created=">=$(date -u +%Y-%m-%d)" --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length')

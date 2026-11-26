@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### docs(ios): the README says build 4 is in App Review, with revision 9 built in
+- What: `ios/README.md`'s Get it section says version 1.0.0 (build 4, from main at 14d6f7c) went
+  to App Review on 2026-11-26 and is waiting for review, and that the review of build 2 was
+  cancelled. The App Store link and its note that it does not open until Apple approves and
+  releases the app stay. The paragraph under it says build 4 has rule edition revision 9 built in,
+  the revision the web app runs, with no Canada suspension; its suspension list, read on
+  2026-11-25, counts as current through 2026-12-16 by the phone's own date, and from 2026-12-17
+  build 4 gives no "OK to pack" until a newer edition reaches the phone. It used to describe build
+  2 (revision 4 built in, revision 6 from Remote Config) and say the web app runs revision 8.
+- Source: the build 4 submission.
+- Verified: `ios/project.yml` at 14d6f7c has CURRENT_PROJECT_VERSION 4, and that commit's
+  `rules/edition.json` is revision 9 (`byt-d098b14aa534`, suspensions checked 2026-11-25), the
+  same as main's. The submission date and review state come from the App Store submission, not
+  read from App Store Connect here. Tone and hygiene exit 0. `ci-local-ios.sh` was not run: no
+  file the app builds from changed.
+
 ### docs(ios): one frame of the airplane-mode run shows the airplane icon and a finished read
 - What: `docs/evidence/ios/2026-11-20-device/airplane-read-frame-04m00s.png`, one unedited frame at
   4:00 of the 2026-11-20 screen recording (status bar 10:58 PM). It shows the airplane icon in the

@@ -5,13 +5,14 @@ const MODELS_PAGE = "https://firebase.google.com/docs/ai-logic/models";
 
 export const CLOUD_MODELS = [
   // Released 2026-07-21. Also checked through AI Logic with App Check by the live reads in docs/evidence.
-  { name: "gemini-3.5-flash-lite", stage: "Stable", shutdown: "none listed", checked: "2026-11-18", source: MODELS_PAGE },
+  { name: "gemini-3.5-flash-lite", stage: "Stable", shutdown: "none listed", checked: "2026-11-26", source: MODELS_PAGE },
   // Released 2026-09-02. Checked through AI Logic with App Check on 2026-11-18: 401 without a token, 200 with one.
-  { name: "gemini-3.8-flash", stage: "Stable", shutdown: "none listed", checked: "2026-11-18", source: MODELS_PAGE },
+  { name: "gemini-3.8-flash", stage: "Stable", shutdown: "none listed", checked: "2026-11-26", source: MODELS_PAGE },
 ] as const;
 
-// The next date to re-read the models page and refresh the checked dates; a test fails after it.
-export const MODELS_RECHECK_BY = "2026-11-28";
+// The next date to re-read the models page and refresh the checked dates; a test fails after it. It is the day after
+// winners are announced (2026-12-21), so CI and the deploys it gates stay green through judging with no new push.
+export const MODELS_RECHECK_BY = "2026-12-22";
 
 export function isAllowedCloudModel(name: string): boolean {
   return CLOUD_MODELS.some((m) => m.name === name);

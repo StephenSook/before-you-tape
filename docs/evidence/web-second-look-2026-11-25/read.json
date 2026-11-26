@@ -1,0 +1,50 @@
+{
+ "what": "The web app's cloud second look on the live site: the project owner's own Chrome, on a Mac, read a power bank photo with its built-in model, then, after the cloud question was allowed, the cloud read it again and the page showed both reads",
+ "site": {
+  "url": "https://before-you-tape-2026.web.app/",
+  "commit": "04719ef725341593d06ffa30c08d93798c3c1112",
+  "commit_source": "the live version.json at the time of the take (04719ef)"
+ },
+ "browser": {
+  "chrome": "158, the project owner's own Google Chrome (full version not recorded)",
+  "LanguageModel_availability": "available",
+  "state_before": "a first visit: the saved box deleted, the site's storage cleared, then a reload"
+ },
+ "recording": {
+  "file": "kept outside the repository",
+  "sha256": "d4238f58981142bdee1c8efbb610ea2c3cafcb909abed4d7f6ff8fc0caf2a7e9",
+  "capture": "the Mac's screen at 30 fps, cropped to the page; a real cursor and scroll wheel; no browser extension touched the page while recording"
+ },
+ "page_loaded": "2026-11-25T19:44:24.826Z",
+ "steps": [
+  { "t": "2026-11-25T19:48:58.172Z", "step": "recording starts" },
+  { "t": "2026-11-25T19:49:03.954Z", "step": "Check this part pressed on the power bank photo (eval item own-01)" },
+  { "t": "2026-11-25T19:50:41.083Z", "step": "Check it in the cloud pressed" },
+  { "t": "2026-11-25T19:51:49.809Z", "step": "Allow pressed on the cloud question" },
+  { "t": "2026-11-25T19:53:06.744Z", "step": "scrolled to the two reads" },
+  { "t": "2026-11-25T19:53:14.490Z", "step": "recording stops" }
+ ],
+ "network": {
+  "source": "the page's own resource timing entries, read after the take; the page was not reloaded during it",
+  "ai_logic": [
+   {
+    "t": "2026-11-25T19:51:50.450Z",
+    "url": "https://firebasevertexai.googleapis.com/v1beta/projects/<project>/models/gemini-3.5-flash-lite:generateContent",
+    "duration_ms": 1886,
+    "status": "not recorded",
+    "note": "0.64 s after Allow; the only AI Logic request from the page load to the end of the take"
+   }
+  ],
+  "no_ai_logic_request_during": ["the first read of the power bank photo on this device"]
+ },
+ "screen": {
+  "first_read": "Your box: Read on this device, 20.6 s / POWER BANK / Take it out / Label read: 5 V, 5,000 mAh / Read on this device / Check it in the cloud",
+  "cloud_question": "To read items this device can't, and to check a read again when the rules ask, the cropped photo goes to Google's Gemini. Allow? [Allow] [Check on this device only]",
+  "after_allow": "Cloud: on / Power Bank / Take it out / Label read: 3.7 V, 50,000 mAh, 185 Wh / Read on this device, then checked in the cloud / Battery numbers decide what may be mailed, so the cloud read them again. / The two reads disagree. Pick what the item shows. / Its box: First read: Sealed | Second look: Open or no box / Battery numbers: First read: 5 V, 5000 mAh | Second look: 3.7 V, 50000 mAh, 185 Wh / Battery words: First read: Not seen | Second look: Yes (neither pressed)"
+ },
+ "frames_checked": [
+  { "at_s": 60, "shows": "POWER BANK, Take it out, Label read: 5 V, 5,000 mAh, Read on this device, Check it in the cloud; Cloud: off" },
+  { "at_s": 252, "shows": "Label read: 3.7 V, 50,000 mAh, 185 Wh; Read on this device, then checked in the cloud; The two reads disagree. Pick what the item shows., with both reads of the box, the battery numbers and the battery words" }
+ ],
+ "not_recorded": ["the Mac's model and macOS version", "the reply's modelVersion", "the HTTP status of the AI Logic request"]
+}
