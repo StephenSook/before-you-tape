@@ -31,7 +31,8 @@ describe("pwaOptions", () => {
     expect(o.injectManifest?.globPatterns).toEqual(["index.html", "assets/*.{js,css}", "fonts/**/*.woff2", "favicon.svg", "icons/*.png", "manifest.webmanifest"]);
     // The plugin adds no files of its own, so every listed file goes through the SHA-256 step.
     expect([o.manifest, o.includeManifestIcons]).toEqual([false, false]);
-    expect(o.injectManifest?.globIgnores).toEqual(["assets/extBridge-*"]);
+    // The crash report SDK loads only after an error, so the worker never downloads it on a visit with none.
+    expect(o.injectManifest?.globIgnores).toEqual(["assets/extBridge-*", "assets/crashlyticsSdk-*"]);
     expect(o.injectManifest?.rollupFormat).toBe("iife");
   });
 

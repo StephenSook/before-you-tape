@@ -4,7 +4,7 @@ Before You Tape checks the items you plan to mail abroad with USPS before you ta
 page says what stays on your device, what can leave it and when, and how to delete it. It covers
 the web app, the iPhone app and the Android app.
 
-Last updated: November 23, 2026.
+Last updated: November 26, 2026.
 
 ## What stays on your device
 
@@ -66,6 +66,16 @@ Last updated: November 23, 2026.
    carrier, and records how long the app takes to start and how smoothly its screens draw.
    Performance Monitoring keeps records linked to an IP address for 30 days and the rest for 60
    days. The iPhone app sends no such records.
+7. **Error reports, on the web.** When the web app hits an error it did not expect, it sends
+   Firebase Crashlytics a report: the kind of error, where in the app's own code it happened, a
+   Firebase error code or HTTP status when there is one, the app's version, a random session ID and a
+   random installation ID (the same one Remote Config receives). The session ID is kept for the browser
+   tab, so reports after a reload in that tab carry the same one, and the first report under a new
+   session ID also sends a session record with the same IDs. The error's message is removed in your browser before anything is sent, and so is anything after a
+   question mark in a page address, so a report holds no photo, label text, item name, answer or
+   box. A visit with no such error sends no report, and one page sends at most five. With a report,
+   Google's servers receive your browser's user-agent string and your IP address. Reports are kept
+   in our project's Cloud Logging for 30 days. The iPhone and Android apps send no error reports.
 
 Like any online service, Google's servers see your IP address with each request.
 
@@ -74,7 +84,8 @@ Like any online service, Google's servers see your IP address with each request.
 - No ads.
 - We do not sell your data or share it for ads.
 - No tracking across other apps or websites, and no analytics SDK. Performance Monitoring (item 6)
-  records how reads perform, not what you check. Google's libraries send their own diagnostics,
+  records how reads perform, not what you check, and Crashlytics (item 7) records errors, not what
+  you check. Google's libraries send their own diagnostics,
   such as versions, errors and timings.
 
 ## How to delete it
@@ -92,6 +103,8 @@ Like any online service, Google's servers see your IP address with each request.
 - The photo and words from a cloud check are not kept by Before You Tape.
 - Timing records (item 6) hold no photo, words or box, so they cannot be found by your box and
   deleted one by one. Performance Monitoring removes them after 30 or 60 days, as above.
+- Error reports (item 7) hold no photo, words or box either, so they cannot be found by your box and
+  deleted one by one. They are removed after 30 days.
 
 ## Contact
 
