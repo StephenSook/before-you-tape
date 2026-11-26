@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ed } from "../../tests/engine/helpers";
+import { ed, withUpcoming } from "../../tests/engine/helpers";
 import { SAMPLE_READ } from "../data/sampleRead";
 import type { LiveReadDeps } from "../judge/LiveReadPanel";
 import type { ItemRead } from "../shared/itemRead";
@@ -51,14 +51,15 @@ describe("JudgePage", () => {
     expect(screen.getByTestId("recheck-line")).toHaveTextContent(/Re-checked 9 items for Canada in \d+ ms\. 0 model calls\./);
   });
 
-  it("shows the post office's Canada suspension as a live example, before and after it starts", async () => {
-    const { unmount } = render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
+  it("shows a suspension the post office has announced as a live example, before and after it starts", async () => {
+    const ahead = withUpcoming(ed, "CA", "2026-11-29");
+    const { unmount } = render(<JudgePage edition={ahead} index={index} today="2026-11-25" />);
     expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stops taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
     expect(screen.queryByTestId("suspension-ahead-banner")).toBeNull();
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(screen.getByTestId("suspension-ahead-banner")).toHaveTextContent("The post office stops taking mail to Canada on November 29, 2026. Mail this box before then.");
     unmount();
-    render(<JudgePage edition={ed} index={index} today="2026-11-29" />);
+    render(<JudgePage edition={ahead} index={index} today="2026-11-29" />);
     expect(screen.getByTestId("suspension-example")).toHaveTextContent("USPS stopped taking mail to Canada on November 29, 2026. Pick Canada to see the app say so.");
     await userEvent.click(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ }));
     expect(verdict("Body lotion")).toHaveTextContent("Check this");
@@ -125,9 +126,23 @@ describe("JudgePage", () => {
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\/pe\.usps\.com\//));
   });
 
-  it("marks Canada in the country buttons with the suspension the post office has announced", () => {
-    render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
+  it("marks Canada in the country buttons with a suspension the post office has announced", () => {
+    render(<JudgePage edition={withUpcoming(ed, "CA", "2026-11-29")} index={index} today="2026-11-25" />);
     expect(within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ })).toHaveTextContent("USPS stops Nov 29");
+  });
+
+  it("with the shipped rules, says nothing of a Canada suspension and keeps Canada's verdicts through judging", async () => {
+    for (const today of ["2026-11-25", "2026-11-29", "2026-12-16"]) {
+      const { unmount } = render(<JudgePage edition={ed} index={index} today={today} />);
+      expect(screen.queryByTestId("suspension-example"), today).toBeNull();
+      const canada = within(screen.getByTestId("destination-picker")).getByRole("radio", { name: /^Canada/ });
+      expect(canada, today).not.toHaveTextContent(/USPS (stops|suspended)/);
+      await userEvent.click(canada);
+      expect(screen.queryByTestId("suspension-ahead-banner"), today).toBeNull();
+      expect(screen.queryByTestId("suspended-banner"), today).toBeNull();
+      expect(verdict("Body lotion"), today).toHaveTextContent("OK to pack");
+      unmount();
+    }
   });
 
   it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {

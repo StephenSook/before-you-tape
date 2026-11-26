@@ -3,7 +3,7 @@
 // The first block must be the run's own edition and date: it is the check that the re-score gives back the run.
 //   npx tsx scripts/eval-rescore.ts --run eval/runs/private/models-2026-11-21.json \
 //     --edition eval/runs/editions/byt-3b5f5508968f.json --date 2026-11-21 \
-//     --edition eval/runs/editions/byt-f083f028e045.json --date 2026-11-25 [--check]
+//     --edition eval/runs/editions/byt-d098b14aa534.json --date 2026-11-25 [--check]
 // --check rebuilds both files from the private run and fails if either differs from the committed one.
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";

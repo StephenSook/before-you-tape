@@ -55,10 +55,17 @@ describe("evaluateDestination", () => {
     expect(undated.suspendsFrom).toBeUndefined();
   });
 
-  it("follows the USPS suspension list updated 2026-11-20: no Republic of Congo, Canada from 2026-11-29", () => {
+  it("follows the USPS suspension list updated 2026-11-20: no Republic of Congo, and no Canada", () => {
     expect(ed.suspensions).toMatchObject({ updated: "2026-11-20", url: "https://about.usps.com/newsroom/service-alerts/international/" });
     expect([...ed.suspensions.codes].sort()).toEqual(["AF", "BT", "CU", "HT", "IR", "KI", "SC", "SD", "SS", "TM", "YE"]);
-    expect(ed.suspensions.upcoming).toEqual([{ code: "CA", from: "2026-11-29" }]);
+    // The page's "Effective Nov. 29 ... Canada" line is an inactive leftover banner (msgbar, class "alert inactive"),
+    // not a row of its suspension tables, and USPS's Canada pages say mail to Canada is accepted.
+    expect(ed.suspensions.upcoming).toEqual([]);
+    for (const day of ["2026-11-25", "2026-11-29", "2026-11-30", "2026-12-16"]) {
+      const canada = resolveDestination(ed, "CA", undefined, day);
+      expect([canada.suspended, canada.suspendsFrom], day).toEqual([false, undefined]);
+      expect(evaluateDestination(liquidLotion, {}, canada).map((x) => x.ruleId), day).not.toContain("DEST-SUSPENDED");
+    }
     const congo = resolveDestination(ed, "CG", undefined, "2026-11-20");
     expect(congo.suspended).toBe(false);
     expect(evaluateDestination(liquidLotion, {}, congo).map((x) => x.ruleId)).not.toContain("DEST-SUSPENDED");

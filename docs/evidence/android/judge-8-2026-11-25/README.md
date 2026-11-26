@@ -56,7 +56,9 @@ The phone: Pixel 10 (`frankel`), Android 17 (build CP3A.261005.005).
     or when the label's words name a fragrance or alcohol, but not for makeup alone, so no question was asked. Its label rests on the owner's word that it contains alcohol;
     the photo does not show the ingredient line. On 2026-11-21 the web app's run read the same photo on the device
     as `perfume_fragrance`, asked the alcohol question, and showed "Check this" for Canada. From 2026-11-29 every
-    item for Canada reads "Check this" or above, because of the announced suspension.
+    item for Canada reads "Check this" or above on this build: its edition, revision 8, lists a Canada suspension
+    from that day, misread from an inactive banner on the USPS service alerts page. USPS has not suspended mail to
+    Canada, and revision 9 drops it.
   - So on this phone, 1 of the 24 hazard items it read was called "OK to pack" (the exact one-sided 95% upper
     bound is 18.3%). 4 hazard items were not read. This is a different measurement from the web app's controlled
     run in `eval/runs/README.md` (0 of 28 on 2026-11-21, Chrome's built-in model on a laptop, with a second look

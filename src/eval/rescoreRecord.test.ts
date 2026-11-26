@@ -11,6 +11,7 @@ import { rulesOnlyRun, typedCategoriesOf } from "./baselines";
 import { buildEvalSet, type SetLabels, type SetManifest } from "./loadSet";
 import type { NotRescored, RescoredRow, Verdict } from "./rescore";
 import { readRescoreSummary, rescoreSummary, RESCORE_SOURCE, type RescoreRecord } from "./rescoreRecord";
+import { withUpcoming } from "../../tests/engine/helpers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8")) as unknown;
 const recordText = readFileSync(RESCORE_SOURCE, "utf8");
@@ -33,6 +34,7 @@ const reason = (v: Verdict | NotRescored | null) => (v && "notRescored" in v ? v
 const EDITION_SHA256: Record<string, string> = {
   "byt-3b5f5508968f": "1c8daae0c427ab4052191da8b67a31d8c96ea739350a79e2c5555bf3e5853ad4",
   "byt-f083f028e045": "f56f617351a0b4900291124e13e19311d718e1c24f82f55699144557b5b4bd3b",
+  "byt-d098b14aa534": "92b2ac13d8d2caa4afeb91285fd9195abc812ba1155c703872df0926bacf8cbb",
 };
 // The reads whose saved label reached 160 characters (src/eval/rescore.ts): re-scored on the run's own edition, where
 // the published level checks them, and not on any other.
@@ -116,6 +118,9 @@ describe("the published re-score", () => {
   it("changes no level between the run's edition and the last one, on any path; one rule hit is new on the device path", () => {
     const changed: string[] = [];
     const ruleOnly: string[] = [];
+    // The run's edition noted a Canada suspension ahead, misread from an inactive USPS banner; the last one has none.
+    const NOTE = "DEST-SUSPENSION-AHEAD:note";
+    const notesDropped: string[] = [];
     for (const [i, a] of first.rows.entries()) {
       const b = last.rows[i]!;
       if (a.rulesOnly !== b.rulesOnly) changed.push(`rulesOnly ${a.itemId} ${a.destination}`);
@@ -126,13 +131,17 @@ describe("the published re-score", () => {
         if (x.level !== y.level) changed.push(`${p} ${a.itemId} ${a.destination}`);
         else {
           const added = y.rules.filter((id) => !x.rules.includes(id));
-          const dropped = x.rules.filter((id) => !y.rules.includes(id));
+          const dropped = x.rules.filter((id) => !y.rules.includes(id) && id !== NOTE);
+          if (x.rules.includes(NOTE) && !y.rules.includes(NOTE)) notesDropped.push(a.destination);
+          expect(y.rules).not.toContain(NOTE);
           if (added.length || dropped.length || x.question !== y.question) ruleOnly.push(`${p} ${a.itemId} ${a.destination} +${added.join(",")} -${dropped.join(",")}`);
         }
       }
     }
     expect(changed).toEqual([]);
     expect(ruleOnly).toEqual(["i02", "i03", "i05"].flatMap((id) => ["CA", "PH"].map((d) => `device ${id} ${d} +USPS-INTL-LI-ONE-READ:check -`)));
+    expect(notesDropped.length).toBeGreaterThan(0);
+    expect(new Set(notesDropped)).toEqual(new Set(["CA"]));
   });
 
   it("publishes no read: only levels, rule ids, item ids and editions, and no brand name", () => {
@@ -148,14 +157,17 @@ describe("the published re-score", () => {
     expect(BRANDS.filter((b) => brandWord(b).test(recordText))).toEqual([]);
   });
 
-  it("gives /ran the summary of its last block, dated, with the suspension announced after that date", () => {
+  it("gives /ran the summary of its last block, dated, with any suspension announced after that date", () => {
     const summary = read("src/ran/rescore.json");
     const edition = parseEdition(read(last.editionFile));
     expect(summary).toEqual(rescoreSummary(record, edition));
     expect(last.date).toBe("2026-11-25");
-    expect(rescoreSummary(record, edition)).toMatchObject({ date: "2026-11-25", upcoming: [{ name: "Canada", from: "2026-11-29" }] });
+    // The last block's edition announces no suspension, so /ran names none.
+    expect(rescoreSummary(record, edition)).toMatchObject({ date: "2026-11-25", upcoming: [] });
+    const ahead = withUpcoming(edition, "CA", "2026-11-29");
+    expect(rescoreSummary(record, ahead).upcoming).toEqual([{ name: "Canada", from: "2026-11-29" }]);
     // A suspension already in force by the re-score's date is in its verdicts, so it is not announced as ahead.
-    expect(rescoreSummary({ ...record, blocks: [first, { ...last, date: "2026-11-29" }] }, edition).upcoming).toEqual([]);
+    expect(rescoreSummary({ ...record, blocks: [first, { ...last, date: "2026-11-29" }] }, ahead).upcoming).toEqual([]);
     expect(readRescoreSummary(summary)).toEqual(summary);
     expect(rescoreSummary(record, edition)).toMatchObject({ shippedItems: 26, shippedRows: 52, shippedChanged: 0, secondLookItems: 13, clippedItems: 1 });
   });
