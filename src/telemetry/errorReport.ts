@@ -75,7 +75,19 @@ export function safeErrorReport(reason: unknown, isScript: (url: string) => bool
   const message = parts.join("; ");
 
   const frames: string[] = [];
-  const text = typeof reason.stack === "string" ? reason.stack : "";
+  // A V8 stack starts with "Name: message": that header is cut first, and only its "    at ..." lines are read, so
+  // no number of the message can pass as a line or column.
+  let text = typeof reason.stack === "string" ? reason.stack : "";
+  const msg = String(reason.message);
+  for (const n of [reason.name, "Error", reason.constructor?.name]) {
+    if (typeof n !== "string" || !n) continue;
+    const header = msg ? `${n}: ${msg}` : n;
+    if (text.startsWith(header)) {
+      text = text.slice(header.length);
+      break;
+    }
+  }
+  if (/^ {4}at /m.test(text)) text = text.split("\n").filter((l) => l.startsWith("    at ")).join("\n");
   for (const m of text.matchAll(LOCATION)) {
     if (frames.length === MAX_FRAMES) break;
     const url = m[1]!;

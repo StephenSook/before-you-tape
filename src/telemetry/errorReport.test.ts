@@ -67,6 +67,13 @@ describe("safeErrorReport", () => {
     }
   });
 
+  it("takes no numbers from the message, even after a loaded script's address", () => {
+    const e = v8Error(`${LABEL} ${ORIGIN}/assets/index-abc.js?q=1:123456:654321`, [`    at readItem (${ORIGIN}/assets/index-abc.js:1:2)`]);
+    const r = safeErrorReport(e, isScript);
+    expect(r?.stack).toBe(`Error: message removed\n    at ${ORIGIN}/assets/index-abc.js:1:2`);
+    expect(JSON.stringify(r)).not.toMatch(/123456|654321/);
+  });
+
   it("reads Firefox and Safari frames, and drops a query or fragment from a location", () => {
     const e = new Error(LABEL);
     e.stack = [`pack/<@${ORIGIN}/assets/index-abc.js?v=2:10:11`, `Strawberry lotion@${ORIGIN}/assets/PackPage-def.js#x:1:1`, `promiseReactionJob@[native code]`].join("\n");
