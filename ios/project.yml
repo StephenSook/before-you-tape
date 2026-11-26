@@ -78,6 +78,9 @@ targets:
     platform: iOS
     sources:
       - path: BYTTests
+      # The public, blurred power bank photo, for the opt-in cloud look on a real iPhone (LiveCloudLookTests).
+      - path: ../public/eval/items/own-01.jpg
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.beforeyoutape.reader.tests
