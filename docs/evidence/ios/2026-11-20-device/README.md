@@ -17,7 +17,17 @@ each verdict.
    network." and "Label photos are read on this iPhone, with no network." (read aloud by the tester).
 2. The screen recording runs 11 min 10 s, from 10:54:53 PM. In the status bar of every minute,
    10:55 to 11:05, the airplane icon is on and there is no Wi-Fi or cellular signal
-   (`airplane-mode-status-bar.png`, one strip per minute). Do Not Disturb is on.
+   (`airplane-mode-status-bar.png`, one strip per minute). Do Not Disturb is on. The
+   "◀ Point Last Se…" at the top left is iOS's link back to the app BYT was opened from (Point Last
+   Seen, another app on the same iPhone); it is not part of BYT and plays no part in the reads.
+   `airplane-read-frame-04m00s.png` is one whole frame at 4:00 of the recording (status bar 10:58 PM),
+   sha256 `b2d399419a609edfae906cbd9f50939391804774de5e4312a79a10c2837e59d3`. It shows the airplane
+   icon in the same frame as a finished read on the phone: "NATURAL EXTERNAL USE SPRAY: Take it out.
+   Read on this iPhone." It is unedited (taken with `ffmpeg -ss 240 -frames:v 1` and saved as an RGB
+   PNG). It was picked because its photo crop shows only a product sticker and no address, and its
+   camera strip shows only a wall. The other frames checked (at 3:00, 8:00 and 10:48) show a hand and
+   bedding, or a maker's address on a label. The Dynamic Island shows the screen recording's red dot beside a "0" that this record does
+   not identify.
 3. The only prompt was iOS's camera permission, at 0:06. No cloud question appeared. Text read from a
    frame every 2 seconds found no "Read in the cloud" and no "could not be read".
 4. The first read line appears at 1:26 and the last, item 22, at 10:44 ("Carbohydrate Booster:
