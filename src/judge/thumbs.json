@@ -7,13 +7,13 @@
         "src": "/eval/thumbs/own-01-240.webp",
         "width": 240,
         "height": 320,
-        "sha256": "15f32f8fd782e081452091ce974ea2ac229858b87321ff134d5a9bcbbd320a7c"
+        "sha256": "8fc83f85b4c9354ca32f5d5646a7c5801a2ec467cc04971fb1b875ca7eb08b2c"
       },
       {
         "src": "/eval/thumbs/own-01-480.webp",
         "width": 480,
         "height": 640,
-        "sha256": "4101af89e725dbbff3544b7b7508c6fc18c41a4ee88a84e5bdf3c140c9d95a03"
+        "sha256": "6c7a6e2f41bbec841500a9e9b0aef42a89e54389455daf3597fdba5718ba3746"
       }
     ]
   },

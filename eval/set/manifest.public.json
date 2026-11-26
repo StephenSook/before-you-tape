@@ -20,7 +20,7 @@
     {
       "itemId": "own-01",
       "photo": "/eval/items/own-01.jpg",
-      "photoSha256": "50ddec66b05e947838dc0b8950b62a201fc60629905dbccf20a0ebdcc5de1f44",
+      "photoSha256": "5f93eea6569828f36d225181f5b014f0ef6181d22201e20ad5c6df22768492e8",
       "photoSha256Original": "5bfa6e16157c57553dda1c9cc2c247992d0cfbfd719b07f48c067cc78b010ce0",
       "widthPx": 1200,
       "heightPx": 1600,
@@ -194,7 +194,7 @@
         "author": "Stephen Sookra (project owner)",
         "license": "own photo (owner-provided for this project)",
         "licenseUrl": "",
-        "changes": "resized to 1600 px on the long side, re-encoded"
+        "changes": "resized to 1600 px on the long side, re-encoded; the maker and EU representative lines blurred (company names, street address, email)"
       }
     },
     {
