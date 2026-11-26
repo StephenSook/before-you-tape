@@ -6,8 +6,8 @@ import { expect, test } from "./fixtures";
 test("the sample box works with no sign-in, camera or model", async ({ page }) => {
   const googleApis: string[] = [];
   page.on("request", (r) => { if (/googleapis\.com|firebaseio\.com|google\.com\/recaptcha/.test(r.url())) googleApis.push(new URL(r.url()).host); });
-  // The sample box is judged on the page's own date, and USPS suspends mail to Canada from 2026-11-29: this
-  // checks the verdicts and the country switch on a fixed day before that.
+  // The sample box is judged on the page's own date, and every rule layer reads checked only up to its limit: this
+  // checks the verdicts and the country switch on a fixed day.
   await page.clock.install({ time: new Date("2026-11-25T12:00:00") });
   await page.goto("/judge");
   await expect(page.getByRole("heading", { level: 1, name: "Try the sample box" })).toBeVisible();
