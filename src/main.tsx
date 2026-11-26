@@ -2,7 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { registerServiceWorker, removeServiceWorkers } from "./pwa/register";
+import { startCrashReports } from "./telemetry/crashReports";
 import "./styles/app.css";
+
+// Uncaught errors go to Crashlytics without their message (src/telemetry/errorReport.ts), from a production build only.
+if (import.meta.env.PROD) startCrashReports();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("index.html is missing the #root element");
