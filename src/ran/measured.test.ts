@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
+import shipped from "./measured.json";
 import { readMeasured, STALE_DAYS } from "./measured";
 import type { Measured } from "./summarize";
+
+// The last day the shipped totals must still show: after judging (December 10 to 16) and the winners' announcement
+// (December 21), by any viewer's own date.
+const SHOWN_THROUGH = "2026-12-22";
+const DAY_MS = 86_400_000;
+const daysFrom = (from: string, to: string): string[] => {
+  const out: string[] = [];
+  for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += DAY_MS) out.push(new Date(t).toISOString().slice(0, 10));
+  return out;
+};
 
 const good = (): Measured => ({
   measuredAt: "2026-11-21T12:00:00Z",
@@ -15,14 +26,22 @@ const good = (): Measured => ({
 });
 
 describe("readMeasured", () => {
-  it("accepts a file of the right shape measured within the last 14 days", () => {
-    expect(STALE_DAYS).toBe(14);
+  it("accepts a file of the right shape measured within the last 31 days", () => {
+    expect(STALE_DAYS).toBe(31);
     expect(readMeasured(good(), "2026-11-21")).toEqual({ ok: true, data: good() });
-    expect(readMeasured(good(), "2026-12-05")).toMatchObject({ ok: true });
+    expect(readMeasured(good(), "2026-12-22")).toMatchObject({ ok: true });
   });
 
-  it("refuses a file older than 14 days as stale, so old numbers are never shown as current", () => {
-    expect(readMeasured(good(), "2026-12-06")).toEqual({ ok: false, reason: "stale" });
+  it("refuses a file older than 31 days as stale, so old numbers are never shown as current", () => {
+    expect(readMeasured(good(), "2026-12-23")).toEqual({ ok: false, reason: "stale" });
+  });
+
+  // A viewer's date is their own calendar day, so every day from the measured day on is checked, not one instant.
+  it("shows the shipped totals on every day from the day they were measured through 2026-12-22", () => {
+    const days = daysFrom(shipped.measuredAt.slice(0, 10), SHOWN_THROUGH);
+    expect(days.length).toBeGreaterThan(1);
+    const notShown = days.filter((d) => !readMeasured(shipped, d).ok);
+    expect(notShown, `src/ran/measured.json (measured ${shipped.measuredAt}) reads stale or unreadable on these days`).toEqual([]);
   });
 
   it("refuses a file it cannot read: missing or extra fields, a wrong type, a future date", () => {

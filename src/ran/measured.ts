@@ -1,9 +1,11 @@
 // The /ran page shows measured totals only from a file it can read in full and that is recent: a file of any other
 // shape, or one that holds a count under 5 not written as "fewer than 5", is unreadable, and one measured more than
-// 14 days before this device's date is stale. Either way the page says so and shows no number.
+// STALE_DAYS days before this device's date is stale. Either way the page says so and shows no number.
 import type { Count, Measured, Timed } from "./summarize";
 
-export const STALE_DAYS = 14;
+// 31 days: the totals measured on 2026-11-21 stay shown through 2026-12-22, after judging (December 10 to 16) and the
+// winners' announcement (December 21), by any viewer's own date. A test checks the shipped file against that date.
+export const STALE_DAYS = 31;
 export type MeasuredRead = { ok: true; data: Measured } | { ok: false; reason: "unreadable" | "stale" };
 
 type Obj = Record<string, unknown>;

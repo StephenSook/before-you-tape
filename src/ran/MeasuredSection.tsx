@@ -6,7 +6,7 @@ import { longDate } from "../engine/destination";
 import { readRescoreSummary, type RescoreSummary } from "../eval/rescoreRecord";
 import { LABEL_TEXT_MAX } from "../shared/itemRead";
 import { readEval, type EvalSummary } from "./evalSummary";
-import { readMeasured } from "./measured";
+import { readMeasured, STALE_DAYS } from "./measured";
 import type { Count, Measured, Timed } from "./summarize";
 
 const count = (c: Count | Timed) => ("fewerThan" in c ? "fewer than 5" : c.n.toLocaleString("en-US"));
@@ -113,7 +113,7 @@ export function MeasuredSection({ evalFile, rescoreFile, file, today }: { evalFi
       <h3>Saved boxes, our own checks included</h3>
       {r.ok ? <Visitors m={r.data} /> : (
         <p data-testid="measured">
-          Measured numbers are not shown: {r.reason === "stale" ? "they are more than 14 days old." : "the file could not be read."}
+          Measured numbers are not shown: {r.reason === "stale" ? `they are more than ${STALE_DAYS} days old.` : "the file could not be read."}
         </p>
       )}
     </section>
