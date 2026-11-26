@@ -5,6 +5,18 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### chore(ios): build 4, with rule edition revision 9 built in
+- What: CURRENT_PROJECT_VERSION goes from 3 to 4. MARKETING_VERSION stays 1.0.0. Build 4 carries rule
+  edition revision 9 (`byt-d098b14aa534`, no upcoming suspensions, so no Canada note) built in, in place
+  of App Store build 2, which has revision 4 built in and follows the pin to revision 6. App Store Connect
+  already has builds 1, 2 and 3.
+- Source: the build 4 release, to replace build 2 in review.
+- Verified: `bash ios/scripts/ci-local-ios.sh` exit 0 on a quiet machine: 1306 web tests, 38 BYTCore tests,
+  305 app tests (304 passed, 1 skipped), and the unsigned device build. The first run of it exit 65 on one
+  timing-dependent UI test (`FixReadingUITests.testAFieldASecondLookMovesWhileTheFormIsOpenIsReset`)
+  while two other builds ran on the Mac; this change touches only the build number, and the run on a
+  quiet machine passed. The archive for this commit is checked before upload.
+
 ### docs(ios): App Store screenshot 03's Canada note was a misread
 - What: `app-store/screenshots/README.md` no longer says the Canada box reads differently from November 29,
   2026. It says screenshot 03's Canada suspension note came from an inactive banner on the USPS service
