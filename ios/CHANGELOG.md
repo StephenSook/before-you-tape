@@ -5,6 +5,24 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### docs(ios): App Store screenshots 03 to 05 and review notes for build 4, with no Canada note
+- What:
+  - `app-store/screenshots/03-your-box.png`, `04-why-and-when.png` and `05-another-country.png` were
+    captured again from the Release build of 14d6f7c (build 4, rule edition revision 9). It ran on the
+    6.9-inch simulator, with the same four photos and the same hand steps. 03 and 04 no longer show the
+    Canada suspension note: it was on the lotion in 03 and on the T-shirt in 04, which the README had not
+    said. 04's layers show service suspensions checked on 2026-11-25. 01 and 02 are unchanged, and 02
+    keeps its blurred maker and address lines.
+  - `app-store/review-notes.md` no longer tells App Review that USPS stops taking mail to Canada on
+    November 29, 2026. It says build 4 has revision 9 and the app changes since build 1, and that the
+    app keeps its bundled edition when the one Remote Config names is older. It used to say no edition
+    was named. `app-store/listing.md`'s version note says the same for build 4.
+- Source: review (the misread Canada suspension), for build 4's resubmission.
+- Verified:
+  - Each new screenshot is 1320 x 2868 RGB, with no alpha channel; the simulator's alpha was fully
+    opaque, checked before conversion.
+  - `python3 -I ios/app-store/check_lengths.py` exit 0 (review notes 3840 / 4000).
+  - `ci-local-ios.sh` was not run: no file the app builds from changed.
 ### docs: record the iPhone cloud read, and App Attest as verified
 - What: `docs/TEST-MATRIX.md` row 20 (iPhone, cloud read) now has a tracked run, and `docs/SECURITY.md`
   row 1b (App Attest) moves from PENDING to VERIFIED, with the end of row 1d to match. The evidence is in

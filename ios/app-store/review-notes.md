@@ -6,7 +6,7 @@ demo account is needed.
 
 ## Notes for the reviewer
 
-1. Screen recording (attached, 70 s): build 1 of this version on an iPhone 17 Pro with iOS 27.2.1, from the Home Screen: the app opens on Ready check, then labels are read on the iPhone. The photo library thumbnails are blurred for privacy. Build 2 changes only the rule edition (revision 4) and build number. An earlier build on the same iPhone also read 22 labels on the iPhone in airplane mode (11 minutes, on request).
+1. Screen recording (attached, 70 s): build 1 of this version on an iPhone 17 Pro with iOS 27.2.1, from the Home Screen: the app opens on Ready check, then labels are read on the iPhone. The photo library thumbnails are blurred for privacy. Build 4 has rule edition revision 9 and app changes made since build 1. An earlier build on the same iPhone also read 22 labels on the iPhone in airplane mode (11 minutes, on request).
 
 2. Purpose and audience: people in the US who mail gifts and personal items abroad with USPS. Batteries, liquids, sprays and flammable items have rules that differ by item and by country. You photograph an item's label, the app reads it, and a rules engine bundled with the app says OK to pack, Check this or Take it out, with the rule behind it. The model only reads the label. The rules decide every verdict.
 
@@ -23,9 +23,9 @@ With Apple Intelligence on, photos and typed label words are read on the iPhone,
 - Firebase Authentication: an anonymous sign-in.
 - Firebase App Check with App Attest: the cloud calls are accepted only from this app.
 - Firebase Remote Config: settings such as the cloud model and a switch that pauses all cloud calls.
-- Cloud Firestore: reads a newer rule edition only when Remote Config names one; none is named now.
+- Cloud Firestore: reads the rule edition Remote Config names; the app keeps its own bundled edition when the named one is older, as it is now.
 The rules engine and the rule edition are bundled in the app. No payments, ads or user accounts.
 
-5. Regional differences: available in every country and region except France and China mainland. France: the TLS library in the Firebase SDK is exempt from export documentation everywhere but France. China mainland: cloud checks use generative AI, which there needs filings this app does not have. Reading on the iPhone needs Apple Intelligence, which only some iPhones, languages and regions support; elsewhere a photo needs the cloud check, asked first. The rules are the same in every region. Destinations in this edition: Canada and the Philippines. USPS stops taking mail to Canada on November 29, 2026; a Canada box says so before that day and from it says nothing can go. Pick the Philippines to see items marked OK to pack.
+5. Regional differences: available in every country and region except France and China mainland. France: the TLS library in the Firebase SDK is exempt from export documentation everywhere but France. China mainland: cloud checks use generative AI, which there needs filings this app does not have. Reading on the iPhone needs Apple Intelligence, which only some iPhones, languages and regions support; elsewhere a photo needs the cloud check, asked first. The rules are the same in every region. Destinations in this edition: Canada and the Philippines.
 
 6. Regulated material: none. The rules come from USPS's public International Mail Manual and service alerts. The app gives guidance, not legal or customs advice, and mails nothing. Not affiliated with or approved by the US Postal Service.
