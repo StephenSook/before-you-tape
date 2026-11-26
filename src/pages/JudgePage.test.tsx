@@ -145,6 +145,16 @@ describe("JudgePage", () => {
     }
   });
 
+  it("shows only the brand-blurred copies of photos, never a measured photo as taken", () => {
+    const { container } = render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
+    const imgs = [...container.querySelectorAll("img")];
+    expect(imgs.length).toBeGreaterThan(0);
+    for (const img of imgs) {
+      const urls = [img.getAttribute("src") ?? "", ...(img.getAttribute("srcset") ?? "").split(",").map((s) => s.trim().split(" ")[0] ?? "")].filter(Boolean);
+      for (const url of urls) expect(url, img.getAttribute("alt") ?? "").toMatch(/^\/judge\/(thumbs|samples)\//);
+    }
+  });
+
   it("lays the cards out in a grid, the verdict on each photo, the label and credit behind a disclosure", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     const grid = screen.getByTestId("sample-grid");
