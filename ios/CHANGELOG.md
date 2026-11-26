@@ -3,6 +3,22 @@
 Each entry: what changed, its source, and how it was verified (with the exit code of
 `bash ios/scripts/ci-local-ios.sh`).
 
+## 2026-11-26
+
+### fix(ios): blur the maker and address lines in App Store screenshot 02
+- What: `app-store/screenshots/02-check-a-photo.png` shows the power bank photo, and at full size its
+  label's maker line and EU representative block (company names, a street address, an email address)
+  were readable. Those lines are now covered with a heavy blur plus grain, as in the published photo
+  `public/eval/items/own-01.jpg`; the input and output lines, "MADE IN CHINA", the EC REP mark, the
+  safety marks and the rest of the screen are as captured. The README beside the screenshots says so.
+  The copy in App Store Connect was not changed.
+- Source: review (a frame review of the film found the same lines in the published photo).
+- Verified: 22,638 pixels changed, all inside the photo, in y 1587 to 1704; no pixel outside the
+  photo and none in the lines kept changed; the file is still a 1320 x 2868 RGB PNG; OCR read "Stra",
+  "Neumar", "Complian" and ".com" from the earlier file and none of them after; at 4x zoom no letter
+  of the blurred lines reads. `ci-local-ios.sh` was not run: no file the app builds from changed
+  (`ios/project.yml` builds from `BYT` and `rules/edition.json`, not `app-store`).
+
 ## 2026-11-25
 
 ### fix(ios): keep "Read these words" reachable with the keyboard up, and read on Return
