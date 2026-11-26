@@ -5,6 +5,22 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### docs(ios): one frame of the airplane-mode run shows the airplane icon and a finished read
+- What: `docs/evidence/ios/2026-11-20-device/airplane-read-frame-04m00s.png`, one unedited frame at
+  4:00 of the 2026-11-20 screen recording (status bar 10:58 PM). It shows the airplane icon in the
+  same frame as "NATURAL EXTERNAL USE SPRAY: Take it out. Read on this iPhone." Its sha256 is in that
+  folder's README. The README also says what the "◀ Point Last Se…" in the status bar is: iOS's link
+  back to the app BYT was opened from, not part of BYT. It also notes the Dynamic Island's "0", which
+  the record does not identify.
+- Source: review (no tracked frame showed the network state and a result together; the recording
+  that links them is kept outside the repository).
+- Verified:
+  - The recording's sha256 matches the README's (244e6be6...6c7a).
+  - The frame was checked at full size: no notification, no other app's content, no personal data,
+    and no address. The photo crop shows only a product sticker; the camera strip shows only a wall.
+  - Frames at 3:00, 8:00 and 10:48 were rejected: a hand and bedding, or a maker's address.
+  - `ci-local-ios.sh` was not run: no file the app builds from changed.
+
 ### docs(ios): App Store screenshots 03 to 05 and review notes for build 4, with no Canada note
 - What:
   - `app-store/screenshots/03-your-box.png`, `04-why-and-when.png` and `05-another-country.png` were
