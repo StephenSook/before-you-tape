@@ -5,6 +5,48 @@ Each entry: what changed, its source, and how it was verified (with the exit cod
 
 ## 2026-11-26
 
+### docs: record the iPhone cloud read, and App Attest as verified
+- What: `docs/TEST-MATRIX.md` row 20 (iPhone, cloud read) now has a tracked run, and `docs/SECURITY.md`
+  row 1b (App Attest) moves from PENDING to VERIFIED, with the end of row 1d to match. The evidence is in
+  `docs/evidence/ios/2026-11-26-cloud-look/`: the run's lines, the in-memory box, the box screen drawn on
+  the phone, the phone and commit, and App Check's own count. The photo was fed by the test, through the
+  app's own readPhoto; the cloud call was real, on the real iPhone (iPhone 17 Pro, iOS 27.2.1).
+  - Apple's model on the phone read the own-01 power bank first.
+  - The app's second look then sent the crop to `gemini-3.5-flash-lite` (route `cloud_only`, reason
+    `second_look`), which answered in 2,181 ms with 3.7 V, 50,000 mAh and 185 Wh, as the label prints.
+  - The only App Check provider in that build is `AppAttestProvider`. Cloud Monitoring counted 1 valid
+    iOS request to AI Logic in that minute.
+- Source: the iPhone cloud read had no tracked run (test matrix row 20), and App Attest was not proven on a
+  real device (security row 1b).
+- Verified: `npx vitest run scripts/test-matrix.test.ts` exit 0 (4 tests) with the evidence staged; the
+  label's figures checked against `public/eval/items/own-01.jpg`; the box file holds no label text.
+
+### test(ios): an opt-in test runs one real cloud second look on an iPhone
+- What: `ios/BYTTests/LiveCloudLookTests.swift` runs only with `TEST_RUNNER_BYT_LIVE_CLOUD=1`, in a Release
+  configuration build (`ENABLE_TESTABILITY=YES`) on a real iPhone, where App Check has only App Attest and
+  Firebase is live. It feeds the public, blurred own-01 power bank photo (added to the test bundle in
+  `ios/project.yml`) to the app's own `readPhoto`, with the app's own reader, Apple's model on the phone and
+  a box kept in memory. It allows cloud checks through `answerConsent(true)` and waits for the second look.
+  Then it prints each model call, the counters and the second-look note, and writes the box and a picture
+  of its screen to the app's tmp/row20 folder. In the normal checks it is skipped. Test-only.
+- Source: the iPhone cloud read had no tracked run (test matrix row 20), and App Attest was not proven on a
+  real device (security row 1b).
+- Verified: `bash ios/scripts/ci-local-ios.sh` exit 0 (1307 web tests, 38 BYTCore tests, 306 app tests with
+  304 passed and 2 skipped, this one among them; unsigned device build). On an iPhone 17 Pro (iOS 27.2.1)
+  it passed in 9.1 s, at main 3250df7 with the test.
+
+### chore(ios): build 4, with rule edition revision 9 built in
+- What: CURRENT_PROJECT_VERSION goes from 3 to 4. MARKETING_VERSION stays 1.0.0. Build 4 carries rule
+  edition revision 9 (`byt-d098b14aa534`, no upcoming suspensions, so no Canada note) built in, in place
+  of App Store build 2, which has revision 4 built in and follows the pin to revision 6. App Store Connect
+  already has builds 1, 2 and 3.
+- Source: the build 4 release, to replace build 2 in review.
+- Verified: `bash ios/scripts/ci-local-ios.sh` exit 0 on a quiet machine: 1306 web tests, 38 BYTCore tests,
+  305 app tests (304 passed, 1 skipped), and the unsigned device build. The first run of it exit 65 on one
+  timing-dependent UI test (`FixReadingUITests.testAFieldASecondLookMovesWhileTheFormIsOpenIsReset`)
+  while two other builds ran on the Mac; this change touches only the build number, and the run on a
+  quiet machine passed. The archive for this commit is checked before upload.
+
 ### docs(ios): App Store screenshot 03's Canada note was a misread
 - What: `app-store/screenshots/README.md` no longer says the Canada box reads differently from November 29,
   2026. It says screenshot 03's Canada suspension note came from an inactive banner on the USPS service

@@ -55,7 +55,7 @@ npm run eval:baseline -- --baseline always_check --date 2026-11-21   # an eval b
 
 `npm run release:gate` fails while any country listing has neither a person's line-by-line check nor an approval as a whole in [`rules/reviews.json`](rules/reviews.json) (two AI reviews of each line, then the project owner's approval of those same lines), or while any rule layer would be past its limit on the last judging day (2026-12-16). It is run before a release, not on every commit.
 
-It passes today. The Canada and Philippines listings are approved as a whole in `rules/reviews.json` (checked by two AI reviews and approved by the project owner on 2026-11-21); no person has checked them line by line yet. The USPS service alerts were read again on 2026-11-25, so with their 21-day limit that layer reads checked through 2026-12-16.
+It passes today. The Canada and Philippines listings are approved as a whole in `rules/reviews.json` (checked by two AI reviews and approved by the project owner on 2026-11-21); no person has checked them line by line yet. The USPS service alerts were read again on 2026-11-25, so with their 21-day limit that layer reads checked through 2026-12-16. To read a saved copy of that page, run `npx tsx scripts/usps-alerts.ts <page.html>`: it lists only the rows of the page's suspension tables, and skips HTML comments and any banner marked inactive, such as the hidden one that once put a Canada suspension in the rules.
 
 ## Security you can check
 

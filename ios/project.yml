@@ -12,7 +12,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "4"
     CODE_SIGN_STYLE: Automatic
     # The Apple developer team that signs device builds; App Attest in Firebase is registered
     # for this team. Simulator builds sign ad hoc so the test bundle loads.
@@ -78,6 +78,9 @@ targets:
     platform: iOS
     sources:
       - path: BYTTests
+      # The public, blurred power bank photo, for the opt-in cloud look on a real iPhone (LiveCloudLookTests).
+      - path: ../public/eval/items/own-01.jpg
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.beforeyoutape.reader.tests
