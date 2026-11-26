@@ -1,0 +1,11 @@
+ROW20 provider=FIRAppAttestProvider
+ROW20 started=2026-11-26T02:19:28Z build=3
+ROW20 first read: path=on_device model=apple-on-device reason=on_device_default route=hybrid ms=4547 line=Power bank: Take it out. Read on this iPhone.
+ROW20 call: on_device apple-on-device ok 4543 ms at 2026-11-26T02:19:28Z tokens=974/115
+ROW20 call: in_cloud gemini-3.5-flash-lite ok 2181 ms at 2026-11-26T02:19:33Z tokens=1202/159
+ROW20 counters: onDevice=1 inCloud=0 secondLooks=1 cloudFallbacks=0
+ROW20 item: category=string("power_bank") readSource=phone_on_device secondLook=2184 ms, Battery numbers decide what may be mailed, so the cloud read them again. lookError=none
+✔ Test aPhotoReadOnThePhoneGetsARealCloudSecondLook() passed after 9.148 seconds.
+✔ Suite LiveCloudLookTests passed after 9.148 seconds.
+✔ Test run with 1 test in 1 suite passed after 9.149 seconds.
+** TEST EXECUTE SUCCEEDED **

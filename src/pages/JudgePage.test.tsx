@@ -111,7 +111,7 @@ describe("JudgePage", () => {
   it("links the public source code", () => {
     render(<JudgePage edition={ed} index={index} today="2026-11-25" />);
     expect(screen.getByRole("link", { name: "Source code on GitHub" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape");
-    expect(screen.getByRole("link", { name: "Android app (APK)" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-8");
+    expect(screen.getByRole("link", { name: "Android app (APK)" })).toHaveAttribute("href", "https://github.com/StephenSook/before-you-tape/releases/tag/android-judge-9");
   });
 
   it("says why the Android app holds a device's battery numbers, beside its link", () => {

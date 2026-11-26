@@ -1,0 +1,43 @@
+{
+  "metric": "firebaseappcheck.googleapis.com/services/verification_count",
+  "project": "before-you-tape-2026",
+  "filter": "app_id matches :ios:",
+  "interval": [
+    "2026-11-26T01:00:00Z",
+    "2026-11-26T02:40:00Z"
+  ],
+  "readAt": "2026-11-26T02:21:28Z",
+  "series": [
+    {
+      "app_id": "1:481254717481:ios:e03a4e8a7f4ce3f7740438",
+      "service_id": "firebaseml.googleapis.com",
+      "security": "VALID",
+      "result": "ALLOW",
+      "points": [
+        {
+          "start": "2026-11-26T02:19:22.001Z",
+          "end": "2026-11-26T02:20:22Z",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "app_id": "1:481254717481:ios:e03a4e8a7f4ce3f7740438",
+      "service_id": "firestore.googleapis.com",
+      "security": "VALID",
+      "result": "ALLOW",
+      "points": [
+        {
+          "start": "2026-11-26T02:19:29.001Z",
+          "end": "2026-11-26T02:20:29Z",
+          "count": 3
+        },
+        {
+          "start": "2026-11-26T02:03:29.001Z",
+          "end": "2026-11-26T02:04:29Z",
+          "count": 3
+        }
+      ]
+    }
+  ]
+}

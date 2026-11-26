@@ -1,0 +1,84 @@
+{
+  "boxId" : "04500ADB-B458-4FA3-AF46-CF4C75DA47C8",
+  "cloudConsent" : true,
+  "cloudConsentVersion" : 2,
+  "destinationCode" : "CA",
+  "items" : [
+    {
+      "answers" : {
+
+      },
+      "disputes" : {
+        "battery" : {
+          "cloud" : {
+            "milliampHours" : 50000,
+            "volts" : 3.7,
+            "wattHours" : 185
+          },
+          "device" : {
+            "milliampHours" : 0,
+            "volts" : 0,
+            "wattHours" : 0
+          },
+          "resolved" : false
+        },
+        "category" : {
+          "cloud" : "power_bank",
+          "device" : "other_electronics",
+          "resolved" : false
+        },
+        "evidence" : {
+          "cloud" : "label_read",
+          "device" : "item_seen",
+          "resolved" : false
+        },
+        "retailBox" : {
+          "cloud" : "open_or_none",
+          "device" : "sealed",
+          "resolved" : false
+        }
+      },
+      "itemId" : "972705FA-5254-4126-8C84-DDEB62EA5AB1",
+      "labelTags" : [
+        "label_text",
+        "power_bank_label"
+      ],
+      "overrides" : {
+
+      },
+      "quantity" : 1,
+      "read" : {
+        "alcoholOnLabel" : false,
+        "batteryWords" : true,
+        "category" : "power_bank",
+        "evidence" : "item_seen",
+        "flammableOnLabel" : false,
+        "glassContainer" : false,
+        "itemName" : "Power bank",
+        "labelText" : "",
+        "liquid" : false,
+        "lithiumGrams" : 0,
+        "milliampHours" : 50000,
+        "powder" : false,
+        "pressurized" : false,
+        "retailBox" : "open_or_none",
+        "volts" : 3.7,
+        "wattHours" : 185
+      },
+      "readMs" : 4547.931667,
+      "readSource" : "phone_on_device",
+      "secondLook" : {
+        "ms" : 2184.1049160000002,
+        "reason" : "Battery numbers decide what may be mailed, so the cloud read them again."
+      },
+      "tagsEdition" : "byt-d098b14aa534"
+    }
+  ],
+  "sources" : {
+    "cloudFallbacks" : 0,
+    "inCloud" : 0,
+    "onDevice" : 1,
+    "rulesOnlyRechecks" : 0,
+    "secondLooks" : 1
+  }
+}
